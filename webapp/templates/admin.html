@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>Admin Panel</h1>
+  <div class="date">
+    System management &middot;
+    <a href="/admin/logout" style="font-size:13px;">Logout</a>
+  </div>
+</div>
+
+<!-- Status Banners -->
+{% if request.query_params.get('approved') %}
+<div style="background:#e8f5e9; border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Trust approved</strong> and added to monitoring.
+</div>
+{% endif %}
+{% if request.query_params.get('rejected') %}
+<div style="background:#fff3cd; border-left:4px solid #ffc107; padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  Request rejected.
+</div>
+{% endif %}
+{% if request.query_params.get('pipeline') == 'started' %}
+<div style="background:#e8f5e9; border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Pipeline started.</strong> This runs in the background and may take 30-60 minutes. Refresh this page to check status.
+</div>
+{% elif request.query_params.get('pipeline') == 'running' %}
+<div style="background:#e3f2fd; border-left:4px solid var(--blue); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  Pipeline is already running. Please wait for it to finish.
+</div>
+{% endif %}
+{% if request.query_params.get('digest') == 'sent' %}
+<div style="background:#e8f5e9; border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Digest sent successfully.</strong> Check your inbox.
+</div>
+{% elif request.query_params.get('digest') == 'fail' %}
+<div style="background:#fce4ec; border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--red);">Failed to send digest.</strong> Check SMTP/Azure configuration.
+</div>
+{% elif request.query_params.get('digest') == 'no_files' %}
+<div style="background:#fff3cd; border-left:4px solid #ffc107; padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong>No pipeline output files found.</strong> Run the pipeline first to generate CSV data for the digest.
+</div>
+{% elif request.query_params.get('digest') == 'error' %}
+<div style="background:#fce4ec; border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--red);">Digest error:</strong> {{ request.query_params.get('msg', 'Unknown error') }}
+</div>
+{% endif %}
+{% if request.query_params.get('error') == 'missing_data' %}
+<div style="background:#fce4ec; border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  Missing CIK or trust name.
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+
+  <!-- Pipeline Control -->
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 12px; font-size:16px;">Pipeline Control</h3>
+
+    {% if pipeline_running %}
+    <div style="padding:10px 14px; background:#e3f2fd; border:1px solid #90caf9; border-radius:6px; font-size:13px; margin-bottom:12px;">
+      Pipeline is currently <strong>running</strong>...
+    </div>
+    {% endif %}
+
+    {% if last_run %}
+    <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">
+      <div>Last run: <strong>{{ last_run.status }}</strong></div>
+      <div>Started: {{ last_run.started_at.strftime('%Y-%m-%d %H:%M') if last_run.started_at else 'N/A' }}</div>
+      {% if last_run.finished_at %}
+      <div>Finished: {{ last_run.finished_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      {% endif %}
+      {% if last_run.trusts_processed %}
+      <div>Trusts processed: {{ last_run.trusts_processed }}</div>
+      {% endif %}
+      {% if last_run.error_message %}
+      <div style="color:var(--red); margin-top:4px;">Error: {{ last_run.error_message[:100] }}</div>
+      {% endif %}
+    </div>
+    {% else %}
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">No pipeline runs recorded yet.</p>
+    {% endif %}
+
+    <form method="post" action="/admin/pipeline/run"
+          onsubmit="return confirm('Run the full pipeline now?\n\nThis fetches all SEC filings, extracts fund data, and syncs to the database.\nIt runs in the background and takes 30-60 minutes.');">
+      <button type="submit" class="btn btn-primary" {% if pipeline_running %}disabled{% endif %}>
+        {% if pipeline_running %}Pipeline Running...{% else %}Run Pipeline Now{% endif %}
+      </button>
+    </form>
+  </div>
+
+  <!-- Email Digest -->
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 12px; font-size:16px;">Email Digest</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
+      Send the daily digest email to all recipients in email_recipients.txt.
+      Requires pipeline output CSV files.
+    </p>
+    <form method="post" action="/admin/digest/send"
+          onsubmit="return confirm('Send digest email to all recipients now?');">
+      <button type="submit" class="btn btn-primary">Send Test Digest</button>
+    </form>
+  </div>
+
+</div>
+
+<!-- Trust Requests -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
+  <h3 style="margin:0 0 4px; font-size:16px;">Pending Trust Requests</h3>
+  <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+    Users submit monitoring requests via the Search page. Approve to add to the database, then run the pipeline to fetch filing data.
+  </p>
+
+  {% if pending_requests %}
+  <table>
+    <thead>
+      <tr>
+        <th>Trust Name</th>
+        <th>CIK</th>
+        <th>Requested</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in pending_requests %}
+      <tr>
+        <td><strong>{{ r.name }}</strong></td>
+        <td style="font-size:12px;">{{ r.cik }}</td>
+        <td style="font-size:12px; color:var(--muted);">{{ r.timestamp }}</td>
+        <td>
+          <form method="post" action="/admin/requests/approve" style="display:inline;">
+            <input type="hidden" name="cik" value="{{ r.cik }}">
+            <input type="hidden" name="name" value="{{ r.name }}">
+            <button type="submit" class="btn btn-sm" style="background:var(--green); color:white; border:none;"
+                    onclick="return confirm('Approve {{ r.name }}?');">Approve</button>
+          </form>
+          <form method="post" action="/admin/requests/reject" style="display:inline; margin-left:4px;">
+            <input type="hidden" name="cik" value="{{ r.cik }}">
+            <button type="submit" class="btn btn-sm" style="background:var(--red); color:white; border:none;"
+                    onclick="return confirm('Reject this request?');">Reject</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center; padding:20px; color:var(--muted); font-size:13px;">
+    No pending requests. Users can submit requests from the <a href="/search/">Search</a> page.
+  </div>
+  {% endif %}
+
+  {% if all_requests %}
+  <details style="margin-top:12px;">
+    <summary style="font-size:12px; color:var(--muted); cursor:pointer;">View all requests ({{ all_requests|length }} total)</summary>
+    <table style="margin-top:8px;">
+      <thead>
+        <tr><th>Status</th><th>Name</th><th>CIK</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for r in all_requests %}
+        <tr>
+          <td>
+            {% if r.status == 'APPROVED' %}
+            <span style="color:var(--green); font-weight:600;">APPROVED</span>
+            {% elif r.status == 'REJECTED' %}
+            <span style="color:var(--red); font-weight:600;">REJECTED</span>
+            {% else %}
+            <span style="color:var(--orange); font-weight:600;">PENDING</span>
+            {% endif %}
+          </td>
+          <td>{{ r.name }}</td>
+          <td style="font-size:12px;">{{ r.cik }}</td>
+          <td style="font-size:12px;">{{ r.timestamp }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+</div>
+
+<!-- AI Analysis Status -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
+  <h3 style="margin:0 0 12px; font-size:16px;">AI Analysis Status</h3>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div>
+      <div style="font-size:13px; color:var(--muted);">Claude API Key</div>
+      <div style="font-size:15px; font-weight:600; margin-top:2px;">
+        {% if ai_configured %}
+        <span style="color:var(--green);">Configured</span>
+        {% else %}
+        <span style="color:var(--red);">Not configured</span>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:13px; color:var(--muted);">Analyses Today</div>
+      <div style="font-size:15px; font-weight:600; margin-top:2px;">{{ ai_usage_today }} / 10</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

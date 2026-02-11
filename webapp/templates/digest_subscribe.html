@@ -58,17 +58,6 @@
     </ul>
   </div>
 
-  <!-- Admin: Test Digest -->
-  <div style="margin-top:40px; padding:20px; border:1px solid var(--border); border-radius:8px; background:#fff8e1;">
-    <h3 style="font-size:15px; margin-bottom:8px;">Admin: Send Test Digest</h3>
-    <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">
-      Send the daily digest email now to all recipients in email_recipients.txt.
-    </p>
-    <form method="post" action="/digest/send"
-          onsubmit="return confirm('Send digest email to all recipients now?');">
-      <button type="submit" class="btn btn-primary btn-sm">Send Test Digest</button>
-    </form>
-  </div>
 </div>
 {% endif %}
 

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Admin Login - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div style="max-width:360px; margin:80px auto 0;">
+  <div style="background:var(--light); border:1px solid var(--border); border-radius:8px; padding:30px;">
+    <h2 style="margin:0 0 6px; font-size:20px;">Admin Access</h2>
+    <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">
+      Enter the admin password to continue.
+    </p>
+
+    {% if error %}
+    <div style="background:#fce4ec; border-left:4px solid var(--red); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:16px; font-size:13px;">
+      <strong style="color:var(--red);">{{ error }}</strong>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/admin/login">
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Password</label>
+        <input type="password" name="password" required autofocus
+               placeholder="Enter admin password"
+               style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:6px; font-size:14px; box-sizing:border-box;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px;">
+        Log In
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

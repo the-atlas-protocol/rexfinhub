@@ -11,8 +11,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from sqlalchemy import select
+
 from webapp.database import SessionLocal
-from webapp.models import PipelineRun
+from webapp.models import PipelineRun, Trust
 
 log = logging.getLogger(__name__)
 
@@ -52,9 +54,23 @@ def run_pipeline_background(triggered_by: str = "api") -> None:
         from etp_tracker.run_pipeline import run_pipeline
         from etp_tracker.trusts import get_all_ciks, get_overrides
 
+        # Merge CIKs from Python registry + DB-only trusts (admin-approved)
+        ciks = list(get_all_ciks())
+        overrides = dict(get_overrides())
+        registry_set = set(ciks)
+
+        db_trusts = db.execute(
+            select(Trust).where(Trust.is_active == True)
+        ).scalars().all()
+        for t in db_trusts:
+            if t.cik and t.cik not in registry_set:
+                ciks.append(t.cik)
+                overrides[t.cik] = t.name
+                log.info("Including DB-only trust: %s (CIK %s)", t.name, t.cik)
+
         n = run_pipeline(
-            ciks=get_all_ciks(),
-            overrides=get_overrides(),
+            ciks=ciks,
+            overrides=overrides,
             since=SINCE_DATE,
             refresh_submissions=True,
             user_agent=USER_AGENT,

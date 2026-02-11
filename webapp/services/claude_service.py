@@ -160,6 +160,12 @@ def analyze_filing(
         log.error("Claude API authentication failed - invalid API key")
         return {"error": "API key is invalid. Please check the ANTHROPIC_API_KEY in your environment settings."}
 
+    except anthropic.BadRequestError as e:
+        log.error("Claude API bad request: %s", e)
+        if "credit balance" in str(e).lower():
+            return {"error": "Anthropic account issue: credit balance too low or billing not active. Top up at console.anthropic.com."}
+        return {"error": f"Claude API request error: {e}"}
+
     except anthropic.RateLimitError:
         log.error("Claude API rate limit exceeded")
         return {"error": "API rate limit exceeded. Please try again in a few minutes."}

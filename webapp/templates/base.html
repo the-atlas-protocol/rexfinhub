@@ -17,6 +17,7 @@
   <a href="/search/">Search</a>
   <a href="/downloads/">Downloads</a>
   <a href="/digest/subscribe">Subscribe</a>
+  <a href="/admin/">Admin</a>
   {% block nav_extra %}{% endblock %}
   <span style="margin-left:auto; font-size:12px; color:var(--muted);">
     {% set session_user = request.session.get('user') if request.session is defined else None %}

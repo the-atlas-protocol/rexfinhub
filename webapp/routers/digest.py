@@ -74,11 +74,14 @@ def subscribe_submit(request: Request, email: str = Form(...)):
 @router.post("/send")
 def send_digest(request: Request):
     """Send the digest email now (admin action)."""
-    from etp_tracker.email_alerts import send_digest_email
+    try:
+        from etp_tracker.email_alerts import send_digest_email
 
-    dashboard_url = str(request.base_url).rstrip("/")
-    sent = send_digest_email(OUTPUT_DIR, dashboard_url=dashboard_url)
+        dashboard_url = str(request.base_url).rstrip("/")
+        sent = send_digest_email(OUTPUT_DIR, dashboard_url=dashboard_url)
 
-    if sent:
-        return RedirectResponse("/digest/subscribe?sent=ok", status_code=303)
-    return RedirectResponse("/digest/subscribe?sent=fail", status_code=303)
+        if sent:
+            return RedirectResponse("/digest/subscribe?sent=ok", status_code=303)
+        return RedirectResponse("/digest/subscribe?sent=fail", status_code=303)
+    except Exception:
+        return RedirectResponse("/digest/subscribe?sent=fail", status_code=303)
