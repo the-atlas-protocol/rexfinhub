@@ -122,8 +122,8 @@
   <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--light); display:flex; justify-content:space-between; align-items:center;">
     <div>
       <strong style="font-size:14px;">{{ t.name }}</strong>
-      {% if t.name.startswith('REX') %}
-      <span style="background:var(--navy); color:white; font-size:10px; padding:1px 6px; border-radius:8px; margin-left:6px;">REX</span>
+      {% if t.is_rex %}
+      <span style="background:var(--navy); color:white; font-size:10px; padding:1px 6px; border-radius:8px; margin-left:6px;">[REX]</span>
       {% endif %}
     </div>
     <a href="/downloads/export/trust/{{ t.id }}/filings" class="btn btn-sm" style="white-space:nowrap;">Download CSV</a>

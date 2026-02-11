@@ -15,59 +15,61 @@ log = logging.getLogger(__name__)
 
 MODEL = "claude-sonnet-4-5-20250929"
 MAX_INPUT_TOKENS = 25000  # Truncate filing text beyond this (rough char estimate)
+MAX_OUTPUT_TOKENS = 1500  # Keep responses concise to lower cost
 
 ANALYSIS_TYPES = {
     "summary": {
         "label": "Summary",
-        "description": "High-level summary of the prospectus filing",
+        "description": "Key facts: fund type, fees, strategy, dates",
         "prompt": (
-            "You are an SEC filing analyst. Analyze this prospectus filing and provide:\n"
-            "1. **Overview**: What type of fund(s) are described and their investment objectives\n"
-            "2. **Key Terms**: Fee structure, expense ratios, minimum investments\n"
-            "3. **Strategy**: Investment strategy and principal risks\n"
-            "4. **Timeline**: Any effective dates, amendment dates, or status changes\n"
-            "5. **Notable Items**: Anything unusual or noteworthy\n\n"
-            "Be concise and use bullet points. Focus on facts from the filing."
+            "You are an SEC ETP filing analyst at REX Financial. "
+            "Extract ONLY these facts from the prospectus. Use short bullet points. "
+            "Skip any section where data is not in the filing.\n\n"
+            "1. **Fund(s)**: Name, ticker, investment objective (one line each)\n"
+            "2. **Fees**: Expense ratio, management fee, other key costs\n"
+            "3. **Strategy**: Core investment approach in 1-2 sentences\n"
+            "4. **Dates**: Effective date, amendment date, any status changes\n"
+            "5. **Notable**: Only if something unusual stands out\n\n"
+            "MAX 300 words. No preamble. No disclaimers. Facts only."
         ),
     },
     "competitive": {
         "label": "Competitive Intel",
-        "description": "Compare against the competitive ETP landscape",
+        "description": "Market positioning, fees vs peers, threat level",
         "prompt": (
-            "You are a competitive intelligence analyst for an ETP (Exchange-Traded Product) company. "
-            "Analyze this prospectus filing and extract:\n"
-            "1. **Product Positioning**: What market segment does this fund target?\n"
-            "2. **Fee Comparison**: How do the fees compare to typical ETFs in this category?\n"
-            "3. **Differentiation**: What makes this fund unique vs existing products?\n"
-            "4. **Market Implications**: What does this filing signal about market trends?\n"
-            "5. **Competitive Threat Level**: Low/Medium/High and why\n\n"
-            "Be specific and actionable. This analysis will be read by product development leadership."
+            "You are a competitive intelligence analyst at REX Financial (an ETP issuer). "
+            "Analyze this competitor prospectus for product development leadership.\n\n"
+            "1. **Segment**: What market/asset class does this target?\n"
+            "2. **Fees vs Peers**: Are fees above/below/at category average? Cite numbers.\n"
+            "3. **Edge**: What differentiates this from existing ETFs? Be specific.\n"
+            "4. **Threat**: Low/Medium/High to REX product lineup and why (one sentence)\n\n"
+            "MAX 250 words. Be direct and actionable. No filler."
         ),
     },
     "changes": {
         "label": "Change Detection",
-        "description": "Identify what changed in this amendment",
+        "description": "What changed in this amendment vs prior version",
         "prompt": (
-            "You are a legal analyst reviewing an SEC filing amendment. Identify:\n"
-            "1. **Type of Change**: Is this a new filing, amendment, or supplement?\n"
-            "2. **Key Changes**: What specific changes were made (fees, strategy, names, etc.)?\n"
+            "You are a legal analyst at REX Financial reviewing an SEC filing amendment. "
+            "Identify ONLY what changed. Do NOT summarize the whole fund.\n\n"
+            "1. **Filing Type**: New / Amendment / Supplement\n"
+            "2. **Changes Made**: List each specific change (fee changes, name changes, strategy changes, etc.)\n"
             "3. **Effective Date**: When do changes take effect?\n"
-            "4. **Regulatory Status**: Any delaying amendments or conditions?\n"
-            "5. **Impact Assessment**: What's the practical impact of these changes?\n\n"
-            "Focus on what changed, not general fund description."
+            "4. **Impact**: One sentence on practical significance\n\n"
+            "If this is a new filing (not an amendment), say so and list the key terms instead.\n"
+            "MAX 200 words. Only facts from the document."
         ),
     },
     "risk": {
         "label": "Risk Review",
-        "description": "Analyze risk factors and regulatory concerns",
+        "description": "Risk factors, leverage, derivatives, rating",
         "prompt": (
-            "You are a risk analyst reviewing an SEC prospectus filing. Analyze:\n"
-            "1. **Principal Risks**: List and categorize the main risk factors\n"
-            "2. **Leverage/Derivatives**: Any use of leverage, derivatives, or complex instruments?\n"
-            "3. **Regulatory Risks**: Any regulatory concerns or compliance issues noted?\n"
-            "4. **Liquidity Risks**: Any liquidity concerns or redemption restrictions?\n"
-            "5. **Risk Rating**: Overall risk level (Conservative/Moderate/Aggressive/Speculative)\n\n"
-            "Be thorough but concise."
+            "You are a risk analyst at REX Financial reviewing a prospectus.\n\n"
+            "1. **Top 5 Risks**: The most significant risk factors, one line each\n"
+            "2. **Leverage/Derivatives**: Yes/No. If yes, what kind and how much?\n"
+            "3. **Liquidity**: Any redemption restrictions or liquidity concerns?\n"
+            "4. **Risk Rating**: Conservative / Moderate / Aggressive / Speculative\n\n"
+            "MAX 200 words. Bullet points only."
         ),
     },
 }
@@ -139,7 +141,7 @@ def analyze_filing(
     try:
         response = client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=MAX_OUTPUT_TOKENS,
             system=type_config["prompt"],
             messages=[{"role": "user", "content": user_message}],
         )
@@ -154,6 +156,14 @@ def analyze_filing(
             "analysis_type": analysis_type,
         }
 
+    except anthropic.AuthenticationError:
+        log.error("Claude API authentication failed - invalid API key")
+        return {"error": "API key is invalid. Please check the ANTHROPIC_API_KEY in your environment settings."}
+
+    except anthropic.RateLimitError:
+        log.error("Claude API rate limit exceeded")
+        return {"error": "API rate limit exceeded. Please try again in a few minutes."}
+
     except anthropic.APIError as e:
         log.error("Claude API error: %s", e)
         return {"error": f"Claude API error: {e}"}
@@ -165,10 +175,10 @@ def estimate_cost(text_length: int) -> dict[str, float]:
     Returns dict with input_tokens_est, output_tokens_est, cost_est_usd.
     """
     # Rough estimate: 1 token ~= 4 characters
-    input_tokens = min(text_length // 4, MAX_INPUT_TOKENS) + 500  # prompt overhead
-    output_tokens = 4000  # max output
+    input_tokens = min(text_length // 4, MAX_INPUT_TOKENS) + 200  # prompt overhead
+    output_tokens = MAX_OUTPUT_TOKENS
 
-    # Sonnet pricing (as of 2025): $3/M input, $15/M output
+    # Sonnet pricing: $3/M input, $15/M output
     cost = (input_tokens * 3 / 1_000_000) + (output_tokens * 15 / 1_000_000)
 
     return {

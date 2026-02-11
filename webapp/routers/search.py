@@ -1,10 +1,13 @@
 """
 EDGAR Search router - Search for trusts/registrants on SEC EDGAR.
+Users can search and submit monitoring requests. Admin adds trusts from local system.
 """
 from __future__ import annotations
 
+from datetime import datetime
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,6 +18,9 @@ from webapp.services.sec_search import search_trusts, verify_cik
 
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+REQUESTS_FILE = PROJECT_ROOT / "trust_requests.txt"
 
 
 @router.get("/search/")
@@ -41,13 +47,14 @@ def search_page(request: Request, q: str = "", db: Session = Depends(get_db)):
 
 @router.get("/search/verify/{cik}")
 def verify_page(request: Request, cik: str, db: Session = Depends(get_db)):
-    """Verify a CIK and show entity details before adding."""
+    """Verify a CIK and show entity details before requesting monitoring."""
     details = verify_cik(cik)
     if not details:
         return templates.TemplateResponse("search_verify.html", {
             "request": request,
             "error": f"CIK {cik} not found on SEC EDGAR.",
             "details": None,
+            "submitted": False,
         })
 
     # Check if already monitored
@@ -60,37 +67,50 @@ def verify_page(request: Request, cik: str, db: Session = Depends(get_db)):
         "details": details,
         "already_monitored": existing is not None,
         "error": None,
+        "submitted": False,
     })
 
 
-@router.post("/search/add")
-def add_trust(request: Request, cik: str = Form(""), name: str = Form(""), db: Session = Depends(get_db)):
-    """Add a new trust to monitoring from search results."""
-    import re
-
+@router.post("/search/request")
+def request_trust(request: Request, cik: str = Form(""), name: str = Form(""), db: Session = Depends(get_db)):
+    """Submit a monitoring request. Admin reviews and adds from local system."""
     if not cik or not name:
-        return RedirectResponse("/search/", status_code=302)
+        return templates.TemplateResponse("search_verify.html", {
+            "request": request,
+            "error": "Missing CIK or trust name.",
+            "details": None,
+            "submitted": False,
+        })
 
-    # Check if already exists
+    # Check if already monitored
     existing = db.execute(
         select(Trust).where(Trust.cik == cik)
     ).scalar_one_or_none()
 
     if existing:
-        return RedirectResponse(f"/trusts/{existing.slug}", status_code=302)
+        return templates.TemplateResponse("search_verify.html", {
+            "request": request,
+            "details": {"cik": cik, "name": name},
+            "already_monitored": True,
+            "error": None,
+            "submitted": False,
+        })
 
-    # Create slug
-    slug = re.sub(r"[^a-z0-9]+", "-", name.lower().strip()).strip("-")
+    # Log the request to file for admin review
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    line = f"PENDING|{cik}|{name}|{timestamp}\n"
+    with open(REQUESTS_FILE, "a", encoding="utf-8") as f:
+        f.write(line)
 
-    db.add(Trust(
-        cik=cik,
-        name=name,
-        slug=slug,
-        is_rex=False,
-        is_active=True,
-        added_by="SEARCH",
-    ))
-    db.commit()
+    # Re-fetch details for the confirmation page
+    details = verify_cik(cik)
+    if not details:
+        details = {"cik": cik, "name": name}
 
-    from urllib.parse import quote
-    return RedirectResponse(f"/?added={quote(name)}", status_code=302)
+    return templates.TemplateResponse("search_verify.html", {
+        "request": request,
+        "details": details,
+        "already_monitored": False,
+        "error": None,
+        "submitted": True,
+    })

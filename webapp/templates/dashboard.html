@@ -50,7 +50,7 @@
       <th>Date</th>
       <th>Form</th>
       <th>Trust</th>
-      <th>Accession</th>
+      <th>Fund(s)</th>
       <th>Doc</th>
       <th>AI</th>
     </tr>
@@ -62,7 +62,7 @@
       <td>{{ f.filing_date or '' }}</td>
       <td>{{ f.form }}</td>
       <td><a href="/trusts/{{ row.trust_slug }}">{{ row.trust_name }}</a></td>
-      <td style="font-size:11px;">{{ f.accession_number }}</td>
+      <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ row.fund_names or '' }}</td>
       <td>
         {% if f.primary_link %}
         <a href="{{ f.primary_link }}" target="_blank">View</a>

@@ -22,6 +22,9 @@ templates = Jinja2Templates(directory="webapp/templates")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 
+# REX trusts appear first in exports
+_PRIORITY_TRUSTS = ["REX ETF Trust", "ETF Opportunities Trust"]
+
 
 def _safe_path(requested: str) -> Path:
     """Resolve a requested path and ensure it's within OUTPUTS_DIR."""
@@ -75,10 +78,17 @@ def downloads_page(request: Request, db: Session = Depends(get_db)):
                     "files": csvs,
                 })
 
-    # Active trusts for per-trust filing exports
-    all_trusts = db.execute(
-        select(Trust).where(Trust.is_active == True).order_by(Trust.name)
+    # Active trusts for per-trust filing exports (REX trusts first)
+    all_trusts_raw = db.execute(
+        select(Trust).where(Trust.is_active == True)
     ).scalars().all()
+
+    def _sort_key(t):
+        if t.name in _PRIORITY_TRUSTS:
+            return (0, _PRIORITY_TRUSTS.index(t.name))
+        return (1, t.name)
+
+    all_trusts = sorted(all_trusts_raw, key=_sort_key)
 
     return templates.TemplateResponse("downloads.html", {
         "request": request,

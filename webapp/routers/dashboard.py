@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
-from webapp.models import Trust, FundStatus, Filing, NameHistory
+from webapp.models import Trust, FundStatus, Filing, FundExtraction
 
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
@@ -68,9 +68,16 @@ def dashboard(request: Request, added: str = "", db: Session = Depends(get_db)):
     # Recent filings (last 7 days)
     week_ago = date.today() - timedelta(days=7)
     recent_filings = db.execute(
-        select(Filing, Trust.name.label("trust_name"), Trust.slug.label("trust_slug"))
+        select(
+            Filing,
+            Trust.name.label("trust_name"),
+            Trust.slug.label("trust_slug"),
+            func.group_concat(FundExtraction.series_name.distinct()).label("fund_names"),
+        )
         .join(Trust, Trust.id == Filing.trust_id)
+        .outerjoin(FundExtraction, FundExtraction.filing_id == Filing.id)
         .where(Filing.filing_date >= week_ago)
+        .group_by(Filing.id)
         .order_by(Filing.filing_date.desc())
         .limit(20)
     ).all()

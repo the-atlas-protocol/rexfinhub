@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Verify CIK - ETP Filing Tracker{% endblock %}
+{% block title %}Verify Trust - ETP Filing Tracker{% endblock %}
 
 {% block content %}
 <div class="header">
@@ -13,6 +13,13 @@
 </div>
 {% endif %}
 
+{% if submitted %}
+<div style="padding:20px; background:#d4edda; border:1px solid #c3e6cb; border-radius:8px; color:#155724; margin-bottom:20px;">
+  <strong>Request submitted.</strong> Our team will review your request and add this trust to monitoring.
+  You will see it on the dashboard once it has been approved and the pipeline has run.
+</div>
+{% endif %}
+
 {% if details %}
 <div class="detail-header">
   <h2>{{ details.name }}</h2>
@@ -23,22 +30,31 @@
     <div class="meta-label">CIK</div>
     <div class="meta-value">{{ details.cik }}</div>
   </div>
+  {% if details.entity_type is defined %}
   <div class="meta-item">
     <div class="meta-label">Entity Type</div>
     <div class="meta-value">{{ details.entity_type or 'N/A' }}</div>
   </div>
+  {% endif %}
+  {% if details.sic_description is defined or details.sic is defined %}
   <div class="meta-item">
     <div class="meta-label">SIC</div>
     <div class="meta-value">{{ details.sic_description or details.sic or 'N/A' }}</div>
   </div>
+  {% endif %}
+  {% if details.state is defined %}
   <div class="meta-item">
     <div class="meta-label">State</div>
     <div class="meta-value">{{ details.state or 'N/A' }}</div>
   </div>
+  {% endif %}
+  {% if details.filing_count is defined %}
   <div class="meta-item">
     <div class="meta-label">Recent Filings</div>
     <div class="meta-value">{{ details.filing_count }}</div>
   </div>
+  {% endif %}
+  {% if details.has_prospectus_filings is defined %}
   <div class="meta-item">
     <div class="meta-label">Has Prospectus Filings</div>
     <div class="meta-value">
@@ -49,26 +65,27 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 </div>
 
 {% if already_monitored %}
 <div style="padding:16px; background:#d4edda; border:1px solid #c3e6cb; border-radius:8px; color:#155724;">
   This trust is already being monitored.
 </div>
-{% else %}
-<form method="post" action="/search/add" style="margin-top:16px;">
+{% elif not submitted %}
+<form method="post" action="/search/request" style="margin-top:16px;">
   <input type="hidden" name="cik" value="{{ details.cik }}">
   <input type="hidden" name="name" value="{{ details.name }}">
   <div style="padding:16px; background:#e8f4fd; border:1px solid #bee5eb; border-radius:8px; margin-bottom:16px;">
     <p style="margin:0; font-size:14px;">
-      <strong>Add "{{ details.name }}" to monitoring?</strong><br>
+      <strong>Request monitoring for "{{ details.name }}"?</strong><br>
       <span style="color:var(--muted); font-size:13px;">
-        The pipeline will fetch and process all prospectus filings for this trust.
-        This may take a few minutes depending on filing count.
+        Your request will be reviewed by our team. Once approved, the pipeline will
+        fetch and process all prospectus filings for this trust.
       </span>
     </p>
   </div>
-  <button type="submit" class="btn btn-green">Add to Monitoring</button>
+  <button type="submit" class="btn btn-primary">Request Monitoring</button>
   <a href="/search/" class="btn" style="margin-left:8px;">Cancel</a>
 </form>
 {% endif %}
