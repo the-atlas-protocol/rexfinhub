@@ -4,9 +4,10 @@ from __future__ import annotations
 import io
 import json
 import logging
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Body, Depends, Query, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -375,3 +376,77 @@ def screener_report_download(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+# ==================== Candidate Evaluator ====================
+
+@router.get("/evaluate")
+def screener_evaluate_page(request: Request):
+    """Interactive candidate evaluator page."""
+    # Check if Bloomberg data is available
+    data_available = False
+    try:
+        from screener.config import DATA_FILE
+        data_available = DATA_FILE.exists()
+    except Exception:
+        pass
+
+    return templates.TemplateResponse("screener_evaluate.html", {
+        "request": request,
+        "tab": "evaluate",
+        "data_available": data_available,
+    })
+
+
+@router.post("/evaluate")
+def screener_evaluate_api(
+    request: Request,
+    tickers: list[str] = Body(..., embed=True),
+):
+    """API endpoint: evaluate candidate tickers and return JSON results."""
+    if not tickers:
+        return JSONResponse({"error": "No tickers provided"}, status_code=400)
+
+    # Cap at 20 tickers per request
+    tickers = tickers[:20]
+
+    try:
+        from screener.candidate_evaluator import evaluate_candidates
+        results = evaluate_candidates(tickers)
+    except FileNotFoundError:
+        return JSONResponse(
+            {"error": "Bloomberg data file not found. Upload from Admin panel first."},
+            status_code=404,
+        )
+    except Exception as e:
+        log.error("Candidate evaluation failed: %s", e)
+        return JSONResponse({"error": str(e)[:200]}, status_code=500)
+
+    # Serialize results for JSON (convert numpy/pandas types)
+    clean_results = []
+    for r in results:
+        clean_results.append(_serialize_eval(r))
+
+    return JSONResponse({"results": clean_results})
+
+
+def _serialize_eval(r: dict) -> dict:
+    """Convert evaluation result to JSON-safe dict."""
+    import math
+
+    def _clean(v):
+        if v is None:
+            return None
+        if isinstance(v, float):
+            if math.isnan(v) or math.isinf(v):
+                return None
+            return round(v, 2)
+        if isinstance(v, dict):
+            return {k: _clean(vv) for k, vv in v.items()}
+        if isinstance(v, list):
+            return [_clean(vv) for vv in v]
+        if hasattr(v, 'item'):  # numpy scalar
+            return _clean(v.item())
+        return v
+
+    return _clean(r)

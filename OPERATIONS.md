@@ -30,6 +30,7 @@ Pages:
 - `/filings/` - Filing Search (all filings, search by trust/form/accession)
 - `/trusts/<slug>` - Trust detail page
 - `/screener/` - Launch Screener (Top 50 + Filed-only tables)
+- `/screener/evaluate` - Candidate Evaluator (interactive ticker evaluation)
 - `/screener/rex-funds` - REX Fund portfolio health
 - `/screener/stock/<ticker>` - Competitive deep dive per stock
 - `/search/` - EDGAR search (submit trust monitoring requests)
@@ -40,7 +41,7 @@ Pages:
 
 ## 2. Running the SEC Pipeline (Local Only)
 
-The pipeline fetches SEC filings for all 14 trusts. Takes 30-60 min. **Run locally, not on Render.**
+The pipeline fetches SEC filings for all 16 trusts. Takes 30-60 min. **Run locally, not on Render.**
 
 ### Full daily run (pipeline + Excel + email digest):
 
@@ -110,7 +111,7 @@ python screener/generate_report.py
 
 Output: `reports/ETF_Launch_Screener_YYYYMMDD.pdf`
 
-### Run candidate evaluation (local):
+### Run candidate evaluation (local CLI):
 
 ```powershell
 cd D:\REX_ETP_TRACKER
@@ -118,6 +119,13 @@ python screener/generate_report.py evaluate SCCO BHP RIO TECK SIL ZETA HBM ERO A
 ```
 
 Output: `reports/Candidate_Evaluation_YYYYMMDD.pdf`
+
+### Run candidate evaluation (web):
+
+1. Go to `/screener/evaluate`
+2. Type ticker symbols and click **Add** (or paste comma-separated: `SCCO, BHP, RIO`)
+3. Click **Evaluate** - results appear inline with 4 pillars per ticker
+4. If a ticker is not in the Bloomberg dataset, it shows "DATA UNAVAILABLE" for Demand
 
 ---
 
@@ -132,7 +140,7 @@ Output: `reports/Candidate_Evaluation_YYYYMMDD.pdf`
 ### As admin:
 1. Go to `/admin/` (password: `123`)
 2. See pending requests under **Pending Trust Requests**
-3. Click **Approve** - trust is added to DB
+3. Click **Approve** - trust is added to DB AND `trusts.py` registry
 4. Run the pipeline locally to fetch its filings
 
 ---
@@ -167,13 +175,14 @@ The app auto-deploys on push to `main`.
 - **Ephemeral**: `outputs/` - lost on every deploy
 
 ### What works on Render:
-- All web pages (dashboard, funds, filings, screener, search)
+- All web pages (dashboard, funds, filings, screener, search, evaluate)
 - Bloomberg data upload and scoring (via admin panel)
+- Candidate evaluator (interactive ticker evaluation)
 - Email digest (if Azure Graph API is configured)
 - AI filing analysis (if Anthropic API key is set)
 
 ### What must run locally:
-- SEC filing pipeline (`run_daily.py`) - too long for web process
+- SEC filing pipeline (`run_daily.py`) - too long, crashes web server
 - PDF report generation (needs local file output)
 
 ### Push and deploy:

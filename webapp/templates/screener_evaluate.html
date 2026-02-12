@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% block title %}Candidate Evaluator - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>Candidate Evaluator</h1>
+  <div class="date">
+    Enter ticker symbols to evaluate for ETF filing/launch decisions.
+    Each ticker is assessed across 4 pillars: Demand, Competition, Market Feedback, Filing Status.
+  </div>
+</div>
+
+<!-- Sub-navigation -->
+<div style="display:flex; gap:4px; margin-bottom:20px; border-bottom:2px solid var(--navy); padding-bottom:8px;">
+  <a href="/screener/" class="pill{% if tab == 'opportunities' %} active{% endif %}">Screener</a>
+  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Funds</a>
+  <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
+</div>
+
+{% if not data_available %}
+<div class="what-changed" style="background:#fff3e0; border-color:var(--orange);">
+  <h2>No Bloomberg data available</h2>
+  <p>Upload Bloomberg .xlsx from the <a href="/admin/">Admin panel</a> before evaluating candidates.</p>
+</div>
+{% else %}
+
+<!-- Ticker Input Section -->
+<div style="background:var(--light); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:20px;">
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <input type="text" id="tickerInput" placeholder="Enter ticker (e.g. SCCO, BHP, AMPX)"
+           style="flex:1; min-width:200px; padding:10px 14px; border:1px solid var(--border); border-radius:6px; font-size:14px; text-transform:uppercase;"
+           onkeydown="if(event.key==='Enter'){addTicker();}">
+    <button onclick="addTicker()" class="btn btn-primary" style="padding:10px 20px;">Add</button>
+    <button onclick="evaluateTickers()" class="btn btn-green" style="padding:10px 20px;" id="evalBtn" disabled>
+      Evaluate
+    </button>
+  </div>
+
+  <!-- Ticker Chips -->
+  <div id="tickerList" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; min-height:30px;">
+    <span style="color:var(--gray); font-size:13px;" id="emptyMsg">No tickers added yet. Type a symbol above and click Add.</span>
+  </div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loadingBar" style="display:none; text-align:center; padding:40px;">
+  <div style="font-size:16px; color:var(--navy); margin-bottom:8px;">Evaluating candidates...</div>
+  <div style="width:200px; height:4px; background:#eee; border-radius:2px; margin:0 auto; overflow:hidden;">
+    <div style="width:60%; height:100%; background:var(--blue); border-radius:2px; animation:loading 1.5s ease-in-out infinite;"></div>
+  </div>
+</div>
+
+<!-- Results Area -->
+<div id="resultsArea" style="display:none;">
+  <!-- Summary row -->
+  <div id="summaryKpis" class="kpi-row" style="margin-bottom:20px;"></div>
+
+  <!-- Result cards -->
+  <div id="resultCards"></div>
+</div>
+
+<!-- Error Area -->
+<div id="errorArea" style="display:none;" class="what-changed" style="background:#fdecea; border-color:var(--red);"></div>
+
+{% endif %}
+
+<style>
+  .ticker-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:4px 10px; background:var(--navy); color:white;
+    border-radius:16px; font-size:13px; font-weight:600;
+  }
+  .ticker-chip .remove {
+    cursor:pointer; opacity:0.7; font-size:16px; line-height:1;
+    margin-left:2px;
+  }
+  .ticker-chip .remove:hover { opacity:1; }
+
+  .eval-card {
+    border:1px solid var(--border); border-radius:8px; margin-bottom:16px; overflow:hidden;
+  }
+  .eval-card-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px; cursor:pointer; user-select:none;
+  }
+  .eval-card-header:hover { filter:brightness(0.95); }
+  .eval-card-body { padding:0 20px 20px; }
+
+  .pillar-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  }
+  @media (max-width:768px) { .pillar-grid { grid-template-columns:1fr; } }
+
+  .pillar-box {
+    border:1px solid var(--border); border-radius:6px; padding:14px;
+  }
+  .pillar-title {
+    font-size:11px; text-transform:uppercase; letter-spacing:0.5px;
+    color:var(--gray); margin-bottom:8px; font-weight:600;
+  }
+  .pillar-verdict {
+    font-size:14px; font-weight:700; margin-bottom:6px;
+  }
+  .pillar-metric {
+    display:flex; justify-content:space-between; font-size:12px;
+    padding:2px 0; border-bottom:1px solid #f0f0f0;
+  }
+  .pillar-metric:last-child { border-bottom:none; }
+  .pillar-metric .label { color:var(--gray); }
+  .pillar-metric .value { font-weight:600; }
+
+  .verdict-recommend { background:#e8f5e9; border-color:var(--green); }
+  .verdict-recommend .eval-card-header { background:#e8f5e9; }
+  .verdict-caution { background:#fdecea; border-color:var(--red); }
+  .verdict-caution .eval-card-header { background:#fdecea; }
+  .verdict-neutral { background:#fff8e1; border-color:var(--orange); }
+  .verdict-neutral .eval-card-header { background:#fff8e1; }
+
+  .verdict-badge {
+    padding:4px 12px; border-radius:12px; font-size:12px; font-weight:700; color:white;
+  }
+  .vb-recommend { background:var(--green); }
+  .vb-caution { background:var(--red); }
+  .vb-neutral { background:var(--orange); }
+
+  @keyframes loading {
+    0% { transform:translateX(-100%); }
+    50% { transform:translateX(100%); }
+    100% { transform:translateX(-100%); }
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const tickers = [];
+
+function addTicker() {
+  const input = document.getElementById('tickerInput');
+  const raw = input.value.trim().toUpperCase().replace(/\s+US$/, '');
+  if (!raw) return;
+
+  // Allow comma-separated input
+  const items = raw.split(/[,;\s]+/).filter(t => t.length >= 1 && t.length <= 6);
+
+  items.forEach(t => {
+    if (!tickers.includes(t)) {
+      tickers.push(t);
+    }
+  });
+
+  input.value = '';
+  input.focus();
+  renderTickers();
+}
+
+function removeTicker(ticker) {
+  const idx = tickers.indexOf(ticker);
+  if (idx > -1) tickers.splice(idx, 1);
+  renderTickers();
+  // If results are showing and we removed a ticker, don't clear - user can re-evaluate
+}
+
+function renderTickers() {
+  const list = document.getElementById('tickerList');
+  const btn = document.getElementById('evalBtn');
+  const empty = document.getElementById('emptyMsg');
+
+  if (tickers.length === 0) {
+    list.innerHTML = '<span style="color:var(--gray); font-size:13px;" id="emptyMsg">No tickers added yet. Type a symbol above and click Add.</span>';
+    btn.disabled = true;
+    return;
+  }
+
+  btn.disabled = false;
+  list.innerHTML = tickers.map(t =>
+    `<span class="ticker-chip">${t}<span class="remove" onclick="removeTicker('${t}')">&times;</span></span>`
+  ).join('');
+}
+
+async function evaluateTickers() {
+  if (tickers.length === 0) return;
+
+  const loading = document.getElementById('loadingBar');
+  const results = document.getElementById('resultsArea');
+  const errorArea = document.getElementById('errorArea');
+  const btn = document.getElementById('evalBtn');
+
+  loading.style.display = 'block';
+  results.style.display = 'none';
+  errorArea.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Evaluating...';
+
+  try {
+    const resp = await fetch('/screener/evaluate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tickers: tickers}),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(data.error || 'Evaluation failed');
+    }
+
+    renderResults(data.results);
+    loading.style.display = 'none';
+    results.style.display = 'block';
+
+  } catch (err) {
+    loading.style.display = 'none';
+    errorArea.style.display = 'block';
+    errorArea.innerHTML = `<h2>Evaluation Error</h2><p>${err.message}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Evaluate';
+  }
+}
+
+function renderResults(results) {
+  // Summary KPIs
+  const recs = results.filter(r => r.verdict === 'RECOMMEND').length;
+  const cautions = results.filter(r => r.verdict === 'CAUTION').length;
+  const neutrals = results.filter(r => r.verdict === 'NEUTRAL').length;
+
+  document.getElementById('summaryKpis').innerHTML = `
+    <div class="kpi"><div class="num">${results.length}</div><div class="label">Evaluated</div></div>
+    <div class="kpi" style="border-color:var(--green);"><div class="num" style="color:var(--green);">${recs}</div><div class="label">Recommend</div></div>
+    <div class="kpi" style="border-color:var(--orange);"><div class="num" style="color:var(--orange);">${neutrals}</div><div class="label">Neutral</div></div>
+    <div class="kpi" style="border-color:var(--red);"><div class="num" style="color:var(--red);">${cautions}</div><div class="label">Caution</div></div>
+  `;
+
+  // Sort: RECOMMEND first, then NEUTRAL, then CAUTION
+  const order = {RECOMMEND: 0, NEUTRAL: 1, CAUTION: 2};
+  results.sort((a, b) => (order[a.verdict] || 9) - (order[b.verdict] || 9));
+
+  // Render cards
+  const cards = document.getElementById('resultCards');
+  cards.innerHTML = results.map((r, i) => renderCard(r, i)).join('');
+}
+
+function renderCard(r, idx) {
+  const vclass = r.verdict === 'RECOMMEND' ? 'verdict-recommend' :
+                 r.verdict === 'CAUTION' ? 'verdict-caution' : 'verdict-neutral';
+  const bclass = r.verdict === 'RECOMMEND' ? 'vb-recommend' :
+                 r.verdict === 'CAUTION' ? 'vb-caution' : 'vb-neutral';
+
+  const ticker = r.ticker_clean || r.ticker || '?';
+  const company = r.company_name || '';
+  const coverage = r.data_coverage === 'full' ? '' :
+    '<span style="font-size:11px; color:var(--orange); margin-left:8px;">Partial data</span>';
+
+  return `
+  <div class="eval-card ${vclass}" id="card${idx}">
+    <div class="eval-card-header" onclick="toggleCard(${idx})">
+      <div>
+        <span style="font-size:18px; font-weight:700;">${ticker}</span>
+        <span style="font-size:13px; color:var(--gray); margin-left:8px;">${company}</span>
+        ${coverage}
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="verdict-badge ${bclass}">${r.verdict}</span>
+        <span style="font-size:12px; transform:rotate(90deg); transition:transform 0.2s;" class="card-arrow">&#9654;</span>
+      </div>
+    </div>
+    <div class="eval-card-body" style="display:none;" id="body${idx}">
+      <p style="font-size:13px; color:var(--navy); margin-bottom:14px; font-style:italic;">${r.reason || ''}</p>
+      <div class="pillar-grid">
+        ${renderDemand(r.demand)}
+        ${renderCompetition(r.competition)}
+        ${renderMarketFeedback(r.market_feedback)}
+        ${renderFiling(r.filing)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(idx) {
+  const body = document.getElementById('body' + idx);
+  const card = document.getElementById('card' + idx);
+  const arrow = card.querySelector('.card-arrow');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    body.style.display = 'none';
+    arrow.style.transform = 'rotate(90deg)';
+  }
+}
+
+function fmtNum(v, decimals) {
+  if (v === null || v === undefined) return '-';
+  if (typeof v === 'string') return v;
+  const d = decimals !== undefined ? decimals : 1;
+  if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  return v.toFixed(d);
+}
+
+function fmtPctl(v) {
+  if (v === null || v === undefined) return '-';
+  return Math.round(v) + 'p';
+}
+
+function verdictColor(v) {
+  const map = {
+    HIGH: 'var(--green)', MEDIUM: 'var(--orange)', LOW: 'var(--red)',
+    DATA_UNAVAILABLE: 'var(--gray)',
+    FIRST_MOVER: 'var(--green)', EARLY_STAGE: 'var(--blue)',
+    COMPETITIVE: 'var(--orange)', CROWDED: 'var(--red)',
+    VALIDATED: 'var(--green)', MIXED: 'var(--orange)',
+    REJECTED: 'var(--red)', NO_PRODUCTS: 'var(--gray)',
+    ALREADY_TRADING: 'var(--green)', FILED: 'var(--blue)',
+    NOT_FILED: 'var(--gray)',
+  };
+  return map[v] || 'var(--gray)';
+}
+
+function renderDemand(d) {
+  if (!d) return '<div class="pillar-box"><div class="pillar-title">Demand Signal</div><div style="color:var(--gray);">N/A</div></div>';
+
+  const v = d.verdict || 'N/A';
+  const vColor = verdictColor(v);
+  let metricsHtml = '';
+
+  if (v === 'DATA_UNAVAILABLE') {
+    metricsHtml = `<div style="font-size:12px; color:var(--gray); font-style:italic;">${d.note || 'Not in Bloomberg dataset. Add ticker to data pull.'}</div>`;
+  } else {
+    const m = d.metrics || {};
+    const show = [
+      ['Mkt Cap', m['Mkt Cap']],
+      ['Total OI', m['Total OI']],
+      ['Turnover / Traded Value', m['Turnover / Traded Value']],
+      ['Volatility 30D', m['Volatility 30D']],
+      ['Short Interest Ratio', m['Short Interest Ratio']],
+    ];
+    metricsHtml = show.map(([label, obj]) => {
+      if (!obj) return '';
+      const val = obj.value !== null && obj.value !== undefined ? fmtNum(obj.value) : '-';
+      const pctl = obj.percentile !== null && obj.percentile !== undefined ? fmtPctl(obj.percentile) : '';
+      return `<div class="pillar-metric"><span class="label">${label}</span><span class="value">${val} ${pctl ? '<span style="color:var(--gray);font-weight:400;">(' + pctl + ')</span>' : ''}</span></div>`;
+    }).join('');
+
+    if (d.weighted_pctl !== null && d.weighted_pctl !== undefined) {
+      metricsHtml += `<div class="pillar-metric" style="border-top:2px solid var(--border); margin-top:4px; padding-top:4px;">
+        <span class="label">Weighted Score</span><span class="value">${Math.round(d.weighted_pctl)}p</span></div>`;
+    }
+  }
+
+  return `<div class="pillar-box">
+    <div class="pillar-title">Demand Signal</div>
+    <div class="pillar-verdict" style="color:${vColor};">${v.replace('_', ' ')}</div>
+    ${metricsHtml}
+  </div>`;
+}
+
+function renderCompetition(c) {
+  if (!c) return '<div class="pillar-box"><div class="pillar-title">Competitive Landscape</div><div style="color:var(--gray);">N/A</div></div>';
+
+  const v = c.verdict || 'N/A';
+  const vColor = verdictColor(v);
+
+  const metrics = [
+    ['Competitor Products', c.competitor_count],
+    ['REX Products', c.rex_count],
+    ['Competitor AUM', c.competitor_aum !== null ? '$' + fmtNum(c.competitor_aum) + 'M' : '-'],
+    ['REX AUM', c.rex_aum !== null ? '$' + fmtNum(c.rex_aum) + 'M' : '-'],
+  ];
+
+  if (c.leader) {
+    metrics.push(['Market Leader', c.leader + (c.leader_is_rex ? ' (REX)' : '') + (c.leader_share ? ' (' + Math.round(c.leader_share) + '%)' : '')]);
+  }
+
+  const metricsHtml = metrics.map(([l, val]) =>
+    `<div class="pillar-metric"><span class="label">${l}</span><span class="value">${val !== null && val !== undefined ? val : '-'}</span></div>`
+  ).join('');
+
+  return `<div class="pillar-box">
+    <div class="pillar-title">Competitive Landscape</div>
+    <div class="pillar-verdict" style="color:${vColor};">${v.replace('_', ' ')}</div>
+    ${metricsHtml}
+  </div>`;
+}
+
+function renderMarketFeedback(mf) {
+  if (!mf) return '<div class="pillar-box"><div class="pillar-title">Market Feedback</div><div style="color:var(--gray);">N/A</div></div>';
+
+  const v = mf.verdict || 'N/A';
+  const vColor = verdictColor(v);
+
+  let metricsHtml = '';
+  if (mf.total_aum !== null && mf.total_aum !== undefined) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Total AUM</span><span class="value">$${fmtNum(mf.total_aum)}M</span></div>`;
+  }
+  if (mf.flow_direction) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Flow Direction</span><span class="value">${mf.flow_direction}</span></div>`;
+  }
+  if (mf.oldest_product_months !== null && mf.oldest_product_months !== undefined) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Oldest Product</span><span class="value">${mf.oldest_product_months} months</span></div>`;
+  }
+  if (mf.note) {
+    metricsHtml += `<div style="font-size:12px; color:var(--gray); font-style:italic; margin-top:4px;">${mf.note}</div>`;
+  }
+  if (!metricsHtml) {
+    metricsHtml = '<div style="font-size:12px; color:var(--gray);">No existing products to assess</div>';
+  }
+
+  return `<div class="pillar-box">
+    <div class="pillar-title">Market Feedback</div>
+    <div class="pillar-verdict" style="color:${vColor};">${v.replace('_', ' ')}</div>
+    ${metricsHtml}
+  </div>`;
+}
+
+function renderFiling(f) {
+  if (!f) return '<div class="pillar-box"><div class="pillar-title">Filing Status</div><div style="color:var(--gray);">N/A</div></div>';
+
+  const v = f.verdict || 'N/A';
+  const vColor = verdictColor(v);
+
+  let metricsHtml = '';
+  if (f.rex_ticker) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">REX Ticker</span><span class="value">${f.rex_ticker}</span></div>`;
+  }
+  if (f.status) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Status</span><span class="value">${f.status}</span></div>`;
+  }
+  if (f.latest_form) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Latest Form</span><span class="value">${f.latest_form}</span></div>`;
+  }
+  if (f.effective_date) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Effective Date</span><span class="value">${f.effective_date}</span></div>`;
+  }
+  if (f.fund_name) {
+    metricsHtml += `<div class="pillar-metric"><span class="label">Fund Name</span><span class="value" style="font-size:11px;">${f.fund_name}</span></div>`;
+  }
+  if (!metricsHtml && v === 'NOT_FILED') {
+    metricsHtml = '<div style="font-size:12px; color:var(--gray);">No REX filing found for this underlier</div>';
+  }
+
+  return `<div class="pillar-box">
+    <div class="pillar-title">Filing Status</div>
+    <div class="pillar-verdict" style="color:${vColor};">${v.replace('_', ' ')}</div>
+    ${metricsHtml}
+  </div>`;
+}
+</script>
+{% endblock %}

@@ -5,6 +5,7 @@ pipeline control, digest testing, and system status.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -180,6 +181,13 @@ def approve_request(
         ))
         db.commit()
 
+    # Also add to trusts.py registry so pipeline always picks it up
+    try:
+        from etp_tracker.trusts import add_trust
+        add_trust(cik, name)
+    except Exception as e:
+        log.warning("Could not write to trusts.py (read-only on Render): %s", e)
+
     _update_request_status(cik, "APPROVED")
     return RedirectResponse("/admin/?approved=1", status_code=303)
 
@@ -202,16 +210,17 @@ def trigger_pipeline(request: Request, background_tasks: BackgroundTasks):
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
+    # Block pipeline on Render - it crashes the web process (memory/CPU)
+    if os.environ.get("RENDER"):
+        return RedirectResponse(
+            "/admin/?pipeline=error&msg=Pipeline+must+run+locally.+It+needs+30-60+min+and+crashes+the+web+server.",
+            status_code=303,
+        )
+
     from webapp.services.pipeline_service import run_pipeline_background, is_pipeline_running
 
     if is_pipeline_running():
         return RedirectResponse("/admin/?pipeline=running", status_code=303)
-
-    # Check if outputs dir is writable (won't work on read-only deployments)
-    try:
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        return RedirectResponse("/admin/?pipeline=error&msg=Cannot+write+to+outputs+dir.+Run+pipeline+locally.", status_code=303)
 
     background_tasks.add_task(run_pipeline_background, "admin")
     return RedirectResponse("/admin/?pipeline=started", status_code=303)

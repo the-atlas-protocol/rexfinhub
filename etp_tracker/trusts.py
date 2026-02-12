@@ -27,6 +27,8 @@ TRUST_CIKS = {
     "1452937": "Exchange Traded Concepts Trust",
     "1587982": "Investment Managers Series Trust II",
     "1547950": "Exchange Listed Funds Trust",
+    "1579881": "Calamos ETF Trust",
+    "826732": "Calamos Investment Trust",
 }
 
 def get_all_ciks() -> list[str]:
@@ -36,3 +38,25 @@ def get_all_ciks() -> list[str]:
 def get_overrides() -> dict[str, str]:
     """Return CIK -> Trust Name overrides."""
     return TRUST_CIKS.copy()
+
+
+def add_trust(cik: str, name: str) -> bool:
+    """Add a trust to the registry file. Returns True if added, False if already exists."""
+    cik = str(cik).strip()
+    if cik in TRUST_CIKS:
+        return False
+
+    # Update in-memory dict
+    TRUST_CIKS[cik] = name
+
+    # Write to the file so it persists across restarts
+    import pathlib
+    trusts_file = pathlib.Path(__file__)
+    content = trusts_file.read_text(encoding="utf-8")
+
+    # Insert new entry before the closing brace of TRUST_CIKS
+    new_entry = f'    "{cik}": "{name}",\n'
+    content = content.replace("\n}\n", f"\n{new_entry}}}\n", 1)
+
+    trusts_file.write_text(content, encoding="utf-8")
+    return True
