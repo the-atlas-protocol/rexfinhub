@@ -111,9 +111,8 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         select(ScreenerUpload).order_by(ScreenerUpload.uploaded_at.desc()).limit(1)
     ).scalar_one_or_none()
 
-    # Detect screener data files on disk
-    screener_data_files = list(SCREENER_DATA_DIR.glob("*.xlsx")) if SCREENER_DATA_DIR.exists() else []
-    screener_data_available = len(screener_data_files) > 0
+    # Detect screener data file on disk
+    screener_data_available = SCREENER_DATA_FILE.exists()
 
     return templates.TemplateResponse("admin.html", {
         "request": request,
@@ -153,12 +152,11 @@ def admin_logout(request: Request):
 @router.post("/requests/approve")
 def approve_request(
     request: Request,
-    background_tasks: BackgroundTasks,
     cik: str = Form(""),
     name: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    """Approve a trust monitoring request and fetch its filings."""
+    """Approve a trust monitoring request - adds to DB for next pipeline run."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
@@ -183,39 +181,7 @@ def approve_request(
         db.commit()
 
     _update_request_status(cik, "APPROVED")
-
-    # Trigger background fetch for this trust
-    background_tasks.add_task(_fetch_single_trust, cik, name)
-
     return RedirectResponse("/admin/?approved=1", status_code=303)
-
-
-def _fetch_single_trust(cik: str, name: str):
-    """Fetch filings for a single newly-approved trust in background."""
-    try:
-        from etp_tracker.run_pipeline import run_pipeline
-        from webapp.database import SessionLocal
-        from webapp.services.sync_service import seed_trusts, sync_all
-
-        log.info("Fetching filings for approved trust: %s (CIK %s)", name, cik)
-        n = run_pipeline(
-            ciks=[cik],
-            overrides={cik: name},
-            since="2024-11-14",
-            refresh_submissions=True,
-            user_agent="REX-ETP-Tracker/2.0 (relasmar@rexfin.com)",
-        )
-
-        db = SessionLocal()
-        try:
-            seed_trusts(db)
-            sync_all(db, OUTPUT_DIR)
-            log.info("Trust fetch complete: %s - %d trusts processed", name, n)
-        finally:
-            db.close()
-
-    except Exception as e:
-        log.error("Failed to fetch trust %s: %s", name, e)
 
 
 @router.post("/requests/reject")
@@ -240,6 +206,12 @@ def trigger_pipeline(request: Request, background_tasks: BackgroundTasks):
 
     if is_pipeline_running():
         return RedirectResponse("/admin/?pipeline=running", status_code=303)
+
+    # Check if outputs dir is writable (won't work on read-only deployments)
+    try:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return RedirectResponse("/admin/?pipeline=error&msg=Cannot+write+to+outputs+dir.+Run+pipeline+locally.", status_code=303)
 
     background_tasks.add_task(run_pipeline_background, "admin")
     return RedirectResponse("/admin/?pipeline=started", status_code=303)
@@ -280,6 +252,9 @@ def send_digest(request: Request):
 
 SCREENER_DATA_DIR = PROJECT_ROOT / "data" / "SCREENER"
 
+# Use the same data file path as the screener config
+from screener.config import DATA_FILE as SCREENER_DATA_FILE
+
 
 @router.post("/screener/upload")
 async def screener_upload(
@@ -297,15 +272,14 @@ async def screener_upload(
         if not file.filename.endswith(".xlsx"):
             return RedirectResponse("/admin/?screener=error&msg=Must+be+.xlsx+file", status_code=303)
 
-        # Save file
+        # Save file to the canonical path the data_loader expects
         SCREENER_DATA_DIR.mkdir(parents=True, exist_ok=True)
-        dest = SCREENER_DATA_DIR / "decision_support_data.xlsx"
         content = await file.read()
-        dest.write_bytes(content)
+        SCREENER_DATA_FILE.write_bytes(content)
 
         # Validate sheets
         import openpyxl
-        wb = openpyxl.load_workbook(dest, read_only=True)
+        wb = openpyxl.load_workbook(SCREENER_DATA_FILE, read_only=True)
         sheets = wb.sheetnames
         wb.close()
         if "stock_data" not in sheets or "etp_data" not in sheets:
@@ -337,7 +311,7 @@ def screener_rescore(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Re-run scoring on existing data (auto-detects any .xlsx in data/SCREENER/)."""
+    """Re-run scoring on existing data."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
@@ -346,21 +320,13 @@ def screener_rescore(
     if is_screener_running():
         return RedirectResponse("/admin/?screener=running", status_code=303)
 
-    # Find data file - check canonical name first, then any xlsx
-    data_file = SCREENER_DATA_DIR / "decision_support_data.xlsx"
-    if not data_file.exists():
-        xlsx_files = list(SCREENER_DATA_DIR.glob("*.xlsx")) if SCREENER_DATA_DIR.exists() else []
-        if xlsx_files:
-            # Rename the first found xlsx to the canonical name
-            src = xlsx_files[0]
-            src.rename(data_file)
-            log.info("Renamed %s -> decision_support_data.xlsx", src.name)
-        else:
-            return RedirectResponse("/admin/?screener=error&msg=No+data+file+found.+Place+.xlsx+in+data/SCREENER/", status_code=303)
+    # Check the data file the loader expects
+    if not SCREENER_DATA_FILE.exists():
+        return RedirectResponse("/admin/?screener=error&msg=No+data+file.+Upload+Bloomberg+.xlsx+first.", status_code=303)
 
     # Create new upload record
     upload = ScreenerUpload(
-        file_name="decision_support_data.xlsx",
+        file_name=SCREENER_DATA_FILE.name,
         uploaded_by="admin-rescore",
     )
     db.add(upload)

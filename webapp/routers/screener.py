@@ -52,9 +52,11 @@ def screener_opportunities(
 
     if not latest_upload:
         # Check if data exists on disk but hasn't been scored yet
-        from pathlib import Path
-        data_dir = Path(__file__).resolve().parent.parent.parent / "data" / "SCREENER"
-        data_available = any(data_dir.glob("*.xlsx")) if data_dir.exists() else False
+        try:
+            from screener.config import DATA_FILE
+            data_available = DATA_FILE.exists()
+        except Exception:
+            data_available = False
 
         return templates.TemplateResponse("screener_rankings.html", {
             "request": request,

@@ -21,7 +21,8 @@ log = logging.getLogger(__name__)
 _pipeline_lock = threading.Lock()
 _pipeline_running = False
 
-OUTPUT_DIR = Path("outputs")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+OUTPUT_DIR = PROJECT_ROOT / "outputs"
 SINCE_DATE = "2024-11-14"
 USER_AGENT = "REX-ETP-Tracker/2.0 (relasmar@rexfin.com)"
 
