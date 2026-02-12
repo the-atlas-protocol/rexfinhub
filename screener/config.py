@@ -52,6 +52,41 @@ DEMAND_THRESHOLDS = {
 LEVERAGE_TYPES = ["2x", "3x", "1x", "4x"]
 DIRECTIONS = ["Long", "Short", "Tactical"]
 
+# --- 3x Report: volatility risk thresholds (implied daily vol %) ---
+RISK_THRESHOLDS = {
+    "low_max_daily_vol": 3.0,       # < 3% daily vol = LOW risk
+    "medium_max_daily_vol": 5.0,    # 3-5% = MEDIUM risk
+    "high_max_daily_vol": 8.0,      # 5-8% = HIGH risk, >8% = EXTREME
+}
+
+# --- 3x Report: filing score weights (40% fundamentals + 60% market-proven demand) ---
+# The 3x filing score rewards stocks with high 2x AUM (proven demand) over pure fundamentals.
+# This ensures TSLA ($6.9B 2x AUM) ranks above BABA ($168M).
+FILING_SCORE_WEIGHTS = {
+    "composite_pctl": 0.40,   # stock fundamentals (OI, turnover, mkt cap, vol, SI)
+    "aum_2x_pctl": 0.60,     # market-proven demand from existing 2x products
+}
+
+# --- 3x Report: tiering cutoffs for filing recommendations ---
+# Targets: 50 Tier 1, 50 Tier 2, 100 Tier 3 = 200 total
+TIER_CUTOFFS = {
+    "tier_1_min_score": 55,
+    "tier_2_min_score": 45,
+    "tier_3_min_score": 35,
+    "tier_1_count": 50,
+    "tier_2_count": 50,
+    "tier_3_count": 100,
+}
+
+# --- 4x Report: candidate criteria ---
+# 4x amplifies daily moves by 4. Candidates must have existing 2x products
+# and manageable volatility (daily vol < 20%). Capped at 100 names.
+FOUR_X_CRITERIA = {
+    "min_2x_aum": 0,           # any stock with existing 2x product(s)
+    "max_daily_vol": 20.0,     # daily vol < 20% cap
+    "max_candidates": 100,     # cap at 100 names (sorted by 2x AUM)
+}
+
 # --- PDF styling ---
 PDF_COLORS = {
     "primary": "#1a1a2e",

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}4x Filing Candidates - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>4x Filing Candidates</h1>
+  <div class="date">
+    {% if data_date %}Data as of {{ data_date }}{% endif %}
+  </div>
+</div>
+
+<!-- Sub-navigation -->
+<div class="sub-nav">
+  <a href="/screener/" class="pill{% if tab == 'recommendations' %} active{% endif %}">3x Recommendations</a>
+  <a href="/screener/4x" class="pill{% if tab == '4x' %} active{% endif %}">4x Candidates</a>
+  <a href="/screener/market" class="pill{% if tab == 'market' %} active{% endif %}">Market Landscape</a>
+  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Track Record</a>
+  <a href="/screener/risk" class="pill{% if tab == 'risk' %} active{% endif %}">Risk Watchlist</a>
+  <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
+</div>
+
+{% if not data_available %}
+<div class="what-changed" style="background:#fff3e0; border-color:var(--orange);">
+  <h2>No Bloomberg data available</h2>
+  <p>Upload Bloomberg .xlsx from the <a href="/admin/">Admin panel</a> to generate 4x recommendations.</p>
+</div>
+{% else %}
+
+<!-- Info box -->
+<div class="what-changed">
+  <h2>4x Leverage Candidates</h2>
+  <p>4x leverage amplifies daily moves by 4. Candidates below are existing 2x successes with daily volatility under 20%, keeping 4x fund daily swings manageable. Sorted by existing 2x AUM (proven demand).</p>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="num">{{ four_x|length }}</div>
+    <div class="label">Total Candidates</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ "%.1f"|format(avg_daily_vol) }}%</div>
+    <div class="label">Avg Daily Vol</div>
+  </div>
+  <div class="kpi">
+    <div class="num">
+      {% set total_aum = four_x|sum(attribute='aum_2x') %}
+      {% if total_aum >= 1000 %}${{ "%.1f"|format(total_aum / 1000) }}B
+      {% else %}${{ "{:,.0f}".format(total_aum) }}M{% endif %}
+    </div>
+    <div class="label">Combined 2x AUM</div>
+  </div>
+</div>
+
+<!-- 4x Candidates Table -->
+<div class="section-header">
+  <h2>4x Candidates</h2>
+  <span class="badge">{{ four_x|length }} stocks</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  Stocks with existing 2x products and daily volatility &lt; 20%. Sorted by 2x AUM descending.
+</p>
+<div style="overflow-x:auto;">
+<table id="fourXTable">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('fourXTable',1)">Stock</th>
+      <th onclick="sortTable('fourXTable',2)">Sector</th>
+      <th onclick="sortTable('fourXTable',3)" style="text-align:right;">2x AUM</th>
+      <th onclick="sortTable('fourXTable',4)" style="text-align:right;">Vol 30D</th>
+      <th onclick="sortTable('fourXTable',5)" style="text-align:right;">Daily Vol</th>
+      <th onclick="sortTable('fourXTable',6)" style="text-align:center;">2x Cnt</th>
+      <th onclick="sortTable('fourXTable',7)">REX 2x</th>
+      <th onclick="sortTable('fourXTable',8)">Risk</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in four_x %}
+    <tr>
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col"><a href="/screener/stock/{{ c.ticker }} US">{{ c.ticker }}</a></td>
+      <td style="font-size:12px;">{{ c.sector or '-' }}</td>
+      <td style="text-align:right; font-size:12px;">
+        {% if c.aum_2x >= 1000 %}${{ "%.1f"|format(c.aum_2x / 1000) }}B
+        {% elif c.aum_2x > 0 %}${{ "{:,.0f}".format(c.aum_2x) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td style="text-align:right; font-size:12px;">{{ "%.1f"|format(c.vol_30d) }}%</td>
+      <td style="text-align:right; font-size:12px;">{{ "%.1f"|format(c.daily_vol) }}%</td>
+      <td style="text-align:center;">{{ c.count_2x }}</td>
+      <td><span class="rex-{{ c.rex_2x|lower|replace(' ', '') }}">{{ c.rex_2x }}</span></td>
+      <td><span class="risk-{{ c.risk|lower }}">{{ c.risk }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<p style="font-size:11px; color:var(--gray); margin-top:12px;">
+  <b>Criteria:</b> Existing 2x products | Daily volatility &lt; 20% | Capped at 100 names | Sorted by 2x AUM descending.
+</p>
+
+{% endif %}
+{% endblock %}

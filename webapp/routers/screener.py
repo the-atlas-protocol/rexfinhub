@@ -1,4 +1,4 @@
-"""Screener router - ETF Launch Screener pages."""
+"""Screener router - 3x/4x Filing Recommendations + ETF Launch Screener."""
 from __future__ import annotations
 
 import io
@@ -19,231 +19,133 @@ router = APIRouter(prefix="/screener", tags=["screener"])
 templates = Jinja2Templates(directory="webapp/templates")
 log = logging.getLogger(__name__)
 
-# Tickers to exclude from rankings (known bad data)
-EXCLUDE_TICKERS = {"WBHC US"}
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-def _get_launched_underliers() -> set[str]:
-    """Get launched underliers to exclude from rankings. Graceful on failure."""
+def _get_3x_data() -> dict | None:
+    """Get cached 3x analysis or compute it. Returns None if no data."""
+    from webapp.services.screener_3x_cache import get_3x_analysis, compute_and_cache
+
+    analysis = get_3x_analysis()
+    if analysis is not None:
+        return analysis
+
     try:
-        from screener.data_loader import load_etp_data
-        from screener.filing_match import get_launched_underliers
-        etp_df = load_etp_data()
-        return get_launched_underliers(etp_df)
+        return compute_and_cache()
+    except FileNotFoundError:
+        return None
     except Exception as e:
-        log.warning("Could not load launched underliers: %s", e)
-        return set()
+        log.error("Failed to compute 3x analysis: %s", e)
+        return None
 
+
+def _data_available() -> bool:
+    """Check if Bloomberg data file exists on disk."""
+    try:
+        from screener.config import DATA_FILE
+        return DATA_FILE.exists()
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# 3x Recommendations (landing page)
+# ---------------------------------------------------------------------------
 
 @router.get("/")
-def screener_opportunities(
-    request: Request,
-    q: str = "",
-    sector: str = "",
-    db: Session = Depends(get_db),
-):
-    """Main screener page - two tables: all opportunities + filed only."""
-    # Get latest upload
-    latest_upload = db.execute(
-        select(ScreenerUpload)
-        .where(ScreenerUpload.status == "completed")
-        .order_by(ScreenerUpload.uploaded_at.desc())
-        .limit(1)
-    ).scalar_one_or_none()
+def screener_3x_recommendations(request: Request):
+    """3x Filing Recommendations - the exec landing page."""
+    analysis = _get_3x_data()
 
-    if not latest_upload:
-        # Check if data exists on disk but hasn't been scored yet
-        try:
-            from screener.config import DATA_FILE
-            data_available = DATA_FILE.exists()
-        except Exception:
-            data_available = False
-
-        return templates.TemplateResponse("screener_rankings.html", {
+    if analysis is None:
+        return templates.TemplateResponse("screener_3x.html", {
             "request": request,
-            "all_opportunities": [],
-            "filed_only": [],
-            "total_screened": 0,
-            "launched_count": 0,
-            "filed_count": 0,
-            "q": q,
-            "sector": sector,
-            "sectors": [],
-            "upload": None,
-            "tab": "opportunities",
-            "data_available": data_available,
+            "tab": "recommendations",
+            "data_available": _data_available(),
         })
 
-    # Fetch ALL results ordered by score
-    all_results = db.execute(
-        select(ScreenerResult)
-        .where(ScreenerResult.upload_id == latest_upload.id)
-        .order_by(ScreenerResult.composite_score.desc())
-    ).scalars().all()
-
-    total_screened = len(all_results)
-
-    # Get launched underliers to exclude
-    launched = _get_launched_underliers()
-    launched_count = len(launched)
-
-    # Filter out launched underliers + bad data
-    clean_results = []
-    for r in all_results:
-        ticker_clean = r.ticker.replace(" US", "").upper()
-        if r.ticker in EXCLUDE_TICKERS:
-            continue
-        if ticker_clean in launched:
-            continue
-        clean_results.append(r)
-
-    # Apply search/sector filters
-    if q:
-        q_upper = q.strip().upper()
-        clean_results = [r for r in clean_results if q_upper in r.ticker.upper()]
-    if sector:
-        clean_results = [r for r in clean_results if r.sector == sector]
-
-    # Split: all opportunities (top 50) + filed only (top 50)
-    all_opportunities = clean_results[:50]
-    filed_only = [
-        r for r in clean_results
-        if r.filing_status and r.filing_status.startswith("REX Filed")
-    ][:50]
-    filed_count = sum(
-        1 for r in clean_results
-        if r.filing_status and r.filing_status.startswith("REX Filed")
-    )
-
-    # Get distinct sectors for filter dropdown
-    sectors = db.execute(
-        select(ScreenerResult.sector)
-        .where(ScreenerResult.upload_id == latest_upload.id)
-        .where(ScreenerResult.sector.isnot(None))
-        .where(ScreenerResult.sector != "")
-        .distinct()
-        .order_by(ScreenerResult.sector)
-    ).scalars().all()
-
-    return templates.TemplateResponse("screener_rankings.html", {
+    return templates.TemplateResponse("screener_3x.html", {
         "request": request,
-        "all_opportunities": all_opportunities,
-        "filed_only": filed_only,
-        "total_screened": total_screened,
-        "launched_count": launched_count,
-        "filed_count": filed_count,
-        "q": q,
-        "sector": sector,
-        "sectors": sectors,
-        "upload": latest_upload,
-        "tab": "opportunities",
+        "tab": "recommendations",
+        "data_available": True,
+        "snapshot": analysis["snapshot"],
+        "tiers": analysis["tiers"],
+        "four_x_count": len(analysis.get("four_x", [])),
+        "data_date": analysis.get("data_date"),
+        "computed_at": analysis.get("computed_at"),
     })
 
 
-@router.get("/stock/{ticker}")
-def screener_stock_detail(
-    request: Request,
-    ticker: str,
-    db: Session = Depends(get_db),
-):
-    """Per-stock competitive deep dive."""
-    latest_upload = db.execute(
-        select(ScreenerUpload)
-        .where(ScreenerUpload.status == "completed")
-        .order_by(ScreenerUpload.uploaded_at.desc())
-        .limit(1)
-    ).scalar_one_or_none()
+# ---------------------------------------------------------------------------
+# 4x Candidates
+# ---------------------------------------------------------------------------
 
-    # Get this stock's screener result
-    result = None
-    if latest_upload:
-        result = db.execute(
-            select(ScreenerResult)
-            .where(ScreenerResult.upload_id == latest_upload.id)
-            .where(ScreenerResult.ticker == ticker)
-        ).scalar_one_or_none()
+@router.get("/4x")
+def screener_4x_candidates(request: Request):
+    """4x Filing Candidates."""
+    analysis = _get_3x_data()
 
-    # Load competitive data from etp_data
-    products = []
-    aum_series_data = []
-    market_share_data = []
+    if analysis is None:
+        return templates.TemplateResponse("screener_4x.html", {
+            "request": request,
+            "tab": "4x",
+            "data_available": _data_available(),
+        })
 
-    try:
-        from screener.data_loader import load_etp_data
-        from screener.competitive import get_products_for_underlier, compute_aum_trajectories
+    four_x = analysis.get("four_x", [])
+    avg_daily_vol = 0
+    if four_x:
+        avg_daily_vol = sum(c.get("daily_vol", 0) for c in four_x) / len(four_x)
 
-        etp_df = load_etp_data()
-        # Try with " US" suffix (Bloomberg format)
-        ticker_clean = ticker.replace(" US", "")
-        underlier_bb = f"{ticker_clean} US"
-
-        prods = get_products_for_underlier(etp_df, underlier_bb)
-        if not prods.empty:
-            for _, p in prods.iterrows():
-                aum_val = p.get("t_w4.aum", 0)
-                if not isinstance(aum_val, (int, float)):
-                    try:
-                        aum_val = float(aum_val) if aum_val else 0
-                    except (ValueError, TypeError):
-                        aum_val = 0
-
-                products.append({
-                    "ticker": p.get("ticker", ""),
-                    "fund_name": p.get("fund_name", ""),
-                    "issuer": p.get("issuer_display", p.get("issuer", "")),
-                    "leverage": p.get("q_category_attributes.map_li_leverage_amount", ""),
-                    "direction": p.get("q_category_attributes.map_li_direction", ""),
-                    "aum": round(float(aum_val), 1),
-                    "expense_ratio": p.get("t_w2.expense_ratio"),
-                    "flow_1m": p.get("t_w4.fund_flow_1month"),
-                    "flow_3m": p.get("t_w4.fund_flow_3month"),
-                    "flow_ytd": p.get("t_w4.fund_flow_ytd"),
-                    "spread": p.get("t_w2.average_bidask_spread"),
-                    "tracking_error": p.get("t_w2.nav_tracking_error"),
-                    "is_rex": p.get("is_rex", False),
-                })
-
-            # AUM trajectory data for Chart.js
-            trajectories = compute_aum_trajectories(etp_df)
-            underlier_trajs = trajectories[trajectories["underlier"] == underlier_bb]
-            for _, t in underlier_trajs.iterrows():
-                if t["aum_series"]:
-                    aum_series_data.append({
-                        "label": t["ticker"],
-                        "data": t["aum_series"],
-                    })
-
-            # Market share for pie chart
-            for prod in products:
-                if prod["aum"] > 0:
-                    market_share_data.append({
-                        "label": prod["ticker"],
-                        "value": prod["aum"],
-                        "is_rex": prod.get("is_rex", False),
-                    })
-
-    except Exception as e:
-        log.warning("Error loading competitive data for %s: %s", ticker, e)
-
-    return templates.TemplateResponse("screener_stock.html", {
+    return templates.TemplateResponse("screener_4x.html", {
         "request": request,
-        "ticker": ticker,
-        "ticker_clean": ticker.replace(" US", ""),
-        "result": result,
-        "products": products,
-        "aum_series_json": json.dumps(aum_series_data),
-        "market_share_json": json.dumps(market_share_data),
-        "upload": latest_upload,
-        "tab": "competitive",
+        "tab": "4x",
+        "data_available": True,
+        "four_x": four_x,
+        "avg_daily_vol": avg_daily_vol,
+        "data_date": analysis.get("data_date"),
     })
 
+
+# ---------------------------------------------------------------------------
+# Market Landscape
+# ---------------------------------------------------------------------------
+
+@router.get("/market")
+def screener_market_landscape(request: Request):
+    """Market Landscape - underlier popularity + top 2x ETFs."""
+    analysis = _get_3x_data()
+
+    if analysis is None:
+        return templates.TemplateResponse("screener_market.html", {
+            "request": request,
+            "tab": "market",
+            "data_available": _data_available(),
+        })
+
+    return templates.TemplateResponse("screener_market.html", {
+        "request": request,
+        "tab": "market",
+        "data_available": True,
+        "snapshot": analysis["snapshot"],
+        "underlier_pop": analysis.get("underlier_pop", []),
+        "top_2x": analysis.get("top_2x", []),
+        "data_date": analysis.get("data_date"),
+    })
+
+
+# ---------------------------------------------------------------------------
+# REX Track Record (enhanced)
+# ---------------------------------------------------------------------------
 
 @router.get("/rex-funds")
 def screener_rex_funds(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """REX fund portfolio health check - grouped by T-REX, Microsectors, Other."""
+    """REX fund portfolio health + T-REX track record."""
     latest_upload = db.execute(
         select(ScreenerUpload)
         .where(ScreenerUpload.status == "completed")
@@ -275,7 +177,6 @@ def screener_rex_funds(
             kpis["worst"] = rex_all.loc[worst_idx, "ticker"] if pd.notna(worst_idx) else None
             kpis["worst_flow"] = round(rex_all.loc[worst_idx, "_flow_1m"], 1) if pd.notna(worst_idx) else 0
 
-            # Deduplicate by ticker (some funds appear twice in etp_data)
             seen_tickers = set()
             for _, row in rex_all.iterrows():
                 ticker = row.get("ticker", "")
@@ -284,8 +185,6 @@ def screener_rex_funds(
                 seen_tickers.add(ticker)
 
                 fund_name = str(row.get("fund_name", "")).upper()
-
-                # Classify into product line
                 if fund_name.startswith("T-REX"):
                     group_key = "T-REX"
                 elif fund_name.startswith("MICROSECTORS"):
@@ -308,28 +207,70 @@ def screener_rex_funds(
                     "tracking_error": row.get("t_w2.nav_tracking_error"),
                 })
 
-            # Sort each group by AUM descending
             for key in product_groups:
                 product_groups[key].sort(key=lambda x: x["aum"], reverse=True)
 
     except Exception as e:
         log.warning("Error loading REX fund data: %s", e)
 
+    # Get track record from 3x analysis cache
+    rex_track = []
+    analysis = _get_3x_data()
+    if analysis:
+        rex_track = analysis.get("rex_track", [])
+
     return templates.TemplateResponse("screener_rex.html", {
         "request": request,
         "product_groups": product_groups,
         "kpis": kpis,
+        "rex_track": rex_track,
         "upload": latest_upload,
         "tab": "rex",
     })
 
 
-@router.get("/report")
-def screener_report_download(
+# ---------------------------------------------------------------------------
+# Risk Watchlist
+# ---------------------------------------------------------------------------
+
+@router.get("/risk")
+def screener_risk_watchlist(request: Request):
+    """Risk Watchlist - scoped volatility risk table."""
+    analysis = _get_3x_data()
+
+    if analysis is None:
+        return templates.TemplateResponse("screener_risk.html", {
+            "request": request,
+            "tab": "risk",
+            "data_available": _data_available(),
+        })
+
+    risk_watchlist = analysis.get("risk_watchlist", [])
+    high_plus_count = sum(1 for r in risk_watchlist if r.get("risk_level") in ("HIGH", "EXTREME"))
+    extreme_count = sum(1 for r in risk_watchlist if r.get("risk_level") == "EXTREME")
+
+    return templates.TemplateResponse("screener_risk.html", {
+        "request": request,
+        "tab": "risk",
+        "data_available": True,
+        "risk_watchlist": risk_watchlist,
+        "high_plus_count": high_plus_count,
+        "extreme_count": extreme_count,
+        "data_date": analysis.get("data_date"),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Stock Detail (unchanged)
+# ---------------------------------------------------------------------------
+
+@router.get("/stock/{ticker}")
+def screener_stock_detail(
     request: Request,
+    ticker: str,
     db: Session = Depends(get_db),
 ):
-    """Generate and download the executive PDF report."""
+    """Per-stock competitive deep dive."""
     latest_upload = db.execute(
         select(ScreenerUpload)
         .where(ScreenerUpload.status == "completed")
@@ -337,64 +278,125 @@ def screener_report_download(
         .limit(1)
     ).scalar_one_or_none()
 
-    if not latest_upload:
+    result = None
+    if latest_upload:
+        result = db.execute(
+            select(ScreenerResult)
+            .where(ScreenerResult.upload_id == latest_upload.id)
+            .where(ScreenerResult.ticker == ticker)
+        ).scalar_one_or_none()
+
+    products = []
+    aum_series_data = []
+    market_share_data = []
+
+    try:
+        from screener.data_loader import load_etp_data
+        from screener.competitive import get_products_for_underlier, compute_aum_trajectories
+
+        etp_df = load_etp_data()
+        ticker_clean = ticker.replace(" US", "")
+        underlier_bb = f"{ticker_clean} US"
+
+        prods = get_products_for_underlier(etp_df, underlier_bb)
+        if not prods.empty:
+            for _, p in prods.iterrows():
+                aum_val = p.get("t_w4.aum", 0)
+                if not isinstance(aum_val, (int, float)):
+                    try:
+                        aum_val = float(aum_val) if aum_val else 0
+                    except (ValueError, TypeError):
+                        aum_val = 0
+
+                products.append({
+                    "ticker": p.get("ticker", ""),
+                    "fund_name": p.get("fund_name", ""),
+                    "issuer": p.get("issuer_display", p.get("issuer", "")),
+                    "leverage": p.get("q_category_attributes.map_li_leverage_amount", ""),
+                    "direction": p.get("q_category_attributes.map_li_direction", ""),
+                    "aum": round(float(aum_val), 1),
+                    "expense_ratio": p.get("t_w2.expense_ratio"),
+                    "flow_1m": p.get("t_w4.fund_flow_1month"),
+                    "flow_3m": p.get("t_w4.fund_flow_3month"),
+                    "flow_ytd": p.get("t_w4.fund_flow_ytd"),
+                    "spread": p.get("t_w2.average_bidask_spread"),
+                    "tracking_error": p.get("t_w2.nav_tracking_error"),
+                    "is_rex": p.get("is_rex", False),
+                })
+
+            trajectories = compute_aum_trajectories(etp_df)
+            underlier_trajs = trajectories[trajectories["underlier"] == underlier_bb]
+            for _, t in underlier_trajs.iterrows():
+                if t["aum_series"]:
+                    aum_series_data.append({
+                        "label": t["ticker"],
+                        "data": t["aum_series"],
+                    })
+
+            for prod in products:
+                if prod["aum"] > 0:
+                    market_share_data.append({
+                        "label": prod["ticker"],
+                        "value": prod["aum"],
+                        "is_rex": prod.get("is_rex", False),
+                    })
+
+    except Exception as e:
+        log.warning("Error loading competitive data for %s: %s", ticker, e)
+
+    return templates.TemplateResponse("screener_stock.html", {
+        "request": request,
+        "ticker": ticker,
+        "ticker_clean": ticker.replace(" US", ""),
+        "result": result,
+        "products": products,
+        "aum_series_json": json.dumps(aum_series_data),
+        "market_share_json": json.dumps(market_share_data),
+        "upload": latest_upload,
+        "tab": "competitive",
+    })
+
+
+# ---------------------------------------------------------------------------
+# Report Download (updated to 3x report)
+# ---------------------------------------------------------------------------
+
+@router.get("/report")
+def screener_report_download(request: Request):
+    """Generate and download the 3x/4x PDF report."""
+    try:
+        from screener.generate_report import run_3x_report
+        out_path = run_3x_report()
+        pdf_bytes = out_path.read_bytes()
+
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={out_path.name}"},
+        )
+    except FileNotFoundError:
         from fastapi.responses import HTMLResponse
-        return HTMLResponse("<h2>No screener data. Upload from Admin panel first.</h2>", status_code=404)
-
-    # Get all results
-    results = db.execute(
-        select(ScreenerResult)
-        .where(ScreenerResult.upload_id == latest_upload.id)
-        .order_by(ScreenerResult.composite_score.desc())
-    ).scalars().all()
-
-    result_dicts = [
-        {
-            "ticker": r.ticker,
-            "sector": r.sector,
-            "composite_score": r.composite_score,
-            "mkt_cap": r.mkt_cap,
-            "total_oi_pctl": r.total_oi_pctl,
-            "passes_filters": r.passes_filters,
-            "filing_status": r.filing_status,
-            "competitive_density": r.competitive_density,
-            "competitor_count": r.competitor_count,
-            "total_competitor_aum": r.total_competitor_aum,
-        }
-        for r in results
-    ]
-
-    from screener.report_generator import generate_rankings_report
-    pdf_bytes = generate_rankings_report(
-        results=result_dicts,
-        data_date=latest_upload.uploaded_at.strftime("%B %d, %Y"),
-    )
-
-    filename = f"ETF_Launch_Screener_{latest_upload.uploaded_at.strftime('%Y%m%d')}.pdf"
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+        return HTMLResponse(
+            "<h2>No Bloomberg data. Upload from Admin panel first.</h2>",
+            status_code=404,
+        )
+    except Exception as e:
+        log.error("Report generation failed: %s", e)
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(f"<h2>Report generation failed</h2><p>{e}</p>", status_code=500)
 
 
-# ==================== Candidate Evaluator ====================
+# ---------------------------------------------------------------------------
+# Candidate Evaluator (unchanged)
+# ---------------------------------------------------------------------------
 
 @router.get("/evaluate")
 def screener_evaluate_page(request: Request):
     """Interactive candidate evaluator page."""
-    # Check if Bloomberg data is available
-    data_available = False
-    try:
-        from screener.config import DATA_FILE
-        data_available = DATA_FILE.exists()
-    except Exception:
-        pass
-
     return templates.TemplateResponse("screener_evaluate.html", {
         "request": request,
         "tab": "evaluate",
-        "data_available": data_available,
+        "data_available": _data_available(),
     })
 
 
@@ -407,7 +409,6 @@ def screener_evaluate_api(
     if not tickers:
         return JSONResponse({"error": "No tickers provided"}, status_code=400)
 
-    # Cap at 20 tickers per request
     tickers = tickers[:20]
 
     try:
@@ -422,7 +423,6 @@ def screener_evaluate_api(
         log.error("Candidate evaluation failed: %s", e)
         return JSONResponse({"error": str(e)[:200]}, status_code=500)
 
-    # Serialize results for JSON (convert numpy/pandas types)
     clean_results = []
     for r in results:
         clean_results.append(_serialize_eval(r))

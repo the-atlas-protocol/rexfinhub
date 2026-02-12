@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Market Landscape - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>Market Landscape</h1>
+  <div class="date">
+    {% if data_date %}Data as of {{ data_date }}{% endif %}
+  </div>
+</div>
+
+<!-- Sub-navigation -->
+<div class="sub-nav">
+  <a href="/screener/" class="pill{% if tab == 'recommendations' %} active{% endif %}">3x Recommendations</a>
+  <a href="/screener/4x" class="pill{% if tab == '4x' %} active{% endif %}">4x Candidates</a>
+  <a href="/screener/market" class="pill{% if tab == 'market' %} active{% endif %}">Market Landscape</a>
+  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Track Record</a>
+  <a href="/screener/risk" class="pill{% if tab == 'risk' %} active{% endif %}">Risk Watchlist</a>
+  <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
+</div>
+
+{% if not data_available %}
+<div class="what-changed" style="background:#fff3e0; border-color:var(--orange);">
+  <h2>No Bloomberg data available</h2>
+  <p>Upload Bloomberg .xlsx from the <a href="/admin/">Admin panel</a> to view market landscape.</p>
+</div>
+{% else %}
+
+<!-- KPI Row -->
+<div class="kpi-row kpi-row-blue">
+  <div class="kpi">
+    <div class="num">
+      {% if snapshot.total_2x_aum >= 1000 %}${{ "%.1f"|format(snapshot.total_2x_aum / 1000) }}B
+      {% else %}${{ "{:,.0f}".format(snapshot.total_2x_aum) }}M{% endif %}
+    </div>
+    <div class="label">Total 2x AUM</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ snapshot.total_2x_count }}</div>
+    <div class="label">2x Products</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ snapshot.ss_2x_count }}</div>
+    <div class="label">2x Single Stock</div>
+  </div>
+  <div class="kpi">
+    <div class="num">
+      {% if snapshot.top_issuers %}{{ snapshot.top_issuers[0].issuer }}{% else %}-{% endif %}
+    </div>
+    <div class="label">Top 3x Issuer</div>
+  </div>
+</div>
+
+<!-- ==================== MOST POPULAR UNDERLIERS ==================== -->
+<div class="section-header">
+  <h2>Most Popular Underliers by 2x AUM</h2>
+  <span class="badge">{{ underlier_pop|length }} stocks</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  Stocks with the highest total 2x single-stock product AUM. Every underlier is a first-mover 3x opportunity.
+</p>
+<div style="overflow-x:auto;">
+<table id="underlierTable">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('underlierTable',1)">Stock</th>
+      <th onclick="sortTable('underlierTable',2)">Sector</th>
+      <th onclick="sortTable('underlierTable',3)" style="text-align:center;">2x Products</th>
+      <th onclick="sortTable('underlierTable',4)" style="text-align:right;">2x Total AUM</th>
+      <th onclick="sortTable('underlierTable',5)">REX 2x</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in underlier_pop %}
+    <tr>
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col"><a href="/screener/stock/{{ r.underlier }} US">{{ r.underlier }}</a></td>
+      <td style="font-size:12px;">{{ r.sector or '-' }}</td>
+      <td style="text-align:center;">{{ r.count_2x }}</td>
+      <td style="text-align:right; font-size:12px;">
+        {% if r.aum_2x >= 1000 %}${{ "%.1f"|format(r.aum_2x / 1000) }}B
+        {% elif r.aum_2x > 0 %}${{ "{:,.0f}".format(r.aum_2x) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td><span class="rex-{{ r.rex_2x|lower|replace(' ', '') }}">{{ r.rex_2x }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% set rex_count = underlier_pop|selectattr('rex_2x', 'in', ['Yes', 'Filed'])|list|length %}
+<p style="font-size:12px; color:var(--gray); margin-top:8px;">
+  REX has 2x products on <b>{{ rex_count }}</b> of {{ underlier_pop|length }} top underliers.
+</p>
+
+<!-- ==================== TOP 2x SINGLE STOCK ETFs ==================== -->
+<div class="section-header" style="margin-top:30px;">
+  <h2>Top 2x Single Stock ETFs by AUM</h2>
+  <span class="badge">{{ top_2x|length }} products</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  The highest-AUM 2x single-stock leveraged ETFs. These represent proven market demand for leveraged exposure.
+</p>
+
+<!-- First 30 rows visible -->
+<div style="overflow-x:auto;">
+<table id="top2xTable">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('top2xTable',1)">Ticker</th>
+      <th onclick="sortTable('top2xTable',2)">Issuer</th>
+      <th onclick="sortTable('top2xTable',3)">Underlier</th>
+      <th onclick="sortTable('top2xTable',4)">Dir</th>
+      <th onclick="sortTable('top2xTable',5)" style="text-align:right;">AUM ($M)</th>
+      <th onclick="sortTable('top2xTable',6)" style="text-align:right;">Flow 1M</th>
+      <th onclick="sortTable('top2xTable',7)">REX 2x</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in top_2x %}
+    <tr{% if r.is_rex %} style="background:#f0f7ff;"{% endif %}>
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col">{{ r.ticker }}</td>
+      <td style="font-size:12px;">{{ r.issuer[:20] }}</td>
+      <td class="ticker-col"><a href="/screener/stock/{{ r.underlier }} US">{{ r.underlier }}</a></td>
+      <td style="font-size:12px;">{{ r.direction[:5] if r.direction else '-' }}</td>
+      <td style="text-align:right; font-size:12px; font-weight:600;">
+        {% if r.aum >= 1000 %}${{ "%.1f"|format(r.aum / 1000) }}B
+        {% elif r.aum > 0 %}${{ "{:,.0f}".format(r.aum) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td style="text-align:right; font-size:12px;
+        {% if r.flow_1m and r.flow_1m > 0 %}color:var(--green);
+        {% elif r.flow_1m and r.flow_1m < 0 %}color:var(--red);{% endif %}">
+        {% if r.flow_1m %}{{ "{:,.0f}".format(r.flow_1m) }}{% else %}-{% endif %}
+      </td>
+      <td><span class="rex-{{ r.rex_2x|lower|replace(' ', '') }}">{{ r.rex_2x }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% endif %}
+{% endblock %}

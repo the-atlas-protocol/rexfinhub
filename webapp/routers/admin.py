@@ -303,6 +303,10 @@ async def screener_upload(
         db.commit()
         db.refresh(upload)
 
+        # Invalidate 3x analysis cache (data file changed)
+        from webapp.services.screener_3x_cache import invalidate_cache
+        invalidate_cache()
+
         # Trigger scoring in background
         from webapp.services.screener_service import run_screener_pipeline
         background_tasks.add_task(run_screener_pipeline, upload.id)
@@ -341,6 +345,10 @@ def screener_rescore(
     db.add(upload)
     db.commit()
     db.refresh(upload)
+
+    # Invalidate 3x analysis cache (re-scoring)
+    from webapp.services.screener_3x_cache import invalidate_cache
+    invalidate_cache()
 
     from webapp.services.screener_service import run_screener_pipeline
     background_tasks.add_task(run_screener_pipeline, upload.id)

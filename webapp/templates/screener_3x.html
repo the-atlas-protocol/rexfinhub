@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block title %}3x Filing Recommendations - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1>3x Filing Recommendations</h1>
+      <div class="date">
+        {% if data_date %}Data as of {{ data_date }}{% endif %}
+        {% if computed_at %} | Analysis computed {{ computed_at }}{% endif %}
+      </div>
+    </div>
+    {% if data_available %}
+    <a href="/screener/report" class="btn btn-primary" style="margin-top:4px;">Download PDF</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sub-navigation -->
+<div class="sub-nav">
+  <a href="/screener/" class="pill{% if tab == 'recommendations' %} active{% endif %}">3x Recommendations</a>
+  <a href="/screener/4x" class="pill{% if tab == '4x' %} active{% endif %}">4x Candidates</a>
+  <a href="/screener/market" class="pill{% if tab == 'market' %} active{% endif %}">Market Landscape</a>
+  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Track Record</a>
+  <a href="/screener/risk" class="pill{% if tab == 'risk' %} active{% endif %}">Risk Watchlist</a>
+  <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
+</div>
+
+{% if not data_available %}
+<div class="what-changed" style="background:#fff3e0; border-color:var(--orange);">
+  <h2>No Bloomberg data available</h2>
+  <p>Upload Bloomberg .xlsx from the <a href="/admin/">Admin panel</a> to generate 3x/4x recommendations.</p>
+</div>
+{% else %}
+
+<!-- ==================== KPI ROW 1: 3x MARKET ==================== -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="num">
+      {% if snapshot.total_aum >= 1000 %}${{ "%.1f"|format(snapshot.total_aum / 1000) }}B
+      {% else %}${{ "{:,.0f}".format(snapshot.total_aum) }}M{% endif %}
+    </div>
+    <div class="label">Total 3x AUM</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ snapshot.product_count }}</div>
+    <div class="label">3x Products</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ snapshot.single_stock_count }}</div>
+    <div class="label">3x Single Stock</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:var(--green);">
+      {% if snapshot.rex_aum >= 1000 %}${{ "%.1f"|format(snapshot.rex_aum / 1000) }}B
+      {% else %}${{ "{:,.0f}".format(snapshot.rex_aum) }}M{% endif %}
+    </div>
+    <div class="label">REX 3x AUM</div>
+  </div>
+</div>
+
+<!-- ==================== KPI ROW 2: 2x MARKET CONTEXT ==================== -->
+<div class="kpi-row kpi-row-blue">
+  <div class="kpi">
+    <div class="num">
+      {% if snapshot.total_2x_aum >= 1000 %}${{ "%.1f"|format(snapshot.total_2x_aum / 1000) }}B
+      {% else %}${{ "{:,.0f}".format(snapshot.total_2x_aum) }}M{% endif %}
+    </div>
+    <div class="label">Total 2x AUM</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ snapshot.total_2x_count }}</div>
+    <div class="label">2x Products</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ snapshot.ss_2x_count }}</div>
+    <div class="label">2x Single Stock</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:var(--green);">
+      {% if snapshot.rex_2x_aum >= 1000 %}${{ "%.1f"|format(snapshot.rex_2x_aum / 1000) }}B
+      {% else %}${{ "{:,.0f}".format(snapshot.rex_2x_aum) }}M{% endif %}
+    </div>
+    <div class="label">REX 2x AUM</div>
+  </div>
+</div>
+
+<!-- ==================== KEY FINDINGS ==================== -->
+<ul class="key-findings">
+  {% if snapshot.single_stock_count == 0 %}
+  <li><strong>Zero 3x single-stock ETFs exist today.</strong> Every filing is first-mover advantage.</li>
+  {% endif %}
+  <li><b>{{ tiers.tier_1|length }}</b> Tier 1 (file immediately), <b>{{ tiers.tier_2|length }}</b> Tier 2 (file soon), <b>{{ tiers.tier_3|length }}</b> Tier 3 (monitor) candidates identified.</li>
+  {% if tiers.tier_1 %}
+  <li>Tier 1 combined 2x AUM: <b>${{ "{:,.0f}".format(tiers.tier_1|sum(attribute='aum_2x')) }}M</b> in proven demand.</li>
+  {% endif %}
+  {% if four_x_count %}
+  <li><b>{{ four_x_count }}</b> low-volatility 2x successes identified for <a href="/screener/4x">4x filing</a>.</li>
+  {% endif %}
+  {% if snapshot.top_issuers %}
+  <li>Top 3x issuer: {{ snapshot.top_issuers[0].issuer }} (${{ "{:,.0f}".format(snapshot.top_issuers[0].aum) }}M AUM, {{ snapshot.top_issuers[0].count }} products).</li>
+  {% endif %}
+</ul>
+
+<!-- ==================== TIER 1: FILE IMMEDIATELY ==================== -->
+{% if tiers.tier_1 %}
+<div class="section-header" style="border-color:var(--green);">
+  <h2 style="color:var(--green);">Tier 1 - File Immediately</h2>
+  <span class="badge" style="background:var(--green);">{{ tiers.tier_1|length }} stocks</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  Stocks with proven 2x leveraged product demand. Every name has existing 2x AUM, sorted by 3x Filing Score.
+</p>
+<div style="overflow-x:auto;">
+<table id="tier1Table" class="tier-1-header">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('tier1Table',1)">Stock</th>
+      <th onclick="sortTable('tier1Table',2)">Sector</th>
+      <th onclick="sortTable('tier1Table',3)" style="text-align:right;">3x Score</th>
+      <th onclick="sortTable('tier1Table',4)" style="text-align:right;">Mkt Cap</th>
+      <th onclick="sortTable('tier1Table',5)" style="text-align:center;">2x Cnt</th>
+      <th onclick="sortTable('tier1Table',6)" style="text-align:right;">2x AUM</th>
+      <th onclick="sortTable('tier1Table',7)">REX 2x</th>
+      <th onclick="sortTable('tier1Table',8)">Risk</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in tiers.tier_1 %}
+    <tr>
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col"><a href="/screener/stock/{{ c.ticker }} US">{{ c.ticker }}</a></td>
+      <td style="font-size:12px;">{{ c.sector or '-' }}</td>
+      <td style="text-align:right;">
+        <span style="display:inline-block; width:36px; text-align:right; font-weight:600;
+          {% if c.score >= 70 %}color:var(--green);
+          {% elif c.score >= 40 %}color:var(--orange);
+          {% else %}color:var(--gray);{% endif %}">{{ "%.0f"|format(c.score) }}</span>
+        <div class="score-bar"><div class="score-fill" style="width:{{ c.score }}%;
+          {% if c.score >= 70 %}background:var(--green);
+          {% elif c.score >= 40 %}background:var(--orange);
+          {% else %}background:var(--gray);{% endif %}"></div></div>
+      </td>
+      <td style="text-align:right; font-size:12px;">
+        {% if c.mkt_cap and c.mkt_cap >= 1000 %}${{ "%.0f"|format(c.mkt_cap / 1000) }}B
+        {% elif c.mkt_cap %}${{ "{:,.0f}".format(c.mkt_cap) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td style="text-align:center;">{{ c.count_2x }}</td>
+      <td style="text-align:right; font-size:12px;">
+        {% if c.aum_2x >= 1000 %}${{ "%.1f"|format(c.aum_2x / 1000) }}B
+        {% elif c.aum_2x > 0 %}${{ "{:,.0f}".format(c.aum_2x) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td><span class="rex-{{ c.rex_2x|lower|replace(' ', '') }}">{{ c.rex_2x }}</span></td>
+      <td><span class="risk-{{ c.risk|lower }}">{{ c.risk }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+<!-- ==================== TIER 2: FILE SOON ==================== -->
+{% if tiers.tier_2 %}
+<div class="section-header" style="margin-top:30px; border-color:var(--blue);">
+  <h2 style="color:var(--blue);">Tier 2 - File Soon</h2>
+  <span class="badge" style="background:var(--blue);">{{ tiers.tier_2|length }} stocks</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  Strong fundamentals with growing leveraged product interest. File after Tier 1 priorities are submitted.
+</p>
+<div style="overflow-x:auto;">
+<table id="tier2Table" class="tier-2-header">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('tier2Table',1)">Stock</th>
+      <th onclick="sortTable('tier2Table',2)">Sector</th>
+      <th onclick="sortTable('tier2Table',3)" style="text-align:right;">3x Score</th>
+      <th onclick="sortTable('tier2Table',4)" style="text-align:right;">Mkt Cap</th>
+      <th onclick="sortTable('tier2Table',5)" style="text-align:center;">2x Cnt</th>
+      <th onclick="sortTable('tier2Table',6)" style="text-align:right;">2x AUM</th>
+      <th onclick="sortTable('tier2Table',7)">REX 2x</th>
+      <th onclick="sortTable('tier2Table',8)">Risk</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in tiers.tier_2 %}
+    <tr>
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col"><a href="/screener/stock/{{ c.ticker }} US">{{ c.ticker }}</a></td>
+      <td style="font-size:12px;">{{ c.sector or '-' }}</td>
+      <td style="text-align:right;">
+        <span style="display:inline-block; width:36px; text-align:right; font-weight:600;
+          {% if c.score >= 70 %}color:var(--green);
+          {% elif c.score >= 40 %}color:var(--orange);
+          {% else %}color:var(--gray);{% endif %}">{{ "%.0f"|format(c.score) }}</span>
+        <div class="score-bar"><div class="score-fill" style="width:{{ c.score }}%;
+          {% if c.score >= 70 %}background:var(--green);
+          {% elif c.score >= 40 %}background:var(--orange);
+          {% else %}background:var(--gray);{% endif %}"></div></div>
+      </td>
+      <td style="text-align:right; font-size:12px;">
+        {% if c.mkt_cap and c.mkt_cap >= 1000 %}${{ "%.0f"|format(c.mkt_cap / 1000) }}B
+        {% elif c.mkt_cap %}${{ "{:,.0f}".format(c.mkt_cap) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td style="text-align:center;">{{ c.count_2x }}</td>
+      <td style="text-align:right; font-size:12px;">
+        {% if c.aum_2x >= 1000 %}${{ "%.1f"|format(c.aum_2x / 1000) }}B
+        {% elif c.aum_2x > 0 %}${{ "{:,.0f}".format(c.aum_2x) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td><span class="rex-{{ c.rex_2x|lower|replace(' ', '') }}">{{ c.rex_2x }}</span></td>
+      <td><span class="risk-{{ c.risk|lower }}">{{ c.risk }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+<!-- ==================== TIER 3: MONITOR (COLLAPSED) ==================== -->
+{% if tiers.tier_3 %}
+<div class="trust-block" style="margin-top:30px;">
+  <div class="trust-header" onclick="toggleTrust(this)" style="border-left:4px solid var(--orange);">
+    <h3 style="color:var(--orange);">Tier 3 - Monitor <span style="font-size:12px; color:var(--gray); font-weight:normal;">({{ tiers.tier_3|length }} stocks)</span></h3>
+    <span class="arrow">&#9654;</span>
+  </div>
+  <div class="trust-body">
+    <p style="font-size:12px; color:var(--gray); padding:8px 16px 4px;">
+      Stocks meeting minimum thresholds. Monitor for rising demand before filing.
+    </p>
+    <div style="overflow-x:auto;">
+    <table id="tier3Table" class="tier-3-header">
+      <thead>
+        <tr>
+          <th style="width:35px;">#</th>
+          <th onclick="sortTable('tier3Table',1)">Stock</th>
+          <th onclick="sortTable('tier3Table',2)">Sector</th>
+          <th onclick="sortTable('tier3Table',3)" style="text-align:right;">3x Score</th>
+          <th onclick="sortTable('tier3Table',4)" style="text-align:right;">Mkt Cap</th>
+          <th onclick="sortTable('tier3Table',5)" style="text-align:center;">2x Cnt</th>
+          <th onclick="sortTable('tier3Table',6)" style="text-align:right;">2x AUM</th>
+          <th onclick="sortTable('tier3Table',7)">REX 2x</th>
+          <th onclick="sortTable('tier3Table',8)">Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in tiers.tier_3 %}
+        <tr>
+          <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+          <td class="ticker-col"><a href="/screener/stock/{{ c.ticker }} US">{{ c.ticker }}</a></td>
+          <td style="font-size:12px;">{{ c.sector or '-' }}</td>
+          <td style="text-align:right;">
+            <span style="display:inline-block; width:36px; text-align:right; font-weight:600;
+              {% if c.score >= 70 %}color:var(--green);
+              {% elif c.score >= 40 %}color:var(--orange);
+              {% else %}color:var(--gray);{% endif %}">{{ "%.0f"|format(c.score) }}</span>
+            <div class="score-bar"><div class="score-fill" style="width:{{ c.score }}%;
+              {% if c.score >= 70 %}background:var(--green);
+              {% elif c.score >= 40 %}background:var(--orange);
+              {% else %}background:var(--gray);{% endif %}"></div></div>
+          </td>
+          <td style="text-align:right; font-size:12px;">
+            {% if c.mkt_cap and c.mkt_cap >= 1000 %}${{ "%.0f"|format(c.mkt_cap / 1000) }}B
+            {% elif c.mkt_cap %}${{ "{:,.0f}".format(c.mkt_cap) }}M
+            {% else %}-{% endif %}
+          </td>
+          <td style="text-align:center;">{{ c.count_2x }}</td>
+          <td style="text-align:right; font-size:12px;">
+            {% if c.aum_2x >= 1000 %}${{ "%.1f"|format(c.aum_2x / 1000) }}B
+            {% elif c.aum_2x > 0 %}${{ "{:,.0f}".format(c.aum_2x) }}M
+            {% else %}-{% endif %}
+          </td>
+          <td><span class="rex-{{ c.rex_2x|lower|replace(' ', '') }}">{{ c.rex_2x }}</span></td>
+          <td><span class="risk-{{ c.risk|lower }}">{{ c.risk }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ==================== METHODOLOGY (COLLAPSED) ==================== -->
+<div class="trust-block" style="margin-top:30px;">
+  <div class="trust-header" onclick="toggleTrust(this)">
+    <h3>Methodology</h3>
+    <span class="arrow">&#9654;</span>
+  </div>
+  <div class="trust-body" style="padding:16px;">
+    <div style="font-size:13px; color:var(--gray); line-height:1.7;">
+      <p><b style="color:var(--navy);">3x Filing Score</b> = 40% Stock Fundamentals + 60% 2x AUM Demand</p>
+      <p style="margin-top:8px;">
+        <b>Stock Fundamentals (40%)</b>: Percentile-ranked composite of Turnover (30%), Options OI (30%), Mkt Cap (20%), Volatility (10%), Short Interest (10%).
+      </p>
+      <p style="margin-top:4px;">
+        <b>2x AUM Demand (60%)</b>: Percentile-ranked total AUM across all existing 2x single-stock products on each underlier. Stocks with no 2x products receive 0.
+      </p>
+      <p style="margin-top:12px;"><b style="color:var(--navy);">Tiering</b></p>
+      <p><b>Tier 1</b>: Stocks with existing 2x AUM (proven market demand), sorted by 3x Filing Score.</p>
+      <p><b>Tier 2</b>: Next highest scoring stocks without 2x history.</p>
+      <p><b>Tier 3</b>: Remaining stocks meeting minimum score thresholds.</p>
+      <p style="margin-top:8px; font-style:italic;">Risk levels are informational only and do not affect tiering. All tiers sorted by the same 3x Filing Score.</p>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

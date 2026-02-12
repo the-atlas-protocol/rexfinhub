@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}REX Fund Portfolio - Launch Screener{% endblock %}
+{% block title %}REX Track Record - ETP Filing Tracker{% endblock %}
 
 {% block content %}
 <div class="header">
-  <h1>REX Fund Portfolio</h1>
+  <h1>REX Track Record</h1>
   <div class="date">
     {% if upload %}
       Data as of {{ upload.uploaded_at.strftime('%b %d, %Y') }}
@@ -14,13 +14,93 @@
 </div>
 
 <!-- Sub-navigation -->
-<div style="display:flex; gap:4px; margin-bottom:20px; border-bottom:2px solid var(--navy); padding-bottom:8px;">
-  <a href="/screener/" class="pill{% if tab == 'opportunities' %} active{% endif %}">Screener</a>
-  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Funds</a>
+<div class="sub-nav">
+  <a href="/screener/" class="pill{% if tab == 'recommendations' %} active{% endif %}">3x Recommendations</a>
+  <a href="/screener/4x" class="pill{% if tab == '4x' %} active{% endif %}">4x Candidates</a>
+  <a href="/screener/market" class="pill{% if tab == 'market' %} active{% endif %}">Market Landscape</a>
+  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Track Record</a>
+  <a href="/screener/risk" class="pill{% if tab == 'risk' %} active{% endif %}">Risk Watchlist</a>
   <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
 </div>
 
+<!-- ==================== T-REX TRACK RECORD WITH 3x SCORES ==================== -->
+{% if rex_track %}
+<div class="section-header">
+  <h2>T-REX Product Lineup</h2>
+  {% set aum_gt0 = rex_track|selectattr('aum', 'gt', 0)|list|length %}
+  <span class="badge">{{ rex_track|length }} products ({{ aum_gt0 }} with AUM)</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  All T-REX branded products with their 3x Filing Score (where applicable). Score shows how well each underlier ranks for a potential 3x filing.
+</p>
+<div style="overflow-x:auto;">
+<table id="trackRecordTable">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('trackRecordTable',1)">Fund Ticker</th>
+      <th onclick="sortTable('trackRecordTable',2)">Underlier</th>
+      <th onclick="sortTable('trackRecordTable',3)">Lev</th>
+      <th onclick="sortTable('trackRecordTable',4)">Dir</th>
+      <th onclick="sortTable('trackRecordTable',5)" style="text-align:right;">AUM ($M)</th>
+      <th onclick="sortTable('trackRecordTable',6)" style="text-align:right;">3x Score</th>
+      <th onclick="sortTable('trackRecordTable',7)">Category</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rex_track %}
+    <tr>
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col">{{ r.fund_ticker }}</td>
+      <td class="ticker-col">
+        {% if r.category == 'Single Stock' %}
+        <a href="/screener/stock/{{ r.underlier }} US">{{ r.underlier }}</a>
+        {% else %}
+        {{ r.underlier }}
+        {% endif %}
+      </td>
+      <td style="font-size:12px;">{{ r.leverage or '-' }}</td>
+      <td style="font-size:12px;">{{ r.direction or '-' }}</td>
+      <td style="text-align:right; font-weight:600;">
+        {% if r.aum >= 1000 %}${{ "%.1f"|format(r.aum / 1000) }}B
+        {% elif r.aum > 0 %}${{ "{:,.1f}".format(r.aum) }}M
+        {% else %}<span style="color:var(--gray);">-</span>{% endif %}
+      </td>
+      <td style="text-align:right;">
+        {% if r.score is not none %}
+        <span style="font-weight:600;
+          {% if r.score >= 70 %}color:var(--green);
+          {% elif r.score >= 50 %}color:var(--blue);
+          {% elif r.score >= 30 %}color:var(--orange);
+          {% else %}color:var(--gray);{% endif %}">{{ "%.0f"|format(r.score) }}</span>
+        {% else %}
+        <span style="color:var(--gray);">-</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if r.category == 'Single Stock' %}
+        <span class="cat-badge cat-single-stock">{{ r.category }}</span>
+        {% elif r.category == 'Index' %}
+        <span class="cat-badge cat-index">{{ r.category }}</span>
+        {% elif r.category == 'Crypto' %}
+        <span class="cat-badge cat-crypto">{{ r.category }}</span>
+        {% else %}
+        <span class="cat-badge" style="background:var(--light); color:var(--gray);">{{ r.category }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+<!-- ==================== PORTFOLIO HEALTH ==================== -->
 {% if product_groups %}
+<div class="section-header" style="margin-top:30px;">
+  <h2>Portfolio Health</h2>
+</div>
+
 <!-- KPI Row -->
 <div class="kpi-row">
   <div class="kpi">
@@ -50,6 +130,7 @@
 <div class="trust-block open" style="margin-bottom:16px;">
   <div class="trust-header" onclick="toggleTrust(this)">
     <h3>{{ group_name }} <span style="font-size:12px; color:var(--gray); font-weight:normal;">({{ funds|length }} funds, AUM: ${{ "{:,.0f}".format(funds|sum(attribute='aum')) }}M)</span></h3>
+    <span class="arrow">&#9654;</span>
   </div>
   <div class="trust-body" style="display:block;">
     {% if group_name == "Microsectors" %}
@@ -58,44 +139,44 @@
     </div>
     {% endif %}
     <div style="overflow-x:auto;">
-    <table style="border-collapse:collapse; width:100%;">
+    <table>
       <thead>
         <tr>
-          <th style="padding:8px 10px;">Ticker</th>
-          <th style="padding:8px 10px;">Fund Name</th>
-          <th style="padding:8px 10px;">Underlier</th>
-          <th style="padding:8px 10px; text-align:right;">AUM ($M)</th>
-          <th style="padding:8px 10px; text-align:right;">Flow 1M</th>
-          <th style="padding:8px 10px; text-align:right;">Flow 3M</th>
-          <th style="padding:8px 10px; text-align:right;">Flow YTD</th>
-          <th style="padding:8px 10px; text-align:right;">Return YTD</th>
-          <th style="padding:8px 10px; text-align:right;">Spread</th>
-          <th style="padding:8px 10px; text-align:right;">Tracking Err</th>
+          <th>Ticker</th>
+          <th>Fund Name</th>
+          <th>Underlier</th>
+          <th style="text-align:right;">AUM ($M)</th>
+          <th style="text-align:right;">Flow 1M</th>
+          <th style="text-align:right;">Flow 3M</th>
+          <th style="text-align:right;">Flow YTD</th>
+          <th style="text-align:right;">Return YTD</th>
+          <th style="text-align:right;">Spread</th>
+          <th style="text-align:right;">Tracking Err</th>
         </tr>
       </thead>
       <tbody>
         {% for f in funds %}
         <tr>
-          <td class="ticker-col" style="padding:6px 10px;">
+          <td class="ticker-col">
             {% if f.underlier %}<a href="/screener/stock/{{ f.underlier }}">{{ f.ticker }}</a>{% else %}{{ f.ticker }}{% endif %}
           </td>
-          <td style="padding:6px 10px; font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.fund_name }}</td>
-          <td style="padding:6px 10px; font-size:12px; font-family:monospace;">{{ f.underlier or '-' }}</td>
-          <td style="padding:6px 10px; text-align:right; font-weight:600;">{{ "{:,.1f}".format(f.aum) }}</td>
-          <td style="padding:6px 10px; text-align:right; {% if f.flow_1m > 0 %}color:var(--green);{% elif f.flow_1m < 0 %}color:var(--red);{% endif %}">
+          <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.fund_name }}</td>
+          <td style="font-size:12px; font-family:monospace;">{{ f.underlier or '-' }}</td>
+          <td style="text-align:right; font-weight:600;">{{ "{:,.1f}".format(f.aum) }}</td>
+          <td style="text-align:right; {% if f.flow_1m > 0 %}color:var(--green);{% elif f.flow_1m < 0 %}color:var(--red);{% endif %}">
             {{ "{:,.1f}".format(f.flow_1m) }}
           </td>
-          <td style="padding:6px 10px; text-align:right; {% if f.flow_3m > 0 %}color:var(--green);{% elif f.flow_3m < 0 %}color:var(--red);{% endif %}">
+          <td style="text-align:right; {% if f.flow_3m > 0 %}color:var(--green);{% elif f.flow_3m < 0 %}color:var(--red);{% endif %}">
             {{ "{:,.1f}".format(f.flow_3m) }}
           </td>
-          <td style="padding:6px 10px; text-align:right; {% if f.flow_ytd > 0 %}color:var(--green);{% elif f.flow_ytd < 0 %}color:var(--red);{% endif %}">
+          <td style="text-align:right; {% if f.flow_ytd > 0 %}color:var(--green);{% elif f.flow_ytd < 0 %}color:var(--red);{% endif %}">
             {{ "{:,.1f}".format(f.flow_ytd) }}
           </td>
-          <td style="padding:6px 10px; text-align:right; {% if f.return_ytd > 0 %}color:var(--green);{% elif f.return_ytd < 0 %}color:var(--red);{% endif %}">
+          <td style="text-align:right; {% if f.return_ytd > 0 %}color:var(--green);{% elif f.return_ytd < 0 %}color:var(--red);{% endif %}">
             {{ "%.1f"|format(f.return_ytd) }}%
           </td>
-          <td style="padding:6px 10px; text-align:right; font-size:12px;">{% if f.spread %}{{ "%.2f"|format(f.spread) }}{% else %}-{% endif %}</td>
-          <td style="padding:6px 10px; text-align:right; font-size:12px;">{% if f.tracking_error %}{{ "%.2f"|format(f.tracking_error) }}{% else %}-{% endif %}</td>
+          <td style="text-align:right; font-size:12px;">{% if f.spread %}{{ "%.2f"|format(f.spread) }}{% else %}-{% endif %}</td>
+          <td style="text-align:right; font-size:12px;">{% if f.tracking_error %}{{ "%.2f"|format(f.tracking_error) }}{% else %}-{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -106,7 +187,7 @@
 {% endif %}
 {% endfor %}
 
-{% else %}
+{% elif not rex_track %}
 <div class="what-changed">
   <h2>No REX fund data available</h2>
   <p>Upload Bloomberg data from the <a href="/admin/">Admin panel</a> to see REX fund performance.</p>

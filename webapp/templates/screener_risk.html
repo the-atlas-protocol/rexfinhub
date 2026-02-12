@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Risk Watchlist - ETP Filing Tracker{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>Risk Watchlist</h1>
+  <div class="date">
+    {% if data_date %}Data as of {{ data_date }}{% endif %}
+  </div>
+</div>
+
+<!-- Sub-navigation -->
+<div class="sub-nav">
+  <a href="/screener/" class="pill{% if tab == 'recommendations' %} active{% endif %}">3x Recommendations</a>
+  <a href="/screener/4x" class="pill{% if tab == '4x' %} active{% endif %}">4x Candidates</a>
+  <a href="/screener/market" class="pill{% if tab == 'market' %} active{% endif %}">Market Landscape</a>
+  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Track Record</a>
+  <a href="/screener/risk" class="pill{% if tab == 'risk' %} active{% endif %}">Risk Watchlist</a>
+  <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
+</div>
+
+{% if not data_available %}
+<div class="what-changed" style="background:#fff3e0; border-color:var(--orange);">
+  <h2>No Bloomberg data available</h2>
+  <p>Upload Bloomberg .xlsx from the <a href="/admin/">Admin panel</a> to view risk analysis.</p>
+</div>
+{% else %}
+
+<!-- Risk Legend -->
+<div class="risk-legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--green);"></span> <b>LOW</b> &lt;3% daily vol</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--orange);"></span> <b>MEDIUM</b> 3-5%</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--red);"></span> <b>HIGH</b> 5-8%</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#8e44ad;"></span> <b>EXTREME</b> &gt;8%</div>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="num">{{ risk_watchlist|length }}</div>
+    <div class="label">Total Watchlist</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:var(--red);">{{ high_plus_count }}</div>
+    <div class="label">HIGH+ Risk</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:#8e44ad;">{{ extreme_count }}</div>
+    <div class="label">EXTREME Risk</div>
+  </div>
+</div>
+
+<!-- Risk Watchlist Table -->
+<div class="section-header">
+  <h2>Volatility & Blow-Up Risk</h2>
+  <span class="badge">{{ risk_watchlist|length }} stocks</span>
+</div>
+<p style="font-size:12px; color:var(--gray); margin-bottom:8px;">
+  Scoped to Tier 1 + Tier 2 recommendations and top underliers. Sorted by 2x AUM (biggest exposures first).
+</p>
+<div style="overflow-x:auto;">
+<table id="riskTable">
+  <thead>
+    <tr>
+      <th style="width:35px;">#</th>
+      <th onclick="sortTable('riskTable',1)">Stock</th>
+      <th onclick="sortTable('riskTable',2)" style="text-align:right;">2x AUM</th>
+      <th onclick="sortTable('riskTable',3)" style="text-align:right;">Vol 30D</th>
+      <th onclick="sortTable('riskTable',4)" style="text-align:right;">Daily Vol</th>
+      <th onclick="sortTable('riskTable',5)">Extreme Day Odds</th>
+      <th onclick="sortTable('riskTable',6)">3x Impact</th>
+      <th onclick="sortTable('riskTable',7)">Risk</th>
+      <th onclick="sortTable('riskTable',8)">REX 2x</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in risk_watchlist %}
+    <tr class="{% if r.risk_level == 'EXTREME' %}risk-extreme-row{% elif r.risk_level == 'HIGH' %}risk-high-row{% endif %}">
+      <td style="color:var(--gray); font-size:12px;">{{ loop.index }}</td>
+      <td class="ticker-col"><a href="/screener/stock/{{ r.ticker_clean }} US">{{ r.ticker_clean }}</a></td>
+      <td style="text-align:right; font-size:12px;">
+        {% if r.aum_2x >= 1000 %}${{ "%.1f"|format(r.aum_2x / 1000) }}B
+        {% elif r.aum_2x > 0 %}${{ "{:,.0f}".format(r.aum_2x) }}M
+        {% else %}-{% endif %}
+      </td>
+      <td style="text-align:right; font-size:12px;">{{ "%.1f"|format(r.vol_30d) }}%</td>
+      <td style="text-align:right; font-size:12px;">{{ "%.1f"|format(r.daily_vol) }}%</td>
+      <td style="font-size:12px;">{{ r.extreme_day_odds }}</td>
+      <td style="font-size:12px;">{{ r.impact_3x }}</td>
+      <td><span class="risk-{{ r.risk_level|lower }}">{{ r.risk_level }}</span></td>
+      <td><span class="rex-{{ r.rex_2x|lower|replace(' ', '') }}">{{ r.rex_2x }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<p style="font-size:11px; color:var(--gray); margin-top:12px;">
+  <b>Methodology:</b> Daily Vol = Vol 30D / sqrt(252). Risk thresholds: LOW &lt;3%, MEDIUM 3-5%, HIGH 5-8%, EXTREME &gt;8%.
+  Extreme Day Odds = probability of a +-10% single-day move based on normal distribution.
+</p>
+
+{% endif %}
+{% endblock %}
