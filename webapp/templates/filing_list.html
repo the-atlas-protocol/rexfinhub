@@ -1,28 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Recent Filings - ETP Filing Tracker{% endblock %}
+{% block title %}Filings - ETP Filing Tracker{% endblock %}
 
 {% block content %}
 <div class="header">
-  <h1>Recent Filings</h1>
+  <h1>Filing Search</h1>
   <div class="date">
-    {{ total }} filings shown (most recent first)
-    {% if not show_all and not form %}
+    {{ total_all }} total filings tracked{% if q or form or trust_id or show_all %} &middot; {{ total }} matching{% endif %}
+    {% if not show_all and not form and not q %}
     &middot; <span style="color:var(--gray);">Prospectus filings only</span>
     {% endif %}
   </div>
 </div>
 
+<!-- Filters -->
 <form method="get" action="/filings/" style="margin-bottom:20px;">
   <div class="filter-bar" style="border-radius:8px;">
-    <input type="text" name="form" value="{{ form }}" placeholder="Filter by form type (e.g. 485BPOS)...">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by trust, accession, form type...">
+    <input type="text" name="form" value="{{ form }}" placeholder="Form filter (e.g. 485BPOS)" style="width:180px;">
     <select name="trust_id" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
       <option value="0">All Trusts</option>
       {% for t in trusts %}
       <option value="{{ t.id }}" {% if trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
       {% endfor %}
     </select>
-    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-    {% if not show_all and not form %}
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    {% if q or form or trust_id or show_all %}
+    <a href="/filings/" style="font-size:12px; color:var(--gray); margin-left:4px;">Clear</a>
+    {% endif %}
+    {% if not show_all and not form and not q %}
     <a href="/filings/?show_all=true{% if trust_id %}&trust_id={{ trust_id }}{% endif %}" style="font-size:12px; color:var(--gray); margin-left:8px;">Show all form types</a>
     {% elif show_all %}
     <a href="/filings/{% if trust_id %}?trust_id={{ trust_id }}{% endif %}" style="font-size:12px; color:var(--gray); margin-left:8px;">Prospectus only</a>

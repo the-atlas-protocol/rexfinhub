@@ -51,6 +51,11 @@ def screener_opportunities(
     ).scalar_one_or_none()
 
     if not latest_upload:
+        # Check if data exists on disk but hasn't been scored yet
+        from pathlib import Path
+        data_dir = Path(__file__).resolve().parent.parent.parent / "data" / "SCREENER"
+        data_available = any(data_dir.glob("*.xlsx")) if data_dir.exists() else False
+
         return templates.TemplateResponse("screener_rankings.html", {
             "request": request,
             "all_opportunities": [],
@@ -63,6 +68,7 @@ def screener_opportunities(
             "sectors": [],
             "upload": None,
             "tab": "opportunities",
+            "data_available": data_available,
         })
 
     # Fetch ALL results ordered by score

@@ -11,7 +11,11 @@
       {{ launched_count | default(0) }} already launched (excluded) |
       {{ filed_count | default(0) }} have REX filings
     {% else %}
-      No data loaded. Upload Bloomberg data from the <a href="/admin/">Admin panel</a>.
+      {% if data_available is defined and data_available %}
+        Bloomberg data found on disk. <a href="/admin/">Score it from the Admin panel</a> to view results.
+      {% else %}
+        No data loaded. Place Bloomberg .xlsx in data/SCREENER/ and score from the <a href="/admin/">Admin panel</a>.
+      {% endif %}
     {% endif %}
   </div>
 </div>

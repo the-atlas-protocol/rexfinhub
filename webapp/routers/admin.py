@@ -4,6 +4,7 @@ pipeline control, digest testing, and system status.
 """
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -19,11 +20,12 @@ from webapp.models import Trust, AnalysisResult, PipelineRun, ScreenerUpload
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="webapp/templates")
+log = logging.getLogger(__name__)
 
 ADMIN_PASSWORD = "123"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 REQUESTS_FILE = PROJECT_ROOT / "trust_requests.txt"
-OUTPUT_DIR = Path("outputs")
+OUTPUT_DIR = PROJECT_ROOT / "outputs"
 
 
 def _is_admin(request: Request) -> bool:
@@ -82,13 +84,19 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
     all_requests = _read_requests()
     pending_requests = [r for r in all_requests if r["status"] == "PENDING"]
 
-    # Pipeline status
+    # Pipeline status - fix stale "running" records
+    from webapp.services.pipeline_service import is_pipeline_running
+    pipeline_running = is_pipeline_running()
+
     last_run = db.execute(
         select(PipelineRun).order_by(PipelineRun.started_at.desc()).limit(1)
     ).scalar_one_or_none()
 
-    from webapp.services.pipeline_service import is_pipeline_running
-    pipeline_running = is_pipeline_running()
+    if last_run and last_run.status == "running" and not pipeline_running:
+        last_run.status = "interrupted"
+        last_run.finished_at = datetime.utcnow()
+        last_run.error_message = "Server restarted while pipeline was running"
+        db.commit()
 
     # AI analysis status
     from webapp.services.claude_service import is_configured as ai_configured
@@ -103,6 +111,10 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         select(ScreenerUpload).order_by(ScreenerUpload.uploaded_at.desc()).limit(1)
     ).scalar_one_or_none()
 
+    # Detect screener data files on disk
+    screener_data_files = list(SCREENER_DATA_DIR.glob("*.xlsx")) if SCREENER_DATA_DIR.exists() else []
+    screener_data_available = len(screener_data_files) > 0
+
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "pending_requests": pending_requests,
@@ -112,6 +124,7 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         "ai_configured": ai_configured(),
         "ai_usage_today": ai_usage_today,
         "screener_upload": screener_upload,
+        "screener_data_available": screener_data_available,
     })
 
 
@@ -140,11 +153,12 @@ def admin_logout(request: Request):
 @router.post("/requests/approve")
 def approve_request(
     request: Request,
+    background_tasks: BackgroundTasks,
     cik: str = Form(""),
     name: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    """Approve a trust monitoring request."""
+    """Approve a trust monitoring request and fetch its filings."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
@@ -169,7 +183,39 @@ def approve_request(
         db.commit()
 
     _update_request_status(cik, "APPROVED")
+
+    # Trigger background fetch for this trust
+    background_tasks.add_task(_fetch_single_trust, cik, name)
+
     return RedirectResponse("/admin/?approved=1", status_code=303)
+
+
+def _fetch_single_trust(cik: str, name: str):
+    """Fetch filings for a single newly-approved trust in background."""
+    try:
+        from etp_tracker.run_pipeline import run_pipeline
+        from webapp.database import SessionLocal
+        from webapp.services.sync_service import seed_trusts, sync_all
+
+        log.info("Fetching filings for approved trust: %s (CIK %s)", name, cik)
+        n = run_pipeline(
+            ciks=[cik],
+            overrides={cik: name},
+            since="2024-11-14",
+            refresh_submissions=True,
+            user_agent="REX-ETP-Tracker/2.0 (relasmar@rexfin.com)",
+        )
+
+        db = SessionLocal()
+        try:
+            seed_trusts(db)
+            sync_all(db, OUTPUT_DIR)
+            log.info("Trust fetch complete: %s - %d trusts processed", name, n)
+        finally:
+            db.close()
+
+    except Exception as e:
+        log.error("Failed to fetch trust %s: %s", name, e)
 
 
 @router.post("/requests/reject")
@@ -203,11 +249,19 @@ def trigger_pipeline(request: Request, background_tasks: BackgroundTasks):
 
 @router.post("/digest/send")
 def send_digest(request: Request):
-    """Send the digest email (with error handling)."""
+    """Send the digest email now using current pipeline data."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
     try:
+        # Verify output files exist
+        if not OUTPUT_DIR.exists():
+            return RedirectResponse("/admin/?digest=no_files", status_code=303)
+
+        csv_count = sum(1 for _ in OUTPUT_DIR.rglob("*_4_Fund_Status.csv"))
+        if csv_count == 0:
+            return RedirectResponse("/admin/?digest=no_files", status_code=303)
+
         from etp_tracker.email_alerts import send_digest_email
         dashboard_url = str(request.base_url).rstrip("/")
         sent = send_digest_email(OUTPUT_DIR, dashboard_url=dashboard_url)
@@ -216,10 +270,9 @@ def send_digest(request: Request):
             return RedirectResponse("/admin/?digest=sent", status_code=303)
         return RedirectResponse("/admin/?digest=fail", status_code=303)
 
-    except FileNotFoundError:
-        return RedirectResponse("/admin/?digest=no_files", status_code=303)
     except Exception as e:
         from urllib.parse import quote
+        log.error("Digest send failed: %s", e)
         return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
 
 
@@ -284,7 +337,7 @@ def screener_rescore(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Re-run scoring on existing data."""
+    """Re-run scoring on existing data (auto-detects any .xlsx in data/SCREENER/)."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
@@ -293,10 +346,17 @@ def screener_rescore(
     if is_screener_running():
         return RedirectResponse("/admin/?screener=running", status_code=303)
 
-    # Check data file exists
+    # Find data file - check canonical name first, then any xlsx
     data_file = SCREENER_DATA_DIR / "decision_support_data.xlsx"
     if not data_file.exists():
-        return RedirectResponse("/admin/?screener=error&msg=No+data+file+found", status_code=303)
+        xlsx_files = list(SCREENER_DATA_DIR.glob("*.xlsx")) if SCREENER_DATA_DIR.exists() else []
+        if xlsx_files:
+            # Rename the first found xlsx to the canonical name
+            src = xlsx_files[0]
+            src.rename(data_file)
+            log.info("Renamed %s -> decision_support_data.xlsx", src.name)
+        else:
+            return RedirectResponse("/admin/?screener=error&msg=No+data+file+found.+Place+.xlsx+in+data/SCREENER/", status_code=303)
 
     # Create new upload record
     upload = ScreenerUpload(
