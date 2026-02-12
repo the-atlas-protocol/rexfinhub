@@ -1,4 +1,8 @@
-"""Percentile rank scoring engine for ETF launch candidates."""
+"""Percentile rank scoring engine for ETF launch candidates.
+
+Weights are derived from correlation analysis (n=64 underliers with AUM > 0).
+Factors are de-duplicated to avoid collinearity.
+"""
 from __future__ import annotations
 
 import logging
@@ -6,7 +10,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from screener.config import SCORING_WEIGHTS, THRESHOLD_FILTERS
+from screener.config import SCORING_WEIGHTS, INVERTED_FACTORS, THRESHOLD_FILTERS
 
 log = logging.getLogger(__name__)
 
@@ -15,12 +19,14 @@ def derive_rex_benchmarks(
     etp_df: pd.DataFrame,
     stock_df: pd.DataFrame,
 ) -> dict[str, float]:
-    """Compute median stock metrics for successful REX leveraged funds.
+    """Compute median stock metrics for successful REX leveraged single-stock funds.
 
-    "Successful" = is_rex, uses_leverage, AUM > 0.
+    "Successful" = is_rex, Single Stock subcategory, AUM > 0.
     Returns median values of the underlying stocks for these funds.
     """
     underlier_col = "q_category_attributes.map_li_underlier"
+    subcat_col = "q_category_attributes.map_li_subcategory"
+
     if underlier_col not in etp_df.columns or "t_w4.aum" not in etp_df.columns:
         log.warning("Cannot derive benchmarks: missing columns")
         return {}
@@ -28,11 +34,12 @@ def derive_rex_benchmarks(
     rex_lev = etp_df[
         (etp_df.get("is_rex") == True)
         & (etp_df.get("uses_leverage") == True)
+        & (etp_df.get(subcat_col) == "Single Stock")
         & (etp_df["t_w4.aum"].fillna(0) > 0)
     ]
 
     if rex_lev.empty:
-        log.warning("No REX leveraged funds with AUM > 0 found")
+        log.warning("No REX leveraged single-stock funds with AUM > 0 found")
         return {}
 
     underliers = rex_lev[underlier_col].dropna().unique()
@@ -45,15 +52,9 @@ def derive_rex_benchmarks(
         return {}
 
     benchmarks = {}
-    metric_map = {
-        "Total Call OI": "Total Call OI",
-        "Total OI": "Total OI",
-        "Avg Volume 30D": "Avg Volume 30D",
-        "Avg Volume 10D": "Avg Volume 10D",
-    }
-    for key, col in metric_map.items():
-        if col in matched.columns:
-            val = matched[col].median()
+    for key in SCORING_WEIGHTS:
+        if key in matched.columns:
+            val = matched[key].median()
             if pd.notna(val):
                 benchmarks[key] = float(val)
 
@@ -70,6 +71,7 @@ def compute_percentile_scores(
     Returns a copy of stock_df with added columns:
       - {factor}_pctl: percentile rank (0-100) for each scoring factor
       - composite_score: weighted composite (0-100)
+      - rank: 1-based rank (1 = best)
     """
     if weights is None:
         weights = SCORING_WEIGHTS
@@ -83,7 +85,13 @@ def compute_percentile_scores(
             continue
 
         values = pd.to_numeric(df[factor], errors="coerce")
-        pctl = values.rank(pct=True, na_option="bottom") * 100
+
+        # Inverted factors: lower value = better, so rank ascending
+        if factor in INVERTED_FACTORS:
+            pctl = values.rank(pct=True, ascending=True, na_option="bottom") * 100
+        else:
+            pctl = values.rank(pct=True, na_option="bottom") * 100
+
         col_name = f"{factor}_pctl"
         df[col_name] = pctl.round(1)
         composite += pctl.fillna(0) * weight
@@ -113,18 +121,11 @@ def apply_threshold_filters(
     if "Mkt Cap" in df.columns:
         passes &= pd.to_numeric(df["Mkt Cap"], errors="coerce").fillna(0) >= min_mkt_cap
 
-    # Dynamic filters from REX benchmarks
+    # Dynamic filters from REX benchmarks (only for non-inverted factors)
     if benchmarks:
-        benchmark_filters = {
-            "Total Call OI": "Total Call OI",
-            "Total OI": "Total OI",
-            "Avg Volume 30D": "Avg Volume 30D",
-            "Avg Volume 10D": "Avg Volume 10D",
-        }
-        for key, col in benchmark_filters.items():
-            if key in benchmarks and col in df.columns:
-                threshold = benchmarks[key]
-                passes &= pd.to_numeric(df[col], errors="coerce").fillna(0) >= threshold
+        for key, threshold in benchmarks.items():
+            if key in df.columns and key not in INVERTED_FACTORS:
+                passes &= pd.to_numeric(df[key], errors="coerce").fillna(0) >= threshold
 
     df["passes_filters"] = passes
     n_pass = passes.sum()

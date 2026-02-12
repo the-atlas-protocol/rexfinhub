@@ -47,16 +47,15 @@ def run_screener_pipeline(upload_id: int) -> None:
         from screener.competitive import compute_competitive_density
         from screener.filing_match import match_filings
 
-        # 1. Load data
+        # 1. Load data (2 sheets: stock_data + etp_data)
         log.info("Screener: loading data...")
         data = load_all()
         stock_df = data["stock_data"]
         etp_df = data["etp_data"]
-        filing_df = data["filing_data"]
 
         upload.stock_rows = len(stock_df)
         upload.etp_rows = len(etp_df)
-        upload.filing_rows = len(filing_df)
+        upload.filing_rows = 0  # Filing data now comes from pipeline DB
         db.commit()
 
         # 2. Score
@@ -86,9 +85,9 @@ def run_screener_pipeline(upload_id: int) -> None:
                 underlier = str(row["underlier"]).replace(" US", "").replace(" Curncy", "")
                 density_lookup[underlier] = row
 
-        # 5. Filing match
+        # 5. Filing match (uses etp_data underlier mapping + pipeline DB)
         log.info("Screener: matching filings...")
-        scored = match_filings(scored, filing_df)
+        scored = match_filings(scored, etp_df)
 
         # 6. Write to DB (atomic: delete old, insert new)
         log.info("Screener: writing %d results to DB...", len(scored))
@@ -102,16 +101,16 @@ def run_screener_pipeline(upload_id: int) -> None:
             results.append(ScreenerResult(
                 upload_id=upload_id,
                 ticker=str(row.get("Ticker", "")),
-                company_name=None,  # stock_data doesn't have company names
+                company_name=None,
                 sector=str(row.get("GICS Sector", "")) if row.get("GICS Sector") else None,
                 composite_score=float(row.get("composite_score", 0)),
                 predicted_aum=float(row["predicted_aum"]) if "predicted_aum" in row and row.get("predicted_aum") else None,
                 predicted_aum_low=float(row["predicted_aum_low"]) if "predicted_aum_low" in row and row.get("predicted_aum_low") else None,
                 predicted_aum_high=float(row["predicted_aum_high"]) if "predicted_aum_high" in row and row.get("predicted_aum_high") else None,
                 mkt_cap=float(row.get("Mkt Cap", 0)) if row.get("Mkt Cap") else None,
-                call_oi_pctl=float(row.get("Total Call OI_pctl", 0)) if row.get("Total Call OI_pctl") else None,
+                call_oi_pctl=float(row.get("Total OI_pctl", 0)) if row.get("Total OI_pctl") else None,
                 total_oi_pctl=float(row.get("Total OI_pctl", 0)) if row.get("Total OI_pctl") else None,
-                volume_pctl=float(row.get("Avg Volume 30D_pctl", 0)) if row.get("Avg Volume 30D_pctl") else None,
+                volume_pctl=float(row.get("Turnover / Traded Value_pctl", 0)) if row.get("Turnover / Traded Value_pctl") else None,
                 passes_filters=bool(row.get("passes_filters", False)),
                 filing_status=str(row.get("filing_status", "Not Filed")),
                 competitive_density=str(density_info.get("density_category", "")) if isinstance(density_info, dict) and density_info.get("density_category") else None,

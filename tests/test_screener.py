@@ -7,19 +7,16 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def test_data_loading():
-    """Test that all 4 sheets load with correct row counts."""
+    """Test that both sheets load with correct row counts."""
     from screener.data_loader import load_all
     data = load_all()
 
     assert "stock_data" in data
     assert "etp_data" in data
-    assert "filing_data" in data
-    assert "rex_funds" in data
+    assert len(data) == 2  # Only 2 sheets now
 
-    assert len(data["stock_data"]) > 4900
+    assert len(data["stock_data"]) > 2400
     assert len(data["etp_data"]) > 5000
-    assert len(data["filing_data"]) > 200
-    assert len(data["rex_funds"]) > 80
 
 
 def test_stock_data_has_required_columns():
@@ -27,20 +24,34 @@ def test_stock_data_has_required_columns():
     from screener.data_loader import load_stock_data
     df = load_stock_data()
 
-    required = ["Ticker", "Mkt Cap", "Total Call OI", "Total OI",
-                 "Avg Volume 30D", "GICS Sector", "ticker_clean"]
+    required = ["Ticker", "Mkt Cap", "Total OI", "Turnover / Traded Value",
+                "Twitter Positive Sentiment Count", "Short Interest Ratio",
+                "Last Price", "GICS Sector", "ticker_clean"]
     for col in required:
         assert col in df.columns, f"Missing column: {col}"
 
 
-def test_etp_data_has_underlier():
-    """Test etp_data has underlier mapping column."""
+def test_etp_data_has_category_attributes():
+    """Test etp_data has all required category attribute columns."""
     from screener.data_loader import load_etp_data
     df = load_etp_data()
 
-    assert "q_category_attributes.map_li_underlier" in df.columns
-    assert "underlier_clean" in df.columns
-    assert "t_w4.aum" in df.columns
+    required = [
+        "q_category_attributes.map_li_category",
+        "q_category_attributes.map_li_subcategory",
+        "q_category_attributes.map_li_direction",
+        "q_category_attributes.map_li_leverage_amount",
+        "q_category_attributes.map_li_underlier",
+        "underlier_clean",
+        "t_w4.aum",
+        "is_rex",
+    ]
+    for col in required:
+        assert col in df.columns, f"Missing column: {col}"
+
+    # REX funds should be derivable from is_rex
+    rex = df[df["is_rex"] == True]
+    assert len(rex) > 80
 
 
 # ---------------------------------------------------------------------------
@@ -149,16 +160,20 @@ def test_fund_flows():
 # ---------------------------------------------------------------------------
 
 def test_filing_match():
-    """Test that known pending filings are correctly flagged."""
-    from screener.data_loader import load_stock_data, load_filing_data
+    """Test that filing match uses etp_data and pipeline DB."""
+    from screener.data_loader import load_stock_data, load_etp_data
     from screener.scoring import compute_percentile_scores
-    from screener.filing_match import match_filings
+    from screener.filing_match import match_filings, get_rex_underlier_map
 
     stock = load_stock_data()
-    filing = load_filing_data()
+    etp = load_etp_data()
     scored = compute_percentile_scores(stock)
 
-    matched = match_filings(scored, filing)
+    # Verify underlier map works
+    und_map = get_rex_underlier_map(etp)
+    assert len(und_map) > 20  # REX has 30+ single-stock underliers
+
+    matched = match_filings(scored, etp)
     assert "filing_status" in matched.columns
 
     # At least some should have REX filings

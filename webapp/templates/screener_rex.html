@@ -19,12 +19,12 @@
   <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Funds</a>
 </div>
 
-{% if funds_by_group %}
+{% if product_groups %}
 <!-- KPI Row -->
 <div class="kpi-row">
   <div class="kpi">
     <div class="num">${{ "{:,.0f}".format(kpis.total_aum) }}M</div>
-    <div class="label">Total REX Leveraged AUM</div>
+    <div class="label">Total REX AUM</div>
   </div>
   <div class="kpi">
     <div class="num" style="{% if kpis.net_flow_1m >= 0 %}color:var(--green);{% else %}color:var(--red);{% endif %}">
@@ -42,55 +42,59 @@
   </div>
 </div>
 
-<!-- Fund Groups -->
-{% for group_name, funds in funds_by_group.items()|sort %}
-<div class="trust-block open" style="margin-bottom:12px;">
+<!-- Product Line Groups: T-REX, Microsectors, Other REX -->
+{% for group_name in ["T-REX", "Microsectors", "Other REX"] %}
+{% set funds = product_groups.get(group_name, []) %}
+{% if funds %}
+<div class="trust-block open" style="margin-bottom:16px;">
   <div class="trust-header" onclick="toggleTrust(this)">
-    <h3>{{ group_name }} <span style="font-size:12px; color:var(--gray); font-weight:normal;">({{ funds|length }} funds)</span></h3>
-    <div class="stats">
-      Total AUM: ${{ "{:,.0f}".format(funds|sum(attribute='aum')) }}M
-    </div>
+    <h3>{{ group_name }} <span style="font-size:12px; color:var(--gray); font-weight:normal;">({{ funds|length }} funds, AUM: ${{ "{:,.0f}".format(funds|sum(attribute='aum')) }}M)</span></h3>
   </div>
   <div class="trust-body" style="display:block;">
+    {% if group_name == "Microsectors" %}
+    <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:8px 12px; border-radius:0 6px 6px 0; margin-bottom:8px; font-size:12px; color:#856404;">
+      <strong>Note:</strong> Microsectors AUM figures may be overstated as Bloomberg reports total issuance rather than outstanding amounts.
+    </div>
+    {% endif %}
     <div style="overflow-x:auto;">
-    <table>
+    <table style="border-collapse:collapse; width:100%;">
       <thead>
         <tr>
-          <th>Ticker</th>
-          <th>Fund Name</th>
-          <th>Underlier</th>
-          <th style="text-align:right;">AUM ($M)</th>
-          <th style="text-align:right;">Flow 1M</th>
-          <th style="text-align:right;">Flow 3M</th>
-          <th style="text-align:right;">Flow YTD</th>
-          <th style="text-align:right;">Return YTD</th>
-          <th style="text-align:right;">Spread</th>
-          <th style="text-align:right;">Tracking Err</th>
+          <th style="padding:8px 10px;">Ticker</th>
+          <th style="padding:8px 10px;">Fund Name</th>
+          <th style="padding:8px 10px;">Underlier</th>
+          <th style="padding:8px 10px; text-align:right;">AUM ($M)</th>
+          <th style="padding:8px 10px; text-align:right;">Flow 1M</th>
+          <th style="padding:8px 10px; text-align:right;">Flow 3M</th>
+          <th style="padding:8px 10px; text-align:right;">Flow YTD</th>
+          <th style="padding:8px 10px; text-align:right;">Return YTD</th>
+          <th style="padding:8px 10px; text-align:right;">Spread</th>
+          <th style="padding:8px 10px; text-align:right;">Tracking Err</th>
         </tr>
       </thead>
       <tbody>
         {% for f in funds %}
         <tr>
-          <td class="ticker-col">
-            <a href="/screener/stock/{{ f.underlier }}">{{ f.ticker }}</a>
+          <td class="ticker-col" style="padding:6px 10px;">
+            {% if f.underlier %}<a href="/screener/stock/{{ f.underlier }}">{{ f.ticker }}</a>{% else %}{{ f.ticker }}{% endif %}
           </td>
-          <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.fund_name }}</td>
-          <td style="font-size:12px; font-family:monospace;">{{ f.underlier }}</td>
-          <td style="text-align:right; font-weight:600;">{{ "{:,.1f}".format(f.aum) }}</td>
-          <td style="text-align:right; {% if f.flow_1m > 0 %}color:var(--green);{% elif f.flow_1m < 0 %}color:var(--red);{% endif %}">
+          <td style="padding:6px 10px; font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.fund_name }}</td>
+          <td style="padding:6px 10px; font-size:12px; font-family:monospace;">{{ f.underlier or '-' }}</td>
+          <td style="padding:6px 10px; text-align:right; font-weight:600;">{{ "{:,.1f}".format(f.aum) }}</td>
+          <td style="padding:6px 10px; text-align:right; {% if f.flow_1m > 0 %}color:var(--green);{% elif f.flow_1m < 0 %}color:var(--red);{% endif %}">
             {{ "{:,.1f}".format(f.flow_1m) }}
           </td>
-          <td style="text-align:right; {% if f.flow_3m > 0 %}color:var(--green);{% elif f.flow_3m < 0 %}color:var(--red);{% endif %}">
+          <td style="padding:6px 10px; text-align:right; {% if f.flow_3m > 0 %}color:var(--green);{% elif f.flow_3m < 0 %}color:var(--red);{% endif %}">
             {{ "{:,.1f}".format(f.flow_3m) }}
           </td>
-          <td style="text-align:right; {% if f.flow_ytd > 0 %}color:var(--green);{% elif f.flow_ytd < 0 %}color:var(--red);{% endif %}">
+          <td style="padding:6px 10px; text-align:right; {% if f.flow_ytd > 0 %}color:var(--green);{% elif f.flow_ytd < 0 %}color:var(--red);{% endif %}">
             {{ "{:,.1f}".format(f.flow_ytd) }}
           </td>
-          <td style="text-align:right; {% if f.return_ytd > 0 %}color:var(--green);{% elif f.return_ytd < 0 %}color:var(--red);{% endif %}">
+          <td style="padding:6px 10px; text-align:right; {% if f.return_ytd > 0 %}color:var(--green);{% elif f.return_ytd < 0 %}color:var(--red);{% endif %}">
             {{ "%.1f"|format(f.return_ytd) }}%
           </td>
-          <td style="text-align:right; font-size:12px;">{% if f.spread %}{{ "%.2f"|format(f.spread) }}{% else %}-{% endif %}</td>
-          <td style="text-align:right; font-size:12px;">{% if f.tracking_error %}{{ "%.2f"|format(f.tracking_error) }}{% else %}-{% endif %}</td>
+          <td style="padding:6px 10px; text-align:right; font-size:12px;">{% if f.spread %}{{ "%.2f"|format(f.spread) }}{% else %}-{% endif %}</td>
+          <td style="padding:6px 10px; text-align:right; font-size:12px;">{% if f.tracking_error %}{{ "%.2f"|format(f.tracking_error) }}{% else %}-{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -98,6 +102,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endfor %}
 
 {% else %}

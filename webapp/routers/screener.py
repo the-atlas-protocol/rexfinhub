@@ -204,7 +204,7 @@ def screener_rex_funds(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """REX fund portfolio health check."""
+    """REX fund portfolio health check - grouped by T-REX, Microsectors, Other."""
     latest_upload = db.execute(
         select(ScreenerUpload)
         .where(ScreenerUpload.status == "completed")
@@ -212,50 +212,54 @@ def screener_rex_funds(
         .limit(1)
     ).scalar_one_or_none()
 
-    funds_by_group = {}
+    product_groups = {"T-REX": [], "Microsectors": [], "Other REX": []}
     kpis = {"total_aum": 0, "net_flow_1m": 0, "best": None, "worst": None}
 
     try:
         from screener.data_loader import load_etp_data
         etp_df = load_etp_data()
 
-        rex_lev = etp_df[
-            (etp_df.get("is_rex") == True)
-            & (etp_df.get("uses_leverage") == True)
-        ].copy()
+        rex_all = etp_df[etp_df.get("is_rex") == True].copy()
 
-        if not rex_lev.empty:
+        if not rex_all.empty:
             import pandas as pd
-            rex_lev["_aum"] = pd.to_numeric(rex_lev.get("t_w4.aum", 0), errors="coerce").fillna(0)
-            rex_lev["_flow_1m"] = pd.to_numeric(rex_lev.get("t_w4.fund_flow_1month", 0), errors="coerce").fillna(0)
+            rex_all["_aum"] = pd.to_numeric(rex_all.get("t_w4.aum", 0), errors="coerce").fillna(0)
+            rex_all["_flow_1m"] = pd.to_numeric(rex_all.get("t_w4.fund_flow_1month", 0), errors="coerce").fillna(0)
 
-            kpis["total_aum"] = round(rex_lev["_aum"].sum(), 1)
-            kpis["net_flow_1m"] = round(rex_lev["_flow_1m"].sum(), 1)
+            kpis["total_aum"] = round(rex_all["_aum"].sum(), 1)
+            kpis["net_flow_1m"] = round(rex_all["_flow_1m"].sum(), 1)
 
-            best_idx = rex_lev["_flow_1m"].idxmax()
-            worst_idx = rex_lev["_flow_1m"].idxmin()
-            kpis["best"] = rex_lev.loc[best_idx, "ticker"] if pd.notna(best_idx) else None
-            kpis["best_flow"] = round(rex_lev.loc[best_idx, "_flow_1m"], 1) if pd.notna(best_idx) else 0
-            kpis["worst"] = rex_lev.loc[worst_idx, "ticker"] if pd.notna(worst_idx) else None
-            kpis["worst_flow"] = round(rex_lev.loc[worst_idx, "_flow_1m"], 1) if pd.notna(worst_idx) else 0
+            best_idx = rex_all["_flow_1m"].idxmax()
+            worst_idx = rex_all["_flow_1m"].idxmin()
+            kpis["best"] = rex_all.loc[best_idx, "ticker"] if pd.notna(best_idx) else None
+            kpis["best_flow"] = round(rex_all.loc[best_idx, "_flow_1m"], 1) if pd.notna(best_idx) else 0
+            kpis["worst"] = rex_all.loc[worst_idx, "ticker"] if pd.notna(worst_idx) else None
+            kpis["worst_flow"] = round(rex_all.loc[worst_idx, "_flow_1m"], 1) if pd.notna(worst_idx) else 0
 
-            direction_col = "q_category_attributes.map_li_direction"
-            leverage_col = "q_category_attributes.map_li_leverage_amount"
+            # Deduplicate by ticker (some funds appear twice in etp_data)
+            seen_tickers = set()
+            for _, row in rex_all.iterrows():
+                ticker = row.get("ticker", "")
+                if ticker in seen_tickers:
+                    continue
+                seen_tickers.add(ticker)
 
-            for _, row in rex_lev.iterrows():
-                direction = str(row.get(direction_col, "Other"))
-                leverage = str(row.get(leverage_col, ""))
-                group_key = f"{direction} {leverage}".strip()
-                if not group_key or group_key == "nan":
-                    group_key = "Other"
+                fund_name = str(row.get("fund_name", "")).upper()
 
-                if group_key not in funds_by_group:
-                    funds_by_group[group_key] = []
+                # Classify into product line
+                if fund_name.startswith("T-REX"):
+                    group_key = "T-REX"
+                elif fund_name.startswith("MICROSECTORS"):
+                    group_key = "Microsectors"
+                else:
+                    group_key = "Other REX"
 
-                funds_by_group[group_key].append({
-                    "ticker": row.get("ticker", ""),
+                product_groups[group_key].append({
+                    "ticker": ticker,
                     "fund_name": row.get("fund_name", ""),
                     "underlier": row.get("q_category_attributes.map_li_underlier", ""),
+                    "direction": row.get("q_category_attributes.map_li_direction", ""),
+                    "leverage": row.get("q_category_attributes.map_li_leverage_amount", ""),
                     "aum": round(float(row.get("_aum", 0)), 1),
                     "flow_1m": round(float(row.get("_flow_1m", 0)), 1),
                     "flow_3m": round(float(pd.to_numeric(row.get("t_w4.fund_flow_3month", 0), errors="coerce") or 0), 1),
@@ -266,15 +270,15 @@ def screener_rex_funds(
                 })
 
             # Sort each group by AUM descending
-            for key in funds_by_group:
-                funds_by_group[key].sort(key=lambda x: x["aum"], reverse=True)
+            for key in product_groups:
+                product_groups[key].sort(key=lambda x: x["aum"], reverse=True)
 
     except Exception as e:
         log.warning("Error loading REX fund data: %s", e)
 
     return templates.TemplateResponse("screener_rex.html", {
         "request": request,
-        "funds_by_group": funds_by_group,
+        "product_groups": product_groups,
         "kpis": kpis,
         "upload": latest_upload,
         "tab": "rex",
