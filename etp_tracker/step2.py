@@ -16,6 +16,7 @@ def load_all_submissions_for_cik(client: SECClient, cik: str, overrides: dict | 
     accession = rec.get("accessionNumber", []) or []
     files = rec.get("primaryDocument", []) or []
     dates = rec.get("filingDate", []) or []
+    is_ixbrl_list = rec.get("isInlineXBRL", []) or []
 
     rows = []
     for i in range(len(forms)):
@@ -23,6 +24,7 @@ def load_all_submissions_for_cik(client: SECClient, cik: str, overrides: dict | 
         accn = safe_str(accession[i])
         fdt  = safe_str(dates[i])
         prim = safe_str(files[i])
+        ixbrl = str(is_ixbrl_list[i]) if i < len(is_ixbrl_list) else "0"
         row = {
             "Filing Date": fdt,
             "Form": form,
@@ -32,11 +34,12 @@ def load_all_submissions_for_cik(client: SECClient, cik: str, overrides: dict | 
             "Full Submission TXT": build_submission_txt_link(cik, accn),
             "CIK": str(int(str(cik))),
             "Registrant": trust_name,
+            "isInlineXBRL": ixbrl,
         }
         rows.append(row)
     df1 = pd.DataFrame(rows, columns=[
         "Filing Date","Form","Accession Number","Primary Document",
-        "Primary Link","Full Submission TXT","CIK","Registrant"
+        "Primary Link","Full Submission TXT","CIK","Registrant","isInlineXBRL"
     ])
     if since or until:
         d = pd.to_datetime(df1["Filing Date"], errors="coerce")

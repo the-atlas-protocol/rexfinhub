@@ -29,6 +29,26 @@ class SECClient:
     def _hash_url(self, url: str) -> str:
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
+    def fetch_header_text(self, url: str, use_cache: bool = True) -> str:
+        """Read only the SEC-HEADER portion (~2KB) from a cached .txt file.
+        Falls back to full fetch if file is not cached yet."""
+        if not url:
+            return ""
+        cache_path = self.cache_dir / "web" / (self._hash_url(url) + ".txt")
+        if use_cache and cache_path.exists():
+            try:
+                lines = []
+                with open(cache_path, encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        lines.append(line)
+                        if "</SEC-HEADER>" in line:
+                            break
+                return "".join(lines)
+            except Exception:
+                pass
+        # Not cached or read error - fetch full file
+        return self.fetch_text(url, use_cache=use_cache)
+
     def fetch_text(self, url: str, use_cache: bool = True) -> str:
         if not url: return ""
         cache_path = self.cache_dir / "web" / (self._hash_url(url) + ".txt")

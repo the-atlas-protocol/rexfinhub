@@ -28,7 +28,7 @@ from etp_tracker.email_alerts import send_digest_email
 
 
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
-SINCE_DATE = "2024-11-14"  # Earliest REX filing
+SINCE_DATE = None  # No date limit - process all filings (incremental manifest handles speed)
 USER_AGENT = "REX-ETP-Tracker/2.0 (relasmar@rexfin.com)"
 DASHBOARD_URL = "https://rex-etp-tracker.onrender.com"
 RENDER_API_URL = "https://rex-etp-tracker.onrender.com/api/v1"

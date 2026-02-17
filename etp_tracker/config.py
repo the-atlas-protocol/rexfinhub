@@ -10,3 +10,16 @@ SEC_ARCHIVES_BASE   = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession_
 # Forms we consider 'prospectus-related'
 PROSPECTUS_EXACT    = {"EFFECT"}
 PROSPECTUS_PREFIXES = ("485A", "485B", "497", "N-1A", "S-1", "S-3")
+
+# Extraction strategy per form type (used by step3)
+# "header_only" = parse SGML header only (fast, ~2KB read)
+# "full"        = SGML header + body text analysis + optional iXBRL
+EXTRACTION_STRATEGIES = {
+    "485BXT":  "header_only",
+    "497J":    "header_only",
+    "485BPOS": "full",
+    "485APOS": "full",
+    "497":     "full",
+    "497K":    "full",
+}
+DEFAULT_EXTRACTION_STRATEGY = "full"

@@ -5,8 +5,9 @@
 | What | Command |
 |------|---------|
 | Start local server | `cd D:\REX_ETP_TRACKER; uvicorn webapp.main:app --reload --port 8000` |
-| Run full pipeline | `cd D:\REX_ETP_TRACKER; python run_daily.py` |
-| Run pipeline only (no email) | `cd D:\REX_ETP_TRACKER; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), since='2024-11-14', refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0')"` |
+| Run full pipeline (incremental) | `cd D:\REX_ETP_TRACKER; python run_daily.py` |
+| Run pipeline only (no email) | `cd D:\REX_ETP_TRACKER; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0')"` |
+| Force full reprocess | `cd D:\REX_ETP_TRACKER; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0', force_reprocess=True)"` |
 | Sync pipeline data to DB | `cd D:\REX_ETP_TRACKER; python -c "from webapp.database import SessionLocal, init_db; from webapp.services.sync_service import seed_trusts, sync_all; from pathlib import Path; init_db(); db=SessionLocal(); seed_trusts(db); sync_all(db, Path('outputs')); db.close(); print('Done')"` |
 | Generate screener PDF | `cd D:\REX_ETP_TRACKER; python screener/generate_report.py` |
 | Run candidate evaluation | `cd D:\REX_ETP_TRACKER; python screener/generate_report.py evaluate SCCO BHP RIO` |
@@ -41,7 +42,12 @@ Pages:
 
 ## 2. Running the SEC Pipeline (Local Only)
 
-The pipeline fetches SEC filings for all 16 trusts. Takes 30-60 min. **Run locally, not on Render.**
+The pipeline fetches SEC filings for all 20 trusts. **Run locally, not on Render.**
+
+The pipeline is **incremental by default** - it only processes NEW filings that haven't been extracted before. This is tracked via `_manifest.json` files in each trust's output folder.
+
+- **Daily incremental run**: 2-5 seconds (only new filings)
+- **Full reprocess**: 30-90 min (all filings from scratch)
 
 ### Full daily run (pipeline + Excel + email digest):
 
@@ -50,7 +56,7 @@ cd D:\REX_ETP_TRACKER
 python run_daily.py
 ```
 
-### Pipeline only (no email):
+### Pipeline only (no email, incremental):
 
 ```powershell
 cd D:\REX_ETP_TRACKER
@@ -60,13 +66,47 @@ from etp_tracker.trusts import get_all_ciks, get_overrides
 n = run_pipeline(
     ciks=list(get_all_ciks()),
     overrides=dict(get_overrides()),
-    since='2024-11-14',
     refresh_submissions=True,
     user_agent='REX-ETP-Tracker/2.0 (relasmar@rexfin.com)',
 )
 print(f'{n} trusts processed')
 "
 ```
+
+### Force full reprocess (clears all manifests):
+
+```powershell
+cd D:\REX_ETP_TRACKER
+python -c "
+from etp_tracker.run_pipeline import run_pipeline
+from etp_tracker.trusts import get_all_ciks, get_overrides
+n = run_pipeline(
+    ciks=list(get_all_ciks()),
+    overrides=dict(get_overrides()),
+    refresh_submissions=True,
+    user_agent='REX-ETP-Tracker/2.0 (relasmar@rexfin.com)',
+    force_reprocess=True,
+)
+print(f'{n} trusts processed')
+"
+```
+
+### Extraction strategies:
+
+The pipeline routes filings to optimized extraction strategies:
+
+| Form Type | Strategy | Speed | What It Does |
+|-----------|----------|-------|-------------|
+| 485BXT, 497J | `header_only` | Fast (~2KB read) | SGML header + effectiveness date from header |
+| 485BPOS | `full+ixbrl` | Medium | SGML + iXBRL/OEF tags for structured dates + expense ratios |
+| 485APOS, 497, 497K | `full` | Slow | SGML + full body text analysis + regex date extraction |
+
+### Run summary:
+
+After each run, check `outputs/_run_summary.json` for metrics:
+- How many filings were new vs skipped
+- Which extraction strategies were used
+- Errors and duration
 
 ### After pipeline: sync to webapp DB:
 
