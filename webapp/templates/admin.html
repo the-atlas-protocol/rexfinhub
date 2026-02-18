@@ -13,7 +13,7 @@
 <!-- Status Banners -->
 {% if request.query_params.get('approved') %}
 <div style="background:#e8f5e9; border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Trust approved</strong> and added to monitoring. Run the pipeline to fetch its filings.
+  <strong style="color:var(--green);">Trust approved</strong> and added to monitoring. It will be included in the next pipeline run.
 </div>
 {% endif %}
 {% if request.query_params.get('rejected') %}
@@ -21,17 +21,14 @@
   Request rejected.
 </div>
 {% endif %}
-{% if request.query_params.get('pipeline') == 'started' %}
+{% if request.query_params.get('approved_sub') %}
 <div style="background:#e8f5e9; border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Pipeline started.</strong> This runs in the background (30-60 min). Page will auto-refresh.
+  <strong style="color:var(--green);">Subscriber approved</strong> and added to email_recipients.txt.
 </div>
-{% elif request.query_params.get('pipeline') == 'running' %}
-<div style="background:#e3f2fd; border-left:4px solid var(--blue); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  Pipeline is already running. Please wait for it to finish.
-</div>
-{% elif request.query_params.get('pipeline') == 'error' %}
-<div style="background:#fce4ec; border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--red);">Pipeline error:</strong> {{ request.query_params.get('msg', 'Unknown error') }}
+{% endif %}
+{% if request.query_params.get('rejected_sub') %}
+<div style="background:#fff3cd; border-left:4px solid #ffc107; padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  Subscriber rejected.
 </div>
 {% endif %}
 {% if request.query_params.get('digest') == 'sent' %}
@@ -41,10 +38,6 @@
 {% elif request.query_params.get('digest') == 'fail' %}
 <div style="background:#fce4ec; border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
   <strong style="color:var(--red);">Failed to send digest.</strong> Check email configuration (Azure Graph or SMTP).
-</div>
-{% elif request.query_params.get('digest') == 'no_files' %}
-<div style="background:#fff3cd; border-left:4px solid #ffc107; padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong>No pipeline data found.</strong> Run the pipeline at least once to generate filing data.
 </div>
 {% elif request.query_params.get('digest') == 'error' %}
 <div style="background:#fce4ec; border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
@@ -57,71 +50,11 @@
 </div>
 {% endif %}
 
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
-
-  <!-- Pipeline Control -->
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 12px; font-size:16px;">Pipeline Control</h3>
-
-    {% if pipeline_running %}
-    <div style="padding:10px 14px; background:#e3f2fd; border:1px solid #90caf9; border-radius:6px; font-size:13px; margin-bottom:12px;">
-      Pipeline is currently <strong>running</strong>... <span id="pipelineDots"></span>
-    </div>
-    {% endif %}
-
-    {% if last_run %}
-    <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">
-      <div>Last run:
-        {% if last_run.status == 'completed' %}
-        <strong style="color:var(--green);">{{ last_run.status }}</strong>
-        {% elif last_run.status == 'failed' or last_run.status == 'interrupted' %}
-        <strong style="color:var(--red);">{{ last_run.status }}</strong>
-        {% else %}
-        <strong>{{ last_run.status }}</strong>
-        {% endif %}
-      </div>
-      <div>Started: {{ last_run.started_at.strftime('%Y-%m-%d %H:%M') if last_run.started_at else 'N/A' }}</div>
-      {% if last_run.finished_at %}
-      <div>Finished: {{ last_run.finished_at.strftime('%Y-%m-%d %H:%M') }}</div>
-      {% endif %}
-      {% if last_run.trusts_processed %}
-      <div>Trusts processed: {{ last_run.trusts_processed }}</div>
-      {% endif %}
-      {% if last_run.error_message %}
-      <div style="color:var(--red); margin-top:4px;">{{ last_run.error_message[:150] }}</div>
-      {% endif %}
-    </div>
-    {% else %}
-    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">No pipeline runs recorded yet.</p>
-    {% endif %}
-
-    <form method="post" action="/admin/pipeline/run"
-          onsubmit="return confirm('Run the full pipeline now?\n\nThis fetches all SEC filings, extracts fund data, and syncs to the database.\nIt runs in the background and takes 30-60 minutes.');">
-      <button type="submit" class="btn btn-primary" {% if pipeline_running %}disabled{% endif %}>
-        {% if pipeline_running %}Pipeline Running...{% else %}Run Pipeline Now{% endif %}
-      </button>
-    </form>
-  </div>
-
-  <!-- Email Digest -->
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 12px; font-size:16px;">Email Digest</h3>
-    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
-      Send the daily digest email to all recipients in email_recipients.txt using current pipeline data.
-    </p>
-    <form method="post" action="/admin/digest/send"
-          onsubmit="return confirm('Send digest email to all recipients now?');">
-      <button type="submit" class="btn btn-primary">Send Digest Now</button>
-    </form>
-  </div>
-
-</div>
-
-<!-- Trust Requests -->
+<!-- Pending Trust Requests -->
 <div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
   <h3 style="margin:0 0 4px; font-size:16px;">Pending Trust Requests</h3>
   <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
-    Users submit monitoring requests via the Search page. Approve to add to the database and automatically fetch filings.
+    Users submit monitoring requests via the Search page. Approve to add to the database and trusts.py for the next pipeline run.
   </p>
 
   {% if pending_requests %}
@@ -145,7 +78,7 @@
             <input type="hidden" name="cik" value="{{ r.cik }}">
             <input type="hidden" name="name" value="{{ r.name }}">
             <button type="submit" class="btn btn-sm" style="background:var(--green); color:white; border:none;"
-                    onclick="return confirm('Approve {{ r.name }}?\n\nThis will add the trust and start fetching its filings.');">Approve</button>
+                    onclick="return confirm('Approve {{ r.name }}?\n\nThis will add the trust to trusts.py and the database.');">Approve</button>
           </form>
           <form method="post" action="/admin/requests/reject" style="display:inline; margin-left:4px;">
             <input type="hidden" name="cik" value="{{ r.cik }}">
@@ -193,18 +126,63 @@
   {% endif %}
 </div>
 
+<!-- Email Digest + Subscribers -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+
+  <!-- Email Digest -->
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 12px; font-size:16px;">Email Digest</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
+      Send the daily digest email to all approved recipients using current database data.
+    </p>
+    <form method="post" action="/admin/digest/send"
+          onsubmit="return confirm('Send digest email to all recipients now?');">
+      <button type="submit" class="btn btn-primary">Send Digest Now</button>
+    </form>
+  </div>
+
+  <!-- Digest Subscribers -->
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 12px; font-size:16px;">Digest Subscribers</h3>
+    {% if pending_subscribers %}
+    <table style="font-size:13px;">
+      <thead>
+        <tr><th>Email</th><th>Requested</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for s in pending_subscribers %}
+        <tr>
+          <td>{{ s.email }}</td>
+          <td style="font-size:12px; color:var(--muted);">{{ s.timestamp[:10] }}</td>
+          <td>
+            <form method="post" action="/admin/subscribers/approve" style="display:inline;">
+              <input type="hidden" name="email" value="{{ s.email }}">
+              <button type="submit" class="btn btn-sm" style="background:var(--green); color:white; border:none;">Approve</button>
+            </form>
+            <form method="post" action="/admin/subscribers/reject" style="display:inline; margin-left:4px;">
+              <input type="hidden" name="email" value="{{ s.email }}">
+              <button type="submit" class="btn btn-sm" style="background:var(--red); color:white; border:none;">Reject</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="font-size:13px; color:var(--muted);">No pending subscriber requests.</p>
+    {% endif %}
+  </div>
+
+</div>
+
 <!-- Launch Screener -->
 <div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
   <h3 style="margin:0 0 4px; font-size:16px;">Launch Screener</h3>
   <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
-    Bloomberg data scoring pipeline. Upload new data or re-score existing data in data/SCREENER/.
+    Score Bloomberg data from data/SCREENER/ and email reports.
   </p>
 
-  {% if request.query_params.get('screener') == 'uploaded' %}
-  <div style="background:#e8f5e9; border-left:4px solid var(--green); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
-    <strong style="color:var(--green);">Data uploaded.</strong> Scoring pipeline started. Page will auto-refresh.
-  </div>
-  {% elif request.query_params.get('screener') == 'scoring' %}
+  {% if request.query_params.get('screener') == 'scoring' %}
   <div style="background:#e3f2fd; border-left:4px solid var(--blue); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
     <strong style="color:var(--blue);">Scoring started.</strong> Results will update shortly.
   </div>
@@ -218,7 +196,7 @@
   </div>
   {% elif request.query_params.get('screener') == 'error' %}
   <div style="background:#fce4ec; border-left:4px solid var(--red); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
-    <strong style="color:var(--red);">Error:</strong> {{ request.query_params.get('msg', 'Upload failed') }}
+    <strong style="color:var(--red);">Error:</strong> {{ request.query_params.get('msg', 'Scoring failed') }}
   </div>
   {% endif %}
 
@@ -252,10 +230,6 @@
     <form method="post" action="/admin/screener/rescore"
           onsubmit="return confirm('Score the Bloomberg data in data/SCREENER/?');">
       <button type="submit" class="btn btn-primary btn-sm">Score Data</button>
-    </form>
-    <form method="post" action="/admin/screener/upload" enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center;">
-      <input type="file" name="file" accept=".xlsx" required style="font-size:13px;">
-      <button type="submit" class="btn btn-sm" style="background:var(--blue); color:white; border:none;">Upload New Data</button>
     </form>
     {% if screener_upload and screener_upload.status == 'completed' %}
     <form method="post" action="/admin/screener/email"
@@ -302,13 +276,13 @@
   </div>
 </div>
 
-<!-- Auto-refresh when pipeline or screener is running -->
-{% if pipeline_running or (screener_upload and screener_upload.status == 'processing') %}
+<!-- Auto-refresh when screener is processing -->
+{% if screener_upload and screener_upload.status == 'processing' %}
 <script>
   setTimeout(function() { window.location.href = '/admin/'; }, 15000);
 </script>
 {% endif %}
-{% if request.query_params.get('screener') in ['uploaded', 'scoring'] %}
+{% if request.query_params.get('screener') == 'scoring' %}
 <script>
   setTimeout(function() { window.location.href = '/admin/'; }, 10000);
 </script>

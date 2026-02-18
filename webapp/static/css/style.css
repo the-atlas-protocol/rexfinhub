@@ -86,6 +86,12 @@ a:hover { color: var(--blue-hover); text-decoration: none; }
   font-family: var(--font-mono);
   font-weight: 500;
 }
+.ticker-col {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ===== STICKY NAV ===== */
 .sticky-nav {

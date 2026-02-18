@@ -9,6 +9,7 @@ from sqlalchemy import func, select, or_
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
+from webapp.fund_filters import MUTUAL_FUND_EXCLUSIONS
 from webapp.models import Trust, FundStatus, NameHistory, FundExtraction, Filing
 
 router = APIRouter()
@@ -27,6 +28,13 @@ def fund_list(
     query = select(FundStatus, Trust.name.label("trust_name"), Trust.slug.label("trust_slug")).join(
         Trust, Trust.id == FundStatus.trust_id
     )
+
+    # Exclude blank fund names (crypto S-1 filers with no 485 filings)
+    query = query.where(FundStatus.fund_name != "")
+
+    # Exclude mutual fund share classes
+    for pattern in MUTUAL_FUND_EXCLUSIONS:
+        query = query.where(~FundStatus.fund_name.ilike(pattern))
 
     if q:
         query = query.where(or_(

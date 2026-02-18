@@ -137,59 +137,24 @@ def _dashboard_cta(dash_link: str) -> str:
     )
 
 
-def build_digest_html(
-    output_dir: Path,
+def _render_digest_html(
+    trust_count: int,
+    total: int,
+    eff_count: int,
+    pend_count: int,
+    delay_count: int,
+    new_filings_count: int,
+    newly_effective_count: int,
+    changed_count: int,
     dashboard_url: str = "",
-    since_date: str | None = None,
+    since_date: str = "",
 ) -> str:
-    """Build a short executive-summary email. Detail lives on the dashboard."""
+    """Render digest HTML with pre-computed KPI values."""
     today = datetime.now()
     if not since_date:
         since_date = today.strftime("%Y-%m-%d")
-
-    # --- Load data ---
-    all_status = []
-    all_names = []
-    for folder in sorted(output_dir.iterdir()):
-        if not folder.is_dir():
-            continue
-        for f4 in folder.glob("*_4_Fund_Status.csv"):
-            all_status.append(pd.read_csv(f4, dtype=str))
-        for f5 in folder.glob("*_5_Name_History.csv"):
-            all_names.append(pd.read_csv(f5, dtype=str))
-
-    df_all = pd.concat(all_status, ignore_index=True) if all_status else pd.DataFrame()
-    df_names = pd.concat(all_names, ignore_index=True) if all_names else pd.DataFrame()
-
-    # Compute counts
-    new_filings_count = 0
-    if not df_all.empty and "Latest Filing Date" in df_all.columns:
-        date_mask = df_all["Latest Filing Date"].fillna("") >= since_date
-        form_mask = df_all["Latest Form"].fillna("").str.upper().str.startswith("485")
-        new_filings_count = int((date_mask & form_mask).sum())
-
-    newly_effective_count = 0
-    if not df_all.empty:
-        eff_mask = (
-            (df_all["Status"] == "EFFECTIVE")
-            & (df_all["Effective Date"].fillna("") >= since_date)
-        )
-        newly_effective_count = int(eff_mask.sum())
-
-    changed_count = 0
-    if not df_names.empty:
-        multi = df_names.groupby("Series ID").size()
-        changed_count = int((multi > 1).sum())
-
-    total = len(df_all) if not df_all.empty else 0
-    eff_count = len(df_all[df_all["Status"] == "EFFECTIVE"]) if not df_all.empty else 0
-    pend_count = len(df_all[df_all["Status"] == "PENDING"]) if not df_all.empty else 0
-    delay_count = len(df_all[df_all["Status"] == "DELAYED"]) if not df_all.empty else 0
-    trust_count = df_all["Trust"].nunique() if not df_all.empty else 0
-
     dash_link = dashboard_url or ""
 
-    # --- Build short email ---
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ETP Filing Tracker - {today.strftime('%Y-%m-%d')}</title>
@@ -269,41 +234,142 @@ def build_digest_html(
 </body></html>"""
 
 
-def send_digest_email(
+def build_digest_html(
     output_dir: Path,
     dashboard_url: str = "",
     since_date: str | None = None,
-) -> bool:
-    """
-    Build and send the daily digest email.
-    Tries Azure Graph API first, falls back to SMTP.
-    Returns True if sent successfully.
-    """
-    recipients = _load_recipients()
-    if not recipients:
-        print("No recipients configured. Add emails to email_recipients.txt.")
-        return False
+) -> str:
+    """Build digest from CSV files in outputs/ directory."""
+    today = datetime.now()
+    if not since_date:
+        since_date = today.strftime("%Y-%m-%d")
 
-    html_body = build_digest_html(output_dir, dashboard_url, since_date)
+    all_status = []
+    all_names = []
+    for folder in sorted(output_dir.iterdir()):
+        if not folder.is_dir():
+            continue
+        for f4 in folder.glob("*_4_Fund_Status.csv"):
+            all_status.append(pd.read_csv(f4, dtype=str))
+        for f5 in folder.glob("*_5_Name_History.csv"):
+            all_names.append(pd.read_csv(f5, dtype=str))
+
+    df_all = pd.concat(all_status, ignore_index=True) if all_status else pd.DataFrame()
+    df_names = pd.concat(all_names, ignore_index=True) if all_names else pd.DataFrame()
+
+    new_filings_count = 0
+    if not df_all.empty and "Latest Filing Date" in df_all.columns:
+        date_mask = df_all["Latest Filing Date"].fillna("") >= since_date
+        form_mask = df_all["Latest Form"].fillna("").str.upper().str.startswith("485")
+        new_filings_count = int((date_mask & form_mask).sum())
+
+    newly_effective_count = 0
+    if not df_all.empty:
+        eff_mask = (
+            (df_all["Status"] == "EFFECTIVE")
+            & (df_all["Effective Date"].fillna("") >= since_date)
+        )
+        newly_effective_count = int(eff_mask.sum())
+
+    changed_count = 0
+    if not df_names.empty:
+        multi = df_names.groupby("Series ID").size()
+        changed_count = int((multi > 1).sum())
+
+    total = len(df_all) if not df_all.empty else 0
+    eff_count = len(df_all[df_all["Status"] == "EFFECTIVE"]) if not df_all.empty else 0
+    pend_count = len(df_all[df_all["Status"] == "PENDING"]) if not df_all.empty else 0
+    delay_count = len(df_all[df_all["Status"] == "DELAYED"]) if not df_all.empty else 0
+    trust_count = df_all["Trust"].nunique() if not df_all.empty else 0
+
+    return _render_digest_html(
+        trust_count, total, eff_count, pend_count, delay_count,
+        new_filings_count, newly_effective_count, changed_count,
+        dashboard_url, since_date,
+    )
+
+
+def build_digest_html_from_db(
+    db_session,
+    dashboard_url: str = "",
+    since_date: str | None = None,
+) -> str:
+    """Build digest from SQLite database (always available, no CSV dependency)."""
+    from sqlalchemy import func, select
+    from datetime import date as date_type
+
+    today = datetime.now()
+    if not since_date:
+        since_date = today.strftime("%Y-%m-%d")
+    since_dt = date_type.fromisoformat(since_date)
+
+    # Import models inside function to avoid circular import
+    from webapp.models import Trust, FundStatus, Filing, NameHistory
+
+    trust_count = db_session.execute(
+        select(func.count(Trust.id)).where(Trust.is_active == True)
+    ).scalar() or 0
+
+    total = db_session.execute(
+        select(func.count(FundStatus.id))
+    ).scalar() or 0
+
+    eff_count = db_session.execute(
+        select(func.count(FundStatus.id)).where(FundStatus.status == "EFFECTIVE")
+    ).scalar() or 0
+
+    pend_count = db_session.execute(
+        select(func.count(FundStatus.id)).where(FundStatus.status == "PENDING")
+    ).scalar() or 0
+
+    delay_count = db_session.execute(
+        select(func.count(FundStatus.id)).where(FundStatus.status == "DELAYED")
+    ).scalar() or 0
+
+    new_filings_count = db_session.execute(
+        select(func.count(Filing.id))
+        .where(Filing.filing_date >= since_dt)
+        .where(Filing.form.ilike("485%"))
+    ).scalar() or 0
+
+    newly_effective_count = db_session.execute(
+        select(func.count(FundStatus.id))
+        .where(FundStatus.status == "EFFECTIVE")
+        .where(FundStatus.effective_date >= since_dt)
+    ).scalar() or 0
+
+    changed_count = db_session.execute(
+        select(func.count()).select_from(
+            select(NameHistory.series_id)
+            .group_by(NameHistory.series_id)
+            .having(func.count(NameHistory.id) > 1)
+            .subquery()
+        )
+    ).scalar() or 0
+
+    return _render_digest_html(
+        trust_count, total, eff_count, pend_count, delay_count,
+        new_filings_count, newly_effective_count, changed_count,
+        dashboard_url, since_date,
+    )
+
+
+def _send_html_digest(html_body: str, recipients: list[str]) -> bool:
+    """Send pre-built HTML digest via Azure Graph or SMTP."""
     subject = f"ETP Filing Tracker - Daily Digest ({datetime.now().strftime('%Y-%m-%d')})"
 
-    # --- Try Azure Graph API first ---
+    # Try Azure Graph API first
     try:
         from webapp.services.graph_email import is_configured, send_email
         if is_configured():
-            print("  Sending via Azure Graph API...")
             if send_email(subject=subject, html_body=html_body, recipients=recipients):
-                print(f"  Digest sent via Azure to {', '.join(recipients)}")
                 return True
-            else:
-                print("  Azure Graph API failed. Trying SMTP fallback...")
     except ImportError:
-        pass  # webapp not installed, skip Azure
+        pass
 
-    # --- Fall back to SMTP ---
+    # Fall back to SMTP
     config = _get_smtp_config()
     if not config["user"] or not config["password"] or not config["from_addr"]:
-        print("Neither Azure nor SMTP configured.")
         return False
 
     msg = MIMEMultipart("alternative")
@@ -319,8 +385,32 @@ def send_digest_email(
             server.ehlo()
             server.login(config["user"], config["password"])
             server.sendmail(config["from_addr"], recipients, msg.as_string())
-        print(f"  Digest sent via SMTP to {', '.join(recipients)}")
         return True
-    except Exception as e:
-        print(f"  Failed to send email: {e}")
+    except Exception:
         return False
+
+
+def send_digest_from_db(
+    db_session,
+    dashboard_url: str = "",
+    since_date: str | None = None,
+) -> bool:
+    """Build digest from database and send. Always works without CSV files."""
+    recipients = _load_recipients()
+    if not recipients:
+        return False
+    html_body = build_digest_html_from_db(db_session, dashboard_url, since_date)
+    return _send_html_digest(html_body, recipients)
+
+
+def send_digest_email(
+    output_dir: Path,
+    dashboard_url: str = "",
+    since_date: str | None = None,
+) -> bool:
+    """Build and send digest from CSV files. Legacy - prefer send_digest_from_db."""
+    recipients = _load_recipients()
+    if not recipients:
+        return False
+    html_body = build_digest_html(output_dir, dashboard_url, since_date)
+    return _send_html_digest(html_body, recipients)

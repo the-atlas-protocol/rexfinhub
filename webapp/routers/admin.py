@@ -1,6 +1,6 @@
 """
 Admin router - Password-protected admin panel for trust management,
-pipeline control, digest testing, and system status.
+digest testing, screener scoring, and system status.
 """
 from __future__ import annotations
 
@@ -10,14 +10,14 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
-from webapp.models import Trust, FundStatus, AnalysisResult, PipelineRun, ScreenerUpload
+from webapp.models import Trust, FundStatus, AnalysisResult, ScreenerUpload
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="webapp/templates")
@@ -26,6 +26,8 @@ log = logging.getLogger(__name__)
 ADMIN_PASSWORD = "123"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 REQUESTS_FILE = PROJECT_ROOT / "trust_requests.txt"
+SUBSCRIBERS_FILE = PROJECT_ROOT / "digest_subscribers.txt"
+RECIPIENTS_FILE = PROJECT_ROOT / "email_recipients.txt"
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 
 
@@ -70,6 +72,51 @@ def _update_request_status(cik: str, new_status: str):
     REQUESTS_FILE.write_text("\n".join(updated) + "\n", encoding="utf-8")
 
 
+def _read_subscribers() -> list[dict]:
+    """Read digest_subscribers.txt and return pending entries."""
+    if not SUBSCRIBERS_FILE.exists():
+        return []
+    subs = []
+    for line in SUBSCRIBERS_FILE.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("|")
+        if len(parts) >= 3:
+            subs.append({"status": parts[0], "email": parts[1], "timestamp": parts[2]})
+    return [s for s in subs if s["status"] == "PENDING"]
+
+
+def _update_subscriber_status(email: str, new_status: str):
+    """Update a subscriber's status in digest_subscribers.txt."""
+    if not SUBSCRIBERS_FILE.exists():
+        return
+    lines = SUBSCRIBERS_FILE.read_text(encoding="utf-8").splitlines()
+    updated = []
+    for line in lines:
+        if f"|{email}|" in line and line.startswith("PENDING"):
+            parts = line.split("|")
+            parts[0] = new_status
+            updated.append("|".join(parts))
+        else:
+            updated.append(line)
+    SUBSCRIBERS_FILE.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+
+def _add_to_recipients(email: str):
+    """Append email to email_recipients.txt if not already present."""
+    existing = set()
+    if RECIPIENTS_FILE.exists():
+        existing = {
+            line.strip().lower()
+            for line in RECIPIENTS_FILE.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.startswith("#")
+        }
+    if email.lower() not in existing:
+        with RECIPIENTS_FILE.open("a", encoding="utf-8") as f:
+            f.write(email.strip() + "\n")
+
+
 # --- Login / Logout ---
 
 @router.get("/")
@@ -85,19 +132,8 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
     all_requests = _read_requests()
     pending_requests = [r for r in all_requests if r["status"] == "PENDING"]
 
-    # Pipeline status - fix stale "running" records
-    from webapp.services.pipeline_service import is_pipeline_running
-    pipeline_running = is_pipeline_running()
-
-    last_run = db.execute(
-        select(PipelineRun).order_by(PipelineRun.started_at.desc()).limit(1)
-    ).scalar_one_or_none()
-
-    if last_run and last_run.status == "running" and not pipeline_running:
-        last_run.status = "interrupted"
-        last_run.finished_at = datetime.utcnow()
-        last_run.error_message = "Server restarted while pipeline was running"
-        db.commit()
+    # Digest subscribers
+    pending_subscribers = _read_subscribers()
 
     # AI analysis status
     from webapp.services.claude_service import is_configured as ai_configured
@@ -119,8 +155,7 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         "request": request,
         "pending_requests": pending_requests,
         "all_requests": all_requests,
-        "last_run": last_run,
-        "pipeline_running": pipeline_running,
+        "pending_subscribers": pending_subscribers,
         "ai_configured": ai_configured(),
         "ai_usage_today": ai_usage_today,
         "screener_upload": screener_upload,
@@ -202,50 +237,18 @@ def reject_request(request: Request, cik: str = Form("")):
     return RedirectResponse("/admin/?rejected=1", status_code=303)
 
 
-# --- Pipeline Control ---
-
-@router.post("/pipeline/run")
-def trigger_pipeline(request: Request, background_tasks: BackgroundTasks):
-    """Trigger a pipeline run in the background."""
-    if not _is_admin(request):
-        return RedirectResponse("/admin/", status_code=302)
-
-    # Block pipeline on Render - it crashes the web process (memory/CPU)
-    if os.environ.get("RENDER"):
-        return RedirectResponse(
-            "/admin/?pipeline=error&msg=Pipeline+must+run+locally.+It+needs+30-60+min+and+crashes+the+web+server.",
-            status_code=303,
-        )
-
-    from webapp.services.pipeline_service import run_pipeline_background, is_pipeline_running
-
-    if is_pipeline_running():
-        return RedirectResponse("/admin/?pipeline=running", status_code=303)
-
-    background_tasks.add_task(run_pipeline_background, "admin")
-    return RedirectResponse("/admin/?pipeline=started", status_code=303)
-
-
 # --- Digest Send ---
 
 @router.post("/digest/send")
-def send_digest(request: Request):
-    """Send the digest email now using current pipeline data."""
+def send_digest(request: Request, db: Session = Depends(get_db)):
+    """Send the digest email now using database data."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
     try:
-        # Verify output files exist
-        if not OUTPUT_DIR.exists():
-            return RedirectResponse("/admin/?digest=no_files", status_code=303)
-
-        csv_count = sum(1 for _ in OUTPUT_DIR.rglob("*_4_Fund_Status.csv"))
-        if csv_count == 0:
-            return RedirectResponse("/admin/?digest=no_files", status_code=303)
-
-        from etp_tracker.email_alerts import send_digest_email
+        from etp_tracker.email_alerts import send_digest_from_db
         dashboard_url = str(request.base_url).rstrip("/")
-        sent = send_digest_email(OUTPUT_DIR, dashboard_url=dashboard_url)
+        sent = send_digest_from_db(db, dashboard_url=dashboard_url)
 
         if sent:
             return RedirectResponse("/admin/?digest=sent", status_code=303)
@@ -257,65 +260,37 @@ def send_digest(request: Request):
         return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
 
 
-# --- Screener Upload & Scoring ---
+# --- Subscriber Management ---
 
-SCREENER_DATA_DIR = PROJECT_ROOT / "data" / "SCREENER"
-
-# Use the same data file path as the screener config
-from screener.config import DATA_FILE as SCREENER_DATA_FILE
-
-
-@router.post("/screener/upload")
-async def screener_upload(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-):
-    """Upload Bloomberg Excel file and trigger scoring pipeline."""
+@router.post("/subscribers/approve")
+def approve_subscriber(request: Request, email: str = Form("")):
+    """Approve a digest subscriber - adds to email_recipients.txt."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
 
-    try:
-        # Validate file type
-        if not file.filename.endswith(".xlsx"):
-            return RedirectResponse("/admin/?screener=error&msg=Must+be+.xlsx+file", status_code=303)
+    if email:
+        _add_to_recipients(email)
+        _update_subscriber_status(email, "APPROVED")
 
-        # Save file to the canonical path the data_loader expects
-        SCREENER_DATA_DIR.mkdir(parents=True, exist_ok=True)
-        content = await file.read()
-        SCREENER_DATA_FILE.write_bytes(content)
+    return RedirectResponse("/admin/?approved_sub=1", status_code=303)
 
-        # Validate sheets
-        import openpyxl
-        wb = openpyxl.load_workbook(SCREENER_DATA_FILE, read_only=True)
-        sheets = wb.sheetnames
-        wb.close()
-        if "stock_data" not in sheets or "etp_data" not in sheets:
-            return RedirectResponse("/admin/?screener=error&msg=Missing+stock_data+or+etp_data+sheets", status_code=303)
 
-        # Create upload record
-        upload = ScreenerUpload(
-            file_name=file.filename,
-            uploaded_by="admin",
-        )
-        db.add(upload)
-        db.commit()
-        db.refresh(upload)
+@router.post("/subscribers/reject")
+def reject_subscriber(request: Request, email: str = Form("")):
+    """Reject a digest subscriber request."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
 
-        # Invalidate 3x analysis cache (data file changed)
-        from webapp.services.screener_3x_cache import invalidate_cache
-        invalidate_cache()
+    if email:
+        _update_subscriber_status(email, "REJECTED")
 
-        # Trigger scoring in background
-        from webapp.services.screener_service import run_screener_pipeline
-        background_tasks.add_task(run_screener_pipeline, upload.id)
+    return RedirectResponse("/admin/?rejected_sub=1", status_code=303)
 
-        return RedirectResponse("/admin/?screener=uploaded", status_code=303)
 
-    except Exception as e:
-        from urllib.parse import quote
-        return RedirectResponse(f"/admin/?screener=error&msg={quote(str(e)[:100])}", status_code=303)
+# --- Screener Upload & Scoring ---
+
+# Use the same data file path as the screener config
+from screener.config import DATA_FILE as SCREENER_DATA_FILE
 
 
 @router.post("/screener/rescore")

@@ -2,7 +2,7 @@
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_FILE = PROJECT_ROOT / "data" / "SCREENER" / "datatest.xlsx"
+DATA_FILE = PROJECT_ROOT / "data" / "SCREENER" / "data.xlsx"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
 # --- Scoring weights (data-driven from correlation analysis, n=64 underliers) ---
