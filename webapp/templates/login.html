@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - REX FinHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0;">
+
+<div style="max-width:360px; width:100%; padding:20px;">
+  <div style="text-align:center; margin-bottom:24px;">
+    <h1 style="font-size:24px; font-weight:700; margin:0; color:var(--gray-900);">REX FinHub</h1>
+    <p style="color:var(--muted); font-size:13px; margin:6px 0 0;">ETP Filing Tracker</p>
+  </div>
+
+  <div style="background:var(--white); border:1px solid var(--border); border-radius:8px; padding:30px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+    {% if error %}
+    <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:16px; font-size:13px;">
+      <strong style="color:var(--red);">{{ error }}</strong>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--gray-700);">Password</label>
+        <input type="password" name="password" required autofocus
+               placeholder="Enter password"
+               style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:6px; font-size:14px; box-sizing:border-box;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px;">
+        Log In
+      </button>
+    </form>
+  </div>
+
+  <p style="text-align:center; color:var(--gray-400); font-size:11px; margin-top:20px;">
+    REX Financial &middot; Powered by SEC EDGAR
+  </p>
+</div>
+
+</body>
+</html>

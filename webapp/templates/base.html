@@ -25,8 +25,9 @@
   <span style="margin-left:auto; font-size:var(--text-sm); color:rgba(255,255,255,0.5);">
     {% set session_user = request.session.get('user') if request.session is defined else None %}
     {% if session_user and session_user.name %}
-      {{ session_user.name }} &middot; <a href="/auth/logout" style="color:rgba(255,255,255,0.5); height:auto; border:none; padding:0;">Logout</a>
+      {{ session_user.name }} &middot;
     {% endif %}
+    <a href="/logout" style="color:rgba(255,255,255,0.5); height:auto; border:none; padding:0;">Logout</a>
   </span>
 </nav>
 

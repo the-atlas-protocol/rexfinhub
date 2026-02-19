@@ -23,7 +23,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="webapp/templates")
 log = logging.getLogger(__name__)
 
-ADMIN_PASSWORD = "123"
+ADMIN_PASSWORD = "***REDACTED***"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 REQUESTS_FILE = PROJECT_ROOT / "config" / "trust_requests.txt"
 SUBSCRIBERS_FILE = PROJECT_ROOT / "config" / "digest_subscribers.txt"

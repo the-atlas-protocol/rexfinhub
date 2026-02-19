@@ -4,9 +4,10 @@
 SEC filing tracker for leveraged ETF products. Monitors 122 trusts via EDGAR, runs a 5-step CSV pipeline, and serves results through a FastAPI webapp deployed on Render.
 
 **Owner**: Ryu El-Asmar (relasmar@rexfin.com)
-**GitHub**: https://github.com/ryuoelasmar/REX_ETP_TRACKER.git (branch: main)
+**GitHub**: https://github.com/ryuoelasmar/rexfinhub.git (branch: main)
 **Live site**: https://rex-etp-tracker.onrender.com
-**Admin password**: `123`
+**Site password**: `***REDACTED***`
+**Admin password**: `***REDACTED***`
 
 ## Architecture
 
@@ -106,8 +107,8 @@ No upload through the web UI. File is placed directly on disk.
 - **DB-based**: `send_digest_from_db(db_session)` queries Trust, FundStatus, Filing, NameHistory tables directly
 - **CSV-based** (legacy): `send_digest_email(output_dir)` reads from pipeline CSVs
 - Admin panel uses DB-based digest (no CSV dependency)
-- Recipients: `email_recipients.txt` (one email per line)
-- Subscribers: `digest_subscribers.txt` (PENDING|email|timestamp format, approved via admin)
+- Recipients: `config/email_recipients.txt` (one email per line)
+- Subscribers: `config/digest_subscribers.txt` (PENDING|email|timestamp format, approved via admin)
 
 ## Render Deployment
 - Auto-deploys on push to `main`
@@ -127,13 +128,22 @@ No upload through the web UI. File is placed directly on disk.
 - pandas C engine crashes on certain CSV corruptions before the skip handler fires
 - Already fixed in: csvio.py, step3.py, step4.py, step5.py, sync_service.py
 
+## Project Structure
+```
+config/              .env, email_recipients.txt, digest_subscribers.txt, render.yaml
+docs/                OPERATIONS.md, PROJECT.md, SETUP_GUIDE.md, etc.
+scripts/             run_daily.py, startup.sh, dev.bat
+temp/                Scratch files (gitignored)
+logs/                Log files (gitignored)
+```
+
 ## Key Commands
 ```bash
 # Local server
 uvicorn webapp.main:app --reload --port 8000
 
 # Full pipeline + email (incremental - only new filings)
-python run_daily.py
+python scripts/run_daily.py
 
 # Force full reprocess (clears all manifests)
 python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), user_agent='REX-ETP-Tracker/2.0', force_reprocess=True)"
