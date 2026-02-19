@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 def _load_auth_config() -> dict[str, str]:
     """Load Azure AD config from .env or environment."""
     env_vars: dict[str, str] = {}
-    env_file = Path(__file__).resolve().parent.parent / ".env"
+    env_file = Path(__file__).resolve().parent.parent / "config" / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()

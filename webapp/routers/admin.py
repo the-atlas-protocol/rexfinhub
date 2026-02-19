@@ -25,9 +25,9 @@ log = logging.getLogger(__name__)
 
 ADMIN_PASSWORD = "123"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-REQUESTS_FILE = PROJECT_ROOT / "trust_requests.txt"
-SUBSCRIBERS_FILE = PROJECT_ROOT / "digest_subscribers.txt"
-RECIPIENTS_FILE = PROJECT_ROOT / "email_recipients.txt"
+REQUESTS_FILE = PROJECT_ROOT / "config" / "trust_requests.txt"
+SUBSCRIBERS_FILE = PROJECT_ROOT / "config" / "digest_subscribers.txt"
+RECIPIENTS_FILE = PROJECT_ROOT / "config" / "email_recipients.txt"
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 
 
@@ -382,7 +382,7 @@ def screener_email_report(
         # Send email
         from screener.email_report import send_screener_report
         # Use same recipient list as digest
-        recipients_file = PROJECT_ROOT / "email_recipients.txt"
+        recipients_file = PROJECT_ROOT / "config" / "email_recipients.txt"
         recipients = []
         if recipients_file.exists():
             for line in recipients_file.read_text(encoding="utf-8").splitlines():

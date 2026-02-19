@@ -22,7 +22,7 @@ SCOPE = ["https://graph.microsoft.com/.default"]
 def _load_env() -> dict[str, str]:
     """Load Azure config from .env file or environment."""
     env_vars: dict[str, str] = {}
-    env_file = Path(__file__).resolve().parent.parent.parent / ".env"
+    env_file = Path(__file__).resolve().parent.parent.parent / "config" / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()

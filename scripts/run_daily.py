@@ -5,10 +5,10 @@ Run this script daily at 8am via Windows Task Scheduler.
 It refreshes all trust data, generates Excel files, and sends email digest.
 
 Setup Task Scheduler (run PowerShell as Admin):
-    schtasks /create /tn "ETP_Filing_Tracker" /tr "python D:\\REX_ETP_TRACKER\\run_daily.py" /sc daily /st 08:00 /f
+    schtasks /create /tn "ETP_Filing_Tracker" /tr "python D:\\REX_ETP_TRACKER\\scripts\\run_daily.py" /sc daily /st 08:00 /f
 
 To run manually:
-    python run_daily.py
+    python scripts/run_daily.py
 """
 from __future__ import annotations
 import os
@@ -18,7 +18,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Ensure project root is on path and set working directory
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)
 
@@ -62,7 +62,7 @@ def export_excel(output_dir: Path) -> None:
 
 def _load_api_key() -> str:
     """Load API_KEY from .env."""
-    env_file = Path(__file__).parent / ".env"
+    env_file = Path(__file__).resolve().parent.parent / "config" / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()

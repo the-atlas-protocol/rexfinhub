@@ -27,6 +27,10 @@ nul
 .env
 .env.local
 *.env
+!config/.env.example
+
+# Temporary/scratch files
+temp/
 
 # Database files (if using SQLite locally)
 *.db

@@ -34,7 +34,7 @@ _WHITE = "#ffffff"
 def _load_recipients(project_root: Path | None = None) -> list[str]:
     if project_root is None:
         project_root = Path(__file__).parent.parent
-    recipients_file = project_root / "email_recipients.txt"
+    recipients_file = project_root / "config" / "email_recipients.txt"
     if recipients_file.exists():
         lines = recipients_file.read_text().strip().splitlines()
         return [line.strip() for line in lines if line.strip() and not line.startswith("#")]
@@ -44,7 +44,7 @@ def _load_recipients(project_root: Path | None = None) -> list[str]:
 
 def _get_smtp_config() -> dict:
     project_root = Path(__file__).parent.parent
-    env_file = project_root / ".env"
+    env_file = project_root / "config" / ".env"
     env_vars = {}
     if env_file.exists():
         for line in env_file.read_text().splitlines():

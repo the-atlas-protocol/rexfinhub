@@ -77,7 +77,7 @@ ANALYSIS_TYPES = {
 
 def _load_api_key() -> str:
     """Load Anthropic API key from .env or environment."""
-    env_file = Path(__file__).resolve().parent.parent.parent / ".env"
+    env_file = Path(__file__).resolve().parent.parent.parent / "config" / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()

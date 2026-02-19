@@ -20,7 +20,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-REQUESTS_FILE = PROJECT_ROOT / "trust_requests.txt"
+REQUESTS_FILE = PROJECT_ROOT / "config" / "trust_requests.txt"
 
 
 @router.get("/search/")

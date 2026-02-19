@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="webapp/templates")
 
 OUTPUT_DIR = Path("outputs")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-SUBSCRIBERS_FILE = PROJECT_ROOT / "digest_subscribers.txt"
+SUBSCRIBERS_FILE = PROJECT_ROOT / "config" / "digest_subscribers.txt"
 
 _EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
