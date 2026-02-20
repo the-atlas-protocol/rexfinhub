@@ -20,11 +20,15 @@ import time
 from pathlib import Path
 from typing import Any
 
+from datetime import datetime as _dt
+
 import pandas as pd
 
 log = logging.getLogger(__name__)
 
-DATA_FILE = Path("data/DASHBOARD/The Dashboard.xlsx")
+_LOCAL_DATA = Path(r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - Rex Financial LLC\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx")
+_FALLBACK_DATA = Path("data/DASHBOARD/The Dashboard.xlsx")
+DATA_FILE = _LOCAL_DATA if _LOCAL_DATA.exists() else _FALLBACK_DATA
 
 #  Cache 
 _lock = threading.Lock()
@@ -43,6 +47,14 @@ def invalidate_cache() -> None:
         _cache = {}
         _cache_time = 0.0
     log.info("Market data cache invalidated")
+
+
+def get_data_as_of() -> str:
+    """Return file modification date as 'Feb 20, 2026' or empty string."""
+    try:
+        return _dt.fromtimestamp(DATA_FILE.stat().st_mtime).strftime("%b %d, %Y")
+    except Exception:
+        return ""
 
 
 def _load_fresh() -> dict[str, Any]:
