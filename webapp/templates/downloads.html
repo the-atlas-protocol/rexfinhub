@@ -112,14 +112,18 @@
 {% if all_trusts %}
 <div class="section-header" style="margin-top:24px;">
   <h2>Trust Filing Exports</h2>
-  <span class="badge">{{ all_trusts|length }} trusts</span>
+  <span class="badge" id="dl-trust-count">{{ all_trusts|length }} trusts</span>
 </div>
-<p style="font-size:13px; color:var(--gray); margin-bottom:16px;">
+<p style="font-size:13px; color:var(--gray); margin-bottom:12px;">
   Download all SEC filings and extracted fund data for a specific trust as CSV.
 </p>
-<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin-bottom:24px;">
+<div class="filter-bar" style="margin-bottom:16px;">
+  <input type="text" id="dl-search" placeholder="Search trusts..." style="width:300px;">
+  <span class="count" id="dl-match-count"></span>
+</div>
+<div id="dl-trust-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin-bottom:12px;">
   {% for t in all_trusts %}
-  <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--light); display:flex; justify-content:space-between; align-items:center;">
+  <div class="dl-trust-card" data-name="{{ t.name|lower }}" style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--light); display:flex; justify-content:space-between; align-items:center;">
     <div>
       <strong style="font-size:14px;">{{ t.name }}</strong>
       {% if t.is_rex %}
@@ -130,6 +134,7 @@
   </div>
   {% endfor %}
 </div>
+<div id="dl-pagination" style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:24px;"></div>
 {% endif %}
 
 {% if not summary_files and not trust_files and not digest_files and not all_trusts %}
@@ -137,4 +142,72 @@
   <p>No files available yet. Run the pipeline to generate output files.</p>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var PAGE_SIZE = 50;
+  var currentPage = 1;
+  var cards = Array.from(document.querySelectorAll('.dl-trust-card'));
+  if (!cards.length) return;
+
+  var searchInput = document.getElementById('dl-search');
+  var pagination = document.getElementById('dl-pagination');
+  var matchCount = document.getElementById('dl-match-count');
+  var trustCount = document.getElementById('dl-trust-count');
+  var filtered = cards.slice();
+
+  function render() {
+    var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    var start = (currentPage - 1) * PAGE_SIZE;
+    var end = start + PAGE_SIZE;
+    var visible = new Set(filtered.slice(start, end));
+
+    cards.forEach(function(c) { c.style.display = visible.has(c) ? '' : 'none'; });
+
+    matchCount.textContent = filtered.length + ' of ' + cards.length;
+    trustCount.textContent = filtered.length + ' trusts';
+
+    // Pagination controls
+    var html = '';
+    if (totalPages > 1) {
+      html += '<button class="btn btn-sm" ' + (currentPage <= 1 ? 'disabled style="opacity:0.4;cursor:default"' : '') + ' data-page="' + (currentPage - 1) + '">Prev</button>';
+      for (var i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+          html += '<span style="padding:4px 10px;background:var(--navy);color:white;border-radius:4px;font-size:12px;font-weight:600;">' + i + '</span>';
+        } else {
+          html += '<button class="btn btn-sm" data-page="' + i + '">' + i + '</button>';
+        }
+      }
+      html += '<button class="btn btn-sm" ' + (currentPage >= totalPages ? 'disabled style="opacity:0.4;cursor:default"' : '') + ' data-page="' + (currentPage + 1) + '">Next</button>';
+    }
+    pagination.innerHTML = html;
+  }
+
+  function applySearch() {
+    var q = searchInput.value.trim().toLowerCase();
+    if (!q) {
+      filtered = cards.slice();
+    } else {
+      filtered = cards.filter(function(c) { return c.getAttribute('data-name').indexOf(q) !== -1; });
+    }
+    currentPage = 1;
+    render();
+  }
+
+  searchInput.addEventListener('input', applySearch);
+  pagination.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-page]');
+    if (btn && !btn.disabled) {
+      currentPage = parseInt(btn.getAttribute('data-page'), 10);
+      render();
+    }
+  });
+
+  render();
+})();
+</script>
 {% endblock %}

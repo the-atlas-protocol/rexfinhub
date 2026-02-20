@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from webapp.dependencies import get_db
 from webapp.fund_filters import MUTUAL_FUND_EXCLUSIONS
 from webapp.models import Trust, FundStatus, Filing, FundExtraction
+from etp_tracker.trusts import get_act_type
 
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
@@ -56,6 +57,7 @@ def _trust_stats(db: Session) -> list[dict]:
             Trust.id,
             Trust.name,
             Trust.slug,
+            Trust.cik,
             Trust.is_rex,
             func.coalesce(fund_sq.c.total, 0).label("total"),
             func.coalesce(fund_sq.c.effective, 0).label("effective"),
@@ -77,6 +79,7 @@ def _trust_stats(db: Session) -> list[dict]:
             "total": r.total or 0, "effective": r.effective or 0,
             "pending": r.pending or 0, "delayed": r.delayed or 0,
             "filing_count": r.filing_count or 0,
+            "act_type": get_act_type(r.cik),
         })
 
     # Sort: priority trusts first, then alphabetical

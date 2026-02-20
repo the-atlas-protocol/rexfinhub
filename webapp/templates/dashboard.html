@@ -115,7 +115,23 @@
   </div>
 </div>
 
-<div class="trust-grid">
+<div class="trust-grid-loading" id="trust-grid-wrapper">
+<!-- Skeleton placeholder cards -->
+<div class="trust-grid-skeleton">
+  {% for _ in range(12) %}
+  <div class="skeleton-card">
+    <div class="skeleton-row" style="margin-bottom:12px;">
+      <div class="skeleton-circle"></div>
+      <div style="flex:1;">
+        <div class="skeleton-bar skeleton-bar-lg"></div>
+        <div class="skeleton-bar skeleton-bar-sm"></div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<!-- Real trust cards -->
+<div class="trust-grid trust-grid-real">
   {% set monogram_colors = ['#1565C0','#2E7D32','#6A1B9A','#C62828','#00838F','#4527A0','#AD1457','#EF6C00','#283593','#00695C','#37474F','#5D4037'] %}
   {% for t in trusts %}
   <a href="/trusts/{{ t.slug }}" class="trust-card">
@@ -129,7 +145,11 @@
       </div>
     </div>
     {% if t.total == 0 %}
-      {% if t.filing_count > 0 %}
+      {% if t.act_type == '33' %}
+      <div class="trust-card-pending" style="color:var(--blue);">
+        33 Act Filer - N-1A <span>(S-1 / 10-K registration)</span>
+      </div>
+      {% elif t.filing_count > 0 %}
       <div class="trust-card-pending">
         No 485 filings found <span>(S-1 / 10-K filer)</span>
       </div>
@@ -151,4 +171,21 @@
   </a>
   {% endfor %}
 </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Reveal trust cards once the page has finished rendering
+(function() {
+  var wrapper = document.getElementById('trust-grid-wrapper');
+  if (!wrapper) return;
+  function reveal() {
+    wrapper.classList.remove('trust-grid-loading');
+  }
+  if (document.readyState === 'complete') { reveal(); }
+  else { window.addEventListener('load', reveal); }
+})();
+</script>
 {% endblock %}
