@@ -449,6 +449,10 @@ Add to `market.css`:
 
 ---
 
-## Status: IN_PROGRESS
+## Status: DONE
 
 ## Log:
+- ab740da: style: add CSS for treemap, underlier, share timeline, sparklines, and filter controls
+- 0ef8fcb: feat: add renderTreemap, renderShareTimeline, renderSparkline, and sortTable to market.js
+- 56f6769: feat: create treemap, issuer, share_timeline, and underlier templates
+- 9ff6e9c: feat: enhance rex.html with ETF/ETN filter, suite checkboxes, sparklines; update _suite_card.html and category.html title
