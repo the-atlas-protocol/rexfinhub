@@ -92,7 +92,7 @@ def _trust_stats(db: Session) -> list[dict]:
     return trusts
 
 
-@router.get("/")
+@router.get("/dashboard")
 def dashboard(
     request: Request,
     added: str = "",
@@ -134,11 +134,12 @@ def dashboard(
     if filing_trust_id:
         filing_query = filing_query.where(Filing.trust_id == filing_trust_id)
 
+    filing_limit = min(500, max(50, days * 4))
     filing_query = (
         filing_query
         .group_by(Filing.id)
         .order_by(Filing.filing_date.desc())
-        .limit(50)
+        .limit(filing_limit)
     )
     recent_filings = db.execute(filing_query).all()
 
@@ -161,4 +162,5 @@ def dashboard(
         "form_type": form_type,
         "filing_trust_id": filing_trust_id,
         "filing_trusts": filing_trusts,
+        "filing_limit": filing_limit,
     })
