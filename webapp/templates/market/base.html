@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Market Intelligence - REX Financial{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/market.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="market-header">
+  <h1>Market Intelligence</h1>
+  <div class="market-nav-pills">
+    <a href="/market/rex" class="pill {% if active_tab == 'rex' %}active{% endif %}">REX View</a>
+    <a href="/market/category" class="pill {% if active_tab == 'category' %}active{% endif %}">Category View</a>
+  </div>
+</div>
+
+{% if not available %}
+<div class="alert alert-warning">
+  Dashboard data file not found. Place <code>The Dashboard.xlsx</code> in <code>data/DASHBOARD/</code>.
+</div>
+{% else %}
+{% block market_content %}{% endblock %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/market.js"></script>
+{% block market_scripts %}{% endblock %}
+{% endblock %}

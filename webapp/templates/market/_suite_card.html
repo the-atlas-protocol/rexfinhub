@@ -1,0 +1,29 @@
+{# Suite card partial. Pass `suite` dict. #}
+<a href="/market/category?cat={{ suite.name|urlencode }}" class="suite-card">
+  <div class="suite-header">
+    <h3 class="suite-name">{{ suite.name }}</h3>
+    <span class="suite-share">{{ suite.market_share }}% share</span>
+  </div>
+  <div class="suite-metrics">
+    <div class="suite-metric">
+      <span class="suite-metric-label">AUM</span>
+      <span class="suite-metric-value">{{ suite.kpis.aum_fmt }}</span>
+    </div>
+    <div class="suite-metric">
+      <span class="suite-metric-label">1W Flows</span>
+      <span class="suite-metric-value {{ 'positive' if suite.kpis.flow_1w > 0 else 'negative' if suite.kpis.flow_1w < 0 else '' }}">{{ suite.kpis.flow_1w_fmt }}</span>
+    </div>
+    <div class="suite-metric">
+      <span class="suite-metric-label"># Products</span>
+      <span class="suite-metric-value">{{ suite.kpis.num_products }}</span>
+    </div>
+  </div>
+  {% if suite.top_movers %}
+  <div class="suite-movers">
+    <span class="suite-movers-label">Top movers:</span>
+    {% for m in suite.top_movers %}
+    <span class="mover {{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{{ m.ticker }} ({{ m.flow }})</span>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</a>

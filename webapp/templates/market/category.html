@@ -1,0 +1,155 @@
+{% set active_tab = 'category' %}
+{% extends "market/base.html" %}
+
+{% block market_content %}
+{# Category Selector #}
+<div class="category-selector">
+  <label for="categorySelect">Category:</label>
+  <select id="categorySelect" onchange="MarketFilters.onCategoryChange(this.value)">
+    <option value="All" {{ 'selected' if category == 'All' else '' }}>All Categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat }}" {{ 'selected' if category == cat else '' }}>{{ cat }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{# Dynamic Slicer Panel #}
+<div id="slicerPanel" class="slicer-panel" {% if not slicers %}style="display:none"{% endif %}>
+  {% for slicer in slicers %}
+  <div class="slicer-group" data-field="{{ slicer.field }}">
+    <label>{{ slicer.label }}:</label>
+    {% if slicer.type == 'dropdown' %}
+    <select onchange="MarketFilters.applyFilters()">
+      <option value="">All</option>
+      {% for opt in slicer.options %}
+      <option value="{{ opt }}">{{ opt }}</option>
+      {% endfor %}
+    </select>
+    {% elif slicer.type == 'multi-select' %}
+    <select multiple onchange="MarketFilters.applyFilters()" size="1">
+      {% for opt in slicer.options %}
+      <option value="{{ opt }}">{{ opt }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if summary %}
+{# Split KPI Cards #}
+<div class="kpi-split">
+  <div class="kpi-split-section">
+    <h3 class="kpi-split-title">Category Totals</h3>
+    {% with kpis=summary.cat_kpis, prefix='cat-' %}
+    {% include "market/_kpi_cards.html" %}
+    {% endwith %}
+  </div>
+  <div class="kpi-split-section rex-section">
+    <h3 class="kpi-split-title">REX in this Category</h3>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">REX AUM</div>
+        <div class="kpi-value" id="cat-rex-aum">{{ summary.rex_kpis.aum_fmt }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Market Share</div>
+        <div class="kpi-value" id="cat-rex-share">{{ summary.rex_share }}%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">REX Products</div>
+        <div class="kpi-value" id="cat-rex-count">{{ summary.rex_kpis.num_products }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">1W Flows</div>
+        <div class="kpi-value {{ 'positive' if summary.rex_kpis.flow_1w > 0 else 'negative' if summary.rex_kpis.flow_1w < 0 else '' }}" id="cat-rex-flow1w">{{ summary.rex_kpis.flow_1w_fmt }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Charts Row #}
+<div class="charts-row">
+  <div class="chart-box">
+    <h3>Market Share by Issuer</h3>
+    <canvas id="issuerBarChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>Category AUM Trend</h3>
+    <canvas id="categoryTrendChart"></canvas>
+  </div>
+</div>
+
+{# Top Products Table #}
+{% if summary.top_products %}
+<h2 class="section-title">Top Products by AUM</h2>
+<div class="table-controls">
+  <input type="text" id="productSearch" placeholder="Search ticker or name..." oninput="MarketFilters.filterProductTable(this.value)">
+  <span class="filter-count" id="productCount">{{ summary.top_products|length }} products</span>
+</div>
+{% with products=summary.top_products, table_id='topProducts', show_issuer=true %}
+{% include "market/_product_table.html" %}
+{% endwith %}
+{% endif %}
+
+{# REX Products Panel #}
+{% if summary.rex_products %}
+<h2 class="section-title">REX Products in {{ category }}</h2>
+<div class="table-responsive">
+  <table class="data-table rex-table" id="rexProducts">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Ticker</th>
+        <th>Fund Name</th>
+        <th>AUM</th>
+        <th>1W Flow</th>
+        <th>1M Flow</th>
+        <th>Yield</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in summary.rex_products %}
+      <tr>
+        <td>{{ p.rank if p.rank else '-' }}</td>
+        <td class="ticker-cell">{{ p.ticker }}</td>
+        <td class="name-cell" title="{{ p.fund_name }}">{{ p.fund_name|truncate(45, true) }}</td>
+        <td class="num-cell">{{ p.aum_fmt }}</td>
+        <td class="num-cell {{ 'positive' if '+'  in p.flow_1w_fmt else 'negative' if '-' in p.flow_1w_fmt else '' }}">{{ p.flow_1w_fmt }}</td>
+        <td class="num-cell {{ 'positive' if '+' in p.flow_1m_fmt else 'negative' if '-' in p.flow_1m_fmt else '' }}">{{ p.flow_1m_fmt }}</td>
+        <td class="num-cell">{% if p.yield_val is not none and p.yield_val == p.yield_val %}{{ "%.1f"|format(p.yield_val) }}%{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-warning">No data available for this category.</div>
+{% endif %}
+{% endblock %}
+
+{% block market_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  {% if summary %}
+  // Bar chart - issuer market share
+  var issuerData = {{ summary.issuer_data|tojson }};
+  MarketCharts.renderBarChart('issuerBarChart', issuerData.labels, issuerData.values, issuerData.is_rex);
+  {% endif %}
+
+  {% if trend %}
+  // Line chart - category AUM trend
+  var trendData = {{ trend|tojson }};
+  var datasets = [
+    {label: 'Category AUM', data: trendData.total_values, color: '#6B7280'}
+  ];
+  if (trendData.rex_values && trendData.rex_values.some(function(v) { return v > 0; })) {
+    datasets.push({label: 'REX AUM', data: trendData.rex_values, color: '#1E40AF'});
+  }
+  MarketCharts.renderLineChart('categoryTrendChart', trendData.labels, datasets);
+  {% endif %}
+});
+</script>
+{% endblock %}

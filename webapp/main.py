@@ -126,7 +126,7 @@ def create_app() -> FastAPI:
         return RedirectResponse("/login", status_code=302)
 
     # --- Routers ---
-    from webapp.routers import auth_routes, dashboard, trusts, funds, search, analysis, digest, downloads, api, admin, screener
+    from webapp.routers import auth_routes, dashboard, trusts, funds, search, analysis, digest, downloads, api, admin, screener, market
     app.include_router(auth_routes.router)
     app.include_router(dashboard.router)
     app.include_router(trusts.router, prefix="/trusts")
@@ -138,6 +138,7 @@ def create_app() -> FastAPI:
     app.include_router(api.router)
     app.include_router(admin.router)
     app.include_router(screener.router)
+    app.include_router(market.router)
 
     # Health check
     @app.get("/health")

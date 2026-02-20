@@ -1,0 +1,24 @@
+{# KPI cards partial. Pass `kpis` dict and optional `prefix` for id namespacing. #}
+{% set p = prefix|default('') %}
+<div class="kpi-row" id="{{ p }}kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-label">Total AUM</div>
+    <div class="kpi-value" id="{{ p }}kpi-aum">{{ kpis.aum_fmt }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">1W Flows</div>
+    <div class="kpi-value {{ 'positive' if kpis.flow_1w > 0 else 'negative' if kpis.flow_1w < 0 else '' }}" id="{{ p }}kpi-flow1w">{{ kpis.flow_1w_fmt }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">1M Flows</div>
+    <div class="kpi-value {{ 'positive' if kpis.flow_1m > 0 else 'negative' if kpis.flow_1m < 0 else '' }}" id="{{ p }}kpi-flow1m">{{ kpis.flow_1m_fmt }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">3M Flows</div>
+    <div class="kpi-value {{ 'positive' if kpis.flow_3m > 0 else 'negative' if kpis.flow_3m < 0 else '' }}" id="{{ p }}kpi-flow3m">{{ kpis.flow_3m_fmt }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label"># Products</div>
+    <div class="kpi-value" id="{{ p }}kpi-count">{{ kpis.num_products }}</div>
+  </div>
+</div>

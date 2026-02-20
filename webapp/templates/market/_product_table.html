@@ -1,0 +1,33 @@
+{# Product table partial. Pass `products` list, `table_id`, optional `show_issuer`. #}
+{% set tid = table_id|default('product-table') %}
+{% set show_iss = show_issuer|default(true) %}
+<div class="table-responsive">
+  <table class="data-table" id="{{ tid }}">
+    <thead>
+      <tr>
+        <th onclick="sortTable('{{ tid }}', 0)" class="sortable">#</th>
+        <th onclick="sortTable('{{ tid }}', 1)" class="sortable">Ticker</th>
+        <th onclick="sortTable('{{ tid }}', 2)" class="sortable">Fund Name</th>
+        {% if show_iss %}<th onclick="sortTable('{{ tid }}', 3)" class="sortable">Issuer</th>{% endif %}
+        <th onclick="sortTable('{{ tid }}', {{ 4 if show_iss else 3 }})" class="sortable">AUM</th>
+        <th onclick="sortTable('{{ tid }}', {{ 5 if show_iss else 4 }})" class="sortable">1W Flow</th>
+        <th onclick="sortTable('{{ tid }}', {{ 6 if show_iss else 5 }})" class="sortable">1M Flow</th>
+        <th onclick="sortTable('{{ tid }}', {{ 7 if show_iss else 6 }})" class="sortable">Yield</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in products %}
+      <tr class="{{ 'rex-highlight' if p.is_rex|default(false) else '' }}">
+        <td>{{ p.rank }}</td>
+        <td class="ticker-cell">{{ p.ticker }}</td>
+        <td class="name-cell" title="{{ p.fund_name }}">{{ p.fund_name|truncate(45, true) }}</td>
+        {% if show_iss %}<td>{{ p.issuer }}</td>{% endif %}
+        <td class="num-cell">{{ p.aum_fmt }}</td>
+        <td class="num-cell {{ 'positive' if p.flow_1w and p.flow_1w > 0 else 'negative' if p.flow_1w and p.flow_1w < 0 else '' }}">{{ p.flow_1w_fmt }}</td>
+        <td class="num-cell {{ 'positive' if p.flow_1m and p.flow_1m > 0 else 'negative' if p.flow_1m and p.flow_1m < 0 else '' }}">{{ p.flow_1m_fmt }}</td>
+        <td class="num-cell">{% if p.yield_val is not none and p.yield_val == p.yield_val %}{{ "%.1f"|format(p.yield_val) }}%{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

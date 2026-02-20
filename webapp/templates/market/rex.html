@@ -1,0 +1,57 @@
+{% set active_tab = 'rex' %}
+{% extends "market/base.html" %}
+
+{% block market_content %}
+{% if summary %}
+
+{# KPI Cards #}
+{% with kpis=summary.kpis, prefix='rex-' %}
+{% include "market/_kpi_cards.html" %}
+{% endwith %}
+
+{# Charts Row #}
+<div class="charts-row">
+  <div class="chart-box">
+    <h3>AUM by Suite</h3>
+    <canvas id="suitesPieChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>Total REX AUM Trend</h3>
+    <canvas id="rexTrendChart"></canvas>
+  </div>
+</div>
+
+{# Suite Cards #}
+<h2 class="section-title">REX Suites</h2>
+<div class="suite-cards">
+  {% for suite in summary.suites %}
+  {% with suite=suite %}
+  {% include "market/_suite_card.html" %}
+  {% endwith %}
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="alert alert-warning">No REX data available.</div>
+{% endif %}
+{% endblock %}
+
+{% block market_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  {% if summary %}
+  // Pie chart - AUM by suite
+  var pieData = {{ summary.pie_data|tojson }};
+  MarketCharts.renderPieChart('suitesPieChart', pieData.labels, pieData.values);
+  {% endif %}
+
+  {% if trend %}
+  // Line chart - REX AUM trend
+  var trendData = {{ trend|tojson }};
+  MarketCharts.renderLineChart('rexTrendChart', trendData.labels, [
+    {label: 'REX AUM', data: trendData.values, color: '#1E40AF'}
+  ]);
+  {% endif %}
+});
+</script>
+{% endblock %}
