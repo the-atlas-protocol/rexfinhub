@@ -4,15 +4,12 @@
 {% block title %}Category View — REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
-{# Category Selector #}
-<div class="category-selector">
-  <label for="categorySelect">Category:</label>
-  <select id="categorySelect" onchange="MarketFilters.onCategoryChange(this.value)">
-    <option value="All" {{ 'selected' if (category is not defined or category == 'All') else '' }}>All Categories</option>
-    {% for cat in categories %}
-    <option value="{{ cat }}" {{ 'selected' if category == cat else '' }}>{{ cat }}</option>
-    {% endfor %}
-  </select>
+{# Category Pill Selector #}
+<div class="category-pills">
+  <a href="/market/category?cat=All" class="pill {{ 'active' if (category is not defined or category == 'All') else '' }}">All</a>
+  {% for c in categories %}
+  <a href="/market/category?cat={{ c|urlencode }}" class="pill {{ 'active' if category == c else '' }}">{{ c }}</a>
+  {% endfor %}
 </div>
 
 {# Dynamic Slicer Panel #}
