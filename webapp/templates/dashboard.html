@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}ETP Filing Tracker - Dashboard{% endblock %}
+{% block title %}Filing Dashboard — REX Financial Intelligence Hub{% endblock %}
 
 {% block content %}
 <div class="header">
@@ -10,7 +10,7 @@
 {% if added %}
 <div class="alert alert-success" style="display:flex; justify-content:space-between; align-items:center;">
   <span><strong>{{ added }}</strong> has been added to monitoring. Filing data will appear after the next pipeline run.</span>
-  <a href="/" style="color:#155724; font-weight:600;">Dismiss</a>
+  <a href="/dashboard" style="color:#155724; font-weight:600;">Dismiss</a>
 </div>
 {% endif %}
 
@@ -43,7 +43,7 @@
   <h2>Recent Filings</h2>
   <span class="badge">{{ recent_filings|length }}</span>
 </div>
-<form method="get" action="/" style="margin-bottom:12px;">
+<form method="get" action="/dashboard" style="margin-bottom:12px;">
   <div class="filter-bar" style="border-radius:8px;">
     <select name="days" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
       {% for d, label in [(7,'7 days'),(14,'14 days'),(30,'30 days'),(90,'90 days'),(0,'All time')] %}
@@ -67,13 +67,14 @@
 </form>
 
 {% if recent_filings %}
-<table>
+<p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">Showing up to {{ filing_limit }} filings</p>
+<table id="recentFilings">
   <thead>
     <tr>
-      <th>Date</th>
-      <th>Form</th>
-      <th>Trust</th>
-      <th>Fund(s)</th>
+      <th class="sortable" onclick="sortTable('recentFilings', 0)">Date</th>
+      <th class="sortable" onclick="sortTable('recentFilings', 1)">Form</th>
+      <th class="sortable" onclick="sortTable('recentFilings', 2)">Trust</th>
+      <th class="sortable" onclick="sortTable('recentFilings', 3)">Fund(s)</th>
       <th>Doc</th>
       <th>AI</th>
     </tr>
