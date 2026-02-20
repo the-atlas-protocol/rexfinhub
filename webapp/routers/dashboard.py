@@ -3,9 +3,11 @@ Dashboard router - Main page with KPIs, trust list, recent activity.
 """
 from __future__ import annotations
 
+import math
+import urllib.parse
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -99,6 +101,8 @@ def dashboard(
     days: int = 7,
     form_type: str = "",
     filing_trust_id: int = 0,
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=50, ge=10, le=200),
     db: Session = Depends(get_db),
 ):
     trust_list = _trust_stats(db)
@@ -134,19 +138,40 @@ def dashboard(
     if filing_trust_id:
         filing_query = filing_query.where(Filing.trust_id == filing_trust_id)
 
-    filing_limit = min(500, max(50, days * 4))
     filing_query = (
         filing_query
         .group_by(Filing.id)
         .order_by(Filing.filing_date.desc())
-        .limit(filing_limit)
     )
-    recent_filings = db.execute(filing_query).all()
+
+    # Count total filings before applying pagination
+    total_filings = db.execute(
+        select(func.count()).select_from(filing_query.subquery())
+    ).scalar() or 0
+    total_pages = max(1, math.ceil(total_filings / per_page))
+    page = min(page, total_pages)
+
+    # Apply pagination
+    recent_filings = db.execute(
+        filing_query.offset((page - 1) * per_page).limit(per_page)
+    ).all()
 
     # Trust list for filing filter dropdown
     filing_trusts = db.execute(
         select(Trust).where(Trust.is_active == True).order_by(Trust.name)
     ).scalars().all()
+
+    # Build query string preserving current filters (without page)
+    qs_params = {}
+    if days != 7:
+        qs_params["days"] = days
+    if form_type:
+        qs_params["form_type"] = form_type
+    if filing_trust_id:
+        qs_params["filing_trust_id"] = filing_trust_id
+    if per_page != 50:
+        qs_params["per_page"] = per_page
+    base_qs = urllib.parse.urlencode(qs_params)
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -162,5 +187,9 @@ def dashboard(
         "form_type": form_type,
         "filing_trust_id": filing_trust_id,
         "filing_trusts": filing_trusts,
-        "filing_limit": filing_limit,
+        "page": page,
+        "per_page": per_page,
+        "total_filings": total_filings,
+        "total_pages": total_pages,
+        "base_qs": base_qs,
     })
