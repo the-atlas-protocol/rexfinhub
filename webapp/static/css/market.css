@@ -551,6 +551,19 @@
 
 /* Category pills */
 .category-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.category-pills .pill {
+  display: inline-block;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.category-pills .pill:hover { background: var(--gray-200); color: var(--gray-700); }
+.category-pills .pill.active { background: var(--navy); color: var(--white); }
 
 /* Text link */
 .text-link { color: var(--blue); text-decoration: none; font-weight: 600; }
