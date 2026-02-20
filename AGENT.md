@@ -1,7 +1,7 @@
 # AGENT: Market-Complete
 **Task**: TASK-B — Market Intelligence Complete Fix + Enhancement
 **Branch**: feature/market-complete
-**Status**: IN_PROGRESS
+**Status**: DONE
 
 ## Progress Reporting
 Write timestamped progress to: `.agents/progress/Market-Complete.md`
@@ -200,10 +200,14 @@ git commit -m "feat: Market intelligence complete overhaul - fix 500 error, exec
 ```
 
 ## Done Criteria
-- [ ] `/market/rex` loads without 500 (even with no data file)
-- [ ] Data path auto-detects OneDrive file
-- [ ] "Data as of DATE" shown in market/base.html
-- [ ] Suite table replaces cramped cards
-- [ ] Category pills replace dropdown
-- [ ] All 4 other tabs load without errors
-- [ ] market.css has no undefined CSS variable references
+- [x] `/market/rex` loads without 500 (even with no data file)
+- [x] Data path auto-detects OneDrive file
+- [x] "Data as of DATE" shown in market/base.html
+- [x] Suite table replaces cramped cards
+- [x] Category pills replace dropdown
+- [x] All 4 other tabs load without errors
+- [x] market.css has no undefined CSS variable references
+
+## Log
+- f3a2bff: fix: market data path auto-detect, data-as-of date, CSS variable fixes
+- 3065f8a: feat: replace category dropdown with pill selector
