@@ -217,14 +217,17 @@ def approve_request(
         db.commit()
 
     # Also add to trusts.py registry so pipeline always picks it up
+    from urllib.parse import quote
+    detail = "Trust added to database and registered in trusts.py"
     try:
         from etp_tracker.trusts import add_trust
         add_trust(cik, name)
     except Exception as e:
         log.warning("Could not write to trusts.py (read-only on Render): %s", e)
+        detail = "Trust added to database (trusts.py update skipped — read-only filesystem on Render)"
 
     _update_request_status(cik, "APPROVED")
-    return RedirectResponse("/admin/?approved=1", status_code=303)
+    return RedirectResponse(f"/admin/?approved=1&detail={quote(detail)}", status_code=303)
 
 
 @router.post("/requests/reject")
