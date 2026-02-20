@@ -573,3 +573,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================================================
+   Timeline Page
+   ======================================================== */
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #E2E8F0; }
+.timeline-entry { position: relative; padding: 12px 0 12px 20px; border-bottom: 1px solid #F1F5F9; }
+.timeline-entry::before { content: ''; position: absolute; left: -5px; top: 20px; width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
+.timeline-date { font-size: 0.75rem; color: #94A3B8; font-weight: 600; }
+.timeline-content { margin-top: 4px; }
+.timeline-effective { font-size: 0.8rem; color: #374151; margin-left: 8px; }
+.timeline-funds { font-size: 0.77rem; color: #6B7280; margin-top: 2px; }
+.timeline-accession { font-size: 0.7rem; margin-top: 2px; }
+.timeline-controls { margin-bottom: 20px; }
+.trust-timeline-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+
+/* ========================================================
+   Calendar Page
+   ======================================================== */
+.urgency-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.urgency-green { background: #D1FAE5; color: #065F46; }
+.urgency-amber { background: #FEF3C7; color: #92400E; }
+.urgency-red { background: #FEE2E2; color: #991B1B; }
+.calendar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.calendar-section h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+@media (max-width: 768px) { .calendar-grid { grid-template-columns: 1fr; } }
