@@ -395,8 +395,8 @@ def build_master_data(xl: pd.ExcelFile = None) -> pd.DataFrame:
         rex = _read_sheet(xl, "rex_funds")
         rex_tickers = set(rex["ticker"].dropna().astype(str).str.strip())
         if "is_rex" in df.columns:
-            existing = pd.array(
-                df["is_rex"].fillna(False).tolist(), dtype=bool
+            existing = df["is_rex"].map(
+                lambda v: bool(v) if pd.notna(v) else False
             )
             df["is_rex"] = df["ticker"].isin(rex_tickers) | existing
         else:
