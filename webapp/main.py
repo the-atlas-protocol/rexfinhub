@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
 
     # --- Routers ---
     from webapp.routers import auth_routes, dashboard, trusts, funds, search, analysis, digest, downloads, api, admin, screener, market
+    from webapp.routers.market_advanced import router as market_advanced_router
     app.include_router(auth_routes.router)
     app.include_router(dashboard.router)
     app.include_router(trusts.router, prefix="/trusts")
@@ -154,6 +155,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router)
     app.include_router(screener.router)
     app.include_router(market.router)
+    app.include_router(market_advanced_router)
 
     # Health check
     @app.get("/health")
