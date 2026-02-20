@@ -150,6 +150,61 @@ TRUST_CIKS = {
     "2041869": "Canary Marinade Solana ETF",
 }
 
+# 33 Act (Securities Act of 1933) filers: S-1/10-K registration.
+# All CIKs not listed here default to 40 Act (Investment Company Act of 1940, N-1A).
+ACT_33_CIKS = {
+    # Crypto commodity trusts (S-1/10-K filers - no 485 forms)
+    "1588489",  # Grayscale Bitcoin Trust ETF (GBTC)
+    "2015034",  # Grayscale Bitcoin Mini Trust ETF
+    "1980994",  # iShares Bitcoin Trust ETF (IBIT)
+    "1852317",  # Fidelity Wise Origin Bitcoin Fund (FBTC)
+    "1838028",  # VanEck Bitcoin ETF (HODL)
+    "1763415",  # Bitwise Bitcoin ETF (BITB)
+    "1992870",  # Franklin Templeton Digital Holdings Trust (EZBC)
+    "1869699",  # Ark 21Shares Bitcoin ETF (ARKB)
+    "1841175",  # CoinShares Bitcoin ETF (BRRR)
+    "1850391",  # WisdomTree Bitcoin Fund (BTCW)
+    "1725210",  # Grayscale Ethereum Staking ETF (ETHE)
+    "2020455",  # Grayscale Ethereum Staking Mini ETF
+    "2000638",  # iShares Ethereum Trust ETF (ETHA)
+    "2000046",  # Fidelity Ethereum Fund (FETH)
+    "1860788",  # VanEck Ethereum ETF (ETHV)
+    "2011535",  # Franklin Ethereum Trust (EZET)
+    "1732409",  # Grayscale Bitcoin Cash Trust (BCH)
+    "1705181",  # Grayscale Ethereum Classic Trust (ETC)
+    "1732406",  # Grayscale Litecoin Trust (LTC)
+    "1896677",  # Grayscale Solana Staking ETF (SOL)
+    "2037427",  # Grayscale XRP Trust ETF (XRP)
+    "1723788",  # Bitwise 10 Crypto Index ETF (BITW)
+    # Crypto S-1 filers (no 485 forms)
+    "2064314",  # 21Shares Dogecoin ETF
+    "2028834",  # 21Shares Solana ETF
+    "2082889",  # Bitwise Chainlink ETF
+    "2053791",  # Bitwise Dogecoin ETF
+    "2045872",  # Bitwise Solana Staking ETF (BSOL)
+    "2039525",  # Bitwise XRP ETF
+    "2063380",  # Fidelity Solana Fund
+    "2033807",  # Franklin Crypto Trust (EZPZ)
+    "2074409",  # Invesco Galaxy Solana ETF (QSOL)
+    "1767057",  # Osprey Bitcoin Trust (OBTC)
+    "1345125",  # Cyber Hornet Trust (BBB, SSS, EEE, XXX)
+    "2039505",  # Canary XRP ETF
+    "2039458",  # Canary HBAR ETF
+    "2039461",  # Canary Litecoin ETF
+    "2041869",  # Canary Marinade Solana ETF
+    # Commodity trusts (S-1/10-K filers)
+    "1529505",  # United States Commodity Funds Trust I (USO, UNG, etc.)
+    "1985840",  # Tidal Commodities Trust I (DEFI commodity trust)
+    "1415311",  # ProShares Trust II (commodity/currency leveraged)
+    "1371571",  # Invesco DB US Dollar Index Trust
+}
+
+
+def get_act_type(cik: str) -> str:
+    """Return '33' for Securities Act filers, '40' for Investment Company Act filers."""
+    return "33" if str(cik).strip() in ACT_33_CIKS else "40"
+
+
 def get_all_ciks() -> list[str]:
     """Return list of all CIKs to track."""
     return list(TRUST_CIKS.keys())
