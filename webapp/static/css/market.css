@@ -435,7 +435,7 @@
   max-height: 600px;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: var(--sp-2);
 }
 
@@ -475,7 +475,7 @@
   margin-bottom: var(--sp-4);
   padding: var(--sp-3);
   background: #FFFFFF;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
 
