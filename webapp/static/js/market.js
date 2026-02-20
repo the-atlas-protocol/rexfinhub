@@ -190,10 +190,119 @@ var MarketCharts = (function() {
     });
   }
 
+  function renderTreemap(canvasId, products) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+
+    var groupColors = {};
+    var palette = ['#1E40AF','#DC2626','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#65A30D'];
+    var groups = [];
+    products.forEach(function(p) {
+      if (groups.indexOf(p.group) === -1) groups.push(p.group);
+    });
+    groups.forEach(function(g, i) { groupColors[g] = palette[i % palette.length]; });
+
+    return new Chart(ctx, {
+      type: 'treemap',
+      data: {
+        datasets: [{
+          label: 'AUM by Product',
+          tree: products,
+          key: 'value',
+          groups: ['group'],
+          backgroundColor: function(c) {
+            if (!c.raw || !c.raw.g) return '#6B7280';
+            var base = groupColors[c.raw.g] || '#6B7280';
+            return c.raw._data && c.raw._data.is_rex ? base : base + '99';
+          },
+          labels: {
+            display: true,
+            formatter: function(c) { return c.raw._data ? c.raw._data.label : ''; },
+            color: '#ffffff',
+            font: { size: 11 }
+          }
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: function(items) { return items[0].raw._data ? items[0].raw._data.label : ''; },
+              label: function(item) {
+                var d = item.raw._data;
+                if (!d) return '';
+                return [d.fund_name || '', 'AUM: ' + (d.aum_fmt || ''), 'Issuer: ' + (d.issuer || ''), d.is_rex ? 'REX Product' : ''];
+              }
+            }
+          },
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  function renderShareTimeline(canvasId, data) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx || !data || !data.series) return null;
+    var palette = ['#1E40AF','#DC2626','#059669','#D97706','#7C3AED','#DB2777','#0891B2'];
+    var datasets = data.series.map(function(s, i) {
+      return {
+        label: s.short_name || s.name,
+        data: s.values,
+        borderColor: palette[i % palette.length],
+        backgroundColor: 'transparent',
+        tension: 0.3,
+        pointRadius: 2,
+        borderWidth: 2
+      };
+    });
+    return new Chart(ctx, {
+      type: 'line',
+      data: { labels: data.labels, datasets: datasets },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          y: {
+            title: { display: true, text: 'Market Share (%)' },
+            ticks: { callback: function(v) { return v + '%'; } },
+            min: 0
+          }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + c.parsed.y + '%'; } } },
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  function renderSparkline(canvasId, values) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx || !values || values.length === 0) return null;
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: values.map(function() { return ''; }),
+        datasets: [{ data: values, borderColor: '#1E40AF', backgroundColor: 'rgba(30,64,175,0.1)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { x: { display: false }, y: { display: false } },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: { duration: 0 }
+      }
+    });
+  }
+
   return {
     renderPieChart: renderPieChart,
     renderLineChart: renderLineChart,
-    renderBarChart: renderBarChart
+    renderBarChart: renderBarChart,
+    renderTreemap: renderTreemap,
+    renderShareTimeline: renderShareTimeline,
+    renderSparkline: renderSparkline
   };
 })();
 
@@ -373,3 +482,32 @@ var MarketFilters = (function() {
     filterProductTable: filterProductTable
   };
 })();
+
+
+// ---------------------------------------------------------------------------
+// Table sorting utility
+// ---------------------------------------------------------------------------
+function sortTable(tableId, colIdx) {
+  var table = document.getElementById(tableId);
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  var rows = Array.from(tbody.querySelectorAll('tr'));
+  var asc = table.getAttribute('data-sort-col') == colIdx && table.getAttribute('data-sort-dir') !== 'asc';
+  table.setAttribute('data-sort-col', colIdx);
+  table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+
+  rows.sort(function(a, b) {
+    var aText = (a.cells[colIdx] ? a.cells[colIdx].textContent.trim() : '');
+    var bText = (b.cells[colIdx] ? b.cells[colIdx].textContent.trim() : '');
+    // Try numeric compare (strip $, %, +, commas)
+    var aNum = parseFloat(aText.replace(/[$%+,BMK]/g, ''));
+    var bNum = parseFloat(bText.replace(/[$%+,BMK]/g, ''));
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return asc ? aNum - bNum : bNum - aNum;
+    }
+    return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+  });
+
+  rows.forEach(function(row) { tbody.appendChild(row); });
+}
