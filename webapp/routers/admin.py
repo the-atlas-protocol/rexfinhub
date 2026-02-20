@@ -1,11 +1,10 @@
 """
 Admin router - Password-protected admin panel for trust management,
-digest testing, screener scoring, and system status.
+digest testing, and system status.
 """
 from __future__ import annotations
 
 import logging
-import os
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -17,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
-from webapp.models import Trust, FundStatus, AnalysisResult, ScreenerUpload
+from webapp.models import Trust, FundStatus, AnalysisResult
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="webapp/templates")
@@ -143,11 +142,6 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         .where(AnalysisResult.created_at >= today_start)
     ).scalar() or 0
 
-    # Screener status
-    screener_upload = db.execute(
-        select(ScreenerUpload).order_by(ScreenerUpload.uploaded_at.desc()).limit(1)
-    ).scalar_one_or_none()
-
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "pending_requests": pending_requests,
@@ -155,7 +149,6 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         "pending_subscribers": pending_subscribers,
         "ai_configured": ai_configured(),
         "ai_usage_today": ai_usage_today,
-        "screener_upload": screener_upload,
     })
 
 
@@ -284,78 +277,6 @@ def reject_subscriber(request: Request, email: str = Form("")):
         _update_subscriber_status(email, "REJECTED")
 
     return RedirectResponse("/admin/?rejected_sub=1", status_code=303)
-
-
-@router.post("/screener/email")
-def screener_email_report(
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    """Generate PDF and email the screener report."""
-    if not _is_admin(request):
-        return RedirectResponse("/admin/", status_code=302)
-
-    try:
-        from webapp.services.graph_email import is_configured
-        if not is_configured():
-            return RedirectResponse("/admin/?screener=error&msg=Azure+Graph+API+not+configured", status_code=303)
-
-        # Get latest results
-        latest_upload = db.execute(
-            select(ScreenerUpload)
-            .where(ScreenerUpload.status == "completed")
-            .order_by(ScreenerUpload.uploaded_at.desc())
-            .limit(1)
-        ).scalar_one_or_none()
-
-        if not latest_upload:
-            return RedirectResponse("/admin/?screener=error&msg=No+screener+results", status_code=303)
-
-        from webapp.models import ScreenerResult
-        results = db.execute(
-            select(ScreenerResult)
-            .where(ScreenerResult.upload_id == latest_upload.id)
-            .order_by(ScreenerResult.composite_score.desc())
-        ).scalars().all()
-
-        result_dicts = [{
-            "ticker": r.ticker, "sector": r.sector, "composite_score": r.composite_score,
-            "predicted_aum": r.predicted_aum, "mkt_cap": r.mkt_cap,
-            "call_oi_pctl": r.call_oi_pctl, "passes_filters": r.passes_filters,
-            "filing_status": r.filing_status, "competitive_density": r.competitive_density,
-            "competitor_count": r.competitor_count, "total_competitor_aum": r.total_competitor_aum,
-        } for r in results]
-
-        # Generate PDF
-        from screener.report_generator import generate_executive_report
-        pdf_bytes = generate_executive_report(
-            results=result_dicts,
-            model_info={"model_type": latest_upload.model_type, "r_squared": latest_upload.model_r_squared},
-            data_date=latest_upload.uploaded_at.strftime("%B %d, %Y"),
-        )
-
-        # Send email
-        from screener.email_report import send_screener_report
-        # Use same recipient list as digest
-        recipients_file = PROJECT_ROOT / "config" / "email_recipients.txt"
-        recipients = []
-        if recipients_file.exists():
-            for line in recipients_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if line and not line.startswith("#") and "@" in line:
-                    recipients.append(line)
-
-        if not recipients:
-            recipients = ["relasmar@rexfin.com"]
-
-        sent = send_screener_report(pdf_bytes, recipients)
-        if sent:
-            return RedirectResponse("/admin/?screener=emailed", status_code=303)
-        return RedirectResponse("/admin/?screener=error&msg=Email+send+failed", status_code=303)
-
-    except Exception as e:
-        from urllib.parse import quote
-        return RedirectResponse(f"/admin/?screener=error&msg={quote(str(e)[:100])}", status_code=303)
 
 
 # --- Ticker Quality Check ---
