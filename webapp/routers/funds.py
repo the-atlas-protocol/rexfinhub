@@ -3,6 +3,8 @@ Funds router - Fund list and detail pages.
 """
 from __future__ import annotations
 
+import math
+
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, or_
@@ -22,9 +24,17 @@ def fund_list(
     q: str = "",
     status: str = "",
     trust_id: int = 0,
+    page: int = 1,
+    per_page: int = 100,
     db: Session = Depends(get_db),
 ):
     """Paginated fund list with search and filters."""
+    # Clamp per_page to allowed values
+    if per_page not in (25, 50, 100, 250):
+        per_page = 100
+    if page < 1:
+        page = 1
+
     query = select(FundStatus, Trust.name.label("trust_name"), Trust.slug.label("trust_slug")).join(
         Trust, Trust.id == FundStatus.trust_id
     )
@@ -46,13 +56,29 @@ def fund_list(
     if trust_id:
         query = query.where(FundStatus.trust_id == trust_id)
 
+    # Count total matching results before pagination
+    count_query = select(func.count()).select_from(query.subquery())
+    total_results = db.execute(count_query).scalar() or 0
+    total_pages = max(1, math.ceil(total_results / per_page))
+
+    if page > total_pages:
+        page = total_pages
+
     query = query.order_by(FundStatus.fund_name)
+    query = query.offset((page - 1) * per_page).limit(per_page)
     results = db.execute(query).all()
 
     total_all = db.execute(select(func.count()).select_from(FundStatus)).scalar() or 0
 
     trusts = db.execute(
         select(Trust).where(Trust.is_active == True).order_by(Trust.name)
+    ).scalars().all()
+
+    # Diagnostic: trusts with zero FundStatus records
+    trusts_with_no_funds = db.execute(
+        select(Trust.name).where(Trust.is_active == True)
+        .where(~Trust.id.in_(select(FundStatus.trust_id).distinct()))
+        .order_by(Trust.name)
     ).scalars().all()
 
     return templates.TemplateResponse("fund_list.html", {
@@ -62,8 +88,13 @@ def fund_list(
         "q": q,
         "status": status,
         "trust_id": trust_id,
-        "total": len(results),
+        "total": total_results,
         "total_all": total_all,
+        "page": page,
+        "per_page": per_page,
+        "total_results": total_results,
+        "total_pages": total_pages,
+        "trusts_with_no_funds": trusts_with_no_funds,
     })
 
 

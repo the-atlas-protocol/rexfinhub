@@ -1,11 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Funds - ETP Filing Tracker{% endblock %}
+{% block title %}Fund Search — REX Financial Intelligence Hub{% endblock %}
 
 {% block content %}
 <div class="header">
   <h1>Fund Search</h1>
-  <div class="date">{{ total_all }} funds tracked{% if q or status or trust_id %} &middot; {{ total }} matching{% endif %}</div>
+  <div class="date">{{ total_all }} funds tracked{% if q or status or trust_id %} &middot; {{ total_results }} matching{% endif %}</div>
 </div>
+
+{% if trusts_with_no_funds %}
+<div id="noFundsBanner" style="background:#e8f4fd; border:1px solid #b3d9f2; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; position:relative;">
+  <button onclick="document.getElementById('noFundsBanner').style.display='none'" style="position:absolute; top:8px; right:12px; background:none; border:none; font-size:16px; cursor:pointer; color:var(--gray);">&times;</button>
+  <strong>Note:</strong> {{ trusts_with_no_funds|length }} trusts have no fund records (likely S-1/N-2 filers that don't submit 485 forms): {{ trusts_with_no_funds|join(', ') }}
+</div>
+{% endif %}
 
 <!-- Filters -->
 <form method="get" action="/funds/" style="margin-bottom:20px;">
@@ -23,19 +30,25 @@
       <option value="{{ t.id }}" {% if trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
       {% endfor %}
     </select>
+    <select name="per_page" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;" onchange="this.form.submit()">
+      <option value="25" {% if per_page == 25 %}selected{% endif %}>25 per page</option>
+      <option value="50" {% if per_page == 50 %}selected{% endif %}>50 per page</option>
+      <option value="100" {% if per_page == 100 %}selected{% endif %}>100 per page</option>
+      <option value="250" {% if per_page == 250 %}selected{% endif %}>250 per page</option>
+    </select>
     <button type="submit" class="btn btn-primary btn-sm">Search</button>
   </div>
 </form>
 
-<table>
+<table id="fundTable">
   <thead>
     <tr>
-      <th>Fund Name</th>
-      <th style="width:80px;">Ticker</th>
-      <th style="width:200px;">Trust</th>
-      <th>Status</th>
-      <th>Latest Form</th>
-      <th>Filing Date</th>
+      <th class="sortable" onclick="sortTable('fundTable', 0)">Fund Name</th>
+      <th class="sortable" onclick="sortTable('fundTable', 1)" style="width:80px;">Ticker</th>
+      <th class="sortable" onclick="sortTable('fundTable', 2)" style="width:200px;">Trust</th>
+      <th class="sortable" onclick="sortTable('fundTable', 3)">Status</th>
+      <th class="sortable" onclick="sortTable('fundTable', 4)">Latest Form</th>
+      <th class="sortable" onclick="sortTable('fundTable', 5)">Filing Date</th>
     </tr>
   </thead>
   <tbody>
@@ -63,4 +76,60 @@
     {% endif %}
   </tbody>
 </table>
+
+{% if total_pages > 1 %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 0;">
+  <div style="font-size:13px; color:var(--gray);">
+    Showing {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total_results]|min }} of {{ total_results }} funds
+  </div>
+  <div style="display:flex; align-items:center; gap:4px;">
+    {% set base_params = "q=" ~ q ~ "&status=" ~ status ~ "&trust_id=" ~ trust_id ~ "&per_page=" ~ per_page %}
+    {% if page > 1 %}
+    <a href="/funds/?{{ base_params }}&page={{ page - 1 }}" class="btn btn-sm">Prev</a>
+    {% else %}
+    <span class="btn btn-sm" style="opacity:0.4; cursor:default;">Prev</span>
+    {% endif %}
+
+    {% if total_pages <= 7 %}
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <span style="padding:4px 10px; background:var(--navy); color:white; border-radius:4px; font-size:12px; font-weight:600;">{{ p }}</span>
+        {% else %}
+        <a href="/funds/?{{ base_params }}&page={{ p }}" class="btn btn-sm">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {# Show first, surrounding pages, and last with ellipsis #}
+      {% set pages_to_show = [] %}
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+          {% if pages_to_show.append(p) %}{% endif %}
+        {% endif %}
+      {% endfor %}
+      {% set prev_p = [0] %}
+      {% for p in pages_to_show %}
+        {% if p - prev_p[-1] > 1 %}
+        <span style="padding:4px 4px; font-size:12px; color:var(--gray);">...</span>
+        {% endif %}
+        {% if p == page %}
+        <span style="padding:4px 10px; background:var(--navy); color:white; border-radius:4px; font-size:12px; font-weight:600;">{{ p }}</span>
+        {% else %}
+        <a href="/funds/?{{ base_params }}&page={{ p }}" class="btn btn-sm">{{ p }}</a>
+        {% endif %}
+        {% if prev_p.append(p) %}{% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if page < total_pages %}
+    <a href="/funds/?{{ base_params }}&page={{ page + 1 }}" class="btn btn-sm">Next</a>
+    {% else %}
+    <span class="btn btn-sm" style="opacity:0.4; cursor:default;">Next</span>
+    {% endif %}
+  </div>
+</div>
+{% elif total_results > 0 %}
+<div style="font-size:13px; color:var(--gray); margin-top:12px;">
+  Showing {{ total_results }} fund{{ 's' if total_results != 1 else '' }}
+</div>
+{% endif %}
 {% endblock %}
