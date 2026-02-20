@@ -43,12 +43,35 @@
   {% endfor %}
 </div>
 
-<div class="suite-cards">
-  {% for suite in summary.suites %}
-  {% with suite=suite %}
-  {% include "market/_suite_card.html" %}
-  {% endwith %}
-  {% endfor %}
+<div class="table-responsive">
+<table class="data-table suite-table" id="suiteTable">
+  <thead>
+    <tr>
+      <th>Suite</th>
+      <th class="sortable" onclick="sortTable('suiteTable', 1)">AUM</th>
+      <th class="sortable" onclick="sortTable('suiteTable', 2)">1W Flow</th>
+      <th class="sortable" onclick="sortTable('suiteTable', 3)">1M Flow</th>
+      <th class="sortable" onclick="sortTable('suiteTable', 4)">Mkt Share</th>
+      <th class="sortable" onclick="sortTable('suiteTable', 5)"># Funds</th>
+      <th>4-mo Trend</th>
+      <th>Top Movers</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for suite in summary.suites %}
+    <tr data-suite="{{ suite.name }}">
+      <td><a href="/market/category?cat={{ suite.name|urlencode }}" class="text-link">{{ suite.short_name }}</a></td>
+      <td class="num-cell" data-sort="{{ suite.kpis.total_aum|default(0) }}">{{ suite.kpis.aum_fmt }}</td>
+      <td class="num-cell {{ 'positive' if suite.kpis.flow_1w > 0 else 'negative' if suite.kpis.flow_1w < 0 else '' }}" data-sort="{{ suite.kpis.flow_1w|default(0) }}">{{ suite.kpis.flow_1w_fmt }}</td>
+      <td class="num-cell {{ 'positive' if suite.kpis.flow_1m > 0 else 'negative' if suite.kpis.flow_1m < 0 else '' }}" data-sort="{{ suite.kpis.flow_1m|default(0) }}">{{ suite.kpis.flow_1m_fmt }}</td>
+      <td class="num-cell" data-sort="{{ suite.market_share|default(0) }}">{{ suite.market_share }}%</td>
+      <td class="num-cell" data-sort="{{ suite.kpis.num_products|default(0) }}">{{ suite.kpis.num_products }}</td>
+      <td style="min-width:90px;"><canvas id="sparkline-{{ suite.short_name|replace(' ', '-') }}" width="88" height="30" class="sparkline-canvas"></canvas></td>
+      <td class="movers-cell">{% for m in suite.top_movers[:3] %}<span class="{{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{{ m.ticker }} {{ m.flow }}</span>{% if not loop.last %} &middot; {% endif %}{% endfor %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 </div>
 
 {% else %}
@@ -74,18 +97,20 @@ document.addEventListener('DOMContentLoaded', function() {
   {% endif %}
 
   // Sparklines
+  {% if summary %}
   {% for suite in summary.suites %}
   {% if suite.sparkline_data %}
   MarketCharts.renderSparkline('sparkline-{{ suite.short_name|replace(" ", "-") }}', {{ suite.sparkline_data|tojson }});
   {% endif %}
   {% endfor %}
+  {% endif %}
 });
 
 function toggleSuite(checkbox) {
   var suiteName = checkbox.getAttribute('data-suite');
-  var cards = document.querySelectorAll('.suite-card[data-suite="' + suiteName + '"]');
-  cards.forEach(function(card) {
-    card.style.display = checkbox.checked ? '' : 'none';
+  var rows = document.querySelectorAll('tr[data-suite="' + suiteName + '"]');
+  rows.forEach(function(row) {
+    row.style.display = checkbox.checked ? '' : 'none';
   });
 }
 </script>
