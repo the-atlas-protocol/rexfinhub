@@ -4,43 +4,102 @@
 <div class="home-hero">
   <h1 class="home-title">REX Financial Intelligence Hub</h1>
   <p class="home-tagline">
-    A unified intelligence platform for tracking, analyzing, and monitoring the
-    leveraged and structured ETP market. Built for REX Financial product teams to
-    monitor SEC filing activity across 122 trusts, benchmark market positioning
-    against competitors, evaluate launch candidates, and track inflow/outflow trends
-    in real time.
+    The central intelligence platform for all REX teams. Real-time access to market positioning,
+    SEC filing activity, product analytics, and operational data across the structured and
+    leveraged ETP universe.
   </p>
 </div>
 
-<div class="home-grid">
-  <a href="/dashboard" class="home-card">
-    <div class="home-card-icon">FILINGS</div>
-    <div class="home-card-title">Filing Tracker</div>
-    <div class="home-card-desc">Monitor SEC filings across 122 trusts. Track 485BPOS, 485BXT, and 497 forms in real time.</div>
-  </a>
-  <a href="/market/rex" class="home-card">
-    <div class="home-card-icon">MARKET</div>
-    <div class="home-card-title">Market Intelligence</div>
-    <div class="home-card-desc">Competitive AUM analysis, market share tracking, and category-level benchmarking.</div>
-  </a>
-  <a href="/screener/" class="home-card">
-    <div class="home-card-icon">SCREEN</div>
-    <div class="home-card-title">Launch Screener</div>
-    <div class="home-card-desc">Evaluate ETP launch candidates across 4 scoring pillars: AUM, flows, options, spread.</div>
-  </a>
-  <a href="/funds/" class="home-card">
-    <div class="home-card-icon">FUNDS</div>
-    <div class="home-card-title">Fund Search</div>
-    <div class="home-card-desc">Search 7,000+ ETF funds by ticker, name, or trust. Filter by status and form type.</div>
-  </a>
-  <a href="/downloads/" class="home-card">
-    <div class="home-card-icon">EXPORT</div>
-    <div class="home-card-title">Downloads</div>
-    <div class="home-card-desc">Export fund status, filing history, and pipeline CSVs for any trust.</div>
-  </a>
+<div class="home-section">
+  <div class="home-section-title">Market Intelligence</div>
+  <div class="home-grid">
+    <a href="/market/rex" class="home-card home-card--market">
+      <div class="home-card-tag">Market</div>
+      <div class="home-card-title">REX View</div>
+      <div class="home-card-desc">REX branded suite performance, AUM by suite, and competitive positioning.</div>
+    </a>
+    <a href="/market/category" class="home-card home-card--market">
+      <div class="home-card-tag">Market</div>
+      <div class="home-card-title">Category View</div>
+      <div class="home-card-desc">Deep-dive into AUM and flow data across 8 ETP categories.</div>
+    </a>
+    <a href="/market/treemap" class="home-card home-card--market">
+      <div class="home-card-tag">Market</div>
+      <div class="home-card-title">Product Treemap</div>
+      <div class="home-card-desc">Visual AUM distribution across the entire product universe.</div>
+    </a>
+    <a href="/market/issuer" class="home-card home-card--market">
+      <div class="home-card-tag">Market</div>
+      <div class="home-card-title">Issuer Analysis</div>
+      <div class="home-card-desc">Rank and compare all ETP issuers by AUM, flows, and market share.</div>
+    </a>
+    <a href="/market/share" class="home-card home-card--market">
+      <div class="home-card-tag">Market</div>
+      <div class="home-card-title">Market Share</div>
+      <div class="home-card-desc">Track category-level market share shifts over time.</div>
+    </a>
+    <a href="/market/underlier" class="home-card home-card--market">
+      <div class="home-card-tag">Market</div>
+      <div class="home-card-title">Underlier Deep-Dive</div>
+      <div class="home-card-desc">Analyze the full ETP landscape by underlying asset.</div>
+    </a>
+  </div>
+</div>
+
+<div class="home-section">
+  <div class="home-section-title">Filings &amp; Compliance</div>
+  <div class="home-grid">
+    <a href="/dashboard" class="home-card home-card--filing">
+      <div class="home-card-tag">Filing</div>
+      <div class="home-card-title">Filing Tracker</div>
+      <div class="home-card-desc">Monitor SEC filings across 122 trusts. Track 485BPOS, 485BXT, and 497 forms.</div>
+    </a>
+    <a href="/funds/" class="home-card home-card--filing">
+      <div class="home-card-tag">Filing</div>
+      <div class="home-card-title">Fund Search</div>
+      <div class="home-card-desc">Search 7,000+ ETF funds by ticker, name, or trust. Filter by status.</div>
+    </a>
+    <a href="/analysis" class="home-card home-card--filing">
+      <div class="home-card-tag">Filing</div>
+      <div class="home-card-title">Filing Analysis</div>
+      <div class="home-card-desc">Analyze filing trends, effective date patterns, and amendment history.</div>
+    </a>
+  </div>
+</div>
+
+<div class="home-section">
+  <div class="home-section-title">Product Development</div>
+  <div class="home-grid">
+    <a href="/screener/" class="home-card home-card--product">
+      <div class="home-card-tag">Product</div>
+      <div class="home-card-title">Launch Screener</div>
+      <div class="home-card-desc">Score ETP launch candidates across 4 pillars: AUM, flows, options, spread.</div>
+    </a>
+    <a href="/screener/evaluate" class="home-card home-card--product">
+      <div class="home-card-tag">Product</div>
+      <div class="home-card-title">Candidate Evaluator</div>
+      <div class="home-card-desc">Side-by-side scoring comparison for specific tickers.</div>
+    </a>
+  </div>
+</div>
+
+<div class="home-section">
+  <div class="home-section-title">Operations</div>
+  <div class="home-grid">
+    <a href="/downloads/" class="home-card home-card--ops">
+      <div class="home-card-tag">Ops</div>
+      <div class="home-card-title">Data Downloads</div>
+      <div class="home-card-desc">Export fund status, filing history, and pipeline CSVs for any trust.</div>
+    </a>
+    <a href="/digest" class="home-card home-card--ops">
+      <div class="home-card-tag">Ops</div>
+      <div class="home-card-title">Email Digest</div>
+      <div class="home-card-desc">Send filing digest emails to subscribed REX team members.</div>
+    </a>
+  </div>
 </div>
 
 <div class="home-contact">
-  <p>Questions or feedback about this platform? Contact <a href="mailto:relasmar@rexfin.com">relasmar@rexfin.com</a></p>
+  <p>Questions or feedback? Contact <a href="mailto:relasmar@rexfin.com">relasmar@rexfin.com</a></p>
 </div>
 {% endblock %}
