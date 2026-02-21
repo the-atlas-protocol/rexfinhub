@@ -148,6 +148,86 @@ TRUST_CIKS = {
     "2039458": "Canary HBAR ETF",
     "2039461": "Canary Litecoin ETF",
     "2041869": "Canary Marinade Solana ETF",
+    # Added 2026-02-20 - Trust Expansion: 72 new verified ETF trusts from Bloomberg issuer data
+    # All CIKs verified via https://data.sec.gov/submissions/CIK{padded}.json
+    # -- Defined Outcome --
+    "1595106": "Innovator ETFs Trust II",  # Additional Innovator buffer ETFs
+    "1992104": "PGIM Rock ETF Trust",  # PGIM buffer/defined outcome
+    # -- Commodity / Thematic --
+    "1728683": "Sprott Funds Trust",  # Precious metals & commodity ETFs
+    "1597389": "USCF ETF Trust",  # United States Commodity Funds
+    "1944285": "Tema ETF Trust",  # Thematic ETFs
+    "1796383": "Siren ETF Trust",  # Thematic/alternative ETFs
+    "1989916": "SP Funds Trust",  # Shariah-compliant ETFs
+    "1604813": "Abacus FCF ETF Trust",  # Free cash flow focused
+    "1040674": "Truth Social Funds",  # Thematic
+    "1779306": "AltShares Trust",  # Alternative strategy ETFs
+    "1573496": "Reality Shares ETF Trust",  # Thematic/dividend ETFs
+    # -- First Trust (additional trusts) --
+    "1552740": "First Trust Exchange-Traded Fund VI",
+    "1549548": "First Trust Exchange-Traded Fund V",
+    "1383496": "First Trust Exchange-Traded AlphaDEX Fund",
+    # -- Large Platform ETF Trusts --
+    "1168164": "SPDR Index Shares Funds",  # State Street SPDR ETFs
+    "1100663": "iShares Trust",  # BlackRock iShares core ETFs
+    "1524513": "iShares U.S. ETF Trust",  # iShares US-focused ETFs
+    "1209466": "Invesco Exchange-Traded Fund Trust",  # Invesco ETFs
+    "1748425": "Gabelli ETFs Trust",  # Gabelli active ETFs
+    "1415845": "Columbia ETF Trust",  # Columbia Threadneedle ETFs
+    "1551950": "Columbia ETF Trust I",
+    "1450501": "Columbia ETF Trust II",
+    "2034928": "Capital Group Equity ETF Trust I",  # Capital Group/American Funds ETFs
+    "1500604": "Janus Detroit Street Trust",  # Janus Henderson ETFs
+    "1845809": "Putnam ETF Trust",  # Putnam/Franklin ETFs
+    "1710607": "American Century ETF Trust",  # American Century ETFs
+    "1648403": "Virtus ETF Trust II",  # Virtus/Newfleet ETFs
+    "1831313": "TCW ETF Trust",  # TCW active bond ETFs
+    "1919700": "Touchstone ETF Trust",  # Touchstone active ETFs
+    "1849998": "Federated Hermes ETF Trust",  # Federated Hermes ETFs
+    "1807486": "Alger ETF Trust",  # Fred Alger ETFs
+    "1981627": "GMO ETF Trust",  # GMO quality/value ETFs
+    "2055464": "Wedbush Series Trust",  # Wedbush ETFs
+    "2035827": "Harris Oakmark ETF Trust",  # Oakmark active ETFs
+    "1318342": "Investment Managers Series Trust",  # Multi-manager ETF platform
+    # -- Fixed Income ETF Trusts --
+    "1879238": "BondBloxx ETF Trust",  # Sector-specific bond ETFs
+    "1860434": "Harbor ETF Trust",  # Harbor active ETFs
+    "1450011": "PIMCO ETF Trust",  # PIMCO bond ETFs
+    "1886172": "DoubleLine ETF Trust",  # DoubleLine bond ETFs
+    # -- Multi-Strategy Platforms --
+    "1728860": "Natixis ETF Trust II",  # Natixis/Loomis ETFs
+    "1526787": "Natixis ETF Trust",
+    "2038383": "Thornburg ETF Trust",  # Thornburg active ETFs
+    "1896670": "Thrivent ETF Trust",  # Thrivent ETFs
+    "1558107": "ALPS Series Trust",  # ALPS advisor ETFs
+    "1901443": "X-Square Series Trust",  # X-Square ETFs
+    "1605803": "Lattice Strategies Trust",  # Hartford/Lattice ETFs
+    "1415995": "New York Life Investments ETF Trust",  # IndexIQ ETFs
+    "1426439": "New York Life Investments Active ETF Trust",
+    "1478482": "John Hancock Exchange-Traded Fund Trust",  # Dimensional sub-advised
+    "1414040": "ALPS ETF Trust",  # ALPS-managed ETFs
+    "1572661": "Principal Exchange-Traded Funds",  # Principal ETFs
+    "1479599": "AGF Investments Trust",  # AGF ETFs
+    "1888997": "SEI Exchange Traded Funds",  # SEI ETFs
+    "2042513": "Russell Investments Exchange Traded Funds",  # Russell ETFs
+    "1645194": "Legg Mason ETF Investment Trust",  # Legg Mason/Franklin ETFs
+    "1792795": "Legg Mason ETF Investment Trust II",
+    "1551895": "Franklin ETF Trust",  # Franklin LibertyShares
+    "2018846": "MFS Active Exchange Traded Funds Trust",  # MFS active ETFs
+    "2051630": "Lazard Active ETF Trust",  # Lazard active ETFs
+    "2043390": "Tidal Trust IV",  # Tidal platform trusts
+    "1969674": "2023 ETF Series Trust",  # Multi-advisor ETF series
+    "1484018": "Spinnaker ETF Series",  # Spinnaker platform ETFs
+    "1532206": "Arrow ETF Trust",  # Arrow active ETFs
+    "1670310": "Davis Fundamental ETF Trust",  # Davis value ETFs
+    "2065379": "Man ETF Series Trust",  # Man Group ETFs
+    "1924447": "THOR Financial Technologies Trust",  # THOR ETFs
+    "2069687": "FIS Trust",  # FIS ETFs
+    "1559109": "ETFis Series Trust I",  # Virtus ETFis platform
+    "1875710": "Build Funds Trust",  # Build ETFs
+    "1969995": "Nomura ETF Trust",  # Nomura ETFs
+    "1727398": "Procure ETF Trust II",  # Procure thematic ETFs
+    "1704174": "Procure ETF Trust I",
 }
 
 # 33 Act (Securities Act of 1933) filers: S-1/10-K registration.
