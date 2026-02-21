@@ -9,8 +9,10 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+import shutil
+
+from fastapi import APIRouter, Depends, Form, Request, UploadFile, File
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -352,3 +354,33 @@ def ticker_qc(request: Request, db: Session = Depends(get_db)):
         "missing_ticker": missing_ticker,
         "missing_count": len(missing_ticker),
     })
+
+
+# --- Data File Upload ---
+
+@router.post("/upload/dashboard")
+async def upload_dashboard(request: Request, file: UploadFile = File(...)):
+    """Upload The Dashboard.xlsx to data/DASHBOARD/ on the persistent disk."""
+    if not _is_admin(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=403)
+
+    dest = PROJECT_ROOT / "data" / "DASHBOARD" / "The Dashboard.xlsx"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with dest.open("wb") as f:
+            shutil.copyfileobj(file.file, f)
+        size_mb = dest.stat().st_size / 1_048_576
+
+        # Invalidate market data cache so next request re-reads the new file
+        try:
+            from webapp.services.market_data import invalidate_cache
+            invalidate_cache()
+        except Exception as e:
+            log.warning("Could not invalidate market_data cache: %s", e)
+
+        log.info("Dashboard uploaded: %.1f MB -> %s", size_mb, dest)
+        return JSONResponse({"ok": True, "path": str(dest), "size_mb": round(size_mb, 2)})
+    except Exception as e:
+        log.error("Dashboard upload failed: %s", e)
+        return JSONResponse({"error": str(e)}, status_code=500)
