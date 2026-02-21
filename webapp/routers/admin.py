@@ -379,8 +379,44 @@ async def upload_dashboard(request: Request, file: UploadFile = File(...)):
         except Exception as e:
             log.warning("Could not invalidate market_data cache: %s", e)
 
+        # Trigger screener cache rebuild in background
+        try:
+            import threading
+            from webapp.services.screener_3x_cache import compute_and_cache
+            t = threading.Thread(target=compute_and_cache, name="screener-rebuild", daemon=True)
+            t.start()
+            log.info("Screener cache rebuild started in background")
+        except Exception as e:
+            log.warning("Could not start screener rebuild: %s", e)
+
         log.info("Dashboard uploaded: %.1f MB -> %s", size_mb, dest)
         return JSONResponse({"ok": True, "path": str(dest), "size_mb": round(size_mb, 2)})
     except Exception as e:
         log.error("Dashboard upload failed: %s", e)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/upload/screener-cache")
+async def upload_screener_cache(request: Request, file: UploadFile = File(...)):
+    """Upload a pre-computed screener cache.pkl directly into memory + disk."""
+    if not _is_admin(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=403)
+
+    dest = PROJECT_ROOT / "data" / "SCREENER" / "cache.pkl"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        data = await file.read()
+        dest.write_bytes(data)
+
+        # Load into memory immediately (don't wait for restart)
+        import pickle
+        from webapp.services.screener_3x_cache import set_3x_analysis
+        cache = pickle.loads(data)
+        set_3x_analysis(cache)
+
+        log.info("Screener cache uploaded: %d bytes, %d keys", len(data), len(cache))
+        return JSONResponse({"ok": True, "keys": list(cache.keys()), "size_bytes": len(data)})
+    except Exception as e:
+        log.error("Screener cache upload failed: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
