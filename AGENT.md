@@ -160,3 +160,4 @@ git commit -m "feat: Home nav screener v2 - tagline fix, nav simplified to 5 ite
 - Commit 79ec610: feat: home tagline + section names + nav simplified to 5 items
 - Commit 8b133b9: fix: screener sticky header z-index and .table-scroll-wrap CSS class
 - Commit 6ddf3bd: fix: replace inline overflow-x:auto with table-scroll-wrap in 6 screener templates
+- Commit 63e10da: chore: mark AGENT.md as DONE
