@@ -1,48 +1,60 @@
 {% set active_tab = 'calendar' %}
 {% extends "market/base.html" %}
 
-{% block title %}Compliance Calendar — REX Financial Intelligence Hub{% endblock %}
+{% block title %}Fund Activity — REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
-<h2 class="section-title">Compliance Calendar</h2>
+<h2 class="section-title">Fund Activity</h2>
+<p style="color:#64748B; font-size:0.85rem; margin-bottom:24px;">
+  Recent fund launches (485BPOS effective dates) and upcoming filing events.
+  Effective date = the date a fund is eligible to begin trading.
+</p>
 
-<div class="calendar-grid">
-  <div class="calendar-section">
-    <h3>Upcoming 485BXT Extensions</h3>
-    {% if upcoming %}
-    <table class="data-table">
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+  {# --- Recent Launches --- #}
+  <div class="chart-box">
+    <div class="chart-title" style="color:#059669;">Recent Launches (Last 90 Days)</div>
+    {% if recent_launches is defined and recent_launches %}
+    {# New backend structure: recent_launches with filing.effective_date and days_since #}
+    <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
           <th>Trust</th>
           <th>Effective Date</th>
-          <th>Days Until</th>
-          <th>Accession</th>
+          <th>Days Since</th>
+          <th>Filing</th>
         </tr>
       </thead>
       <tbody>
-        {% for item in upcoming %}
+        {% for item in recent_launches %}
         <tr>
-          <td>{{ item.trust.name }}</td>
-          <td>{{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else 'N/A' }}</td>
+          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ item.trust.name }}
+          </td>
+          <td class="text-mono" style="white-space:nowrap;">
+            {% if item.filing.effective_date is defined and item.filing.effective_date %}
+              {{ item.filing.effective_date.strftime('%b %d, %Y') }}
+            {% elif item.effective_date is defined and item.effective_date %}
+              {{ item.effective_date.strftime('%b %d, %Y') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td>
-            <span class="urgency-badge urgency-{{ item.urgency }}">
-              {% if item.days_until is not none %}{{ item.days_until }}d{% else %}&mdash;{% endif %}
+            <span class="badge badge-primary" style="font-size:0.7rem;">
+              {{ item.days_since }}d ago
             </span>
           </td>
-          <td class="text-mono" style="font-size:0.75rem">{{ item.filing.accession_number }}</td>
+          <td style="font-size:0.7rem; color:#94A3B8;">
+            <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    {% else %}
-    <div class="alert alert-info">No upcoming extension events.</div>
-    {% endif %}
-  </div>
-
-  <div class="calendar-section">
-    <h3>Recently Effective (Last 30 Days)</h3>
-    {% if recently_effective %}
-    <table class="data-table">
+    {% elif recently_effective is defined and recently_effective %}
+    {# Fallback: old backend structure with recently_effective #}
+    <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
           <th>Trust</th>
@@ -53,19 +65,71 @@
       <tbody>
         {% for item in recently_effective %}
         <tr>
-          <td>{{ item.trust.name }}</td>
-          <td>{{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else 'N/A' }}</td>
-          <td><span class="badge badge-primary">{{ item.filing.form }}</span></td>
+          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ item.trust.name }}
+          </td>
+          <td class="text-mono" style="white-space:nowrap;">
+            {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '—' }}
+          </td>
+          <td>
+            <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div class="alert alert-info">No recent effective filings.</div>
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No recent launches in the last 90 days.</div>
+    {% endif %}
+  </div>
+
+  {# --- Upcoming Events --- #}
+  <div class="chart-box">
+    <div class="chart-title">Upcoming Effective Events (Next 60 Days)</div>
+    {% if upcoming %}
+    <table class="data-table" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Trust</th>
+          <th>Form</th>
+          <th>Effective Date</th>
+          <th>Days Until</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in upcoming %}
+        <tr>
+          <td style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ item.trust.name }}
+          </td>
+          <td>
+            {% set form_val = item.filing.form_type if item.filing.form_type is defined else item.filing.form %}
+            <span class="badge badge-{{ 'primary' if form_val == '485BPOS' else 'warning' }}">{{ form_val }}</span>
+          </td>
+          <td class="text-mono" style="white-space:nowrap;">
+            {% if item.filing.effective_date is defined and item.filing.effective_date %}
+              {{ item.filing.effective_date.strftime('%b %d, %Y') }}
+            {% elif item.effective_date is defined and item.effective_date %}
+              {{ item.effective_date.strftime('%b %d, %Y') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <span class="urgency-badge urgency-{{ item.urgency }}">
+              {% if item.days_until is not none %}{{ item.days_until }}d{% else %}&mdash;{% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No upcoming events in the next 60 days.</div>
     {% endif %}
   </div>
 </div>
+
 {% endblock %}
 
-{% block market_scripts %}
-{% endblock %}
+{% block market_scripts %}{% endblock %}

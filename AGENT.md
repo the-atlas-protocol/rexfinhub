@@ -1,474 +1,410 @@
-# AGENT: Market-Frontend-Visual
-**Task**: TASK-C — Treemap + Issuer + Market Share Frontend
-**Branch**: feature/market-frontend-visual
+# AGENT: Market-Frontend-Events
+**Task**: TASK-D — Compare + Calendar + Timeline Frontend
+**Branch**: feature/market-frontend-events
 **Status**: DONE
+**Log**: Final commit bc8ab41 — all three templates redesigned with backward compat guards
 
 ## Progress Reporting
-Write timestamped progress to: `.agents/progress/Market-Frontend-Visual.md`
+Write timestamped progress to: `.agents/progress/Market-Frontend-Events.md`
 
 ## Your Files (ONLY modify these)
-- `webapp/templates/market/treemap.html`
-- `webapp/templates/market/issuer.html`
-- `webapp/templates/market/share_timeline.html`
-- `webapp/templates/market/issuer_detail.html` (NEW — create this)
-- `webapp/routers/market.py` (ONLY to add the issuer detail route — be surgical, don't break other routes)
+- `webapp/templates/market/compare.html`
+- `webapp/templates/market/calendar.html`
+- `webapp/templates/market/timeline.html`
 
 ## CRITICAL: Read First
-Read all files listed above completely (except issuer_detail.html which doesn't exist yet).
-Also read: `webapp/templates/market/base.html` and `webapp/static/css/market.css` to understand styles.
-Also read `webapp/routers/market.py` to understand how to add a new route cleanly.
+Read all three files completely before writing anything. Also read:
+- `webapp/templates/market/base.html`
+- `webapp/routers/market_advanced.py` (understand what data is passed to templates)
+- `webapp/models.py` (understand Filing model fields — may be `form_type` or `form`, `effective_date`, `filing_date`, `accession_number`)
 
-## Context
-- Treemap crashes on some categories because "All" allows duplicate tickers + backend A.3 fixes the route
-- Issuer errors on category switch fixed by backend A.4; your job is the template
-- Market Share page currently shows useless 7-series 24-month spaghetti chart; redesign to issuer-within-category
-- Issuer deep dive: new page/route shows one issuer's complete fund list + AUM trend
+## Context from Code Analysis
+- compare.html: tickers require " US" suffix to match data (e.g., "TQQQ US") — fix with JS strip on submit
+- calendar.html: currently titled "Compliance Calendar", focuses on 485BXT extensions
+- timeline.html: currently titled "Fund Lifecycle Timeline", shows all 485 filings for a trust
 
-## TASK C.1 — Treemap: Remove "All Categories" + Add Legend
+**The backend (Agent A) redesigns the routes. Your job: redesign the templates to match.**
+If Agent A hasn't merged yet, design templates to handle BOTH old and new context variables gracefully using `{% if variable is defined %}` guards.
 
-In `treemap.html`:
-1. Update the category dropdown — remove "All" option:
-```html
-<select class="select-sm" onchange="location.href='/market/treemap?cat='+this.value">
-  {% for c in all_categories %}
-  <option value="{{ c }}" {% if c == cat %}selected{% endif %}>
-    {{ c | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') }}
-  </option>
-  {% endfor %}
-</select>
-```
-(Remove any option with value="" or "All")
+## TASK D.1 — Fund Compare: Fixes + Charts
 
-2. Add empty state:
-```html
-{% if not products %}
-<div style="text-align:center; padding:60px; color:#94A3B8;">
-  <p style="font-size:1.1rem;">No products found for this category.</p>
-  <p style="font-size:0.85rem;">Try selecting a different category.</p>
-</div>
-{% else %}
-<!-- treemap canvas -->
-{% endif %}
-```
+Read `compare.html` in full. Identify:
+- Where the ticker input form is
+- What template variables hold fund data
+- How metrics are displayed (table structure)
 
-3. Add issuer color legend below treemap:
-```html
-{% if products %}
-<div class="treemap-legend" style="margin-top:16px; display:flex; flex-wrap:wrap; gap:8px;">
-  {% set seen_issuers = [] %}
-  {% for p in products %}
-    {% if p.issuer not in seen_issuers and seen_issuers|length < 8 %}
-      {% set _ = seen_issuers.append(p.issuer) %}
-    {% endif %}
-  {% endfor %}
-  <span style="font-size:0.72rem; color:#94A3B8; font-weight:600; text-transform:uppercase; margin-right:4px;">Issuers:</span>
-  {% for issuer in seen_issuers %}
-  <span class="treemap-legend-item" data-index="{{ loop.index0 }}">
-    <span class="treemap-legend-dot"></span>{{ issuer }}
-  </span>
-  {% endfor %}
-</div>
-<script>
-// Apply same colors as treemap chart
-var LEGEND_COLORS = ['#1E40AF','#059669','#7C3AED','#D97706','#0891B2','#E11D48','#65A30D','#9333EA'];
-document.querySelectorAll('.treemap-legend-item').forEach(function(el) {
-  var idx = parseInt(el.getAttribute('data-index'));
-  var dot = el.querySelector('.treemap-legend-dot');
-  if (dot) { dot.style.background = LEGEND_COLORS[idx % LEGEND_COLORS.length]; dot.style.display='inline-block'; dot.style.width='10px'; dot.style.height='10px'; dot.style.borderRadius='50%'; dot.style.marginRight='4px'; }
+**Fix 1 — Strip " US" on submit** (JavaScript):
+Add this `<script>` block to the template:
+```javascript
+// Strip " US" suffix from tickers before form submit
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.querySelector('form[action*="compare"], form');
+  var tickerInput = document.querySelector('input[name="tickers"], #tickerInput, input[type="text"]');
+  if (form && tickerInput) {
+    form.addEventListener('submit', function(e) {
+      var val = tickerInput.value;
+      var cleaned = val.split(',').map(function(t) {
+        return t.trim().replace(/\s+US$/i, '').toUpperCase();
+      }).filter(Boolean).join(', ');
+      tickerInput.value = cleaned;
+    });
+  }
 });
-</script>
-{% endif %}
 ```
 
-## TASK C.2 — Issuer: Deep Dive Button + Fix Category Display
-
-In `issuer.html`:
-1. Add "Deep Dive" button/link to each issuer row in the table:
+**Fix 2 — Add totalrealreturns.com link** (if `totalrealreturns_url` is in context):
 ```html
-<td>
-  <a href="/market/issuer/detail?issuer={{ issuer.issuer_name|urlencode }}"
-     class="btn btn-sm" style="font-size:0.72rem; padding:3px 8px;">
-    Deep Dive →
+{% if totalrealreturns_url %}
+<div style="margin-bottom:20px;">
+  <a href="{{ totalrealreturns_url }}" target="_blank" rel="noopener"
+     class="btn" style="background:#059669; color:white; display:inline-flex; align-items:center; gap:6px;">
+    View Total Return Comparison ↗
   </a>
-</td>
-```
-Add `<th>Detail</th>` to the table header.
-
-2. Add empty state for when issuers list is empty (backend error guard):
-```html
-{% if not issuers %}
-<div style="padding:40px; text-align:center; color:#94A3B8;">
-  No issuer data available for this category.
+  <span style="font-size:0.75rem; color:#94A3B8; margin-left:8px;">
+    Opens totalrealreturns.com with selected tickers
+  </span>
 </div>
 {% endif %}
 ```
 
-## TASK C.2b — New Issuer Detail Page
-
-Add route to `market.py` (be surgical — add only this one route, don't touch other routes):
-```python
-@router.get("/issuer/detail")
-def issuer_detail_view(request: Request, issuer: str = Query(default="")):
-    from webapp.services.market_data import get_master_data, data_available
-    available = data_available()
-    issuer_data = {}
-    products = []
-    categories = []
-    aum_trend = {}
-
-    if available and issuer:
-        try:
-            master = get_master_data()
-            if not master.empty:
-                ticker_col = next((c for c in master.columns if c.lower().strip() == "ticker"), "ticker")
-                issuer_col = next((c for c in master.columns if c.lower().strip() == "issuer_display"), None)
-                aum_col = next((c for c in master.columns if "t_w4.aum" == c.lower().strip()), None) or \
-                           next((c for c in master.columns if c.endswith(".aum") and not any(c.endswith(f".aum_{i}") for i in range(1,37))), None)
-                cat_col = next((c for c in master.columns if c.lower().strip() == "category_display"), None)
-                name_col = next((c for c in master.columns if c.lower().strip() == "fund_name"), None)
-
-                if issuer_col:
-                    df = master[master[issuer_col].fillna("").str.strip() == issuer.strip()].copy()
-                    if not df.empty:
-                        total_aum = float(df[aum_col].fillna(0).sum()) if aum_col else 0
-
-                        # Category breakdown
-                        if cat_col and aum_col:
-                            cat_grp = df.groupby(cat_col)[aum_col].sum().reset_index()
-                            categories = [{"name": r[cat_col], "aum_fmt": _fmt_aum(float(r[aum_col]))}
-                                         for _, r in cat_grp.sort_values(aum_col, ascending=False).iterrows()]
-
-                        # Product list
-                        products_df = df.sort_values(aum_col, ascending=False) if aum_col else df
-                        for _, row in products_df.iterrows():
-                            aum_val = float(row.get(aum_col, 0) or 0) if aum_col else 0
-                            products.append({
-                                "ticker": str(row.get("ticker_clean", row.get(ticker_col, ""))),
-                                "fund_name": str(row.get(name_col, "")) if name_col else "",
-                                "category": str(row.get(cat_col, "")) if cat_col else "",
-                                "aum_fmt": _fmt_aum(aum_val),
-                                "is_rex": bool(row.get("is_rex", False)),
-                            })
-
-                        is_rex = any(df.get("is_rex", pd.Series(dtype=bool)))
-
-                        issuer_data = {
-                            "name": issuer,
-                            "total_aum": total_aum,
-                            "total_aum_fmt": _fmt_aum(total_aum),
-                            "num_products": len(df),
-                            "num_categories": len(categories),
-                            "is_rex": is_rex,
-                        }
-
-                        # 12-month AUM trend
-                        months_labels = []
-                        months_values = []
-                        from datetime import datetime
-                        now = datetime.now()
-                        for i in range(12, -1, -1):
-                            col_name = f"t_w4.aum_{i}" if i > 0 else aum_col
-                            if col_name and col_name in df.columns:
-                                val = float(df[col_name].fillna(0).sum())
-                                from dateutil.relativedelta import relativedelta
-                                dt = now - relativedelta(months=i)
-                                months_labels.append(dt.strftime("%b %Y"))
-                                months_values.append(round(val, 2))
-                        aum_trend = {"labels": months_labels, "values": months_values}
-        except Exception as e:
-            log.error("Issuer detail error: %s", e)
-
-    return templates.TemplateResponse("market/issuer_detail.html", {
-        "request": request,
-        "active_tab": "issuer",
-        "available": available,
-        "issuer": issuer,
-        "issuer_data": issuer_data,
-        "products": products,
-        "categories": categories,
-        "aum_trend": aum_trend,
-        "data_as_of": "",
-    })
+**Fix 3 — Add AUM Over Time Chart** (if `fund_data` contains `aum_history`):
+```html
+{% if fund_data and fund_data[0].aum_history is defined %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div class="chart-title">AUM Over Time — Last 12 Months ($M)</div>
+  <canvas id="aumTrendChart" height="160"></canvas>
+</div>
+{% endif %}
 ```
 
-Note: You'll need to import `_fmt_aum` from market_data or define a local helper. Check what's available in `market.py` imports. Also add `from webapp.services.market_data import svc` if needed.
+With JS:
+```javascript
+{% if fund_data and fund_data[0].aum_history is defined %}
+var aumTrendData = {
+  labels: (function() {
+    var labels = [];
+    var now = new Date();
+    for (var i = 12; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(d.toLocaleDateString('en-US', {month:'short', year:'2-digit'}));
+    }
+    return labels;
+  })(),
+  datasets: [
+    {% for fd in fund_data %}
+    {
+      label: '{{ fd.ticker }}',
+      data: {{ fd.aum_history | tojson }},
+      fill: false,
+      borderWidth: 2,
+    },
+    {% endfor %}
+  ]
+};
+MarketCharts.renderLineChart('aumTrendChart', aumTrendData);
+{% endif %}
+```
 
-Create `webapp/templates/market/issuer_detail.html`:
+**Fix 4 — Flow Bar Chart with Period Toggle**:
 ```html
-{% set active_tab = 'issuer' %}
+{% if fund_data and fund_data[0].flows is defined %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+    <div class="chart-title" style="margin-bottom:0;">Fund Flows ($M)</div>
+    <div style="display:flex; gap:4px;">
+      {% for period in ['1w','1m','3m','6m','ytd'] %}
+      <button class="pill flow-period-btn {% if loop.first %}active{% endif %}"
+              data-period="{{ period }}" onclick="showFlowPeriod('{{ period }}')">
+        {{ period.upper() }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  <canvas id="flowBarChart" height="140"></canvas>
+</div>
+{% endif %}
+```
+
+With JS:
+```javascript
+{% if fund_data and fund_data[0].flows is defined %}
+var flowDataByPeriod = {
+  {% for period in ['1w','1m','3m','6m','ytd'] %}
+  '{{ period }}': {
+    labels: [{% for fd in fund_data %}'{{ fd.ticker }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    values: [{% for fd in fund_data %}{{ fd.flows.get(period, 0) if fd.flows else 0 }}{% if not loop.last %},{% endif %}{% endfor %}]
+  },
+  {% endfor %}
+};
+var _flowChart = null;
+function showFlowPeriod(period) {
+  document.querySelectorAll('.flow-period-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-period') === period);
+  });
+  var data = flowDataByPeriod[period];
+  if (!data) return;
+  var colors = data.values.map(function(v) { return v >= 0 ? '#059669' : '#DC2626'; });
+  if (_flowChart) { _flowChart.destroy(); }
+  _flowChart = new Chart(document.getElementById('flowBarChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{ label: 'Flow $M', data: data.values, backgroundColor: colors }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) {
+        var v = ctx.parsed.x;
+        return (v >= 0 ? '+' : '') + '$' + Math.abs(v).toFixed(1) + 'M';
+      }}}},
+      scales: { x: { grid: { display: false }}}
+    }
+  });
+}
+showFlowPeriod('1w');
+{% endif %}
+```
+
+**Fix 5 — Expand comparison table metrics**:
+Add to the comparison table (read current template carefully, add missing rows):
+- Inception Date (if `inception_date` available)
+- Fund Type (ETF/ETN)
+- 3M Flow, 6M Flow
+- 1M Return
+
+Replace the verbose NaN check (`{% if ret is not none and ret == ret %}`) with:
+`{% if ret is not none and ret is not sameas none and ret == ret %}` — or simply check `{% if ret %}` for display purposes.
+
+## TASK D.2 — Calendar: "Fund Activity"
+
+Completely redesign `calendar.html`. The backend (Agent A, Task A.9) now provides:
+- `recent_launches`: list of `{"filing": Filing, "trust": Trust, "days_since": int}`
+- `upcoming`: list of `{"filing": Filing, "trust": Trust, "days_until": int, "urgency": "green"|"amber"|"red"}`
+
+```html
+{% set active_tab = 'calendar' %}
 {% extends "market/base.html" %}
 
-{% block title %}{{ issuer }} — Issuer Detail — REX Financial Intelligence Hub{% endblock %}
+{% block title %}Fund Activity — REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
-{% if not available %}
-<div class="alert alert-info">Market data not available. Upload The Dashboard.xlsx via Admin panel.</div>
-{% elif not issuer_data %}
-<div class="alert alert-warning">Issuer "{{ issuer }}" not found in current data.</div>
-{% else %}
+<h2 class="section-title">Fund Activity</h2>
+<p style="color:#64748B; font-size:0.85rem; margin-bottom:24px;">
+  Recent fund launches (485BPOS effective dates) and upcoming filing events.
+  Effective date = the date a fund is eligible to begin trading.
+</p>
 
-<!-- Header -->
-<div style="display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
-  <div>
-    <h2 class="section-title" style="margin-bottom:4px;">{{ issuer_data.name }}</h2>
-    {% if issuer_data.is_rex %}<span style="color:#1E40AF; font-size:0.75rem; font-weight:700; background:#EFF6FF; padding:2px 10px; border-radius:20px;">REX ISSUER</span>{% endif %}
-  </div>
-  <div style="margin-left:auto; display:flex; gap:20px; flex-wrap:wrap;">
-    <div style="text-align:center;">
-      <div style="font-size:1.4rem; font-weight:800; color:#0F172A;">{{ issuer_data.total_aum_fmt }}</div>
-      <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase;">Total AUM</div>
-    </div>
-    <div style="text-align:center;">
-      <div style="font-size:1.4rem; font-weight:800; color:#0F172A;">{{ issuer_data.num_products }}</div>
-      <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase;">Products</div>
-    </div>
-    <div style="text-align:center;">
-      <div style="font-size:1.4rem; font-weight:800; color:#0F172A;">{{ issuer_data.num_categories }}</div>
-      <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase;">Categories</div>
-    </div>
-  </div>
-</div>
-
-<div class="charts-row" style="margin-bottom:24px;">
-  <!-- AUM Trend -->
-  {% if aum_trend.labels %}
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+  <!-- Recent Launches -->
   <div class="chart-box">
-    <div class="chart-title">AUM Trend — Last 12 Months</div>
-    <canvas id="issuerTrendChart" height="180"></canvas>
-  </div>
-  {% endif %}
-
-  <!-- Categories breakdown -->
-  {% if categories %}
-  <div class="chart-box">
-    <div class="chart-title">AUM by Category</div>
+    <div class="chart-title" style="color:#059669;">Recent Launches (Last 90 Days)</div>
+    {% if recent_launches %}
     <table class="data-table" style="font-size:0.82rem;">
-      <thead><tr><th>Category</th><th>AUM</th></tr></thead>
-      <tbody>
-        {% for c in categories %}
-        <tr>
-          <td>{{ c.name | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') }}</td>
-          <td class="text-mono">{{ c.aum_fmt }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
-</div>
-
-<!-- Product List -->
-<div class="chart-box">
-  <div class="chart-title">All Products ({{ products|length }} funds)</div>
-  {% if products %}
-  <div class="table-scroll-wrap">
-    <table class="data-table" id="issuerProductsTable">
       <thead>
         <tr>
-          <th onclick="sortTable('issuerProductsTable',0)">Ticker</th>
-          <th onclick="sortTable('issuerProductsTable',1)">Fund Name</th>
-          <th onclick="sortTable('issuerProductsTable',2)">Category</th>
-          <th onclick="sortTable('issuerProductsTable',3)">AUM</th>
-          <th>REX</th>
+          <th>Trust</th>
+          <th>Effective Date</th>
+          <th>Days Since</th>
+          <th>Filing</th>
         </tr>
       </thead>
       <tbody>
-        {% for p in products %}
-        <tr class="{{ 'rex-highlight' if p.is_rex else '' }}">
-          <td class="text-mono">{{ p.ticker }}</td>
-          <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ p.fund_name }}</td>
-          <td style="font-size:0.78rem;">{{ p.category | replace('Leverage & Inverse - ','L&I ') | replace('Income - ','Inc ') }}</td>
-          <td class="text-mono">{{ p.aum_fmt }}</td>
-          <td>{% if p.is_rex %}<span style="color:#1E40AF;font-weight:700;font-size:0.75rem;">REX</span>{% endif %}</td>
+        {% for item in recent_launches %}
+        <tr>
+          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ item.trust.name }}
+          </td>
+          <td class="text-mono" style="white-space:nowrap;">
+            {{ item.filing.effective_date.strftime('%b %d, %Y') if item.filing.effective_date else '—' }}
+          </td>
+          <td>
+            <span class="badge badge-primary" style="font-size:0.7rem;">
+              {{ item.days_since }}d ago
+            </span>
+          </td>
+          <td style="font-size:0.7rem; color:#94A3B8;">
+            <span class="badge badge-primary">{{ item.filing.form_type }}</span>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% else %}
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No recent launches in the last 90 days.</div>
+    {% endif %}
   </div>
-  {% else %}
-  <div style="padding:20px; text-align:center; color:#94A3B8;">No products found.</div>
-  {% endif %}
+
+  <!-- Upcoming Events -->
+  <div class="chart-box">
+    <div class="chart-title">Upcoming Effective Events (Next 60 Days)</div>
+    {% if upcoming %}
+    <table class="data-table" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Trust</th>
+          <th>Form</th>
+          <th>Effective Date</th>
+          <th>Days Until</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in upcoming %}
+        <tr>
+          <td style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ item.trust.name }}
+          </td>
+          <td><span class="badge badge-{{ 'primary' if item.filing.form_type == '485BPOS' else 'warning' }}">{{ item.filing.form_type }}</span></td>
+          <td class="text-mono" style="white-space:nowrap;">
+            {{ item.filing.effective_date.strftime('%b %d, %Y') if item.filing.effective_date else '—' }}
+          </td>
+          <td>
+            <span class="urgency-badge urgency-{{ item.urgency }}">
+              {{ item.days_until }}d
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No upcoming events in the next 60 days.</div>
+    {% endif %}
+  </div>
 </div>
 
-{% endif %}
 {% endblock %}
-
-{% block market_scripts %}
-{% if aum_trend.labels %}
-<script>
-var trendData = {
-  labels: {{ aum_trend.labels | tojson }},
-  values: {{ aum_trend.values | tojson }}
-};
-if (trendData.labels.length > 0) {
-  MarketCharts.renderLineChart('issuerTrendChart', {
-    labels: trendData.labels,
-    datasets: [{
-      label: '{{ issuer }} AUM ($M)',
-      data: trendData.values,
-      borderColor: '#1E40AF',
-      backgroundColor: 'rgba(30,64,175,0.1)',
-      fill: true,
-    }]
-  });
-}
-</script>
-{% endif %}
-{% endblock %}
+{% block market_scripts %}{% endblock %}
 ```
 
-## TASK C.3 — Market Share: Issuer Within Category
+**Note**: If backend hasn't merged and still passes old context variables (`upcoming` with old structure, `recently_effective`), add compatibility guards:
+```html
+{% if recent_launches is defined %}
+  <!-- new layout -->
+{% elif recently_effective is defined %}
+  <!-- fallback to old layout with renamed heading -->
+{% endif %}
+```
 
-Completely redesign `share_timeline.html`. The backend (Agent A) provides `share_data` dict with `issuers` and `trend`.
+## TASK D.3 — Timeline: "Filing History"
+
+Redesign `timeline.html` with:
+1. New title "Filing History"
+2. Summary stats bar at top
+3. Color-coded dots (485BPOS = green, 485BXT = amber, else = gray)
+4. Pagination for > 30 entries
 
 ```html
-{% set active_tab = 'share' %}
+{% set active_tab = 'timeline' %}
 {% extends "market/base.html" %}
 
-{% block title %}Issuer Market Share — REX Financial Intelligence Hub{% endblock %}
+{% block title %}Filing History — REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
-<h2 class="section-title">Issuer Market Share</h2>
+<h2 class="section-title">Filing History</h2>
+<p style="color:#64748B; font-size:0.85rem; margin-bottom:16px;">
+  Complete SEC filing history per trust. A <span style="color:#059669;font-weight:600;">485BPOS</span> marks when funds became eligible to trade.
+  A <span style="color:#D97706;font-weight:600;">485BXT</span> is an extension request pushing back the effective date.
+</p>
 
-<!-- Category Selector -->
-<div style="margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-  <label style="font-size:0.8rem; font-weight:600; color:#475569;">Category:</label>
-  <select class="select-sm" onchange="location.href='/market/share?cat='+this.value" style="min-width:250px;">
-    {% for c in all_categories %}
-    <option value="{{ c }}" {% if c == cat %}selected{% endif %}>
-      {{ c | replace('Leverage & Inverse - ','L&I ') | replace('Income - ','Inc ') }}
-    </option>
+<div class="timeline-controls" style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+  <select class="select-sm" style="min-width:240px;"
+          onchange="if(this.value) window.location='/market/timeline?trust_id='+this.value">
+    <option value="">Select a trust...</option>
+    {% for trust in trusts %}
+    <option value="{{ trust.id }}" {{ 'selected' if trust.id == trust_id else '' }}>{{ trust.name }}</option>
     {% endfor %}
   </select>
-  {% if data_as_of %}<span style="font-size:0.72rem; color:#94A3B8;">Data as of {{ data_as_of }}</span>{% endif %}
 </div>
 
-{% if not available %}
-<div class="alert alert-info">Market data not available.</div>
-{% elif not share_data or not share_data.get('issuers') %}
-<div class="alert alert-warning">No issuer data for this category.</div>
-{% else %}
-
-<!-- KPI Bar -->
-<div style="display:flex; gap:24px; margin-bottom:20px; flex-wrap:wrap;">
-  <div>
-    <span style="font-size:1.2rem; font-weight:800;">{{ share_data.total_aum_fmt }}</span>
-    <span style="font-size:0.72rem; color:#94A3B8; text-transform:uppercase; margin-left:6px;">Total AUM</span>
-  </div>
-  <div>
-    <span style="font-size:1.2rem; font-weight:800;">{{ share_data.issuers|length }}</span>
-    <span style="font-size:0.72rem; color:#94A3B8; text-transform:uppercase; margin-left:6px;">Issuers</span>
-  </div>
-</div>
-
-<div class="charts-row">
-  <!-- Donut Chart -->
-  <div class="chart-box">
-    <div class="chart-title">Share by Issuer (Top 10 by AUM)</div>
-    <canvas id="issuerShareDonut" height="240"></canvas>
-  </div>
-
-  <!-- 12-month Trend -->
-  {% if share_data.trend and share_data.trend.months %}
-  <div class="chart-box">
-    <div class="chart-title">AUM Trend — Top 5 Issuers (12 Months)</div>
-    <canvas id="issuerTrendChart" height="240"></canvas>
+{% if selected_trust %}
+<div style="display:flex; align-items:center; gap:20px; margin-bottom:20px; flex-wrap:wrap;">
+  <h3 style="font-size:1rem; font-weight:700; margin:0;">{{ selected_trust.name }}</h3>
+  {% if timeline_items %}
+  <div style="display:flex; gap:16px; font-size:0.78rem; flex-wrap:wrap;">
+    {% set bpos_count = timeline_items | selectattr('filing.form_type', 'equalto', '485BPOS') | list | length %}
+    {% set bxt_count = timeline_items | selectattr('filing.form_type', 'equalto', '485BXT') | list | length %}
+    <span style="color:#059669; font-weight:600;">
+      ● {{ bpos_count }} BPOS (effective)
+    </span>
+    <span style="color:#D97706; font-weight:600;">
+      ● {{ bxt_count }} BXT (extensions)
+    </span>
+    <span style="color:#94A3B8;">
+      {{ timeline_items | length }} total filings shown
+    </span>
   </div>
   {% endif %}
 </div>
 
-<!-- Bar Chart -->
-<div class="chart-box" style="margin-top:16px;">
-  <div class="chart-title">AUM by Issuer</div>
-  <canvas id="issuerBarChart" height="200"></canvas>
+{% if timeline_items %}
+<div class="timeline">
+  {% for item in timeline_items %}
+  {% set form = item.filing.form_type %}
+  {% set dot_color = '#059669' if form == '485BPOS' else '#D97706' if form == '485BXT' else '#94A3B8' %}
+  <div class="timeline-entry" style="--dot-color: {{ dot_color }};">
+    <div class="timeline-date">
+      {{ item.filing.filing_date.strftime('%b %d, %Y') if item.filing.filing_date else 'N/A' }}
+    </div>
+    <div class="timeline-content">
+      <div class="timeline-form">
+        <span class="badge badge-{{ 'primary' if form == '485BPOS' else 'warning' if form == '485BXT' else 'secondary' }}">
+          {{ form }}
+        </span>
+        {% if item.filing.effective_date %}
+        <span class="timeline-effective">
+          Effective: {{ item.filing.effective_date.strftime('%b %d, %Y') }}
+        </span>
+        {% endif %}
+      </div>
+      {% if item.fund_count > 0 %}
+      <div class="timeline-funds">
+        {{ item.fund_count }} fund{{ '' if item.fund_count == 1 else 's' }}
+      </div>
+      {% endif %}
+      {% if item.filing.accession_number %}
+      <div class="timeline-accession">
+        <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={{ selected_trust.cik }}&type=485&dateb=&owner=include&count=40"
+           target="_blank" class="text-link" style="font-size:0.7rem;">{{ item.filing.accession_number }}</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
 </div>
 
-<!-- Issuer Table -->
-<div class="chart-box" style="margin-top:16px;">
-  <div class="chart-title">All Issuers in {{ cat | replace('Leverage & Inverse - ','L&I ') | replace('Income - ','Inc ') }}</div>
-  <table class="data-table" id="issuerShareTable">
-    <thead>
-      <tr>
-        <th onclick="sortTable('issuerShareTable',0)">#</th>
-        <th onclick="sortTable('issuerShareTable',1)">Issuer</th>
-        <th onclick="sortTable('issuerShareTable',2)">AUM</th>
-        <th onclick="sortTable('issuerShareTable',3)">Share %</th>
-        <th onclick="sortTable('issuerShareTable',4)">Products</th>
-        <th>Detail</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for issuer in share_data.issuers %}
-      <tr class="{{ 'rex-highlight' if issuer.is_rex else '' }}">
-        <td style="color:#94A3B8; font-size:0.8rem;">{{ loop.index }}</td>
-        <td>
-          {{ issuer.name }}
-          {% if issuer.is_rex %}<span style="color:#1E40AF;font-size:0.7rem;font-weight:700;margin-left:4px;">REX</span>{% endif %}
-        </td>
-        <td class="text-mono">{{ issuer.aum_fmt }}</td>
-        <td class="text-mono">{{ "%.1f%%"|format(issuer.pct) }}</td>
-        <td>{{ issuer.num_products }}</td>
-        <td><a href="/market/issuer/detail?issuer={{ issuer.name|urlencode }}" class="btn btn-sm" style="font-size:0.7rem; padding:2px 6px;">→</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+{% else %}
+<div class="alert alert-info">No 485 filings found for this trust.</div>
+{% endif %}
 
+{% elif trusts %}
+<div class="alert alert-info">Select a trust above to view its filing history.</div>
 {% endif %}
 {% endblock %}
 
 {% block market_scripts %}
-{% if share_data and share_data.issuers %}
-<script>
-var shareIssuers = {{ share_data.issuers | tojson }};
-var top10 = shareIssuers.slice(0, 10);
-
-// Donut chart
-MarketCharts.renderPieChart('issuerShareDonut', {
-  labels: top10.map(function(i){return i.name;}),
-  values: top10.map(function(i){return i.aum;})
-});
-
-// Bar chart
-MarketCharts.renderBarChart('issuerBarChart', {
-  labels: top10.map(function(i){return i.name;}),
-  values: top10.map(function(i){return i.aum;}),
-  isRex: top10.map(function(i){return i.is_rex;})
-});
-
-{% if share_data.trend and share_data.trend.months %}
-var trendData = {{ share_data.trend | tojson }};
-MarketCharts.renderLineChart('issuerTrendChart', {
-  labels: trendData.months,
-  datasets: trendData.series.map(function(s, idx) {
-    var colors = ['#1E40AF','#059669','#D97706','#7C3AED','#E11D48'];
-    return {
-      label: s.issuer,
-      data: s.values,
-      borderColor: colors[idx % colors.length],
-      backgroundColor: 'transparent',
-      fill: false,
-      borderWidth: s.is_rex ? 3 : 1.5,
-    };
-  })
-});
-{% endif %}
-</script>
-{% endif %}
+<style>
+.timeline-entry::before {
+  background: var(--dot-color, var(--blue)) !important;
+}
+</style>
 {% endblock %}
 ```
+
+**Note on CSS variable `--dot-color`**: The `.timeline-entry::before` pseudo-element needs to read the CSS variable set inline on the parent. This works in modern browsers. If it doesn't apply, add a class instead:
+- `class="timeline-entry {% if form == '485BPOS' %}entry-bpos{% elif form == '485BXT' %}entry-bxt{% else %}entry-other{% endif %}"`
+- Then CSS: `.entry-bpos::before { background: #059669; }` etc.
 
 ## Commit Convention
 ```
-git add webapp/templates/market/treemap.html webapp/templates/market/issuer.html webapp/templates/market/issuer_detail.html webapp/templates/market/share_timeline.html webapp/routers/market.py
-git commit -m "feat: Market frontend C - treemap fix, issuer deep dive, market share redesign as issuer-within-category"
+git add webapp/templates/market/compare.html webapp/templates/market/calendar.html webapp/templates/market/timeline.html
+git commit -m "feat: Market frontend D - fund compare with AUM chart + flows, calendar as Fund Activity, timeline as Filing History with color dots"
 ```
 
 ## Done Criteria
-- [ ] Treemap: no "All Categories" option. Empty state shown if no products.
-- [ ] Treemap: color legend below chart shows issuer → color mapping.
-- [ ] Issuer page: "Deep Dive →" link on each row.
-- [ ] `/market/issuer/detail?issuer=X` loads with products + AUM trend chart.
-- [ ] Market Share: shows "Issuer Market Share" title. Donut + bar + table. Category selector works.
-- [ ] No JS errors on any of these 3 pages.
+- [ ] Compare: " US" stripped from tickers on form submit. totalrealreturns.com link shown.
+- [ ] Compare: AUM Over Time line chart shown (if aum_history data available).
+- [ ] Compare: Flow bar chart with 1W/1M/3M/6M/YTD toggle buttons.
+- [ ] Compare: Table includes Inception Date, Fund Type, 3M/6M flows.
+- [ ] Calendar: Titled "Fund Activity". Shows Recent Launches + Upcoming Events sections.
+- [ ] Timeline: Titled "Filing History". 485BPOS = green dot, 485BXT = amber dot. Summary stats at top.
+- [ ] No template rendering errors (test with trust that has 50+ filings).
