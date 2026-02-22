@@ -86,66 +86,63 @@ def calendar_view(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Compliance Calendar - upcoming 485BXT extensions and recent 485BPOS effectivities."""
+    """Compliance Calendar - recent fund launches and upcoming effective events."""
     from webapp.models import Trust, Filing, FundExtraction
 
     today = date.today()
+    cutoff_90 = today - timedelta(days=90)
+    cutoff_60_ahead = today + timedelta(days=60)
 
-    # Upcoming 485BXT extensions: filings with future effective dates
-    upcoming_rows = db.execute(
-        select(FundExtraction, Filing, Trust)
-        .join(Filing, FundExtraction.filing_id == Filing.id)
-        .join(Trust, Filing.trust_id == Trust.id)
-        .where(Filing.form == "485BXT")
-        .where(FundExtraction.effective_date >= today)
-        .order_by(FundExtraction.effective_date.asc())
-        .limit(100)
-    ).all()
-
-    # Recently effective 485BPOS (last 30 days)
-    recent_cutoff = today - timedelta(days=30)
-    recently_rows = db.execute(
+    # Recent fund launches: 485BPOS with effective date in last 90 days
+    recent_rows = db.execute(
         select(FundExtraction, Filing, Trust)
         .join(Filing, FundExtraction.filing_id == Filing.id)
         .join(Trust, Filing.trust_id == Trust.id)
         .where(Filing.form == "485BPOS")
-        .where(FundExtraction.effective_date >= recent_cutoff)
+        .where(FundExtraction.effective_date >= cutoff_90)
+        .where(FundExtraction.effective_date <= today)
         .order_by(FundExtraction.effective_date.desc())
-        .limit(50)
+        .limit(100)
     ).all()
 
-    # Deduplicate by accession_number (multiple extractions per filing)
+    # Upcoming effective events: any form with future effective date
+    upcoming_rows = db.execute(
+        select(FundExtraction, Filing, Trust)
+        .join(Filing, FundExtraction.filing_id == Filing.id)
+        .join(Trust, Filing.trust_id == Trust.id)
+        .where(FundExtraction.effective_date > today)
+        .where(FundExtraction.effective_date <= cutoff_60_ahead)
+        .order_by(FundExtraction.effective_date.asc())
+        .limit(100)
+    ).all()
+
+    # Deduplicate by accession_number
+    seen_recent = set()
+    recent_launches = []
+    for extraction, filing, trust in recent_rows:
+        if filing.accession_number in seen_recent:
+            continue
+        seen_recent.add(filing.accession_number)
+        days_since = (today - extraction.effective_date).days if extraction.effective_date else 0
+        recent_launches.append({
+            "filing": filing,
+            "trust": trust,
+            "days_since": days_since,
+        })
+
     seen_upcoming = set()
     upcoming_classified = []
     for extraction, filing, trust in upcoming_rows:
         if filing.accession_number in seen_upcoming:
             continue
         seen_upcoming.add(filing.accession_number)
-        days_until = (extraction.effective_date - today).days if extraction.effective_date else None
-        urgency = "green"
-        if days_until is not None:
-            if days_until < 30:
-                urgency = "red"
-            elif days_until < 60:
-                urgency = "amber"
+        days_until = (extraction.effective_date - today).days if extraction.effective_date else 0
+        urgency = "green" if days_until > 30 else "amber" if days_until > 7 else "red"
         upcoming_classified.append({
             "filing": filing,
             "trust": trust,
-            "effective_date": extraction.effective_date,
             "days_until": days_until,
             "urgency": urgency,
-        })
-
-    seen_recent = set()
-    recently_effective = []
-    for extraction, filing, trust in recently_rows:
-        if filing.accession_number in seen_recent:
-            continue
-        seen_recent.add(filing.accession_number)
-        recently_effective.append({
-            "filing": filing,
-            "trust": trust,
-            "effective_date": extraction.effective_date,
         })
 
     return templates.TemplateResponse("market/calendar.html", {
@@ -153,8 +150,8 @@ def calendar_view(
         "active_tab": "calendar",
         "available": True,
         "today": today,
+        "recent_launches": recent_launches,
         "upcoming": upcoming_classified,
-        "recently_effective": recently_effective,
     })
 
 
@@ -164,25 +161,61 @@ def compare_view(
     tickers: str = Query(default=""),
 ):
     """Fund Comparison - side-by-side comparison of up to 4 tickers."""
-    from webapp.services.market_data import get_master_data, data_available
+    from webapp.services.market_data import get_master_data, data_available, _fmt_currency, _fmt_flow
 
     available = data_available()
-    ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()][:4]
+    # Strip " US" from user-submitted tickers
+    ticker_list = [t.upper().replace(" US", "").strip() for t in tickers.split(",") if t.strip()][:4]
 
     fund_data = []
+    totalrealreturns_url = ""
     if available and ticker_list:
         try:
             master = get_master_data()
-            ticker_col = next((c for c in master.columns if c.lower() == "ticker"), None)
-            if ticker_col:
+            # Use ticker_clean column for matching
+            match_col = "ticker_clean" if "ticker_clean" in master.columns else None
+            if not match_col:
+                match_col = next((c for c in master.columns if c.lower() == "ticker"), None)
+
+            aum_col = "t_w4.aum"
+            if match_col:
                 for ticker in ticker_list:
-                    row = master[master[ticker_col].str.upper() == ticker]
+                    row = master[master[match_col].str.upper() == ticker.upper()]
                     if not row.empty:
                         r = row.iloc[0]
+
+                        # AUM history: last 12 months (aum_1 = most recent prior month, aum = current)
+                        aum_history = []
+                        for i in range(12, 0, -1):
+                            col = f"t_w4.aum_{i}"
+                            if col in master.columns:
+                                val = float(r.get(col, 0) or 0)
+                                aum_history.append(val)
+                        # Current month
+                        aum_history.append(float(r.get(aum_col, 0) or 0))
+
+                        # Flows by period
+                        flows = {
+                            "1w": float(r.get("t_w4.fund_flow_1week", 0) or 0),
+                            "1m": float(r.get("t_w4.fund_flow_1month", 0) or 0),
+                            "3m": float(r.get("t_w4.fund_flow_3month", 0) or 0),
+                            "6m": float(r.get("t_w4.fund_flow_6month", 0) or 0),
+                            "ytd": float(r.get("t_w4.fund_flow_ytd", 0) or 0),
+                        }
+
                         fund_data.append({
                             "ticker": ticker,
                             "row": r.to_dict(),
+                            "aum_history": aum_history,
+                            "flows": flows,
+                            "flows_fmt": {k: _fmt_flow(v) for k, v in flows.items()},
+                            "aum_fmt": _fmt_currency(float(r.get(aum_col, 0) or 0)),
+                            "inception_date": str(r.get("inception_date", "")) if r.get("inception_date") else "",
                         })
+
+            # Build totalrealreturns URL
+            clean_tickers = [t.upper() for t in ticker_list]
+            totalrealreturns_url = f"https://totalrealreturns.com/n/{','.join(clean_tickers)}"
         except Exception:
             log.exception("Error loading compare data")
 
@@ -193,4 +226,5 @@ def compare_view(
         "tickers": tickers,
         "ticker_list": ticker_list,
         "fund_data": fund_data,
+        "totalrealreturns_url": totalrealreturns_url,
     })
