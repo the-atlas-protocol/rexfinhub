@@ -1,0 +1,117 @@
+{% set active_tab = 'issuer' %}
+{% extends "market/base.html" %}
+
+{% block title %}{{ issuer }} — Issuer Detail — REX Financial Intelligence Hub{% endblock %}
+
+{% block market_content %}
+{% if not available %}
+<div class="alert alert-info">Market data not available. Upload The Dashboard.xlsx via Admin panel.</div>
+{% elif not issuer_data %}
+<div class="alert alert-warning">Issuer "{{ issuer }}" not found in current data.</div>
+{% else %}
+
+<!-- Header -->
+<div style="display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+  <div>
+    <h2 class="section-title" style="margin-bottom:4px;">{{ issuer_data.name }}</h2>
+    {% if issuer_data.is_rex %}<span style="color:#1E40AF; font-size:0.75rem; font-weight:700; background:#EFF6FF; padding:2px 10px; border-radius:20px;">REX ISSUER</span>{% endif %}
+  </div>
+  <div style="margin-left:auto; display:flex; gap:20px; flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div style="font-size:1.4rem; font-weight:800; color:#0F172A;">{{ issuer_data.total_aum_fmt }}</div>
+      <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase;">Total AUM</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.4rem; font-weight:800; color:#0F172A;">{{ issuer_data.num_products }}</div>
+      <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase;">Products</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.4rem; font-weight:800; color:#0F172A;">{{ issuer_data.num_categories }}</div>
+      <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase;">Categories</div>
+    </div>
+  </div>
+</div>
+
+<div class="charts-row" style="margin-bottom:24px;">
+  <!-- AUM Trend -->
+  {% if aum_trend.labels %}
+  <div class="chart-box">
+    <div class="chart-title" style="font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:12px;">AUM Trend — Last 12 Months</div>
+    <canvas id="issuerTrendChart" height="180"></canvas>
+  </div>
+  {% endif %}
+
+  <!-- Categories breakdown -->
+  {% if categories %}
+  <div class="chart-box">
+    <div class="chart-title" style="font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:12px;">AUM by Category</div>
+    <table class="data-table" style="font-size:0.82rem;">
+      <thead><tr><th>Category</th><th>AUM</th></tr></thead>
+      <tbody>
+        {% for c in categories %}
+        <tr>
+          <td>{{ c.name | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') }}</td>
+          <td class="num-cell">{{ c.aum_fmt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Product List -->
+<div class="chart-box">
+  <h3>All Products ({{ products|length }} funds)</h3>
+  {% if products %}
+  <div class="table-responsive">
+    <table class="data-table" id="issuerProductsTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('issuerProductsTable',0)">Ticker</th>
+          <th onclick="sortTable('issuerProductsTable',1)">Fund Name</th>
+          <th onclick="sortTable('issuerProductsTable',2)">Category</th>
+          <th onclick="sortTable('issuerProductsTable',3)">AUM</th>
+          <th>REX</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr class="{{ 'rex-highlight' if p.is_rex else '' }}">
+          <td class="ticker-cell">{{ p.ticker }}</td>
+          <td class="name-cell">{{ p.fund_name }}</td>
+          <td style="font-size:0.78rem;">{{ p.category | replace('Leverage & Inverse - ','L&I ') | replace('Income - ','Inc ') }}</td>
+          <td class="num-cell">{{ p.aum_fmt }}</td>
+          <td>{% if p.is_rex %}<span style="color:#1E40AF;font-weight:700;font-size:0.75rem;">REX</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:20px; text-align:center; color:#94A3B8;">No products found.</div>
+  {% endif %}
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block market_scripts %}
+{% if aum_trend and aum_trend.labels %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var trendData = {
+    labels: {{ aum_trend.labels | tojson }},
+    values: {{ aum_trend.values | tojson }}
+  };
+  if (trendData.labels.length > 0) {
+    MarketCharts.renderLineChart('issuerTrendChart', trendData.labels, [{
+      label: '{{ issuer_data.name }} AUM ($M)',
+      data: trendData.values,
+      color: '#1E40AF',
+    }]);
+  }
+});
+</script>
+{% endif %}
+{% endblock %}
