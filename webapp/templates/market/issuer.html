@@ -15,7 +15,7 @@
   </select>
 </div>
 
-{% if summary %}
+{% if summary and summary.issuers %}
 {# KPI Row #}
 <div class="kpi-row">
   <div class="kpi-card">
@@ -47,6 +47,7 @@
         <th onclick="sortTable('issuerTable', 4)">1W Flow</th>
         <th onclick="sortTable('issuerTable', 5)">1M Flow</th>
         <th onclick="sortTable('issuerTable', 6)"># Products</th>
+        <th>Detail</th>
       </tr>
     </thead>
     <tbody>
@@ -59,12 +60,22 @@
         <td class="num-cell {{ 'positive' if iss.flow_1w > 0 else 'negative' if iss.flow_1w < 0 else '' }}">{{ iss.flow_1w_fmt }}</td>
         <td class="num-cell {{ 'positive' if iss.flow_1m > 0 else 'negative' if iss.flow_1m < 0 else '' }}">{{ iss.flow_1m_fmt }}</td>
         <td class="num-cell">{{ iss.num_products }}</td>
+        <td>
+          <a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}"
+             class="btn btn-sm" style="font-size:0.72rem; padding:3px 8px;">
+            Deep Dive &rarr;
+          </a>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
+{% elif summary %}
+<div style="padding:40px; text-align:center; color:#94A3B8;">
+  No issuer data available for this category.
+</div>
 {% else %}
 <div class="alert alert-warning">No issuer data available for this category.</div>
 {% endif %}
