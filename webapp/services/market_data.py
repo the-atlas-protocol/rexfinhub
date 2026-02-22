@@ -530,25 +530,36 @@ def get_treemap_data(category: str | None = None) -> dict:
     else:
         df = df[df["category_display"].notna()].copy()
 
+    # Deduplicate on ticker within filtered df
+    ticker_col = next((c for c in df.columns if c.lower().strip() == "ticker"), None)
+    if ticker_col:
+        df = df.drop_duplicates(subset=[ticker_col], keep="first")
+
     df = df.sort_values("t_w4.aum", ascending=False).head(200)
-    products = []
-    for _, row in df.iterrows():
-        aum = float(row.get("t_w4.aum", 0))
-        products.append({
-            "label": str(row.get("ticker", "")),
-            "value": round(aum, 2),
-            "group": str(row.get("category_display", "Other")),
-            "is_rex": bool(row.get("is_rex", False)),
-            "ticker": str(row.get("ticker", "")),
-            "fund_name": str(row.get("fund_name", "")),
-            "issuer": str(row.get("issuer_display", "")),
-            "aum_fmt": _fmt_currency(aum),
-        })
+
+    try:
+        products = []
+        for _, row in df.iterrows():
+            aum = float(row.get("t_w4.aum", 0))
+            products.append({
+                "label": str(row.get("ticker_clean", row.get("ticker", ""))),
+                "value": round(aum, 2),
+                "group": str(row.get("category_display", "Other")),
+                "is_rex": bool(row.get("is_rex", False)),
+                "ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                "fund_name": str(row.get("fund_name", "")),
+                "issuer": str(row.get("issuer_display", "")),
+                "aum_fmt": _fmt_currency(aum),
+            })
+    except Exception as e:
+        log.error("Treemap product build error: %s", e)
+        products = []
+
     total = float(df["t_w4.aum"].sum()) if not df.empty else 0.0
     return {
         "products": products,
         "total_aum": round(total, 2),
-        "total_aum_fmt": _fmt_currency(total),
+        "total_aum_fmt": _fmt_currency(total) if products else "N/A",
         "categories": ALL_CATEGORIES,
     }
 

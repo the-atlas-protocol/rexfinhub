@@ -46,7 +46,7 @@ def _parse_ts(ts: dict) -> dict[str, Any]:
 
 
 @router.get("/rex")
-def rex_view(request: Request, product_type: str = Query(default="All")):
+def rex_view(request: Request, product_type: str = Query(default="All"), fund_structure: str = Query(default="all")):
     """REX View - executive dashboard by suite."""
     svc = _svc()
     available = svc.data_available()
@@ -58,7 +58,7 @@ def rex_view(request: Request, product_type: str = Query(default="All")):
             "data_as_of": svc.get_data_as_of(),
         })
     try:
-        summary = svc.get_rex_summary()
+        summary = svc.get_rex_summary(fund_structure=fund_structure)
         trend = _parse_ts(svc.get_time_series(is_rex=True))
         return templates.TemplateResponse("market/rex.html", {
             "request": request,
@@ -67,6 +67,7 @@ def rex_view(request: Request, product_type: str = Query(default="All")):
             "summary": summary,
             "trend": trend,
             "product_type": product_type,
+            "fund_structure": fund_structure,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
@@ -85,6 +86,7 @@ def category_view(
     request: Request,
     cat: str = Query(default="All"),
     filters: str = Query(default=None),
+    fund_structure: str = Query(default="all"),
 ):
     """Category View - competitive landscape with dynamic filters."""
     svc = _svc()
@@ -101,7 +103,7 @@ def category_view(
     try:
         filter_dict = json.loads(filters) if filters else {}
         cat_arg = cat if cat != "All" else None
-        summary = svc.get_category_summary(cat_arg, filter_dict)
+        summary = svc.get_category_summary(cat_arg, filter_dict, fund_structure=fund_structure)
         slicers = svc.get_slicer_options(cat) if cat and cat != "All" else []
         ts_cat = _parse_ts(svc.get_time_series(category=cat_arg))
         ts_rex = _parse_ts(svc.get_time_series(category=cat_arg, is_rex=True))
@@ -120,6 +122,7 @@ def category_view(
             "slicers": slicers,
             "active_filters": filter_dict,
             "trend": trend,
+            "fund_structure": fund_structure,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
@@ -136,58 +139,86 @@ def category_view(
 
 
 @router.get("/treemap")
-def treemap_view(request: Request, cat: str = Query(default="All")):
+def treemap_view(request: Request, cat: str = Query(default="")):
     svc = _svc()
     available = svc.data_available()
+
+    # Get available categories from master data
+    available_cats = list(svc.ALL_CATEGORIES)
+    if available:
+        try:
+            master = svc.get_master_data()
+            data_cats = sorted(master[master["category_display"].notna()]["category_display"].unique().tolist())
+            if data_cats:
+                available_cats = data_cats
+        except Exception:
+            pass
+
+    # Remove "All" as valid option - default to first category
+    if not cat or cat.lower() == "all" or cat not in available_cats:
+        cat = available_cats[0] if available_cats else ""
+
     if not available:
-        return templates.TemplateResponse("market/treemap.html", {"request": request, "available": False, "active_tab": "treemap", "categories": svc.ALL_CATEGORIES, "data_as_of": svc.get_data_as_of()})
+        return templates.TemplateResponse("market/treemap.html", {"request": request, "available": False, "active_tab": "treemap", "categories": available_cats, "data_as_of": svc.get_data_as_of()})
     try:
-        cat_arg = cat if cat != "All" else None
-        summary = svc.get_treemap_data(cat_arg)
+        summary = svc.get_treemap_data(cat)
         return templates.TemplateResponse("market/treemap.html", {
             "request": request, "available": True, "active_tab": "treemap",
-            "summary": summary, "categories": svc.ALL_CATEGORIES, "category": cat,
+            "summary": summary, "categories": available_cats, "category": cat,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
         log.error("Treemap error: %s", e, exc_info=True)
-        return templates.TemplateResponse("market/treemap.html", {"request": request, "available": False, "active_tab": "treemap", "categories": svc.ALL_CATEGORIES, "error": str(e), "data_as_of": svc.get_data_as_of()})
+        return templates.TemplateResponse("market/treemap.html", {"request": request, "available": True, "active_tab": "treemap", "summary": {"products": [], "total_aum_fmt": "N/A", "total_aum": 0, "categories": available_cats}, "categories": available_cats, "category": cat, "error": str(e), "data_as_of": svc.get_data_as_of()})
 
 
 @router.get("/issuer")
-def issuer_view(request: Request, cat: str = Query(default="All")):
+def issuer_view(request: Request, cat: str = Query(default="All"), fund_structure: str = Query(default="all")):
     svc = _svc()
     available = svc.data_available()
     if not available:
         return templates.TemplateResponse("market/issuer.html", {"request": request, "available": False, "active_tab": "issuer", "categories": svc.ALL_CATEGORIES, "data_as_of": svc.get_data_as_of()})
     try:
         cat_arg = cat if cat != "All" else None
-        summary = svc.get_issuer_summary(cat_arg)
+        summary = svc.get_issuer_summary(cat_arg, fund_structure=fund_structure)
         return templates.TemplateResponse("market/issuer.html", {
             "request": request, "available": True, "active_tab": "issuer",
             "summary": summary, "categories": svc.ALL_CATEGORIES, "category": cat,
+            "fund_structure": fund_structure,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
         log.error("Issuer view error: %s", e, exc_info=True)
-        return templates.TemplateResponse("market/issuer.html", {"request": request, "available": False, "active_tab": "issuer", "categories": svc.ALL_CATEGORIES, "error": str(e), "data_as_of": svc.get_data_as_of()})
+        empty_summary = {"issuers": [], "total_aum": 0, "total_aum_fmt": "$0", "categories": svc.ALL_CATEGORIES}
+        return templates.TemplateResponse("market/issuer.html", {"request": request, "available": True, "active_tab": "issuer", "summary": empty_summary, "categories": svc.ALL_CATEGORIES, "category": cat, "error": str(e), "data_as_of": svc.get_data_as_of()})
 
 
 @router.get("/share")
-def share_timeline_view(request: Request):
+def share_timeline_view(request: Request, cat: str = Query(default="")):
     svc = _svc()
     available = svc.data_available()
     if not available:
         return templates.TemplateResponse("market/share_timeline.html", {"request": request, "available": False, "active_tab": "share", "data_as_of": svc.get_data_as_of()})
-    try:
-        timeline = svc.get_market_share_timeline()
-        return templates.TemplateResponse("market/share_timeline.html", {
-            "request": request, "available": True, "active_tab": "share", "timeline": timeline,
-            "data_as_of": svc.get_data_as_of(),
-        })
-    except Exception as e:
-        log.error("Share timeline error: %s", e, exc_info=True)
-        return templates.TemplateResponse("market/share_timeline.html", {"request": request, "available": False, "active_tab": "share", "error": str(e), "data_as_of": svc.get_data_as_of()})
+
+    if not cat or cat not in svc.ALL_CATEGORIES:
+        cat = svc.ALL_CATEGORIES[0] if svc.ALL_CATEGORIES else ""
+
+    share_data = {}
+    if available and cat:
+        try:
+            share_data = svc.get_issuer_share(cat)
+        except Exception as e:
+            log.error("Issuer share error: %s", e)
+
+    return templates.TemplateResponse("market/share_timeline.html", {
+        "request": request,
+        "active_tab": "share",
+        "available": available,
+        "cat": cat,
+        "all_categories": svc.ALL_CATEGORIES,
+        "share_data": share_data,
+        "data_as_of": svc.get_data_as_of(),
+    })
 
 
 @router.get("/underlier")
