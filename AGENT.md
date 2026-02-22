@@ -287,3 +287,4 @@ git commit -m "feat: Market frontend B - suite drill-down, pie % labels, REX nam
 - `3c8c1da` feat: rex.html - suite drill-down, pie chart labels, REX names, ETF/ETN filter
 - `d646877` feat: market.js - pie chart datalabels, fix applyFilters, add toggleCategory multi-select
 - `0623f79` feat: category.html - multi-select pills, ETF/ETN filter, fix slicer data-field attrs
+- `bf01235` chore: mark AGENT.md as DONE with progress log
