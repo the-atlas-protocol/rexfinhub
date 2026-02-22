@@ -6,17 +6,57 @@
 {% block market_content %}
 <h2 class="section-title">Fund Comparison</h2>
 
-<form class="timeline-controls" method="get" action="/market/compare">
+<form class="timeline-controls" method="get" action="/market/compare" id="compareForm">
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <input type="text" name="tickers" class="select-sm" placeholder="Enter tickers (e.g. TQQQ,SQQQ,SPXL)" value="{{ tickers }}" style="min-width:280px;">
+    <input type="text" name="tickers" id="tickerInput" class="select-sm" placeholder="Enter tickers (e.g. TQQQ,SQQQ,SPXL)" value="{{ tickers }}" style="min-width:280px;">
     <button type="submit" class="btn btn-primary" style="padding:6px 16px;font-size:0.85rem;">Compare</button>
   </div>
   <div style="font-size:0.75rem;color:#6B7280;margin-top:4px;">Up to 4 tickers, comma-separated</div>
 </form>
 
+{% if totalrealreturns_url is defined and totalrealreturns_url %}
+<div style="margin-bottom:20px;">
+  <a href="{{ totalrealreturns_url }}" target="_blank" rel="noopener"
+     class="btn" style="background:#059669; color:white; display:inline-flex; align-items:center; gap:6px;">
+    View Total Return Comparison &#8599;
+  </a>
+  <span style="font-size:0.75rem; color:#94A3B8; margin-left:8px;">
+    Opens totalrealreturns.com with selected tickers
+  </span>
+</div>
+{% endif %}
+
 {% if not available %}
 <div class="alert alert-warning">Dashboard data file not found. Place <code>The Dashboard.xlsx</code> in <code>data/DASHBOARD/</code>.</div>
 {% elif ticker_list and fund_data %}
+
+{# --- AUM Over Time Chart --- #}
+{% if fund_data[0].aum_history is defined and fund_data[0].aum_history %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div class="chart-title">AUM Over Time — Last 12 Months ($M)</div>
+  <canvas id="aumTrendChart" height="160"></canvas>
+</div>
+{% endif %}
+
+{# --- Flow Bar Chart with Period Toggle --- #}
+{% if fund_data[0].flows is defined and fund_data[0].flows %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+    <div class="chart-title" style="margin-bottom:0;">Fund Flows ($M)</div>
+    <div style="display:flex; gap:4px;">
+      {% for period in ['1w','1m','3m','6m','ytd'] %}
+      <button class="pill flow-period-btn {% if loop.first %}active{% endif %}"
+              data-period="{{ period }}" onclick="showFlowPeriod('{{ period }}')">
+        {{ period.upper() }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  <canvas id="flowBarChart" height="140"></canvas>
+</div>
+{% endif %}
+
+{# --- Comparison Table --- #}
 <div class="table-responsive" style="margin-top:20px;">
   <table class="data-table">
     <thead>
@@ -44,6 +84,21 @@
         <td><strong>Category</strong></td>
         {% for fund in fund_data %}
         <td>{{ fund.row.get('category_display', 'N/A') }}</td>
+        {% endfor %}
+      </tr>
+      {# --- Fund Type (ETF/ETN) --- #}
+      <tr>
+        <td><strong>Fund Type</strong></td>
+        {% for fund in fund_data %}
+        <td>{{ fund.row.get('fund_type', fund.row.get('t_w1.fund_type', 'N/A')) }}</td>
+        {% endfor %}
+      </tr>
+      {# --- Inception Date --- #}
+      <tr>
+        <td><strong>Inception Date</strong></td>
+        {% for fund in fund_data %}
+        {% set inc = fund.row.get('inception_date', fund.row.get('t_w1.inception_date')) %}
+        <td>{% if inc %}{{ inc }}{% else %}N/A{% endif %}</td>
         {% endfor %}
       </tr>
       <tr>
@@ -112,6 +167,26 @@
         </td>
         {% endfor %}
       </tr>
+      {# --- 3M Flow --- #}
+      <tr>
+        <td><strong>3M Flow</strong></td>
+        {% for fund in fund_data %}
+        {% set flow = fund.row.get('t_w4.fund_flow_3month') %}
+        <td class="num-cell {% if flow is not none and flow == flow %}{{ 'positive' if flow > 0 else 'negative' if flow < 0 else '' }}{% endif %}">
+          {% if flow is not none and flow == flow %}${{ '{:,.1f}'.format(flow) }}M{% else %}N/A{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {# --- 6M Flow --- #}
+      <tr>
+        <td><strong>6M Flow</strong></td>
+        {% for fund in fund_data %}
+        {% set flow = fund.row.get('t_w4.fund_flow_6month') %}
+        <td class="num-cell {% if flow is not none and flow == flow %}{{ 'positive' if flow > 0 else 'negative' if flow < 0 else '' }}{% endif %}">
+          {% if flow is not none and flow == flow %}${{ '{:,.1f}'.format(flow) }}M{% else %}N/A{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
       <tr>
         <td><strong>REX Product</strong></td>
         {% for fund in fund_data %}
@@ -131,4 +206,103 @@
 {% endblock %}
 
 {% block market_scripts %}
+<script>
+// Strip " US" suffix from tickers before form submit
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.getElementById('compareForm');
+  var tickerInput = document.getElementById('tickerInput');
+  if (form && tickerInput) {
+    form.addEventListener('submit', function(e) {
+      var val = tickerInput.value;
+      var cleaned = val.split(',').map(function(t) {
+        return t.trim().replace(/\s+US$/i, '').toUpperCase();
+      }).filter(Boolean).join(', ');
+      tickerInput.value = cleaned;
+    });
+  }
+});
+</script>
+
+{% if fund_data and fund_data[0].aum_history is defined and fund_data[0].aum_history %}
+<script>
+(function() {
+  var aumTrendData = {
+    labels: (function() {
+      var labels = [];
+      var now = new Date();
+      for (var i = 12; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(d.toLocaleDateString('en-US', {month:'short', year:'2-digit'}));
+      }
+      return labels;
+    })(),
+    datasets: [
+      {% for fd in fund_data %}
+      {
+        label: '{{ fd.ticker }}',
+        data: {{ fd.aum_history | tojson }},
+        fill: false,
+        borderWidth: 2,
+        tension: 0.3
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  };
+  if (typeof MarketCharts !== 'undefined' && MarketCharts.renderLineChart) {
+    MarketCharts.renderLineChart('aumTrendChart', aumTrendData);
+  } else {
+    new Chart(document.getElementById('aumTrendChart').getContext('2d'), {
+      type: 'line',
+      data: aumTrendData,
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: false } }
+      }
+    });
+  }
+})();
+</script>
+{% endif %}
+
+{% if fund_data and fund_data[0].flows is defined and fund_data[0].flows %}
+<script>
+(function() {
+  var flowDataByPeriod = {
+    {% for period in ['1w','1m','3m','6m','ytd'] %}
+    '{{ period }}': {
+      labels: [{% for fd in fund_data %}'{{ fd.ticker }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      values: [{% for fd in fund_data %}{{ fd.flows.get(period, 0) if fd.flows else 0 }}{% if not loop.last %},{% endif %}{% endfor %}]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  };
+  var _flowChart = null;
+  window.showFlowPeriod = function(period) {
+    document.querySelectorAll('.flow-period-btn').forEach(function(b) {
+      b.classList.toggle('active', b.getAttribute('data-period') === period);
+    });
+    var data = flowDataByPeriod[period];
+    if (!data) return;
+    var colors = data.values.map(function(v) { return v >= 0 ? '#059669' : '#DC2626'; });
+    if (_flowChart) { _flowChart.destroy(); }
+    _flowChart = new Chart(document.getElementById('flowBarChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: data.labels,
+        datasets: [{ label: 'Flow $M', data: data.values, backgroundColor: colors }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) {
+          var v = ctx.parsed.x;
+          return (v >= 0 ? '+' : '') + '$' + Math.abs(v).toFixed(1) + 'M';
+        }}}},
+        scales: { x: { grid: { display: false }}}
+      }
+    });
+  };
+  showFlowPeriod('1w');
+})();
+</script>
+{% endif %}
 {% endblock %}
