@@ -65,7 +65,7 @@ Other Claude Code instances may be working on other agents simultaneously. Stay 
 
 ## USAGE
 
-1. Open VS Code on `D:\REX_ETP_TRACKER`
+1. Open VS Code on `C:\Projects\rexfinhub`
 2. Start Claude Code
 3. Paste the mega prompt above
 4. When it asks which agent, tell it: "You are the MARKET agent" (or FIXES, or EMAILS)

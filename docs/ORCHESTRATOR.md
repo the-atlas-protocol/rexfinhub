@@ -104,7 +104,7 @@ When the Orchestrator identifies multiple independent tasks:
 6. **Merge**: `orchestrate merge` merges worktree branches back to main
 
 ```
-main branch (D:\REX_ETP_TRACKER)
+main branch (C:\Projects\rexfinhub)
   |
   |-- .worktrees/market/   (feature/market branch, Worker A)
   |-- .worktrees/fixes/    (feature/fixes branch, Worker B)

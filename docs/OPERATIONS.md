@@ -4,13 +4,13 @@
 
 | What | Command |
 |------|---------|
-| Start local server | `cd D:\REX_ETP_TRACKER; uvicorn webapp.main:app --reload --port 8000` |
-| Run full pipeline (incremental) | `cd D:\REX_ETP_TRACKER; python run_daily.py` |
-| Run pipeline only (no email) | `cd D:\REX_ETP_TRACKER; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0')"` |
-| Force full reprocess | `cd D:\REX_ETP_TRACKER; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0', force_reprocess=True)"` |
-| Sync pipeline data to DB | `cd D:\REX_ETP_TRACKER; python -c "from webapp.database import SessionLocal, init_db; from webapp.services.sync_service import seed_trusts, sync_all; from pathlib import Path; init_db(); db=SessionLocal(); seed_trusts(db); sync_all(db, Path('outputs')); db.close(); print('Done')"` |
-| Generate screener PDF | `cd D:\REX_ETP_TRACKER; python screener/generate_report.py` |
-| Run candidate evaluation | `cd D:\REX_ETP_TRACKER; python screener/generate_report.py evaluate SCCO BHP RIO` |
+| Start local server | `cd C:\Projects\rexfinhub; uvicorn webapp.main:app --reload --port 8000` |
+| Run full pipeline (incremental) | `cd C:\Projects\rexfinhub; python run_daily.py` |
+| Run pipeline only (no email) | `cd C:\Projects\rexfinhub; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0')"` |
+| Force full reprocess | `cd C:\Projects\rexfinhub; python -c "from etp_tracker.run_pipeline import run_pipeline; from etp_tracker.trusts import get_all_ciks, get_overrides; run_pipeline(ciks=list(get_all_ciks()), overrides=dict(get_overrides()), refresh_submissions=True, user_agent='REX-ETP-Tracker/2.0', force_reprocess=True)"` |
+| Sync pipeline data to DB | `cd C:\Projects\rexfinhub; python -c "from webapp.database import SessionLocal, init_db; from webapp.services.sync_service import seed_trusts, sync_all; from pathlib import Path; init_db(); db=SessionLocal(); seed_trusts(db); sync_all(db, Path('outputs')); db.close(); print('Done')"` |
+| Generate screener PDF | `cd C:\Projects\rexfinhub; python screener/generate_report.py` |
+| Run candidate evaluation | `cd C:\Projects\rexfinhub; python screener/generate_report.py evaluate SCCO BHP RIO` |
 
 ---
 
@@ -19,7 +19,7 @@
 Open PowerShell and run:
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 uvicorn webapp.main:app --reload --port 8000
 ```
 
@@ -52,14 +52,14 @@ The pipeline is **incremental by default** - it only processes NEW filings that 
 ### Full daily run (pipeline + Excel + DB sync + Render upload + email digest):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python run_daily.py
 ```
 
 ### Pipeline only (no email, incremental):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python -c "
 from etp_tracker.run_pipeline import run_pipeline
 from etp_tracker.trusts import get_all_ciks, get_overrides
@@ -76,7 +76,7 @@ print(f'{n} trusts processed')
 ### Force full reprocess (clears all manifests):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python -c "
 from etp_tracker.run_pipeline import run_pipeline
 from etp_tracker.trusts import get_all_ciks, get_overrides
@@ -111,7 +111,7 @@ After each run, check `outputs/_run_summary.json` for metrics:
 ### After pipeline: sync to webapp DB:
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python -c "
 from webapp.database import SessionLocal, init_db
 from webapp.services.sync_service import seed_trusts, sync_all
@@ -132,7 +132,7 @@ print('DB sync complete')
 ### Daily Bloomberg data update:
 
 1. Scrape Bloomberg for etp_data and stock_data
-2. Save the Excel file as `D:\REX_ETP_TRACKER\data\SCREENER\data.xlsx`
+2. Save the Excel file as `C:\Projects\rexfinhub\data\SCREENER\data.xlsx`
    - Must have two sheets: `stock_data` and `etp_data`
 3. Go to **Admin Panel** > **Score Data** to re-score
 4. View results at `/screener/`
@@ -147,7 +147,7 @@ No upload through the web UI. Place the file directly on disk.
 ### Generate PDF report (local):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python screener/generate_report.py
 ```
 
@@ -156,7 +156,7 @@ Output: `reports/ETF_Launch_Screener_YYYYMMDD.pdf`
 ### Run candidate evaluation (local CLI):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python screener/generate_report.py evaluate SCCO BHP RIO TECK SIL ZETA HBM ERO AMPX
 ```
 
@@ -203,7 +203,7 @@ Output: `reports/Candidate_Evaluation_YYYYMMDD.pdf`
 ### Send from command line (DB-based):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python -c "
 from webapp.database import SessionLocal, init_db
 from etp_tracker.email_alerts import send_digest_from_db
@@ -217,7 +217,7 @@ db.close()
 ### Send from command line (CSV-based, legacy):
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 python -c "
 from etp_tracker.email_alerts import send_digest_email
 from pathlib import Path
@@ -267,7 +267,7 @@ The app auto-deploys on push to `main`.
 ### Push and deploy:
 
 ```powershell
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 git add -A
 git commit -m "your message"
 git push origin main
@@ -280,7 +280,7 @@ git push origin main
 Run PowerShell **as Administrator**, then:
 
 ```powershell
-schtasks /create /tn "ETP_Filing_Tracker" /tr "python D:\REX_ETP_TRACKER\run_daily.py" /sc daily /st 08:00 /f
+schtasks /create /tn "ETP_Filing_Tracker" /tr "python C:\Projects\rexfinhub\run_daily.py" /sc daily /st 08:00 /f
 ```
 
 This runs at 8am daily: pipeline + Excel exports + DB sync + Render upload + email digest.

@@ -7,7 +7,7 @@
 ## New Directory Structure
 
 ```
-REX_ETP_TRACKER/
+rexfinhub/
 │
 ├── etp_tracker/                    # Main application package
 │   │

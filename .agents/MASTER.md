@@ -14,7 +14,7 @@ This Claude Code session is the master orchestrator. You:
 
 ### Folder Structure (Cleaned)
 ```
-D:\REX_ETP_TRACKER\
+C:\Projects\rexfinhub\
 ├── .agents/              # Agent system
 ├── config/               # Configuration files
 │   ├── .env

@@ -234,7 +234,7 @@ outputs/
 ## File Structure (Current)
 
 ```
-REX_ETP_TRACKER/
+rexfinhub/
 ├── etp_tracker/              # Main package
 │   ├── __init__.py
 │   ├── config.py            # Constants ✅ Keep

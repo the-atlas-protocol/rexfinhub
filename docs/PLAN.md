@@ -1,7 +1,7 @@
 # REX Intelligence Hub - Development Plan
 
 **Created**: 2026-02-18
-**Project**: D:\REX_ETP_TRACKER
+**Project**: C:\Projects\rexfinhub
 **Vision**: Transform the ETP Tracker into REX's central intelligence platform
 
 ---
@@ -720,7 +720,7 @@ Add loading skeleton or spinner while trust data loads.
 ## Option B: CLI (Terminal)
 
 ```bash
-cd D:\REX_ETP_TRACKER
+cd C:\Projects\rexfinhub
 
 # Plan both agents' work
 orchestrate plan "Build Market Intelligence module and fix webapp issues per docs/PLAN.md"

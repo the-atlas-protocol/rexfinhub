@@ -5,7 +5,7 @@ Run this script daily at 8am via Windows Task Scheduler.
 It refreshes all trust data, generates Excel files, and sends email digest.
 
 Setup Task Scheduler (run PowerShell as Admin):
-    schtasks /create /tn "ETP_Filing_Tracker" /tr "python D:\\REX_ETP_TRACKER\\scripts\\run_daily.py" /sc daily /st 08:00 /f
+    schtasks /create /tn "ETP_Filing_Tracker" /tr "python C:\\Projects\\rexfinhub\\scripts\\run_daily.py" /sc daily /st 08:00 /f
 
 To run manually:
     python scripts/run_daily.py

@@ -119,7 +119,7 @@ No upload through the web UI. File is placed directly on disk.
 
 ## Environment
 - Python 3.13, no virtualenv (global install)
-- Windows, USB drive D:\REX_ETP_TRACKER
+- Windows, C:\Projects\rexfinhub (synced via Syncthing between desktop and laptop)
 - SEC rate limit: 0.25s pause between requests (10 req/s allowed)
 - No emoji in console output (cp1252 encoding on Windows)
 

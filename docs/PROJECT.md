@@ -117,7 +117,7 @@ Available as:
 ## Project Structure
 
 ```
-REX_ETP_TRACKER/
+rexfinhub/
 |-- etp_tracker/           # SEC filing pipeline
 |   |-- trusts.py          # CIK registry (122 trusts)
 |   |-- run_pipeline.py    # Pipeline orchestrator (step2-5, incremental)
