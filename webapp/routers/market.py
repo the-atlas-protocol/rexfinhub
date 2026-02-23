@@ -225,18 +225,18 @@ def issuer_detail_view(request: Request, issuer: str = Query(default="")):
                 if issuer_col:
                     df = master[master[issuer_col].fillna("").str.strip() == issuer.strip()].copy()
                     if not df.empty:
-                        total_aum = float(df[aum_col].fillna(0).sum()) if aum_col else 0
+                        total_aum = float(df[aum_col].fillna(0).sum()) if aum_col and aum_col in df.columns else 0
 
                         # Category breakdown
-                        if cat_col and aum_col:
+                        if cat_col and aum_col and aum_col in df.columns:
                             cat_grp = df.groupby(cat_col)[aum_col].sum().reset_index()
                             categories = [{"name": r[cat_col], "aum_fmt": fmt(float(r[aum_col]))}
                                          for _, r in cat_grp.sort_values(aum_col, ascending=False).iterrows()]
 
                         # Product list
-                        products_df = df.sort_values(aum_col, ascending=False) if aum_col else df
+                        products_df = df.sort_values(aum_col, ascending=False) if aum_col and aum_col in df.columns else df
                         for _, row in products_df.iterrows():
-                            aum_val = float(row.get(aum_col, 0) or 0) if aum_col else 0
+                            aum_val = float(row.get(aum_col, 0) or 0) if aum_col and aum_col in df.columns else 0
                             products.append({
                                 "ticker": str(row.get("ticker_clean", row.get(ticker_col, ""))),
                                 "fund_name": str(row.get(name_col, "")) if name_col else "",
@@ -245,7 +245,7 @@ def issuer_detail_view(request: Request, issuer: str = Query(default="")):
                                 "is_rex": bool(row.get("is_rex", False)),
                             })
 
-                        is_rex = any(df.get("is_rex", pd.Series(dtype=bool)))
+                        is_rex = bool(df["is_rex"].any()) if "is_rex" in df.columns else False
 
                         issuer_data = {
                             "name": issuer,
@@ -262,19 +262,20 @@ def issuer_detail_view(request: Request, issuer: str = Query(default="")):
                         now = datetime.now()
                         for i in range(12, -1, -1):
                             col_name = f"t_w4.aum_{i}" if i > 0 else aum_col
-                            if col_name and col_name in df.columns:
-                                val = float(df[col_name].fillna(0).sum())
-                                try:
-                                    from dateutil.relativedelta import relativedelta
-                                    dt = now - relativedelta(months=i)
-                                except ImportError:
-                                    from datetime import timedelta
-                                    dt = now - timedelta(days=30 * i)
-                                months_labels.append(dt.strftime("%b %Y"))
-                                months_values.append(round(val, 2))
+                            if not col_name or col_name not in df.columns:
+                                continue
+                            val = float(df[col_name].fillna(0).sum())
+                            try:
+                                from dateutil.relativedelta import relativedelta
+                                dt = now - relativedelta(months=i)
+                            except ImportError:
+                                from datetime import timedelta
+                                dt = now - timedelta(days=30 * i)
+                            months_labels.append(dt.strftime("%b %Y"))
+                            months_values.append(round(val, 2))
                         aum_trend = {"labels": months_labels, "values": months_values}
         except Exception as e:
-            log.error("Issuer detail error: %s", e)
+            log.error("Issuer detail error: %s", e, exc_info=True)
 
     return templates.TemplateResponse("market/issuer_detail.html", {
         "request": request,

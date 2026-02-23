@@ -31,6 +31,22 @@
   {# Right panel — product table #}
   <div class="underlier-products" id="underlierProducts">
     {% if selected_underlier and summary.products %}
+
+    {# KPI card + AUM trend chart #}
+    <div style="display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; align-items:stretch;">
+      <div class="kpi-card" style="flex:0 0 auto; min-width:160px;">
+        <div class="kpi-label">{{ selected_underlier }} AUM</div>
+        <div class="kpi-value">{{ summary.total_underlier_aum_fmt|default('--') }}</div>
+        <div style="font-size:0.75rem; color:#94A3B8; margin-top:4px;">{{ summary.products|length }} products</div>
+      </div>
+      {% if summary.aum_trend is defined and summary.aum_trend and summary.aum_trend.labels %}
+      <div class="chart-box" style="flex:1; min-width:300px; min-height:140px;">
+        <h3 style="margin:0 0 8px 0; font-size:0.85rem;">AUM Trend (12 Months)</h3>
+        <canvas id="underlierAumTrend" height="120"></canvas>
+      </div>
+      {% endif %}
+    </div>
+
     <h2 class="section-title">{{ selected_underlier }} — {{ summary.products|length }} Products</h2>
     <div class="table-responsive">
       <table class="data-table" id="underlierTable">
@@ -81,6 +97,17 @@
 
 {% block market_scripts %}
 <script>
+{% if summary and summary.aum_trend is defined and summary.aum_trend and summary.aum_trend.labels %}
+document.addEventListener('DOMContentLoaded', function() {
+  var aumTrend = {{ summary.aum_trend|tojson }};
+  if (aumTrend && aumTrend.labels && aumTrend.values) {
+    MarketCharts.renderLineChart('underlierAumTrend', aumTrend.labels, [
+      {label: 'AUM', data: aumTrend.values, color: '#1E40AF'}
+    ]);
+  }
+});
+{% endif %}
+
 function selectUnderlier(name) {
   var type = '{{ underlier_type|default("income") }}';
   // AJAX update

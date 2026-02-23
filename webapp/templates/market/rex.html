@@ -11,6 +11,25 @@
 {% include "market/_kpi_cards.html" %}
 {% endwith %}
 
+{# ETF/ETN Filter Toggle #}
+{% if fund_structure is defined %}
+<div class="filter-bar" style="display:flex; gap:8px; margin-bottom:16px; align-items:center;">
+  <span style="font-size:0.75rem; color:#94A3B8; font-weight:600; text-transform:uppercase;">Structure:</span>
+  <a href="?fund_structure=all"
+     class="pill {% if not fund_structure or fund_structure == 'all' %}active{% endif %}">All</a>
+  <a href="?fund_structure=ETF"
+     class="pill {% if fund_structure == 'ETF' %}active{% endif %}">ETF</a>
+  <a href="?fund_structure=ETN"
+     class="pill {% if fund_structure == 'ETN' %}active{% endif %}">ETN</a>
+</div>
+{% else %}
+<div class="product-type-filter">
+  <a href="/market/rex?product_type=All" class="filter-btn {{ 'active' if product_type == 'All' else '' }}">All</a>
+  <a href="/market/rex?product_type=ETF" class="filter-btn {{ 'active' if product_type == 'ETF' else '' }}">ETF</a>
+  <a href="/market/rex?product_type=ETN" class="filter-btn {{ 'active' if product_type == 'ETN' else '' }}">ETN</a>
+</div>
+{% endif %}
+
 {# Charts Row #}
 <div class="charts-row">
   <div class="chart-box">
@@ -36,25 +55,6 @@
   </div>
 </div>
 
-{# ETF/ETN Filter Toggle #}
-{% if fund_structure is defined %}
-<div class="filter-bar" style="display:flex; gap:8px; margin-bottom:16px; align-items:center;">
-  <span style="font-size:0.75rem; color:#94A3B8; font-weight:600; text-transform:uppercase;">Structure:</span>
-  <a href="?fund_structure=all"
-     class="pill {% if not fund_structure or fund_structure == 'all' %}active{% endif %}">All</a>
-  <a href="?fund_structure=ETF"
-     class="pill {% if fund_structure == 'ETF' %}active{% endif %}">ETF</a>
-  <a href="?fund_structure=ETN"
-     class="pill {% if fund_structure == 'ETN' %}active{% endif %}">ETN</a>
-</div>
-{% else %}
-<div class="product-type-filter">
-  <a href="/market/rex?product_type=All" class="filter-btn {{ 'active' if product_type == 'All' else '' }}">All</a>
-  <a href="/market/rex?product_type=ETF" class="filter-btn {{ 'active' if product_type == 'ETF' else '' }}">ETF</a>
-  <a href="/market/rex?product_type=ETN" class="filter-btn {{ 'active' if product_type == 'ETN' else '' }}">ETN</a>
-</div>
-{% endif %}
-
 {# Suite Cards #}
 <h2 class="section-title">REX Suites</h2>
 
@@ -68,8 +68,7 @@
       <th class="sortable" onclick="sortTable('suiteTable', 3)">1M Flow</th>
       <th class="sortable" onclick="sortTable('suiteTable', 4)">Mkt Share</th>
       <th class="sortable" onclick="sortTable('suiteTable', 5)"># Funds</th>
-      <th>4-mo Trend</th>
-      <th>Top Movers</th>
+      <th>Top Mover</th>
     </tr>
   </thead>
   <tbody>
@@ -88,12 +87,11 @@
       <td class="num-cell {{ 'positive' if suite.kpis.flow_1m > 0 else 'negative' if suite.kpis.flow_1m < 0 else '' }}" data-sort="{{ suite.kpis.flow_1m|default(0) }}">{{ suite.kpis.flow_1m_fmt }}</td>
       <td class="num-cell" data-sort="{{ suite.market_share|default(0) }}">{{ suite.market_share }}%</td>
       <td class="num-cell" data-sort="{{ suite.kpis.num_products|default(0) }}">{{ suite.kpis.num_products }}</td>
-      <td style="min-width:90px;"><canvas id="sparkline-{{ suite.short_name|replace(' ', '-') }}" width="88" height="30" class="sparkline-canvas"></canvas></td>
-      <td class="movers-cell">{% for m in suite.top_movers[:3] %}<span class="{{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{{ m.ticker }} {{ m.flow }}</span>{% if not loop.last %} &middot; {% endif %}{% endfor %}</td>
+      <td class="movers-cell">{% for m in suite.top_movers[:1] %}<span class="{{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{{ m.ticker }} {{ m.flow }}</span>{% endfor %}</td>
     </tr>
     <tr class="suite-products-row" id="suite-products-{{ suite.name | replace(' ', '-') | replace('/', '-') | lower }}"
         style="display:none;">
-      <td colspan="8" style="padding:0; background:#F8FAFC;">
+      <td colspan="7" style="padding:0; background:#F8FAFC;">
         <table class="data-table" style="margin:0; border:none; border-radius:0;">
           <thead>
             <tr>
@@ -135,30 +133,74 @@
 {% block market_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
-Chart.register(ChartDataLabels);
-
 document.addEventListener('DOMContentLoaded', function() {
   {% if summary %}
-  // Pie chart - AUM by suite
+  // Pie chart - AUM by suite (register datalabels inline, not globally)
   var pieData = {{ summary.pie_data|tojson }};
-  MarketCharts.renderPieChart('suitesPieChart', pieData.labels, pieData.values);
+  var pieCtx = document.getElementById('suitesPieChart');
+  if (pieCtx) {
+    new Chart(pieCtx, {
+      type: 'doughnut',
+      plugins: [ChartDataLabels],
+      data: {
+        labels: pieData.labels.map(function(l) {
+          return l.replace('Leverage & Inverse - ', 'L&I ')
+                  .replace('Income - ', 'Inc ')
+                  .replace('Index/Basket/ETF Based', 'Index/ETF')
+                  .replace('Single Stock', 'Single');
+        }),
+        datasets: [{
+          data: pieData.values,
+          backgroundColor: ['#1E40AF','#3B82F6','#0EA5E9','#6366F1','#8B5CF6','#A855F7','#EC4899','#F43F5E','#F97316','#EAB308','#22C55E','#14B8A6'].slice(0, pieData.values.length),
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          datalabels: {
+            color: '#fff',
+            font: { weight: 'bold', size: 11 },
+            formatter: function(value, ctx) {
+              var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+              var pct = total > 0 ? (value/total*100).toFixed(1) : 0;
+              var label = ctx.chart.data.labels[ctx.dataIndex];
+              return pct > 3 ? label + '\n' + pct + '%' : pct + '%';
+            },
+            anchor: 'center',
+            align: 'center',
+            display: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+              return total > 0 && ctx.dataset.data[ctx.dataIndex] / total > 0.02;
+            }
+          },
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+                var pct = total > 0 ? (ctx.parsed/total*100).toFixed(1) : 0;
+                return ctx.label + ': $' + (ctx.parsed >= 1000 ? (ctx.parsed/1000).toFixed(1)+'B' : ctx.parsed.toFixed(1)+'M') + ' (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
   {% endif %}
 
   {% if trend %}
-  // Line chart - REX AUM trend
+  // Line chart - REX AUM trend (no datalabels)
   var trendData = {{ trend|tojson }};
   MarketCharts.renderLineChart('rexTrendChart', trendData.labels, [
     {label: 'REX AUM', data: trendData.values, color: '#1E40AF'}
   ]);
-  {% endif %}
-
-  // Sparklines
-  {% if summary %}
-  {% for suite in summary.suites %}
-  {% if suite.sparkline_data %}
-  MarketCharts.renderSparkline('sparkline-{{ suite.short_name|replace(" ", "-") }}', {{ suite.sparkline_data|tojson }});
-  {% endif %}
-  {% endfor %}
   {% endif %}
 });
 

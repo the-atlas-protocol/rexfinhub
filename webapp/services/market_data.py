@@ -544,7 +544,7 @@ def get_treemap_data(category: str | None = None) -> dict:
             products.append({
                 "label": str(row.get("ticker_clean", row.get("ticker", ""))),
                 "value": round(aum, 2),
-                "group": str(row.get("category_display", "Other")),
+                "group": str(row.get("issuer_display", "Other")),
                 "is_rex": bool(row.get("is_rex", False)),
                 "ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
                 "fund_name": str(row.get("fund_name", "")),
@@ -570,7 +570,7 @@ def get_issuer_summary(category: str | None = None, fund_structure: str | None =
     """Return per-issuer AUM, flows, product count, market share."""
     df = get_master_data()
     if category and category != "All":
-        df = df[df["category_display"] == category].copy()
+        df = df[df["category_display"].str.strip() == category].copy()
     else:
         df = df[df["category_display"].notna()].copy()
 
@@ -711,6 +711,7 @@ def get_issuer_share(cat: str) -> dict:
     top_5_issuers = [i["name"] for i in issuers[:5]]
     ts = get_time_series_df()
     trend = {"months": [], "series": []}
+    pct_trend = {"months": [], "series": []}
     if not ts.empty and "date" in ts.columns and "issuer_display" in ts.columns:
         ts_cat = ts[ts["category_display"] == cat].copy() if cat else ts.copy()
         ts_cat = ts_cat.dropna(subset=["date", "issuer_display"])
@@ -720,15 +721,26 @@ def get_issuer_share(cat: str) -> dict:
                 dates = dates[-12:]
             ts_cat = ts_cat[ts_cat["date"].isin(dates)]
             trend["months"] = [d.strftime("%b %Y") for d in dates]
+            pct_trend["months"] = trend["months"]
+            # Compute date totals for percentage calculation
+            date_totals = ts_cat.groupby("date")["aum_value"].sum()
             for issuer_name in top_5_issuers:
                 issuer_ts = ts_cat[ts_cat["issuer_display"] == issuer_name]
                 values = []
+                pct_values = []
                 for d in dates:
                     val = float(issuer_ts[issuer_ts["date"] == d]["aum_value"].sum())
                     values.append(round(val, 2))
+                    dt_total = float(date_totals.get(d, 1.0))
+                    pct_values.append(round(val / dt_total * 100, 1) if dt_total > 0 else 0.0)
                 trend["series"].append({
                     "issuer": issuer_name,
                     "values": values,
+                    "is_rex": issuer_name in rex_issuers,
+                })
+                pct_trend["series"].append({
+                    "issuer": issuer_name,
+                    "values": pct_values,
                     "is_rex": issuer_name in rex_issuers,
                 })
 
@@ -738,6 +750,7 @@ def get_issuer_share(cat: str) -> dict:
         "total_aum_fmt": _fmt_currency(total_aum),
         "issuers": issuers,
         "trend": trend,
+        "pct_trend": pct_trend,
     }
 
 
@@ -833,7 +846,36 @@ def get_underlier_summary(underlier_type: str = "income", underlier: str | None 
                 "num_rex": int(grp["is_rex"].sum()),
             })
         underliers_list.sort(key=lambda x: x["num_products"], reverse=True)
-        return {"underliers": underliers_list, "products": products, "underlier_type": underlier_type, "selected": underlier}
+
+        # 12-month AUM trend for this underlier
+        aum_trend_labels = []
+        aum_trend_values = []
+        now = _dt.now()
+        for i in range(12, 0, -1):
+            col_name = f"t_w4.aum_{i}"
+            if col_name in sub.columns:
+                val = float(sub[col_name].fillna(0).sum())
+                try:
+                    from dateutil.relativedelta import relativedelta
+                    dt = now - relativedelta(months=i)
+                except ImportError:
+                    from datetime import timedelta
+                    dt = now - timedelta(days=30 * i)
+                aum_trend_labels.append(dt.strftime("%b %Y"))
+                aum_trend_values.append(round(val, 2))
+        # Current month
+        if "t_w4.aum" in sub.columns:
+            aum_trend_labels.append(now.strftime("%b %Y"))
+            aum_trend_values.append(round(total_underlier_aum, 2))
+
+        return {
+            "underliers": underliers_list,
+            "products": products,
+            "underlier_type": underlier_type,
+            "selected": underlier,
+            "aum_trend": {"labels": aum_trend_labels, "values": aum_trend_values},
+            "total_underlier_aum_fmt": _fmt_currency(total_underlier_aum),
+        }
 
 
 #  Time Series

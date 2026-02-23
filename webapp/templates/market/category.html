@@ -18,9 +18,9 @@
   </button>
   {% endfor %}
   {% elif categories is defined %}
-  <a href="/market/category?cat=All" class="pill {{ 'active' if (category is not defined or category == 'All') else '' }}">All</a>
+  <a href="/market/category?cat=All&fund_structure={{ fund_structure|default('all') }}" class="pill {{ 'active' if (category is not defined or category == 'All') else '' }}">All</a>
   {% for c in categories %}
-  <a href="/market/category?cat={{ c|urlencode }}" class="pill {{ 'active' if category == c else '' }}">{{ c }}</a>
+  <a href="/market/category?cat={{ c|urlencode }}&fund_structure={{ fund_structure|default('all') }}" class="pill {{ 'active' if category == c else '' }}">{{ c }}</a>
   {% endfor %}
   {% endif %}
 </div>

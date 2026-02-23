@@ -15,7 +15,26 @@ var MarketCharts = (function() {
   ];
 
   var REX_COLOR = '#1E40AF';
-  var GRAY_COLOR = '#D1D5DB';
+  var DEFAULT_BAR_COLOR = '#93C5FD';
+
+  // Track chart instances for theme updates
+  var _charts = {};
+
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function getChartThemeColors() {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+      gridColor: isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6',
+      labelColor: isDark ? '#94a3b8' : '#6b7280',
+      tooltipBg: isDark ? '#1e293b' : '#fff',
+      tooltipText: isDark ? '#e2e8f0' : '#1e293b',
+      borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#fff',
+      pieBorder: isDark ? '#1e293b' : '#fff'
+    };
+  }
 
   function fmtMoney(val) {
     if (val === null || val === undefined || isNaN(val)) return '$0';
@@ -28,6 +47,7 @@ var MarketCharts = (function() {
   function renderPieChart(canvasId, labels, values) {
     var ctx = document.getElementById(canvasId);
     if (!ctx) return null;
+    var theme = getChartThemeColors();
 
     // Shorten labels for display
     var shortLabels = labels.map(function(l) {
@@ -37,7 +57,7 @@ var MarketCharts = (function() {
               .replace('Single Stock', 'Single');
     });
 
-    return new Chart(ctx, {
+    var chart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: shortLabels,
@@ -45,9 +65,10 @@ var MarketCharts = (function() {
           data: values,
           backgroundColor: SUITE_COLORS.slice(0, values.length),
           borderWidth: 2,
-          borderColor: '#fff'
+          borderColor: theme.pieBorder
         }]
       },
+      plugins: [ChartDataLabels],
       options: {
         responsive: true,
         maintainAspectRatio: true,
@@ -73,7 +94,8 @@ var MarketCharts = (function() {
             position: 'bottom',
             labels: {
               boxWidth: 12,
-              font: { size: 11 }
+              font: { size: 11 },
+              color: theme.labelColor
             }
           },
           tooltip: {
@@ -88,14 +110,14 @@ var MarketCharts = (function() {
         }
       }
     });
+    _charts[canvasId] = chart;
+    return chart;
   }
 
   function renderLineChart(canvasId, labels, datasets) {
     var ctx = document.getElementById(canvasId);
     if (!ctx) return null;
-
-    // Show fewer labels if many data points
-    var skipLabels = labels.length > 24 ? 3 : (labels.length > 12 ? 2 : 1);
+    var theme = getChartThemeColors();
 
     var chartDatasets = datasets.map(function(ds) {
       return {
@@ -111,7 +133,7 @@ var MarketCharts = (function() {
       };
     });
 
-    return new Chart(ctx, {
+    var chart = new Chart(ctx, {
       type: 'line',
       data: { labels: labels, datasets: chartDatasets },
       options: {
@@ -124,22 +146,29 @@ var MarketCharts = (function() {
               maxRotation: 45,
               autoSkip: true,
               maxTicksLimit: 12,
-              font: { size: 10 }
+              font: { size: 10 },
+              color: theme.labelColor
             },
             grid: { display: false }
           },
           y: {
             ticks: {
               callback: function(val) { return fmtMoney(val); },
-              font: { size: 10 }
+              font: { size: 10 },
+              color: theme.labelColor
             },
-            grid: { color: '#f3f4f6' }
+            grid: { color: theme.gridColor }
           }
         },
         plugins: {
+          datalabels: { display: false },
           legend: {
             display: datasets.length > 1,
-            labels: { font: { size: 11, family: "'Inter', sans-serif" }, usePointStyle: true }
+            labels: {
+              font: { size: 11, family: "'Inter', sans-serif" },
+              usePointStyle: true,
+              color: theme.labelColor
+            }
           },
           tooltip: {
             callbacks: {
@@ -151,24 +180,34 @@ var MarketCharts = (function() {
         }
       }
     });
+    _charts[canvasId] = chart;
+    return chart;
   }
 
   function renderBarChart(canvasId, labels, values, isRex) {
     var ctx = document.getElementById(canvasId);
     if (!ctx) return null;
+    var theme = getChartThemeColors();
 
     var colors = labels.map(function(_, i) {
-      return isRex[i] ? REX_COLOR : GRAY_COLOR;
+      return isRex[i] ? REX_COLOR : DEFAULT_BAR_COLOR;
+    });
+    var borderWidths = labels.map(function(_, i) {
+      return isRex[i] ? 2 : 0;
+    });
+    var borderColors = labels.map(function(_, i) {
+      return isRex[i] ? '#1E3A8A' : 'transparent';
     });
 
-    return new Chart(ctx, {
+    var chart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [{
           data: values,
           backgroundColor: colors,
-          borderWidth: 0,
+          borderWidth: borderWidths,
+          borderColor: borderColors,
           borderRadius: 3
         }]
       },
@@ -180,18 +219,21 @@ var MarketCharts = (function() {
           x: {
             ticks: {
               callback: function(val) { return fmtMoney(val); },
-              font: { size: 10 }
+              font: { size: 10 },
+              color: theme.labelColor
             },
-            grid: { color: '#f3f4f6' }
+            grid: { color: theme.gridColor }
           },
           y: {
             ticks: {
-              font: { size: 10, family: "'Inter', sans-serif" }
+              font: { size: 10, family: "'Inter', sans-serif" },
+              color: theme.labelColor
             },
             grid: { display: false }
           }
         },
         plugins: {
+          datalabels: { display: false },
           legend: { display: false },
           tooltip: {
             callbacks: {
@@ -203,6 +245,8 @@ var MarketCharts = (function() {
         }
       }
     });
+    _charts[canvasId] = chart;
+    return chart;
   }
 
   function renderTreemap(canvasId, products) {
@@ -217,7 +261,7 @@ var MarketCharts = (function() {
     });
     groups.forEach(function(g, i) { groupColors[g] = palette[i % palette.length]; });
 
-    return new Chart(ctx, {
+    var chart = new Chart(ctx, {
       type: 'treemap',
       data: {
         datasets: [{
@@ -240,6 +284,7 @@ var MarketCharts = (function() {
       },
       options: {
         plugins: {
+          datalabels: { display: false },
           tooltip: {
             callbacks: {
               title: function(items) { return items[0].raw._data ? items[0].raw._data.label : ''; },
@@ -254,11 +299,14 @@ var MarketCharts = (function() {
         }
       }
     });
+    _charts[canvasId] = chart;
+    return chart;
   }
 
   function renderShareTimeline(canvasId, data) {
     var ctx = document.getElementById(canvasId);
     if (!ctx || !data || !data.series) return null;
+    var theme = getChartThemeColors();
     var palette = ['#1E40AF','#DC2626','#059669','#D97706','#7C3AED','#DB2777','#0891B2'];
     var datasets = data.series.map(function(s, i) {
       return {
@@ -271,31 +319,45 @@ var MarketCharts = (function() {
         borderWidth: 2
       };
     });
-    return new Chart(ctx, {
+    var chart = new Chart(ctx, {
       type: 'line',
       data: { labels: data.labels, datasets: datasets },
       options: {
         responsive: true,
         interaction: { mode: 'index', intersect: false },
         scales: {
+          x: {
+            ticks: { color: theme.labelColor },
+            grid: { display: false }
+          },
           y: {
-            title: { display: true, text: 'Market Share (%)' },
-            ticks: { callback: function(v) { return v + '%'; } },
+            title: { display: true, text: 'Market Share (%)', color: theme.labelColor },
+            ticks: {
+              callback: function(v) { return v + '%'; },
+              color: theme.labelColor
+            },
+            grid: { color: theme.gridColor },
             min: 0
           }
         },
         plugins: {
+          datalabels: { display: false },
           tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + c.parsed.y + '%'; } } },
-          legend: { position: 'bottom' }
+          legend: {
+            position: 'bottom',
+            labels: { color: theme.labelColor }
+          }
         }
       }
     });
+    _charts[canvasId] = chart;
+    return chart;
   }
 
   function renderSparkline(canvasId, values) {
     var ctx = document.getElementById(canvasId);
     if (!ctx || !values || values.length === 0) return null;
-    return new Chart(ctx, {
+    var chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: values.map(function() { return ''; }),
@@ -305,11 +367,49 @@ var MarketCharts = (function() {
         responsive: true,
         maintainAspectRatio: false,
         scales: { x: { display: false }, y: { display: false } },
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
         animation: { duration: 0 }
       }
     });
+    _charts[canvasId] = chart;
+    return chart;
   }
+
+  // Update all tracked charts when theme changes
+  function updateChartsForTheme() {
+    var theme = getChartThemeColors();
+    Object.keys(_charts).forEach(function(id) {
+      var chart = _charts[id];
+      if (!chart || !chart.options) return;
+      var opts = chart.options;
+
+      // Update scale colors
+      if (opts.scales) {
+        ['x', 'y'].forEach(function(axis) {
+          if (opts.scales[axis]) {
+            if (opts.scales[axis].ticks) opts.scales[axis].ticks.color = theme.labelColor;
+            if (opts.scales[axis].grid) opts.scales[axis].grid.color = theme.gridColor;
+            if (opts.scales[axis].title) opts.scales[axis].title.color = theme.labelColor;
+          }
+        });
+      }
+
+      // Update legend label colors
+      if (opts.plugins && opts.plugins.legend && opts.plugins.legend.labels) {
+        opts.plugins.legend.labels.color = theme.labelColor;
+      }
+
+      // Update pie border colors
+      if (chart.config.type === 'doughnut' || chart.config.type === 'pie') {
+        chart.data.datasets.forEach(function(ds) { ds.borderColor = theme.pieBorder; });
+      }
+
+      chart.update('none');
+    });
+  }
+
+  // Listen for theme changes
+  window.addEventListener('rex-theme-change', updateChartsForTheme);
 
   return {
     renderPieChart: renderPieChart,
@@ -317,7 +417,8 @@ var MarketCharts = (function() {
     renderBarChart: renderBarChart,
     renderTreemap: renderTreemap,
     renderShareTimeline: renderShareTimeline,
-    renderSparkline: renderSparkline
+    renderSparkline: renderSparkline,
+    updateChartsForTheme: updateChartsForTheme
   };
 })();
 
@@ -415,7 +516,7 @@ var MarketFilters = (function() {
       window._issuerChart.data.labels = data.issuer_data.labels;
       window._issuerChart.data.datasets[0].data = data.issuer_data.values;
       window._issuerChart.data.datasets[0].backgroundColor = data.issuer_data.labels.map(function(_, i) {
-        return data.issuer_data.is_rex[i] ? '#1E40AF' : '#D1D5DB';
+        return data.issuer_data.is_rex[i] ? '#1E40AF' : '#93C5FD';
       });
       window._issuerChart.update();
     }
@@ -511,32 +612,3 @@ var MarketFilters = (function() {
     filterProductTable: filterProductTable
   };
 })();
-
-
-// ---------------------------------------------------------------------------
-// Table sorting utility
-// ---------------------------------------------------------------------------
-function sortTable(tableId, colIdx) {
-  var table = document.getElementById(tableId);
-  if (!table) return;
-  var tbody = table.querySelector('tbody');
-  if (!tbody) return;
-  var rows = Array.from(tbody.querySelectorAll('tr'));
-  var asc = table.getAttribute('data-sort-col') == colIdx && table.getAttribute('data-sort-dir') !== 'asc';
-  table.setAttribute('data-sort-col', colIdx);
-  table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
-
-  rows.sort(function(a, b) {
-    var aText = (a.cells[colIdx] ? a.cells[colIdx].textContent.trim() : '');
-    var bText = (b.cells[colIdx] ? b.cells[colIdx].textContent.trim() : '');
-    // Try numeric compare (strip $, %, +, commas)
-    var aNum = parseFloat(aText.replace(/[$%+,BMK]/g, ''));
-    var bNum = parseFloat(bText.replace(/[$%+,BMK]/g, ''));
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      return asc ? aNum - bNum : bNum - aNum;
-    }
-    return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
-  });
-
-  rows.forEach(function(row) { tbody.appendChild(row); });
-}

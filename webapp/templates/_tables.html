@@ -1,0 +1,98 @@
+{# =========================================================================
+   STANDARDIZED TABLE SYSTEM - REX Financial Intelligence Hub
+   =========================================================================
+
+   Import this file at the top of any template that needs tables:
+
+     {% from "_tables.html" import data_table, td_num, td_flow, td_ticker,
+        td_name, td_date, td_rex %}
+
+   USAGE:
+     {% call(row) data_table(id='myTable', headers=[
+         {'label': 'Ticker', 'sort': true, 'type': 'text'},
+         {'label': 'AUM', 'sort': true, 'type': 'num'},
+     ]) %}
+       <tr>
+         <td class="rt-ticker">{{ row.ticker }}</td>
+         <td class="rt-num">{{ row.aum_fmt }}</td>
+       </tr>
+     {% endcall %}
+
+   COLUMN TYPES (for alignment):
+     'text'   - left-aligned (default)
+     'num'    - right-aligned, mono font
+     'center' - center-aligned
+     'ticker' - mono font, left-aligned, 600 weight
+
+   RULES:
+     - Every new table SHOULD use this macro or the rt-* CSS classes.
+     - Sort is handled by table-sort.js (one implementation).
+     - Sticky headers are built in.
+     - REX highlighting: add class="rt-rex" to <tr> elements.
+   ========================================================================= #}
+
+{# ---- FULL TABLE WRAPPER ---- #}
+{% macro data_table(id, headers, class='', sticky=true, rex_border=false) %}
+<div class="rt-wrap">
+  <table class="rt-table{% if class %} {{ class }}{% endif %}{% if rex_border %} rt-rex-border{% endif %}"
+         id="{{ id }}"
+         {% if sticky %}data-sticky="true"{% endif %}>
+    <thead>
+      <tr>
+        {% for h in headers %}
+        <th class="rt-th rt-{{ h.type|default('text') }}{% if h.sort|default(false) %} rt-sortable{% endif %}"
+            {% if h.sort|default(false) %}data-sort-col="{{ loop.index0 }}" data-sort-type="{{ h.type|default('text') }}"{% endif %}
+            {% if h.width is defined %}style="width:{{ h.width }}"{% endif %}>
+          {{ h.label }}
+          {% if h.sort|default(false) %}
+          <span class="rt-sort-icon"></span>
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {{ caller() }}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+
+{# ---- INDIVIDUAL CELL MACROS ---- #}
+
+{% macro td_num(value, fallback='-') %}
+<td class="rt-num">{{ value if value is not none and value != '' else fallback }}</td>
+{% endmacro %}
+
+{% macro td_flow(value, formatted, fallback='-') %}
+<td class="rt-num{% if value is not none and value > 0 %} rt-flow-pos{% elif value is not none and value < 0 %} rt-flow-neg{% endif %}">
+  {{ formatted if formatted else fallback }}
+</td>
+{% endmacro %}
+
+{% macro td_ticker(value) %}
+<td class="rt-ticker">{{ value }}</td>
+{% endmacro %}
+
+{% macro td_name(value, max_width=280) %}
+<td class="rt-name" style="max-width:{{ max_width }}px;" title="{{ value }}">{{ value }}</td>
+{% endmacro %}
+
+{% macro td_date(value, fallback='--') %}
+<td class="rt-date">
+  {% if value and value is not none %}
+    {% if value is string %}{{ value }}{% else %}{{ value.strftime('%b %d, %Y') }}{% endif %}
+  {% else %}{{ fallback }}{% endif %}
+</td>
+{% endmacro %}
+
+{% macro td_rex(is_rex) %}
+<td class="rt-center">
+  {% if is_rex %}<span class="rt-rex-badge">REX</span>{% endif %}
+</td>
+{% endmacro %}
+
+{% macro td_rank(value) %}
+<td class="rt-rank">{{ value }}</td>
+{% endmacro %}

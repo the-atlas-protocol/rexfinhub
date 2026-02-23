@@ -29,6 +29,11 @@ def _already_subscribed(email: str) -> bool:
     return email.lower() in content.lower()
 
 
+@router.get("/")
+def digest_index():
+    return RedirectResponse("/digest/subscribe", status_code=302)
+
+
 @router.get("/subscribe")
 def subscribe_page(request: Request):
     """Show the digest subscription form."""

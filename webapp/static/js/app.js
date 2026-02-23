@@ -1,5 +1,82 @@
 // ETP Filing Tracker - REX Financial
 
+// ---------------------------------------------------------------------------
+// Theme management
+// ---------------------------------------------------------------------------
+(function() {
+  'use strict';
+
+  function getPreferredTheme() {
+    var stored = localStorage.getItem('rex-theme');
+    if (stored) return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('rex-theme', theme);
+    // Update meta theme-color for mobile browsers
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f1923' : '#0f1923');
+    // Dispatch event for chart updates
+    window.dispatchEvent(new CustomEvent('rex-theme-change', { detail: { theme: theme } }));
+  }
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
+  // Expose for external use
+  window.RexTheme = {
+    get: getPreferredTheme,
+    apply: applyTheme,
+    toggle: toggleTheme,
+    isDark: function() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  };
+
+  // Theme toggle button
+  document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('themeToggle');
+    if (btn) btn.addEventListener('click', toggleTheme);
+  });
+
+  // Listen for OS theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    if (!localStorage.getItem('rex-theme')) {
+      applyTheme(e.matches ? 'dark' : 'light');
+    }
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// Hamburger menu
+// ---------------------------------------------------------------------------
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var hamburger = document.getElementById('hamburger');
+    var navLinks = document.getElementById('navLinks');
+    if (!hamburger || !navLinks) return;
+
+    hamburger.addEventListener('click', function() {
+      hamburger.classList.toggle('open');
+      navLinks.classList.toggle('open');
+    });
+
+    // Close menu when a link is clicked
+    navLinks.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        hamburger.classList.remove('open');
+        navLinks.classList.remove('open');
+      });
+    });
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// Trust/filing utilities
+// ---------------------------------------------------------------------------
+
 // Toggle trust accordion
 function toggleTrust(el) {
   el.parentElement.classList.toggle('open');
@@ -76,45 +153,6 @@ function globalSearch(query) {
     }
   });
 }
-
-// Column sorting with sort indicators
-function sortTable(tableId, colIdx) {
-  var table = document.getElementById(tableId);
-  if (!table) return;
-  var tbody = table.querySelector('tbody');
-  var rows = Array.from(tbody.querySelectorAll('tr'));
-  var asc = table.getAttribute('data-sort-dir') !== 'asc' || parseInt(table.getAttribute('data-sort-col')) !== colIdx;
-  table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
-  table.setAttribute('data-sort-col', colIdx);
-
-  rows.sort(function(a, b) {
-    var aVal = a.cells[colIdx] ? a.cells[colIdx].textContent.trim() : '';
-    var bVal = b.cells[colIdx] ? b.cells[colIdx].textContent.trim() : '';
-    var aNum = parseFloat(aVal.replace(/[,$%B]/g, ''));
-    var bNum = parseFloat(bVal.replace(/[,$%B]/g, ''));
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      return asc ? aNum - bNum : bNum - aNum;
-    }
-    return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-  });
-  rows.forEach(function(row) { tbody.appendChild(row); });
-
-  // Update header sort indicators
-  var ths = table.querySelectorAll('th');
-  ths.forEach(function(th, i) {
-    th.classList.remove('sorted-asc', 'sorted-desc');
-    if (i === colIdx) {
-      th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
-    }
-  });
-}
-
-// Mark sortable headers on page load
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('th[onclick*="sortTable"]').forEach(function(th) {
-    th.classList.add('sortable');
-  });
-});
 
 // Back to top visibility
 window.addEventListener('scroll', function() {

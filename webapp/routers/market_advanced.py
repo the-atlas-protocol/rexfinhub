@@ -2,13 +2,14 @@
 Advanced Market Intelligence routes.
 
 Routes:
-  GET /market/timeline   -> Fund Lifecycle Timeline (per-trust filing history)
   GET /market/calendar   -> Compliance Calendar (upcoming extensions, recent effectivities)
   GET /market/compare    -> Fund Comparison (side-by-side ticker comparison)
 """
 from __future__ import annotations
 
+import calendar as cal_mod
 import logging
+from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -24,72 +25,19 @@ router = APIRouter(prefix="/market", tags=["market-advanced"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
-@router.get("/timeline")
-def timeline_view(
-    request: Request,
-    trust_id: int = Query(default=None),
-    db: Session = Depends(get_db),
-):
-    """Fund Lifecycle Timeline - shows filing history for a selected trust."""
-    from webapp.models import Trust, Filing, FundExtraction
-
-    trusts = db.execute(select(Trust).order_by(Trust.name)).scalars().all()
-
-    timeline_items = []
-    selected_trust = None
-
-    if trust_id:
-        selected_trust = db.get(Trust, trust_id)
-        if selected_trust:
-            filings = db.execute(
-                select(Filing)
-                .where(Filing.trust_id == trust_id)
-                .where(Filing.form.in_(["485BPOS", "485BXT", "485APOS", "N-14"]))
-                .order_by(desc(Filing.filing_date))
-                .limit(200)
-            ).scalars().all()
-
-            for filing in filings:
-                extractions = db.execute(
-                    select(FundExtraction)
-                    .where(FundExtraction.filing_id == filing.id)
-                    .limit(10)
-                ).scalars().all()
-
-                # Get effective date from first extraction if available
-                eff_date = None
-                for ext in extractions:
-                    if ext.effective_date:
-                        eff_date = ext.effective_date
-                        break
-
-                timeline_items.append({
-                    "filing": filing,
-                    "extractions": extractions,
-                    "fund_count": len(extractions),
-                    "effective_date": eff_date,
-                })
-
-    return templates.TemplateResponse("market/timeline.html", {
-        "request": request,
-        "active_tab": "timeline",
-        "available": True,
-        "trusts": trusts,
-        "selected_trust": selected_trust,
-        "trust_id": trust_id,
-        "timeline_items": timeline_items,
-    })
-
-
 @router.get("/calendar")
 def calendar_view(
     request: Request,
     db: Session = Depends(get_db),
+    month: int = Query(default=None),
+    year: int = Query(default=None),
 ):
     """Compliance Calendar - recent fund launches and upcoming effective events."""
     from webapp.models import Trust, Filing, FundExtraction
 
     today = date.today()
+    cal_month = month if month and 1 <= month <= 12 else today.month
+    cal_year = year if year else today.year
     cutoff_90 = today - timedelta(days=90)
     cutoff_60_ahead = today + timedelta(days=60)
 
@@ -128,6 +76,7 @@ def calendar_view(
             "filing": filing,
             "trust": trust,
             "days_since": days_since,
+            "effective_date": extraction.effective_date,
         })
 
     seen_upcoming = set()
@@ -143,7 +92,61 @@ def calendar_view(
             "trust": trust,
             "days_until": days_until,
             "urgency": urgency,
+            "effective_date": extraction.effective_date,
         })
+
+    # Build calendar grid: events_by_date for the selected month
+    events_by_date = defaultdict(list)
+    for item in recent_launches:
+        eff = item.get("effective_date")
+        if eff and eff.year == cal_year and eff.month == cal_month:
+            trust_name = item["trust"].name if item["trust"] else ""
+            events_by_date[eff.day].append({
+                "type": "launch",
+                "label": trust_name[:20],
+                "trust": trust_name,
+                "form": item["filing"].form if item.get("filing") else "",
+            })
+    for item in upcoming_classified:
+        eff = item.get("effective_date")
+        if eff and eff.year == cal_year and eff.month == cal_month:
+            trust_name = item["trust"].name if item["trust"] else ""
+            events_by_date[eff.day].append({
+                "type": "upcoming",
+                "label": trust_name[:20],
+                "trust": trust_name,
+                "form": item["filing"].form if item.get("filing") else "",
+                "urgency": item["urgency"],
+            })
+
+    # Build weeks grid (list of 7-element arrays, None for empty cells)
+    first_weekday, num_days = cal_mod.monthrange(cal_year, cal_month)
+    weeks = []
+    current_week = [None] * first_weekday
+    for day in range(1, num_days + 1):
+        current_week.append({
+            "day": day,
+            "events": events_by_date.get(day, []),
+            "is_today": (day == today.day and cal_month == today.month and cal_year == today.year),
+        })
+        if len(current_week) == 7:
+            weeks.append(current_week)
+            current_week = []
+    if current_week:
+        current_week.extend([None] * (7 - len(current_week)))
+        weeks.append(current_week)
+
+    # Prev/next month navigation
+    if cal_month == 1:
+        prev_month, prev_year = 12, cal_year - 1
+    else:
+        prev_month, prev_year = cal_month - 1, cal_year
+    if cal_month == 12:
+        next_month, next_year = 1, cal_year + 1
+    else:
+        next_month, next_year = cal_month + 1, cal_year
+
+    month_name = cal_mod.month_name[cal_month]
 
     return templates.TemplateResponse("market/calendar.html", {
         "request": request,
@@ -152,6 +155,14 @@ def calendar_view(
         "today": today,
         "recent_launches": recent_launches,
         "upcoming": upcoming_classified,
+        "weeks": weeks,
+        "month_name": month_name,
+        "cal_month": cal_month,
+        "cal_year": cal_year,
+        "prev_month": prev_month,
+        "prev_year": prev_year,
+        "next_month": next_month,
+        "next_year": next_year,
     })
 
 
@@ -161,6 +172,7 @@ def compare_view(
     tickers: str = Query(default=""),
 ):
     """Fund Comparison - side-by-side comparison of up to 4 tickers."""
+    import pandas as pd
     from webapp.services.market_data import get_master_data, data_available, _fmt_currency, _fmt_flow
 
     available = data_available()
@@ -210,7 +222,7 @@ def compare_view(
                             "flows": flows,
                             "flows_fmt": {k: _fmt_flow(v) for k, v in flows.items()},
                             "aum_fmt": _fmt_currency(float(r.get(aum_col, 0) or 0)),
-                            "inception_date": str(r.get("inception_date", "")) if r.get("inception_date") else "",
+                            "inception_date_fmt": pd.Timestamp(r.get("inception_date")).strftime("%b %d, %Y") if r.get("inception_date") is not None and not (isinstance(r.get("inception_date"), float) and pd.isna(r.get("inception_date"))) else "",
                         })
 
             # Build totalrealreturns URL

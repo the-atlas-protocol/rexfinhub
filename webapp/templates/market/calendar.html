@@ -1,21 +1,76 @@
 {% set active_tab = 'calendar' %}
 {% extends "market/base.html" %}
 
-{% block title %}Fund Activity — REX Financial Intelligence Hub{% endblock %}
+{% block title %}Fund Activity -- REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
-<h2 class="section-title">Fund Activity</h2>
+<h2 class="section-title">Fund Activity Calendar</h2>
 <p style="color:#64748B; font-size:0.85rem; margin-bottom:24px;">
   Recent fund launches (485BPOS effective dates) and upcoming filing events.
   Effective date = the date a fund is eligible to begin trading.
 </p>
+
+{# Month-Grid Calendar #}
+{% if weeks is defined and weeks %}
+<div style="margin-bottom:24px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+    <a href="/market/calendar?month={{ prev_month }}&year={{ prev_year }}" class="btn btn-sm" style="padding:4px 12px;">&larr; Prev</a>
+    <h3 style="margin:0; font-size:1.1rem;">{{ month_name }}</h3>
+    <a href="/market/calendar?month={{ next_month }}&year={{ next_year }}" class="btn btn-sm" style="padding:4px 12px;">Next &rarr;</a>
+  </div>
+
+  <div class="cal-grid">
+    <div class="cal-header">Sun</div>
+    <div class="cal-header">Mon</div>
+    <div class="cal-header">Tue</div>
+    <div class="cal-header">Wed</div>
+    <div class="cal-header">Thu</div>
+    <div class="cal-header">Fri</div>
+    <div class="cal-header">Sat</div>
+
+    {% for week in weeks %}
+    {% for day in week %}
+    {% if day %}
+    <div class="cal-cell {{ 'cal-today' if day.is_today else '' }} {{ 'cal-has-events' if day.events else '' }}"
+         {% if day.events %}onclick="showCalEvents({{ day.day }})"{% endif %}>
+      <span class="cal-day-num">{{ day.day }}</span>
+      {% if day.events %}
+      {% for ev in day.events[:2] %}
+      <span class="cal-event-badge {{ 'cal-event-launch' if ev.type == 'launch' else 'cal-event-upcoming' }}">
+        {{ ev.label|truncate(14, true) }}
+      </span>
+      {% endfor %}
+      {% if day.events|length > 2 %}
+      <span style="font-size:0.6rem; color:#94A3B8;">+{{ day.events|length - 2 }} more</span>
+      {% endif %}
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="cal-cell cal-empty"></div>
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+{# Event detail popup (hidden by default) #}
+<div id="calEventPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card-bg, #fff); border:1px solid var(--gray-200, #E2E8F0); border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,0.15); padding:20px; z-index:1000; max-width:500px; width:90%; color:var(--text-primary, #1e293b);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 id="calPopupTitle" style="margin:0; font-size:1rem;"></h3>
+    <button onclick="document.getElementById('calEventPopup').style.display='none'; document.getElementById('calOverlay').style.display='none';"
+            style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#94A3B8;">&times;</button>
+  </div>
+  <div id="calPopupBody"></div>
+</div>
+<div id="calOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); z-index:999;"
+     onclick="document.getElementById('calEventPopup').style.display='none'; this.style.display='none';"></div>
+{% endif %}
 
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
   {# --- Recent Launches --- #}
   <div class="chart-box">
     <div class="chart-title" style="color:#059669;">Recent Launches (Last 90 Days)</div>
     {% if recent_launches is defined and recent_launches %}
-    {# New backend structure: recent_launches with filing.effective_date and days_since #}
     <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
@@ -37,7 +92,7 @@
             {% elif item.effective_date is defined and item.effective_date %}
               {{ item.effective_date.strftime('%b %d, %Y') }}
             {% else %}
-              —
+              --
             {% endif %}
           </td>
           <td>
@@ -53,7 +108,6 @@
       </tbody>
     </table>
     {% elif recently_effective is defined and recently_effective %}
-    {# Fallback: old backend structure with recently_effective #}
     <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
@@ -69,7 +123,7 @@
             {{ item.trust.name }}
           </td>
           <td class="text-mono" style="white-space:nowrap;">
-            {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '—' }}
+            {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '--' }}
           </td>
           <td>
             <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
@@ -112,12 +166,12 @@
             {% elif item.effective_date is defined and item.effective_date %}
               {{ item.effective_date.strftime('%b %d, %Y') }}
             {% else %}
-              —
+              --
             {% endif %}
           </td>
           <td>
             <span class="urgency-badge urgency-{{ item.urgency }}">
-              {% if item.days_until is not none %}{{ item.days_until }}d{% else %}&mdash;{% endif %}
+              {% if item.days_until is not none %}{{ item.days_until }}d{% else %}--{% endif %}
             </span>
           </td>
         </tr>
@@ -132,4 +186,53 @@
 
 {% endblock %}
 
-{% block market_scripts %}{% endblock %}
+{% block market_scripts %}
+{% if weeks is defined and weeks %}
+<script>
+var calendarEvents = {{ calendar_events|default('{}')|tojson if calendar_events is defined else '{}' }};
+
+function showCalEvents(day) {
+  var events = [];
+  // Find events for this day from the weeks data
+  {% for week in weeks %}
+  {% for day_data in week %}
+  {% if day_data and day_data.events %}
+  if ({{ day_data.day }} === day) {
+    events = {{ day_data.events|tojson }};
+  }
+  {% endif %}
+  {% endfor %}
+  {% endfor %}
+
+  if (events.length === 0) return;
+
+  var title = document.getElementById('calPopupTitle');
+  var body = document.getElementById('calPopupBody');
+  title.textContent = '{{ month_name }} ' + day;
+
+  var html = '<table class="data-table" style="font-size:0.82rem;">';
+  html += '<thead><tr><th>Event</th><th>Trust</th><th>Type</th></tr></thead><tbody>';
+  events.forEach(function(ev) {
+    var cls = ev.type === 'launch' ? 'cal-event-launch' : 'cal-event-upcoming';
+    html += '<tr>';
+    html += '<td><span class="' + cls + '" style="padding:2px 6px; border-radius:4px; font-size:0.75rem;">' + escCalHtml(ev.label) + '</span></td>';
+    html += '<td>' + escCalHtml(ev.trust || '') + '</td>';
+    html += '<td>' + escCalHtml(ev.form || '') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+
+  document.getElementById('calOverlay').style.display = 'block';
+  document.getElementById('calEventPopup').style.display = 'block';
+}
+
+function escCalHtml(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+</script>
+{% endif %}
+{% endblock %}

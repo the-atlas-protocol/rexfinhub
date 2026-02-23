@@ -47,7 +47,13 @@
   <!-- 12-month Trend -->
   {% if share_data.trend and share_data.trend.months %}
   <div class="chart-box">
-    <h3>AUM Trend — Top 5 Issuers (12 Months)</h3>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+      <h3 style="margin:0;">Trend -- Top 5 Issuers (12 Months)</h3>
+      <div style="display:flex; gap:4px;">
+        <button class="pill active" id="trendModeAum" onclick="switchTrendMode('aum')">AUM ($M)</button>
+        <button class="pill" id="trendModePct" onclick="switchTrendMode('pct')">Share %</button>
+      </div>
+    </div>
     <canvas id="issuerTrendChart" height="240"></canvas>
   </div>
   {% endif %}
@@ -119,15 +125,33 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if share_data.trend and share_data.trend.months %}
   var trendData = {{ share_data.trend | tojson }};
   var colors = ['#1E40AF','#059669','#D97706','#7C3AED','#E11D48'];
-  MarketCharts.renderLineChart('issuerTrendChart', trendData.months,
-    trendData.series.map(function(s, idx) {
-      return {
-        label: s.issuer,
-        data: s.values,
-        color: colors[idx % colors.length],
-      };
-    })
-  );
+
+  // Store both AUM and percentage datasets
+  var aumDatasets = trendData.series.map(function(s, idx) {
+    return { label: s.issuer, data: s.values, color: colors[idx % colors.length] };
+  });
+
+  {% if share_data.pct_trend is defined and share_data.pct_trend %}
+  var pctTrendData = {{ share_data.pct_trend | tojson }};
+  var pctDatasets = pctTrendData.series.map(function(s, idx) {
+    return { label: s.issuer, data: s.values, color: colors[idx % colors.length] };
+  });
+  {% else %}
+  var pctDatasets = null;
+  {% endif %}
+
+  var _trendChart = MarketCharts.renderLineChart('issuerTrendChart', trendData.months, aumDatasets);
+
+  window.switchTrendMode = function(mode) {
+    var aumBtn = document.getElementById('trendModeAum');
+    var pctBtn = document.getElementById('trendModePct');
+    if (aumBtn) aumBtn.classList.toggle('active', mode === 'aum');
+    if (pctBtn) pctBtn.classList.toggle('active', mode === 'pct');
+
+    if (_trendChart) _trendChart.destroy();
+    var datasets = (mode === 'pct' && pctDatasets) ? pctDatasets : aumDatasets;
+    _trendChart = MarketCharts.renderLineChart('issuerTrendChart', trendData.months, datasets);
+  };
   {% endif %}
 });
 </script>
