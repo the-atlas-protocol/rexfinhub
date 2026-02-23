@@ -36,7 +36,7 @@
 
 <div class="charts-row" style="margin-bottom:24px;">
   <!-- AUM Trend -->
-  {% if aum_trend.labels %}
+  {% if aum_trend["labels"] %}
   <div class="chart-box">
     <div class="chart-title" style="font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:12px;">AUM Trend — Last 12 Months</div>
     <canvas id="issuerTrendChart" height="180"></canvas>
@@ -99,12 +99,12 @@
 {% endblock %}
 
 {% block market_scripts %}
-{% if aum_trend and aum_trend.labels %}
+{% if aum_trend and aum_trend["labels"] %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var trendData = {
-    labels: {{ aum_trend.labels | tojson }},
-    values: {{ aum_trend.values | tojson }}
+    labels: {{ aum_trend["labels"] | tojson }},
+    values: {{ aum_trend["values"] | tojson }}
   };
   if (trendData.labels.length > 0) {
     MarketCharts.renderLineChart('issuerTrendChart', trendData.labels, [{
