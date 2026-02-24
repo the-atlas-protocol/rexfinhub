@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -169,7 +169,27 @@ def create_app() -> FastAPI:
             resp["commit"] = commit[:8]
         return resp
 
+    # --- Maintenance banner (in-memory, resets on deploy) ---
+    @app.get("/api/v1/maintenance")
+    def get_maintenance():
+        return {"active": _maintenance_msg is not None,
+                "message": _maintenance_msg["message"] if _maintenance_msg else ""}
+
+    @app.post("/api/v1/maintenance")
+    def set_maintenance(message: str = Form(...)):
+        global _maintenance_msg
+        _maintenance_msg = {"message": message}
+        return {"ok": True}
+
+    @app.delete("/api/v1/maintenance")
+    def clear_maintenance():
+        global _maintenance_msg
+        _maintenance_msg = None
+        return {"ok": True}
+
     return app
 
+
+_maintenance_msg: dict | None = None
 
 app = create_app()

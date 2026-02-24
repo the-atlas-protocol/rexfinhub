@@ -17,6 +17,11 @@
 </head>
 <body>
 
+<div id="maintenanceBanner" style="display:none;" class="maintenance-banner">
+  <span id="maintenanceMsg"></span>
+  <button onclick="dismissMaintBanner()" class="maintenance-close">&times;</button>
+</div>
+
 <nav class="sticky-nav">
   <a href="/" class="brand" style="text-decoration:none">REX Financial</a>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu">
@@ -87,6 +92,46 @@
   </div>
 </div>
 
+<script>
+(function(){
+  var banner = document.getElementById('maintenanceBanner');
+  var msgEl = document.getElementById('maintenanceMsg');
+  var lastMsg = '';
+  var dismissed = false;
+  var autoTimer = null;
+
+  function showBanner(msg) {
+    msgEl.textContent = msg;
+    banner.style.display = '';
+    dismissed = false;
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(function(){ banner.style.display = 'none'; }, 30000);
+  }
+
+  window.dismissMaintBanner = function() {
+    banner.style.display = 'none';
+    dismissed = true;
+    clearTimeout(autoTimer);
+  };
+
+  function poll() {
+    fetch('/api/v1/maintenance').then(function(r){ return r.json(); }).then(function(d){
+      if (!d.active) {
+        banner.style.display = 'none';
+        lastMsg = '';
+        dismissed = false;
+        clearTimeout(autoTimer);
+      } else if (d.message !== lastMsg) {
+        lastMsg = d.message;
+        showBanner(d.message);
+      }
+    }).catch(function(){});
+  }
+
+  poll();
+  setInterval(poll, 10000);
+})();
+</script>
 <script src="/static/js/table-sort.js"></script>
 <script src="/static/js/app.js"></script>
 {% block scripts %}{% endblock %}
