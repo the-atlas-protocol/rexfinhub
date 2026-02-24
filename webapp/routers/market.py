@@ -190,24 +190,39 @@ def treemap_view(request: Request, cat: str = Query(default="")):
 
 
 @router.get("/issuer")
-def issuer_view(request: Request, cat: str = Query(default="All"), fund_structure: str = Query(default="all")):
+def issuer_view(request: Request, cat: str = Query(default="All"), fund_structure: str = Query(default="ETF")):
     svc = _svc()
     available = svc.data_available()
     if not available:
-        return templates.TemplateResponse("market/issuer.html", {"request": request, "available": False, "active_tab": "issuer", "categories": svc.ALL_CATEGORIES, "data_as_of": svc.get_data_as_of()})
+        return templates.TemplateResponse("market/issuer.html", {
+            "request": request, "available": False, "active_tab": "issuer",
+            "categories": svc.ALL_CATEGORIES, "data_as_of": svc.get_data_as_of(),
+        })
     try:
         cat_arg = cat if cat != "All" else None
         summary = svc.get_issuer_summary(cat_arg, fund_structure=fund_structure)
+        # Trend/share data for charts (donut + 12-month trend)
+        share_data = {}
+        if cat_arg:
+            try:
+                share_data = svc.get_issuer_share(cat_arg)
+            except Exception:
+                pass
         return templates.TemplateResponse("market/issuer.html", {
             "request": request, "available": True, "active_tab": "issuer",
             "summary": summary, "categories": svc.ALL_CATEGORIES, "category": cat,
             "fund_structure": fund_structure,
+            "share_data": share_data,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
         log.error("Issuer view error: %s", e, exc_info=True)
         empty_summary = {"issuers": [], "total_aum": 0, "total_aum_fmt": "$0", "categories": svc.ALL_CATEGORIES}
-        return templates.TemplateResponse("market/issuer.html", {"request": request, "available": True, "active_tab": "issuer", "summary": empty_summary, "categories": svc.ALL_CATEGORIES, "category": cat, "error": str(e), "data_as_of": svc.get_data_as_of()})
+        return templates.TemplateResponse("market/issuer.html", {
+            "request": request, "available": True, "active_tab": "issuer",
+            "summary": empty_summary, "categories": svc.ALL_CATEGORIES, "category": cat,
+            "error": str(e), "data_as_of": svc.get_data_as_of(),
+        })
 
 
 @router.get("/issuer/detail")
@@ -314,30 +329,11 @@ def issuer_detail_view(request: Request, issuer: str = Query(default="")):
 
 @router.get("/share")
 def share_timeline_view(request: Request, cat: str = Query(default="")):
-    svc = _svc()
-    available = svc.data_available()
-    if not available:
-        return templates.TemplateResponse("market/share_timeline.html", {"request": request, "available": False, "active_tab": "share", "data_as_of": svc.get_data_as_of()})
-
-    if not cat or cat not in svc.ALL_CATEGORIES:
-        cat = svc.ALL_CATEGORIES[0] if svc.ALL_CATEGORIES else ""
-
-    share_data = {}
-    if available and cat:
-        try:
-            share_data = svc.get_issuer_share(cat)
-        except Exception as e:
-            log.error("Issuer share error: %s", e)
-
-    return templates.TemplateResponse("market/share_timeline.html", {
-        "request": request,
-        "active_tab": "share",
-        "available": available,
-        "cat": cat,
-        "all_categories": svc.ALL_CATEGORIES,
-        "share_data": share_data,
-        "data_as_of": svc.get_data_as_of(),
-    })
+    """Redirect to merged Issuer Analysis page."""
+    redirect_url = "/market/issuer"
+    if cat:
+        redirect_url += f"?cat={urllib.parse.quote(cat, safe='')}"
+    return RedirectResponse(redirect_url, status_code=302)
 
 
 @router.get("/underlier")

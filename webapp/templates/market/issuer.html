@@ -4,15 +4,26 @@
 {% block title %}Issuer Analysis — REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
-{# Category Filter #}
-<div class="category-selector">
-  <label for="catFilter">Category:</label>
-  <select id="catFilter" onchange="window.location='/market/issuer?cat='+this.value">
-    <option value="All" {{ 'selected' if category == 'All' else '' }}>All Categories</option>
-    {% for cat in categories %}
-    <option value="{{ cat }}" {{ 'selected' if category == cat else '' }}>{{ cat }}</option>
-    {% endfor %}
-  </select>
+{# Filter Bar: Category + Fund Structure #}
+<div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+  <div class="category-selector" style="margin-bottom:0;">
+    <label for="catFilter">Category:</label>
+    <select id="catFilter" class="select-sm" onchange="window.location='/market/issuer?cat='+encodeURIComponent(this.value)+'&fund_structure={{ fund_structure|default('ETF') }}'">
+      <option value="All" {{ 'selected' if category == 'All' else '' }}>All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}" {{ 'selected' if category == cat else '' }}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex; gap:6px; align-items:center;">
+    <span style="font-size:0.75rem; color:#94A3B8; font-weight:600; text-transform:uppercase;">Structure:</span>
+    <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=ETF"
+       class="pill {% if fund_structure == 'ETF' %}active{% endif %}">ETF</a>
+    <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=ETN"
+       class="pill {% if fund_structure == 'ETN' %}active{% endif %}">ETN</a>
+    <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=ETF,ETN"
+       class="pill {% if fund_structure == 'ETF,ETN' %}active{% endif %}">Both</a>
+  </div>
 </div>
 
 {% if summary and summary.issuers %}
@@ -26,48 +37,87 @@
     <div class="kpi-label"># Issuers</div>
     <div class="kpi-value">{{ summary.issuers|length }}</div>
   </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Top Issuer</div>
+    <div class="kpi-value" style="font-size:1rem;">{{ summary.issuers[0].issuer_name }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Top Issuer Share</div>
+    <div class="kpi-value">{{ summary.issuers[0].market_share_pct }}%</div>
+  </div>
 </div>
 
-{# Top 10 Issuer Bar Chart #}
-<div class="chart-box" style="margin-bottom: var(--sp-6);">
-  <h3>Top 10 Issuers by AUM</h3>
-  <canvas id="issuerTopChart"></canvas>
+{# Charts Row: Donut + Trend (when category selected) or Bar Chart (All) #}
+<div class="charts-row">
+  {# Donut: market share distribution #}
+  <div class="chart-box">
+    <h3>Market Share by Issuer (Top 10)</h3>
+    <canvas id="issuerShareDonut" height="260"></canvas>
+  </div>
+
+  {% if share_data is defined and share_data and share_data.trend is defined and share_data.trend and share_data.trend.months %}
+  {# 12-month trend (only when a specific category is selected) #}
+  <div class="chart-box">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+      <h3 style="margin:0;">Top 5 Issuers — 12 Month Trend</h3>
+      <div style="display:flex; gap:4px;">
+        <button class="pill active" id="trendModeAum" onclick="switchTrendMode('aum')">AUM ($M)</button>
+        <button class="pill" id="trendModePct" onclick="switchTrendMode('pct')">Share %</button>
+      </div>
+    </div>
+    <canvas id="issuerTrendChart" height="260"></canvas>
+  </div>
+  {% else %}
+  {# Bar chart fallback for "All Categories" view #}
+  <div class="chart-box">
+    <h3>Top 10 Issuers by AUM</h3>
+    <canvas id="issuerTopChart"></canvas>
+  </div>
+  {% endif %}
 </div>
 
 {# Sortable Issuer Table #}
-<h2 class="section-title">All Issuers</h2>
-<div class="table-responsive">
-  <table class="data-table" id="issuerTable">
-    <thead>
-      <tr>
-        <th onclick="sortTable('issuerTable', 0)">#</th>
-        <th onclick="sortTable('issuerTable', 1)">Issuer</th>
-        <th onclick="sortTable('issuerTable', 2)">AUM</th>
-        <th onclick="sortTable('issuerTable', 3)">Market Share %</th>
-        <th onclick="sortTable('issuerTable', 4)">1W Flow</th>
-        <th onclick="sortTable('issuerTable', 5)">1M Flow</th>
-        <th onclick="sortTable('issuerTable', 6)"># Products</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for iss in summary.issuers %}
-      <tr class="{{ 'rex-highlight' if iss.is_rex else '' }}">
-        <td>{{ loop.index }}</td>
-        <td>
-          <a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}" class="text-link" style="font-weight:500;">
-            {{ iss.issuer_name }}
-          </a>
-          {% if iss.is_rex %} <span style="color:#1E40AF;font-weight:600;font-size:11px;">(REX)</span>{% endif %}
-        </td>
-        <td class="num-cell">{{ iss.aum_fmt }}</td>
-        <td class="num-cell">{{ iss.market_share_pct }}%</td>
-        <td class="num-cell {{ 'positive' if iss.flow_1w > 0 else 'negative' if iss.flow_1w < 0 else '' }}">{{ iss.flow_1w_fmt }}</td>
-        <td class="num-cell {{ 'positive' if iss.flow_1m > 0 else 'negative' if iss.flow_1m < 0 else '' }}">{{ iss.flow_1m_fmt }}</td>
-        <td class="num-cell">{{ iss.num_products }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="chart-box" style="margin-top:24px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+    <h3 style="margin:0;">All Issuers{% if category and category != 'All' %} — {{ category | replace('Leverage & Inverse - ','L&I ') | replace('Income - ','Inc ') }}{% endif %}</h3>
+    <input type="text" id="issuerSearch" placeholder="Search issuer..." oninput="filterIssuerTable(this.value)"
+           style="padding:6px 12px; font-size:0.82rem; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--card-bg, #fff); color:var(--text-primary); max-width:220px;">
+  </div>
+  <div class="table-responsive">
+    <table class="data-table" id="issuerTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('issuerTable', 0)">#</th>
+          <th onclick="sortTable('issuerTable', 1)">Issuer</th>
+          <th onclick="sortTable('issuerTable', 2)">AUM</th>
+          <th onclick="sortTable('issuerTable', 3)">Share %</th>
+          <th onclick="sortTable('issuerTable', 4)">1W Flow</th>
+          <th onclick="sortTable('issuerTable', 5)">1M Flow</th>
+          <th onclick="sortTable('issuerTable', 6)"># Products</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for iss in summary.issuers %}
+        <tr class="{{ 'rex-highlight' if iss.is_rex else '' }} issuer-row" data-name="{{ iss.issuer_name|lower }}">
+          <td>{{ loop.index }}</td>
+          <td>
+            <a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}" class="text-link" style="font-weight:500;">
+              {{ iss.issuer_name }}
+            </a>
+            {% if iss.is_rex %}<span style="color:#1E40AF;font-weight:600;font-size:0.7rem;margin-left:4px;">REX</span>{% endif %}
+          </td>
+          <td class="num-cell">{{ iss.aum_fmt }}</td>
+          <td class="num-cell">{{ iss.market_share_pct }}%</td>
+          <td class="num-cell {{ 'positive' if iss.flow_1w > 0 else 'negative' if iss.flow_1w < 0 else '' }}">{{ iss.flow_1w_fmt }}</td>
+          <td class="num-cell {{ 'positive' if iss.flow_1m > 0 else 'negative' if iss.flow_1m < 0 else '' }}">{{ iss.flow_1m_fmt }}</td>
+          <td class="num-cell">{{ iss.num_products }}</td>
+          <td><a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}" class="btn btn-sm" style="font-size:0.7rem; padding:2px 8px;">&rarr;</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% elif summary %}
@@ -85,11 +135,60 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if summary and summary.issuers %}
   var issuers = {{ summary.issuers|tojson }};
   var top10 = issuers.slice(0, 10);
-  var labels = top10.map(function(i) { return i.issuer_name; });
-  var values = top10.map(function(i) { return i.total_aum; });
-  var isRex = top10.map(function(i) { return i.is_rex; });
-  MarketCharts.renderBarChart('issuerTopChart', labels, values, isRex);
+
+  // Donut chart (always shown)
+  MarketCharts.renderPieChart('issuerShareDonut',
+    top10.map(function(i) { return i.issuer_name; }),
+    top10.map(function(i) { return i.total_aum; })
+  );
+
+  {% if share_data is defined and share_data and share_data.trend is defined and share_data.trend and share_data.trend.months %}
+  // 12-month trend with AUM/% toggle
+  var trendData = {{ share_data.trend|tojson }};
+  var colors = ['#1E40AF','#059669','#D97706','#7C3AED','#E11D48'];
+  var aumDatasets = trendData.series.map(function(s, idx) {
+    return { label: s.issuer, data: s.values, color: colors[idx % colors.length] };
+  });
+
+  {% if share_data.pct_trend is defined and share_data.pct_trend %}
+  var pctTrendData = {{ share_data.pct_trend|tojson }};
+  var pctDatasets = pctTrendData.series.map(function(s, idx) {
+    return { label: s.issuer, data: s.values, color: colors[idx % colors.length] };
+  });
+  {% else %}
+  var pctDatasets = null;
+  {% endif %}
+
+  var _trendChart = MarketCharts.renderLineChart('issuerTrendChart', trendData.months, aumDatasets);
+
+  window.switchTrendMode = function(mode) {
+    var aumBtn = document.getElementById('trendModeAum');
+    var pctBtn = document.getElementById('trendModePct');
+    if (aumBtn) aumBtn.classList.toggle('active', mode === 'aum');
+    if (pctBtn) pctBtn.classList.toggle('active', mode === 'pct');
+    if (_trendChart) _trendChart.destroy();
+    var datasets = (mode === 'pct' && pctDatasets) ? pctDatasets : aumDatasets;
+    var opts = mode === 'pct' ? {yFormat: 'pct'} : {};
+    _trendChart = MarketCharts.renderLineChart('issuerTrendChart', trendData.months, datasets, opts);
+  };
+  {% else %}
+  // Bar chart fallback (All Categories)
+  MarketCharts.renderBarChart('issuerTopChart',
+    top10.map(function(i) { return i.issuer_name; }),
+    top10.map(function(i) { return i.total_aum; }),
+    top10.map(function(i) { return i.is_rex; })
+  );
+  {% endif %}
   {% endif %}
 });
+
+function filterIssuerTable(q) {
+  q = (q || '').toLowerCase();
+  var rows = document.querySelectorAll('.issuer-row');
+  rows.forEach(function(row) {
+    var name = row.getAttribute('data-name') || '';
+    row.style.display = (!q || name.indexOf(q) >= 0) ? '' : 'none';
+  });
+}
 </script>
 {% endblock %}

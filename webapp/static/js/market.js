@@ -114,10 +114,15 @@ var MarketCharts = (function() {
     return chart;
   }
 
-  function renderLineChart(canvasId, labels, datasets) {
+  function renderLineChart(canvasId, labels, datasets, opts) {
     var ctx = document.getElementById(canvasId);
     if (!ctx) return null;
     var theme = getChartThemeColors();
+    var yFormat = (opts && opts.yFormat) || 'money'; // 'money' or 'pct'
+
+    var fmtY = yFormat === 'pct'
+      ? function(val) { return val.toFixed(1) + '%'; }
+      : fmtMoney;
 
     var chartDatasets = datasets.map(function(ds) {
       return {
@@ -153,7 +158,7 @@ var MarketCharts = (function() {
           },
           y: {
             ticks: {
-              callback: function(val) { return fmtMoney(val); },
+              callback: function(val) { return fmtY(val); },
               font: { size: 10 },
               color: theme.labelColor
             },
@@ -173,7 +178,7 @@ var MarketCharts = (function() {
           tooltip: {
             callbacks: {
               label: function(ctx) {
-                return ctx.dataset.label + ': ' + fmtMoney(ctx.parsed.y);
+                return ctx.dataset.label + ': ' + fmtY(ctx.parsed.y);
               }
             }
           }

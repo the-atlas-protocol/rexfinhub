@@ -116,15 +116,24 @@ def test_issuer_detail_with_empty_issuer(client):
     assert r.status_code == 200
 
 
-def test_market_share_loads(client):
-    r = client.get("/market/share")
+def test_market_share_redirects(client):
+    """Share page redirects to issuer analysis."""
+    r = client.get("/market/share", follow_redirects=False)
+    assert r.status_code == 302
+    assert "/market/issuer" in r.headers.get("location", "")
+
+
+def test_market_share_with_cat_redirects(client):
+    """Share page with category redirects to issuer with category."""
+    r = client.get("/market/share?cat=Crypto", follow_redirects=False)
+    assert r.status_code == 302
+    assert "issuer" in r.headers.get("location", "")
+
+
+def test_issuer_view_with_fund_structure(client):
+    """Issuer page accepts fund_structure param."""
+    r = client.get("/market/issuer?fund_structure=ETF")
     assert r.status_code == 200
-
-
-def test_market_share_all_categories(client):
-    for cat in ALL_CATEGORIES:
-        r = client.get(f"/market/share?cat={cat}")
-        assert r.status_code == 200
 
 
 def test_underlier_loads(client):
