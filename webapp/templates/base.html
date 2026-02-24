@@ -24,9 +24,32 @@
   </button>
   <div class="nav-links" id="navLinks">
     <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Home</a>
-    <a href="/dashboard" {% if '/dashboard' in request.url.path %}class="active"{% endif %}>Filings</a>
-    <a href="/market/rex" {% if '/market' in request.url.path %}class="active"{% endif %}>Market</a>
-    <a href="/screener/" {% if '/screener' in request.url.path %}class="active"{% endif %}>Screener</a>
+    <div class="nav-dropdown">
+      <a href="/market/rex" class="nav-dropdown-trigger {% if '/market' in request.url.path %}active{% endif %}">Market <span class="nav-caret">&#9662;</span></a>
+      <div class="nav-dropdown-menu">
+        <a href="/market/rex">REX View</a>
+        <a href="/market/category">Category</a>
+        <a href="/market/issuer">Issuer Analysis</a>
+        <a href="/market/underlier">Underlier</a>
+        <a href="/market/calendar">Calendar</a>
+        <a href="/market/compare">Compare</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <a href="/dashboard" class="nav-dropdown-trigger {% if '/dashboard' in request.url.path or '/funds' in request.url.path or '/filings' in request.url.path %}active{% endif %}">SEC Filings <span class="nav-caret">&#9662;</span></a>
+      <div class="nav-dropdown-menu">
+        <a href="/dashboard">Trust Dashboard</a>
+        <a href="/funds/">Fund Lookup</a>
+        <a href="/filings/">Filing Explorer</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <a href="/screener/" class="nav-dropdown-trigger {% if '/screener' in request.url.path %}active{% endif %}">Screener <span class="nav-caret">&#9662;</span></a>
+      <div class="nav-dropdown-menu">
+        <a href="/screener/">Launch Screener</a>
+        <a href="/screener/evaluate">Candidate Evaluator</a>
+      </div>
+    </div>
     <a href="/admin/" {% if '/admin' in request.url.path %}class="active"{% endif %}>Admin</a>
     {% block nav_extra %}{% endblock %}
   </div>

@@ -14,11 +14,17 @@ def test_home_page_loads(client):
 
 
 def test_home_analysis_link_valid(client):
-    """Filing Analysis card should link to /filings/, not /analysis."""
+    """Filing Explorer card should link to /filings/."""
     r = client.get("/")
     assert "/filings/" in r.text
-    # Should NOT have href="/analysis" as a standalone link
     assert 'href="/analysis"' not in r.text
+
+
+def test_home_no_dead_links(client):
+    """Home page should not have links to merged/removed pages."""
+    r = client.get("/")
+    assert '/market/treemap' not in r.text
+    assert '/market/share' not in r.text
 
 
 def test_rex_view_loads(client):

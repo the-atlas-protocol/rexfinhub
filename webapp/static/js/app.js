@@ -63,11 +63,22 @@
       navLinks.classList.toggle('open');
     });
 
-    // Close menu when a link is clicked
-    navLinks.querySelectorAll('a').forEach(function(link) {
+    // Close menu when a direct link (not dropdown trigger) is clicked
+    navLinks.querySelectorAll('a:not(.nav-dropdown-trigger)').forEach(function(link) {
       link.addEventListener('click', function() {
         hamburger.classList.remove('open');
         navLinks.classList.remove('open');
+      });
+    });
+
+    // Mobile: tap dropdown trigger to toggle submenu
+    navLinks.querySelectorAll('.nav-dropdown-trigger').forEach(function(trigger) {
+      trigger.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768) {
+          e.preventDefault();
+          var dd = trigger.closest('.nav-dropdown');
+          dd.classList.toggle('nav-dd-open');
+        }
       });
     });
   });

@@ -889,6 +889,26 @@ body, .sticky-nav, table, th, td, .kpi, .trust-card, .trust-block,
 .nav-links { display: flex; align-items: center; gap: 0; flex: 1; }
 .nav-right { display: flex; align-items: center; margin-left: auto; }
 
+/* Nav Dropdowns */
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger { cursor: pointer; }
+.nav-caret { font-size: 0.6em; margin-left: 2px; opacity: 0.6; }
+.nav-dropdown-menu {
+  display: none; position: absolute; top: 100%; left: 0;
+  background: var(--nav-bg, var(--navy)); min-width: 190px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-lg); z-index: 200;
+  padding: var(--sp-1) 0;
+}
+.nav-dropdown-menu a {
+  display: block; padding: 10px 18px; height: auto;
+  font-size: var(--text-sm); color: rgba(255,255,255,0.7);
+  border-bottom: none;
+}
+.nav-dropdown-menu a:hover { background: rgba(255,255,255,0.08); color: white; }
+.nav-dropdown:hover .nav-dropdown-menu { display: block; }
+
 /* =========================================================================
    STANDARDIZED TABLE SYSTEM (rt-*)
    ========================================================================= */
@@ -1021,6 +1041,14 @@ body, .sticky-nav, table, th, td, .kpi, .trust-card, .trust-block,
     display: flex; align-items: center;
   }
   .nav-links a.active { border-bottom: none; background: rgba(255,255,255,0.08); border-left: 3px solid var(--blue); }
+  .nav-dropdown-menu {
+    position: static; border: none; box-shadow: none; min-width: 0;
+    padding: 0; background: transparent;
+  }
+  .nav-dropdown-menu a { padding-left: calc(var(--sp-6) + 16px); font-size: 0.82rem; min-height: 40px; }
+  .nav-dropdown:hover .nav-dropdown-menu { display: block; }
+  .nav-dropdown .nav-dropdown-menu { display: none; }
+  .nav-dropdown.nav-dd-open .nav-dropdown-menu { display: block; }
   .nav-right .nav-user { display: none; }
 
   .admin-grid { grid-template-columns: 1fr; }
