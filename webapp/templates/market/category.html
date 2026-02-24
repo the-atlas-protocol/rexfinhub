@@ -3,38 +3,35 @@
 
 {% block title %}Category View — REX Financial Intelligence Hub{% endblock %}
 
-{% block market_content %}
-<div id="market-category-page" data-category="{{ summary.category if summary else '' }}">
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2"></script>
+{% endblock %}
 
-{# Category Multi-Select Pills #}
+{% block market_content %}
+<div id="market-category-page" data-category="{{ category if category and category != 'All' else '' }}">
+
+{# Category Pills (no "All" pill) #}
 <div class="category-pills" id="catPills">
-  {% if all_categories is defined %}
-  {% for cat in all_categories %}
-  {% set is_active = cat in (active_cats if active_cats is defined and active_cats else []) %}
-  <button class="pill {% if is_active %}active{% endif %}"
-          onclick="MarketFilters.toggleCategory({{ cat|tojson }})"
-          title="{{ cat }}">
-    {{ cat | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') | truncate(28, true) }}
-  </button>
-  {% endfor %}
-  {% elif categories is defined %}
-  <a href="/market/category?cat=All&fund_structure={{ fund_structure|default('all') }}" class="pill {{ 'active' if (category is not defined or category == 'All') else '' }}">All</a>
   {% for c in categories %}
-  <a href="/market/category?cat={{ c|urlencode }}&fund_structure={{ fund_structure|default('all') }}" class="pill {{ 'active' if category == c else '' }}">{{ c }}</a>
+  <a href="/market/category?cat={{ c|urlencode }}&fund_structure={{ fund_structure|default('ETF') }}"
+     class="pill {% if category == c %}active{% endif %}"
+     title="{{ c }}">
+    {{ c | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') | truncate(28, true) }}
+  </a>
   {% endfor %}
-  {% endif %}
 </div>
 
-{# ETF/ETN Filter Toggle — preserves cat parameter #}
+{# ETF/ETN Filter Toggle #}
 {% if fund_structure is defined %}
 <div class="filter-bar" style="display:flex; gap:8px; margin-bottom:16px; align-items:center;">
   <span style="font-size:0.75rem; color:#94A3B8; font-weight:600; text-transform:uppercase;">Structure:</span>
-  <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=all"
-     class="pill {% if not fund_structure or fund_structure == 'all' %}active{% endif %}">All</a>
   <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=ETF"
      class="pill {% if fund_structure == 'ETF' %}active{% endif %}">ETF</a>
   <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=ETN"
      class="pill {% if fund_structure == 'ETN' %}active{% endif %}">ETN</a>
+  <a href="?cat={{ category|default('All')|urlencode }}&fund_structure=ETF,ETN"
+     class="pill {% if fund_structure == 'ETF,ETN' %}active{% endif %}">Both</a>
 </div>
 {% endif %}
 
@@ -46,7 +43,8 @@
     <select class="slicer-select select-sm" data-field="{{ slicer.field }}" onchange="MarketFilters.applyFilters()">
       <option value="">All</option>
       {% for opt in slicer.options %}
-      <option value="{{ opt }}">{{ opt }}</option>
+      {% set is_selected = active_filters is defined and active_filters and slicer.field in active_filters and active_filters[slicer.field] == opt %}
+      <option value="{{ opt }}" {% if is_selected %}selected{% endif %}>{{ opt }}</option>
       {% endfor %}
     </select>
   </div>
@@ -96,6 +94,27 @@
     <canvas id="categoryTrendChart"></canvas>
   </div>
 </div>
+
+{# Treemap Section #}
+{% if treemap is defined and treemap and treemap.issuers %}
+<div class="chart-box" style="margin-bottom:24px;">
+  <h3>Market Landscape — {{ category or 'All Categories' }}</h3>
+  <div class="treemap-container">
+    <canvas id="categoryTreemap"></canvas>
+  </div>
+  {% if treemap.issuers %}
+  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; font-size:0.72rem;">
+    {% set treemap_colors = ['#1E40AF','#DC2626','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#65A30D','#6366F1','#F43F5E','#0D9488','#A855F7'] %}
+    {% for iss in treemap.issuers %}
+    <span style="display:inline-flex; align-items:center; gap:4px;">
+      <span style="width:10px; height:10px; border-radius:2px; background:{{ treemap_colors[loop.index0 % treemap_colors|length] }};"></span>
+      {{ iss.issuer }} ({{ iss.pct }}%)
+    </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
 
 {# All Products in Category #}
 <h2 class="section-title">All Products in {{ category or 'All Categories' }}</h2>
@@ -149,7 +168,7 @@
 <div class="collapsible-section">
   <div class="section-header" onclick="toggleSection('allSection')" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md) var(--radius-md) 0 0;">
     <span class="expand-icon" id="allSectionIcon">&#9660;</span>
-    <span style="font-weight:600; font-size:0.85rem;">All Products ({{ summary.top_products|length }})</span>
+    <span style="font-weight:600; font-size:0.85rem;">All Products ({{ summary.total_funds }})</span>
   </div>
   <div id="allSection" class="section-body">
     <div class="table-responsive">
@@ -182,6 +201,20 @@
         </tbody>
       </table>
     </div>
+
+    {# Pagination #}
+    {% if summary.total_pages is defined and summary.total_pages > 1 %}
+    <div class="pagination-controls" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:16px; font-size:0.85rem;">
+      {% set base_url = '/market/category?cat=' ~ (category|default('All')|urlencode) ~ '&fund_structure=' ~ (fund_structure|default('ETF')) %}
+      {% if page > 1 %}
+      <a href="{{ base_url }}&page={{ page - 1 }}&per_page={{ per_page }}" class="btn btn-sm" style="padding:4px 10px;">&laquo; Prev</a>
+      {% endif %}
+      <span style="color:var(--text-secondary);">Page {{ page }} of {{ summary.total_pages }} ({{ summary.total_funds }} products)</span>
+      {% if page < summary.total_pages %}
+      <a href="{{ base_url }}&page={{ page + 1 }}&per_page={{ per_page }}" class="btn btn-sm" style="padding:4px 10px;">Next &raquo;</a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endif %}
@@ -194,6 +227,7 @@
 {% endblock %}
 
 {% block market_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   {% if summary %}
@@ -214,18 +248,10 @@ document.addEventListener('DOMContentLoaded', function() {
   MarketCharts.renderLineChart('categoryTrendChart', trendData.labels, datasets);
   {% endif %}
 
-  // Mark active pills from URL if active_cats not in template context
-  {% if active_cats is not defined %}
-  var activeCats = new URLSearchParams(location.search).get('cats') || '';
-  if (activeCats) {
-    var catList = activeCats.split(',').filter(Boolean);
-    document.querySelectorAll('#catPills .pill').forEach(function(pill) {
-      var title = pill.getAttribute('title') || pill.textContent.trim();
-      if (catList.indexOf(title) >= 0) {
-        pill.classList.add('active');
-      }
-    });
-  }
+  {% if treemap is defined and treemap and treemap.products %}
+  // Treemap - individual products grouped by issuer
+  var treemapProducts = {{ treemap.products|tojson }};
+  MarketCharts.renderTreemap('categoryTreemap', treemapProducts);
   {% endif %}
 });
 

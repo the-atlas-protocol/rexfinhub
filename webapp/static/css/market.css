@@ -581,6 +581,20 @@
 .flow-positive { color: var(--green); }
 .flow-negative { color: var(--red); }
 
+/* Dark mode: positive/negative value colors */
+[data-theme="dark"] .positive { color: #4ade80; }
+[data-theme="dark"] .negative { color: #f87171; }
+[data-theme="dark"] .flow-positive { color: #4ade80; }
+[data-theme="dark"] .flow-negative { color: #f87171; }
+[data-theme="dark"] .kpi-value.positive { color: #4ade80; }
+[data-theme="dark"] .kpi-value.negative { color: #f87171; }
+[data-theme="dark"] .num-cell.positive { color: #4ade80; }
+[data-theme="dark"] .num-cell.negative { color: #f87171; }
+[data-theme="dark"] .suite-metric-value.positive { color: #4ade80; }
+[data-theme="dark"] .suite-metric-value.negative { color: #f87171; }
+[data-theme="dark"] .mover.positive { color: #4ade80; }
+[data-theme="dark"] .mover.negative { color: #f87171; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .market-header {

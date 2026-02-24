@@ -6,21 +6,22 @@
 {% block market_content %}
 {% if summary %}
 
-{# ── Filter Bar ── #}
+{# -- Filter Bar -- #}
 <div class="filter-bar" style="display:flex; gap:12px; margin-bottom:20px; align-items:center; flex-wrap:wrap;">
   <div style="display:flex; gap:8px; align-items:center;">
     <span style="font-size:0.72rem; color:var(--gray-500); font-weight:600; text-transform:uppercase;">Structure:</span>
-    <a href="?fund_structure=all&category={{ category|default('All') }}"
-       class="pill {% if not fund_structure or fund_structure == 'all' %}active{% endif %}">All</a>
-    <a href="?fund_structure=ETF&category={{ category|default('All') }}"
-       class="pill {% if fund_structure == 'ETF' %}active{% endif %}">ETF</a>
-    <a href="?fund_structure=ETN&category={{ category|default('All') }}"
-       class="pill {% if fund_structure == 'ETN' %}active{% endif %}">ETN</a>
+    {% set fs_list = fund_structure.split(',') if fund_structure and fund_structure != 'all' else [] %}
+    <button class="pill {% if 'ETF' in fs_list and 'ETN' not in fs_list %}active{% elif not fs_list %}{% endif %}"
+            onclick="toggleFundStructure('ETF')">ETF</button>
+    <button class="pill {% if 'ETN' in fs_list and 'ETF' not in fs_list %}active{% endif %}"
+            onclick="toggleFundStructure('ETN')">ETN</button>
+    <button class="pill {% if 'ETF' in fs_list and 'ETN' in fs_list %}active{% endif %}"
+            onclick="toggleFundStructure('ETF,ETN')">Both</button>
   </div>
   {% if categories is defined %}
   <div style="display:flex; gap:8px; align-items:center;">
     <span style="font-size:0.72rem; color:var(--gray-500); font-weight:600; text-transform:uppercase;">Category:</span>
-    <select onchange="window.location='?fund_structure={{ fund_structure|default('all') }}&category='+this.value"
+    <select onchange="window.location='?fund_structure={{ fund_structure|default('ETF')|urlencode }}&category='+encodeURIComponent(this.value)"
             class="select-sm" style="font-size:0.82rem; padding:4px 8px;">
       <option value="All" {% if not category or category == 'All' %}selected{% endif %}>All Categories</option>
       {% for c in categories %}
@@ -33,7 +34,14 @@
   {% endif %}
 </div>
 
-{# ── KPI Cards (6 cards with mini sparklines) ── #}
+{# -- ETN AUM Disclaimer -- #}
+{% if fund_structure and 'ETN' in fund_structure %}
+<div style="font-size:0.72rem; color:var(--gray-500); margin-bottom:12px; font-style:italic;">
+  Note: Bloomberg AUM for ETNs may not reflect outstanding shares.
+</div>
+{% endif %}
+
+{# -- KPI Cards (5 cards - removed Avg Yield) -- #}
 <div class="kpi-row" style="margin-bottom:24px;">
   <div class="kpi-card">
     <div class="kpi-label">Total REX AUM</div>
@@ -68,21 +76,17 @@
     <div class="kpi-value {{ 'positive' if summary.kpis.flow_1m > 0 else 'negative' if summary.kpis.flow_1m < 0 else '' }}">{{ summary.kpis.flow_1m_fmt }}</div>
   </div>
   <div class="kpi-card">
-    <div class="kpi-label">Avg Yield</div>
-    <div class="kpi-value">{{ summary.kpis.avg_yield_fmt|default('N/A') }}</div>
-  </div>
-  <div class="kpi-card">
     <div class="kpi-label">Best Performer</div>
     {% if summary.kpis.best_performer %}
     <div class="kpi-value positive" style="font-size:var(--text-md);">{{ summary.kpis.best_performer.ticker }}</div>
-    <div style="font-size:0.72rem; color:var(--green);">{{ summary.kpis.best_performer.return_1m_fmt }}</div>
+    <div style="font-size:0.72rem;" class="positive">{{ summary.kpis.best_performer.return_1m_fmt }}</div>
     {% else %}
     <div class="kpi-value" style="font-size:var(--text-md);">--</div>
     {% endif %}
   </div>
 </div>
 
-{# ── Charts Row ── #}
+{# -- Charts Row -- #}
 <div class="charts-row">
   <div class="chart-box">
     <h3>AUM by Suite</h3>
@@ -94,7 +98,7 @@
   </div>
 </div>
 
-{# ── Flow Bar Charts ── #}
+{# -- Flow Bar Charts -- #}
 {% if summary.flow_chart is defined and summary.flow_chart.suites %}
 <div class="chart-box" style="margin-bottom:24px;">
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
@@ -112,14 +116,27 @@
 </div>
 {% endif %}
 
-{# ── Performance Section ── #}
+{# -- Best/Worst Performance with Metric Selector -- #}
 {% if summary.best5 or summary.worst5 %}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+  <h2 class="section-title" style="border:none; margin:0; padding:0;">Performance</h2>
+  <select id="perfMetricSelector" class="select-sm" style="font-size:0.82rem; padding:4px 8px;"
+          onchange="switchPerfMetric(this.value)">
+    <option value="return_1m" selected>1M Return</option>
+    <option value="return_1w">1W Return</option>
+    <option value="flow_1w">1W Flow</option>
+    <option value="flow_1m">1M Flow</option>
+    <option value="flow_3m">3M Flow</option>
+    <option value="flow_ytd">YTD Flow</option>
+    <option value="yield">Annualized Yield</option>
+  </select>
+</div>
 <div class="charts-row" style="margin-bottom:24px;">
   <div class="chart-box">
-    <h3>Best 5 by 1M Return</h3>
+    <h3 id="best5Title">Best 5 by 1M Return</h3>
     <table class="data-table" style="font-size:0.82rem;">
-      <thead><tr><th>Ticker</th><th>Fund Name</th><th>1M Return</th></tr></thead>
-      <tbody>
+      <thead><tr><th>Ticker</th><th>Fund Name</th><th id="best5MetricHeader">1M Return</th></tr></thead>
+      <tbody id="best5Body">
         {% for p in summary.best5 %}
         <tr>
           <td class="ticker-col">{{ p.ticker }}</td>
@@ -131,10 +148,10 @@
     </table>
   </div>
   <div class="chart-box">
-    <h3>Worst 5 by 1M Return</h3>
+    <h3 id="worst5Title">Worst 5 by 1M Return</h3>
     <table class="data-table" style="font-size:0.82rem;">
-      <thead><tr><th>Ticker</th><th>Fund Name</th><th>1M Return</th></tr></thead>
-      <tbody>
+      <thead><tr><th>Ticker</th><th>Fund Name</th><th id="worst5MetricHeader">1M Return</th></tr></thead>
+      <tbody id="worst5Body">
         {% for p in summary.worst5 %}
         <tr>
           <td class="ticker-col">{{ p.ticker }}</td>
@@ -148,7 +165,7 @@
 </div>
 {% endif %}
 
-{# ── Suite Summary Table ── #}
+{# -- Suite Summary Table with Collapsible Products -- #}
 <h2 class="section-title">REX Suites</h2>
 
 <div class="table-responsive">
@@ -161,17 +178,17 @@
       <th class="sortable" onclick="sortTable('suiteTable', 3)">1M Flow</th>
       <th class="sortable" onclick="sortTable('suiteTable', 4)">Mkt Share</th>
       <th class="sortable" onclick="sortTable('suiteTable', 5)"># Funds</th>
-      <th class="sortable" onclick="sortTable('suiteTable', 6)">Avg Yield</th>
       <th>Top Mover</th>
     </tr>
   </thead>
   <tbody>
     {% for suite in summary.suites %}
-    <tr>
+    <tr class="suite-parent-row" onclick="toggleSuiteProducts('suite{{ loop.index }}')" style="cursor:pointer;">
       <td>
-        <a href="/market/category?cat={{ suite.name|urlencode }}" class="text-link" style="font-weight:500;" title="{{ suite.name }}">
+        <span style="font-weight:500; color:var(--blue);" title="{{ suite.name }}">
+          <span class="expand-icon" id="suite{{ loop.index }}Icon" style="font-size:0.7rem; margin-right:4px;">&#9654;</span>
           {{ suite.rex_name if suite.rex_name else suite.short_name }}
-        </a>
+        </span>
       </td>
       <td class="num-cell" data-sort="{{ suite.kpis.total_aum|default(0) }}">
         {{ suite.kpis.aum_fmt }}
@@ -183,8 +200,34 @@
       <td class="num-cell {{ 'positive' if suite.kpis.flow_1m > 0 else 'negative' if suite.kpis.flow_1m < 0 else '' }}" data-sort="{{ suite.kpis.flow_1m|default(0) }}">{{ suite.kpis.flow_1m_fmt }}</td>
       <td class="num-cell" data-sort="{{ suite.market_share|default(0) }}">{{ suite.market_share }}%</td>
       <td class="num-cell" data-sort="{{ suite.kpis.num_products|default(0) }}">{{ suite.kpis.num_products }}</td>
-      <td class="num-cell" data-sort="{{ suite.kpis.avg_yield|default(0) }}">{{ suite.kpis.avg_yield_fmt|default('--') }}</td>
       <td class="movers-cell">{% for m in suite.top_movers[:1] %}<span class="{{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{{ m.ticker }} {{ m.flow }}</span>{% endfor %}</td>
+    </tr>
+    {# Collapsible product rows for this suite #}
+    <tr id="suite{{ loop.index }}" style="display:none;">
+      <td colspan="7" style="padding:0;">
+        <table class="data-table" style="font-size:0.78rem; margin:0; border:none;">
+          <thead>
+            <tr style="background:var(--surface-2, #f1f5f9);">
+              <th style="padding:4px 8px;">Ticker</th>
+              <th style="padding:4px 8px;">Fund Name</th>
+              <th style="padding:4px 8px;">AUM</th>
+              <th style="padding:4px 8px;">1W Flow</th>
+              <th style="padding:4px 8px;">Expense Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in suite.products %}
+            <tr>
+              <td class="ticker-col" style="padding:3px 8px;">{{ p.ticker }}</td>
+              <td class="name-cell" style="padding:3px 8px; max-width:220px;" title="{{ p.fund_name }}">{{ p.fund_name|truncate(35, true) }}</td>
+              <td class="num-cell" style="padding:3px 8px;">{{ p.aum_fmt }}</td>
+              <td class="num-cell" style="padding:3px 8px;">{{ p.flow_1w_fmt }}</td>
+              <td class="num-cell" style="padding:3px 8px;">{{ p.expense_ratio_fmt or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </td>
     </tr>
     {% endfor %}
   </tbody>
@@ -199,10 +242,69 @@
 {% block market_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
+// Fund structure toggle (multi-select)
+function toggleFundStructure(val) {
+  var params = new URLSearchParams(location.search);
+  params.set('fund_structure', val);
+  // Preserve category
+  if (!params.has('category')) params.set('category', 'All');
+  location.search = params.toString();
+}
+
+// Collapsible suite products
+function toggleSuiteProducts(id) {
+  var row = document.getElementById(id);
+  var icon = document.getElementById(id + 'Icon');
+  if (!row) return;
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    if (icon) icon.innerHTML = '&#9660;';
+  } else {
+    row.style.display = 'none';
+    if (icon) icon.innerHTML = '&#9654;';
+  }
+}
+
+// Performance metric switching
+var _perfData = {{ summary.perf_metrics|tojson if summary and summary.perf_metrics is defined else '{}' }};
+
+function switchPerfMetric(metric) {
+  var data = _perfData[metric];
+  if (!data) return;
+
+  var labels = {
+    'return_1m': '1M Return', 'return_1w': '1W Return',
+    'flow_1w': '1W Flow', 'flow_1m': '1M Flow', 'flow_3m': '3M Flow', 'flow_ytd': 'YTD Flow',
+    'yield': 'Annualized Yield'
+  };
+  var label = labels[metric] || metric;
+
+  document.getElementById('best5Title').textContent = 'Best 5 by ' + label;
+  document.getElementById('worst5Title').textContent = 'Worst 5 by ' + label;
+  document.getElementById('best5MetricHeader').textContent = label;
+  document.getElementById('worst5MetricHeader').textContent = label;
+
+  function renderRows(tbodyId, items, positive) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody || !items) return;
+    var html = '';
+    items.forEach(function(p) {
+      var cls = positive ? 'positive' : 'negative';
+      html += '<tr><td class="ticker-col">' + (p.ticker||'') + '</td>';
+      html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (p.fund_name||'') + '</td>';
+      html += '<td class="num-cell ' + cls + '">' + (p.value_fmt||'') + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  renderRows('best5Body', data.best5, true);
+  renderRows('worst5Body', data.worst5, false);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   {% if summary %}
 
-  {# ── Mini sparklines ── #}
+  {# -- Mini sparklines -- #}
   function miniSparkline(canvasId, data, color) {
     var ctx = document.getElementById(canvasId);
     if (!ctx || !data || data.length === 0) return;
@@ -235,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
   miniSparkline('sparkShare', {{ summary.kpis.share_sparkline|tojson }}, '#059669');
   {% endif %}
 
-  {# ── Pie chart ── #}
+  {# -- Pie chart -- #}
   var pieData = {{ summary.pie_data|tojson }};
   var pieCtx = document.getElementById('suitesPieChart');
   if (pieCtx && pieData.values.length > 0) {
@@ -287,15 +389,19 @@ document.addEventListener('DOMContentLoaded', function() {
   {% endif %}
 
   {% if trend %}
-  {# ── Line chart ── #}
+  {# -- Line chart with optional category overlay -- #}
   var trendData = {{ trend|tojson }};
-  MarketCharts.renderLineChart('rexTrendChart', trendData.labels, [
-    {label: 'REX AUM', data: trendData.values, color: '#1E40AF'}
-  ]);
+  var trendDatasets = [{label: 'REX AUM', data: trendData.values, color: '#1E40AF'}];
+  {% if trend_all is defined and trend_all %}
+  var trendAllData = {{ trend_all|tojson }};
+  trendDatasets.unshift({label: 'Total REX AUM', data: trendAllData.values, color: '#93C5FD'});
+  trendDatasets[1].label = 'Category AUM';
+  {% endif %}
+  MarketCharts.renderLineChart('rexTrendChart', trendData.labels, trendDatasets);
   {% endif %}
 
   {% if summary and summary.flow_chart is defined %}
-  {# ── Flow bar chart ── #}
+  {# -- Flow bar chart -- #}
   var flowData = {{ summary.flow_chart|tojson }};
   var _rexFlowChart = null;
 

@@ -199,19 +199,24 @@ def get_rex_summary(fund_structure: str | None = None, category: str | None = No
     """Return REX overall KPIs + per-suite breakdown.
 
     Args:
-        fund_structure: "ETF", "ETN", or "all" to filter by fund type.
+        fund_structure: "ETF", "ETN", "ETF,ETN", or "all" to filter by fund type.
         category: If set (and not "All"), filter to only REX products in that category.
     """
     df = get_master_data()
 
-    # ETF/ETN filter
+    # ETF/ETN filter (supports comma-separated multi-select)
     if fund_structure and fund_structure != "all":
         fund_type_col = next((c for c in df.columns if c.lower().strip() == "fund_type"), None)
         if fund_type_col:
-            df = df[df[fund_type_col] == fund_structure].copy()
+            types = [t.strip() for t in fund_structure.split(",") if t.strip()]
+            df = df[df[fund_type_col].isin(types)].copy()
 
     all_cats = df[df["category_display"].notna()].copy()
     rex = df[df["is_rex"] == True].copy()
+
+    # Deduplicate products by ticker (products can appear in multiple rows)
+    if "ticker_clean" in rex.columns:
+        rex = rex.drop_duplicates(subset=["ticker_clean"], keep="first")
 
     # Category filter (narrows to one category for KPIs)
     if category and category != "All":
@@ -303,6 +308,43 @@ def get_rex_summary(fund_structure: str | None = None, category: str | None = No
                 "return_1m_fmt": f"{float(row.get(ret_col, 0)):+.2f}%",
             })
 
+    # --- Multi-metric best/worst (for JS metric switching) ---
+    perf_metrics = {}
+    _metric_defs = {
+        "return_1m": ("t_w3.total_return_1month", "{:+.2f}%", True),
+        "return_1w": ("t_w3.total_return_1week", "{:+.2f}%", True),
+        "flow_1w": ("t_w4.fund_flow_1week", None, False),
+        "flow_1m": ("t_w4.fund_flow_1month", None, False),
+        "flow_3m": ("t_w4.fund_flow_3month", None, False),
+        "flow_ytd": ("t_w4.fund_flow_ytd", None, False),
+        "yield": ("t_w3.annualized_yield", "{:.2f}%", True),
+    }
+    for mkey, (mcol, mfmt, is_pct) in _metric_defs.items():
+        if mcol not in rex.columns or rex.empty:
+            continue
+        valid = rex[rex[mcol].notna()].copy()
+        if valid.empty:
+            continue
+        b5 = []
+        w5 = []
+        for _, row in valid.nlargest(5, mcol).iterrows():
+            val = float(row.get(mcol, 0))
+            if mfmt:
+                vfmt = mfmt.format(val)
+            else:
+                vfmt = _fmt_flow(val)
+            b5.append({"ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                        "fund_name": str(row.get("fund_name", "")), "value_fmt": vfmt})
+        for _, row in valid.nsmallest(5, mcol).iterrows():
+            val = float(row.get(mcol, 0))
+            if mfmt:
+                vfmt = mfmt.format(val)
+            else:
+                vfmt = _fmt_flow(val)
+            w5.append({"ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                        "fund_name": str(row.get("fund_name", "")), "value_fmt": vfmt})
+        perf_metrics[mkey] = {"best5": b5, "worst5": w5}
+
     # --- Flow data arrays for bar chart (per suite) ---
     flow_chart_data = {"suites": [], "flow_1w": [], "flow_1m": [], "flow_3m": [], "flow_ytd": []}
 
@@ -391,13 +433,14 @@ def get_rex_summary(fund_structure: str | None = None, category: str | None = No
             })
 
         short = _suite_short(suite_name)
+        display_name = _REX_SUITE_NAMES.get(suite_name, short)
 
-        # Flow data for bar chart
+        # Flow data for bar chart (use REX display names)
         flow_1w = float(rex_suite["t_w4.fund_flow_1week"].sum()) if "t_w4.fund_flow_1week" in rex_suite.columns else 0.0
         flow_1m = float(rex_suite["t_w4.fund_flow_1month"].sum()) if "t_w4.fund_flow_1month" in rex_suite.columns else 0.0
         flow_3m = float(rex_suite["t_w4.fund_flow_3month"].sum()) if "t_w4.fund_flow_3month" in rex_suite.columns else 0.0
         flow_ytd = float(rex_suite["t_w4.fund_flow_ytd"].sum()) if "t_w4.fund_flow_ytd" in rex_suite.columns else 0.0
-        flow_chart_data["suites"].append(short)
+        flow_chart_data["suites"].append(display_name)
         flow_chart_data["flow_1w"].append(round(flow_1w, 2))
         flow_chart_data["flow_1m"].append(round(flow_1m, 2))
         flow_chart_data["flow_3m"].append(round(flow_3m, 2))
@@ -431,6 +474,7 @@ def get_rex_summary(fund_structure: str | None = None, category: str | None = No
         "pie_data": {"labels": pie_labels, "values": pie_values},
         "best5": best5,
         "worst5": worst5,
+        "perf_metrics": perf_metrics,
         "flow_chart": flow_chart_data,
     }
 
@@ -511,15 +555,16 @@ def get_slicer_options(category: str) -> list[dict]:
     return result
 
 
-def get_category_summary(category: str | None, filters: dict | None = None, fund_structure: str | None = None) -> dict:
+def get_category_summary(category: str | None, filters: dict | None = None, fund_structure: str | None = None, page: int = 1, per_page: int = 50) -> dict:
     """Return category totals, REX share, top products, issuer breakdown."""
     df = get_master_data()
 
-    # ETF/ETN filter
+    # ETF/ETN filter (supports comma-separated multi-select)
     if fund_structure and fund_structure != "all":
         fund_type_col = next((c for c in df.columns if c.lower().strip() == "fund_type"), None)
         if fund_type_col:
-            df = df[df[fund_type_col] == fund_structure].copy()
+            types = [t.strip() for t in fund_structure.split(",") if t.strip()]
+            df = df[df[fund_type_col].isin(types)].copy()
 
     # Filter by category
     if category and category != "All":
@@ -546,10 +591,15 @@ def get_category_summary(category: str | None, filters: dict | None = None, fund
     rex_aum = rex_kpis["total_aum"]
     market_share = (rex_aum / cat_aum * 100) if cat_aum > 0 else 0.0
 
-    # Top products table (sorted by AUM)
-    top_df = df.sort_values("t_w4.aum", ascending=False).head(50)
+    # Top products table (sorted by AUM, with pagination)
+    all_sorted = df.sort_values("t_w4.aum", ascending=False)
+    total_products = len(all_sorted)
+    total_pages = max(1, (total_products + per_page - 1) // per_page)
+    page = max(1, min(page, total_pages))
+    offset = (page - 1) * per_page
+    top_df = all_sorted.iloc[offset:offset + per_page]
     top_products = []
-    for rank, (_, row) in enumerate(top_df.iterrows(), 1):
+    for rank, (_, row) in enumerate(top_df.iterrows(), offset + 1):
         aum = float(row.get("t_w4.aum", 0))
         flow_1w = float(row.get("t_w4.fund_flow_1week", 0))
         flow_1m = float(row.get("t_w4.fund_flow_1month", 0))
@@ -642,7 +692,10 @@ def get_category_summary(category: str | None, filters: dict | None = None, fund
             "values": issuer_values,
             "is_rex": issuer_is_rex,
         },
-        "total_funds": len(df),
+        "total_funds": total_products,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
     }
 
 
@@ -763,11 +816,12 @@ def get_issuer_summary(category: str | None = None, fund_structure: str | None =
     else:
         df = df[df["category_display"].notna()].copy()
 
-    # ETF/ETN filter
+    # ETF/ETN filter (supports comma-separated multi-select)
     if fund_structure and fund_structure != "all":
         fund_type_col = next((c for c in df.columns if c.lower().strip() == "fund_type"), None)
         if fund_type_col:
-            df = df[df[fund_type_col] == fund_structure].copy()
+            types = [t.strip() for t in fund_structure.split(",") if t.strip()]
+            df = df[df[fund_type_col].isin(types)].copy()
 
     # Replace null issuer_display with "Unknown"
     df["issuer_display"] = df["issuer_display"].fillna("Unknown")

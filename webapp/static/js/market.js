@@ -464,32 +464,26 @@ var MarketFilters = (function() {
     var cat = pageEl ? pageEl.getAttribute('data-category') : '';
 
     // Read slicer values
-    var filters = {};
+    var params = new URLSearchParams();
+    if (cat) params.set('cat', encodeURIComponent(cat));
     document.querySelectorAll('.slicer-select').forEach(function(sel) {
       if (sel.value) {
-        filters[sel.getAttribute('data-field')] = sel.value;
+        params.set(sel.getAttribute('data-field'), sel.value);
       }
     });
 
-    // Build query string
-    var params = new URLSearchParams();
-    if (cat) params.set('cats', cat);
-    Object.keys(filters).forEach(function(k) { params.set(k, filters[k]); });
-
     // Preserve fund_structure param
-    var fundStr = new URLSearchParams(location.search).get('fund_structure') || 'all';
+    var fundStr = new URLSearchParams(location.search).get('fund_structure') || 'ETF';
     params.set('fund_structure', fundStr);
     location.search = params.toString();
   }
 
   function toggleCategory(cat) {
     var params = new URLSearchParams(location.search);
-    var cats = params.get('cats') ? params.get('cats').split(',').filter(Boolean) : [];
-    var idx = cats.indexOf(cat);
-    if (idx >= 0) cats.splice(idx, 1);
-    else cats.push(cat);
-    if (cats.length === 0) params.delete('cats');
-    else params.set('cats', cats.join(','));
+    params.set('cat', cat);
+    // Preserve fund_structure
+    var fundStr = params.get('fund_structure') || 'ETF';
+    params.set('fund_structure', fundStr);
     location.search = params.toString();
   }
 

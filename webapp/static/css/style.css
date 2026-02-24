@@ -838,6 +838,11 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 /* Dark mode: footer */
 [data-theme="dark"] .footer { border-top-color: var(--surface-3); }
 
+/* Dark mode: buttons and select */
+[data-theme="dark"] .btn { color: var(--text-primary); }
+[data-theme="dark"] .btn-primary { background: var(--navy-light); color: white; }
+[data-theme="dark"] .select-sm { background: var(--input-bg); border-color: var(--input-border); color: var(--input-color); }
+
 /* Smooth theme transitions */
 body, .sticky-nav, table, th, td, .kpi, .trust-card, .trust-block,
 .trust-header, .admin-card, .meta-item, .filter-bar, .pill,
@@ -978,7 +983,9 @@ body, .sticky-nav, table, th, td, .kpi, .trust-card, .trust-block,
   font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;
 }
 .kebab-logout { color: var(--red, #DC2626); }
+.kebab-logout span { color: var(--text-primary, #0F172A); }
 .kebab-logout:hover { background: rgba(220,38,38,0.08); }
+[data-theme="dark"] .kebab-logout span { color: var(--text-primary); }
 /* Theme icon visibility - use existing dark mode variables */
 [data-theme="dark"] .kebab-item .icon-sun { display: inline; }
 [data-theme="dark"] .kebab-item .icon-moon { display: none; }

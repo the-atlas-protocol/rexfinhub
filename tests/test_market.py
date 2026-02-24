@@ -26,12 +26,36 @@ def test_rex_view_loads(client):
     assert r.status_code == 200
 
 
+def test_rex_view_default_etf(client):
+    """Default fund_structure should be ETF."""
+    r = client.get("/market/rex")
+    assert r.status_code == 200
+
+
 def test_rex_view_with_fund_structure(client):
     r = client.get("/market/rex?fund_structure=ETF")
     assert r.status_code == 200
 
 
+def test_rex_view_multi_fund_structure(client):
+    """Multi-select fund_structure should work."""
+    r = client.get("/market/rex?fund_structure=ETF,ETN")
+    assert r.status_code == 200
+
+
+def test_rex_view_with_category(client):
+    """Category filter should work with URL encoding."""
+    r = client.get("/market/rex?category=Crypto")
+    assert r.status_code == 200
+
+
 def test_category_view_loads(client):
+    r = client.get("/market/category")
+    assert r.status_code == 200
+
+
+def test_category_view_default_etf(client):
+    """Default fund_structure should be ETF."""
     r = client.get("/market/category")
     assert r.status_code == 200
 
@@ -49,9 +73,30 @@ def test_category_view_all_categories(client):
         assert r.status_code == 200, f"Category '{cat}' returned {r.status_code}"
 
 
-def test_treemap_loads(client):
-    r = client.get("/market/treemap")
+def test_category_view_pagination(client):
+    """Pagination params should work."""
+    r = client.get("/market/category?cat=Crypto&page=1&per_page=25")
     assert r.status_code == 200
+
+
+def test_category_view_slicer_params(client):
+    """Slicer parameters passed as query params should work."""
+    r = client.get("/market/category?cat=Crypto&q_category_attributes.map_crypto_is_spot=Spot")
+    assert r.status_code == 200
+
+
+def test_treemap_redirects_to_category(client):
+    """Standalone treemap should redirect to category view."""
+    r = client.get("/market/treemap", follow_redirects=False)
+    assert r.status_code == 302
+    assert "/market/category" in r.headers.get("location", "")
+
+
+def test_treemap_with_cat_redirects(client):
+    """Treemap with category should redirect preserving category."""
+    r = client.get("/market/treemap?cat=Crypto", follow_redirects=False)
+    assert r.status_code == 302
+    assert "Crypto" in r.headers.get("location", "")
 
 
 def test_issuer_view_loads(client):

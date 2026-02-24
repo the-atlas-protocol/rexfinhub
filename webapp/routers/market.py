@@ -46,32 +46,39 @@ def _parse_ts(ts: dict) -> dict[str, Any]:
 
 
 @router.get("/rex")
-def rex_view(request: Request, product_type: str = Query(default="All"), fund_structure: str = Query(default="all"), category: str = Query(default="All")):
+def rex_view(request: Request, product_type: str = Query(default="All"), fund_structure: str = Query(default="ETF"), category: str = Query(default="All")):
     """REX View - executive dashboard by suite."""
     svc = _svc()
     available = svc.data_available()
+    # Filter out "Defined Outcome" from categories (no REX products)
+    rex_categories = [c for c in svc.ALL_CATEGORIES if c != "Defined Outcome"]
     if not available:
         return templates.TemplateResponse("market/rex.html", {
             "request": request,
             "available": False,
             "active_tab": "rex",
-            "categories": svc.ALL_CATEGORIES,
+            "categories": rex_categories,
             "data_as_of": svc.get_data_as_of(),
         })
     try:
         cat_arg = category if category != "All" else None
         summary = svc.get_rex_summary(fund_structure=fund_structure, category=cat_arg)
         trend = _parse_ts(svc.get_time_series(is_rex=True, category=cat_arg))
+        # If a specific category is selected, also provide "all REX" trend for overlay
+        trend_all = None
+        if cat_arg:
+            trend_all = _parse_ts(svc.get_time_series(is_rex=True))
         return templates.TemplateResponse("market/rex.html", {
             "request": request,
             "available": True,
             "active_tab": "rex",
             "summary": summary,
             "trend": trend,
+            "trend_all": trend_all,
             "product_type": product_type,
             "fund_structure": fund_structure,
             "category": category,
-            "categories": svc.ALL_CATEGORIES,
+            "categories": rex_categories,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
@@ -81,7 +88,7 @@ def rex_view(request: Request, product_type: str = Query(default="All"), fund_st
             "available": False,
             "active_tab": "rex",
             "error": str(e),
-            "categories": svc.ALL_CATEGORIES,
+            "categories": rex_categories,
             "data_as_of": svc.get_data_as_of(),
         })
 
@@ -91,7 +98,9 @@ def category_view(
     request: Request,
     cat: str = Query(default="All"),
     filters: str = Query(default=None),
-    fund_structure: str = Query(default="all"),
+    fund_structure: str = Query(default="ETF"),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=50, ge=10, le=200),
 ):
     """Category View - competitive landscape with dynamic filters."""
     svc = _svc()
@@ -106,9 +115,24 @@ def category_view(
             "data_as_of": svc.get_data_as_of(),
         })
     try:
-        filter_dict = json.loads(filters) if filters else {}
+        # Build filter dict from either JSON or individual query params
+        filter_dict = {}
+        if filters:
+            try:
+                filter_dict = json.loads(filters)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        # Also read slicer params directly from query string
+        for key, val in request.query_params.items():
+            if key.startswith("q_category_attributes.") and val:
+                filter_dict[key] = val
+
         cat_arg = cat if cat != "All" else None
-        summary = svc.get_category_summary(cat_arg, filter_dict, fund_structure=fund_structure)
+        summary = svc.get_category_summary(cat_arg, filter_dict, fund_structure=fund_structure, page=page, per_page=per_page)
+
+        # Treemap data for this category
+        treemap_data = svc.get_treemap_data(cat_arg, fund_type=fund_structure)
+
         slicers = svc.get_slicer_options(cat) if cat and cat != "All" else []
         ts_cat = _parse_ts(svc.get_time_series(category=cat_arg))
         ts_rex = _parse_ts(svc.get_time_series(category=cat_arg, is_rex=True))
@@ -128,6 +152,9 @@ def category_view(
             "active_filters": filter_dict,
             "trend": trend,
             "fund_structure": fund_structure,
+            "treemap": treemap_data,
+            "page": page,
+            "per_page": per_page,
             "data_as_of": svc.get_data_as_of(),
         })
     except Exception as e:
@@ -144,39 +171,12 @@ def category_view(
 
 
 @router.get("/treemap")
-def treemap_view(request: Request, cat: str = Query(default=""), fund_type: str = Query(default="all"), issuer: str = Query(default="All")):
-    svc = _svc()
-    available = svc.data_available()
-
-    # Get available categories from master data
-    available_cats = list(svc.ALL_CATEGORIES)
-    if available:
-        try:
-            master = svc.get_master_data()
-            data_cats = sorted(master[master["category_display"].notna()]["category_display"].unique().tolist())
-            if data_cats:
-                available_cats = data_cats
-        except Exception:
-            pass
-
-    # Remove "All" as valid option - default to first category
-    if not cat or cat.lower() == "all" or cat not in available_cats:
-        cat = available_cats[0] if available_cats else ""
-
-    if not available:
-        return templates.TemplateResponse("market/treemap.html", {"request": request, "available": False, "active_tab": "treemap", "categories": available_cats, "data_as_of": svc.get_data_as_of()})
-    try:
-        issuer_arg = issuer if issuer != "All" else None
-        summary = svc.get_treemap_data(cat, fund_type=fund_type, issuer_filter=issuer_arg)
-        return templates.TemplateResponse("market/treemap.html", {
-            "request": request, "available": True, "active_tab": "treemap",
-            "summary": summary, "categories": available_cats, "category": cat,
-            "fund_type": fund_type, "selected_issuer": issuer,
-            "data_as_of": svc.get_data_as_of(),
-        })
-    except Exception as e:
-        log.error("Treemap error: %s", e, exc_info=True)
-        return templates.TemplateResponse("market/treemap.html", {"request": request, "available": True, "active_tab": "treemap", "summary": {"products": [], "issuers": [], "all_issuers": [], "total_aum_fmt": "N/A", "total_aum": 0, "categories": available_cats}, "categories": available_cats, "category": cat, "fund_type": fund_type, "selected_issuer": issuer, "error": str(e), "data_as_of": svc.get_data_as_of()})
+def treemap_view(request: Request, cat: str = Query(default="")):
+    """Treemap merged into Category View - redirect there."""
+    redirect_url = "/market/category"
+    if cat:
+        redirect_url += f"?cat={cat}"
+    return RedirectResponse(redirect_url, status_code=302)
 
 
 @router.get("/issuer")
