@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
@@ -116,7 +116,8 @@ def dashboard(
     if days not in _ALLOWED_DAYS:
         days = 7
 
-    # Recent filings with configurable filters
+    # Recent filings with configurable filters (prospectus-related only)
+    _PROSPECTUS_PREFIXES = ("485A", "485B", "497")
     filing_query = (
         select(
             Filing,
@@ -134,6 +135,11 @@ def dashboard(
 
     if form_type:
         filing_query = filing_query.where(Filing.form.ilike(f"{form_type}%"))
+    else:
+        # Default: only prospectus-related forms on the dashboard
+        filing_query = filing_query.where(
+            or_(*(Filing.form.ilike(f"{p}%") for p in _PROSPECTUS_PREFIXES))
+        )
 
     if filing_trust_id:
         filing_query = filing_query.where(Filing.trust_id == filing_trust_id)
