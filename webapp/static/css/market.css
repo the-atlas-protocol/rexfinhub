@@ -660,12 +660,12 @@
 }
 .cal-cell {
   background: #fff;
-  min-height: 100px;
-  padding: 6px;
+  min-height: 140px;
+  padding: 8px;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .cal-cell.cal-empty {
   background: #F8FAFC;
@@ -688,8 +688,8 @@
 }
 .cal-event-badge {
   display: block;
-  font-size: 0.6rem;
-  padding: 1px 4px;
+  font-size: 0.7rem;
+  padding: 2px 5px;
   border-radius: 3px;
   white-space: nowrap;
   overflow: hidden;
@@ -704,8 +704,8 @@
   color: #92400E;
 }
 @media (max-width: 768px) {
-  .cal-cell { min-height: 50px; padding: 3px; }
-  .cal-event-badge { font-size: 0.5rem; }
+  .cal-cell { min-height: 70px; padding: 4px; }
+  .cal-event-badge { font-size: 0.6rem; }
 }
 
 /* ========================================================

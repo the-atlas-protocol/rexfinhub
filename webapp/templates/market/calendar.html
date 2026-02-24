@@ -55,11 +55,11 @@
 </div>
 
 {# Event detail popup (hidden by default) #}
-<div id="calEventPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card-bg, #fff); border:1px solid var(--gray-200, #E2E8F0); border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,0.15); padding:20px; z-index:1000; max-width:500px; width:90%; color:var(--text-primary, #1e293b);">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <h3 id="calPopupTitle" style="margin:0; font-size:1rem;"></h3>
+<div id="calEventPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card-bg, #fff); border:1px solid var(--gray-200, #E2E8F0); border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,0.15); padding:24px; z-index:1000; max-width:800px; width:92%; color:var(--text-primary, #1e293b); max-height:80vh; overflow-y:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <h3 id="calPopupTitle" style="margin:0; font-size:1.1rem;"></h3>
     <button onclick="document.getElementById('calEventPopup').style.display='none'; document.getElementById('calOverlay').style.display='none';"
-            style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#94A3B8;">&times;</button>
+            style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#94A3B8; padding:4px 8px;">&times;</button>
   </div>
   <div id="calPopupBody"></div>
 </div>
@@ -75,7 +75,7 @@
     <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
-          <th>Fund / Trust</th>
+          <th style="min-width:220px;">Fund / Trust</th>
           <th>Effective Date</th>
           <th>Days Since</th>
           <th>Filing</th>
@@ -84,10 +84,12 @@
       <tbody>
         {% for item in recent_launches %}
         <tr>
-          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ item.trust.name }}">
-            {{ item.fund_name if item.fund_name else item.trust.name }}
+          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust.name }}">
+            <a href="/funds?q={{ (item.fund_name if item.fund_name else item.trust.name)|urlencode }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name else item.trust.name }}
+            </a>
           </td>
-          <td class="text-mono" style="white-space:nowrap;">
+          <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
             {% if item.filing.effective_date is defined and item.filing.effective_date %}
               {{ item.filing.effective_date.strftime('%b %d, %Y') }}
             {% elif item.effective_date is defined and item.effective_date %}
@@ -96,12 +98,12 @@
               --
             {% endif %}
           </td>
-          <td>
+          <td style="padding:8px 10px;">
             <span class="badge badge-primary" style="font-size:0.7rem;">
               {{ item.days_since }}d ago
             </span>
           </td>
-          <td style="font-size:0.7rem; color:#94A3B8;">
+          <td style="font-size:0.7rem; color:#94A3B8; padding:8px 10px;">
             <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
           </td>
         </tr>
@@ -112,7 +114,7 @@
     <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
-          <th>Fund / Trust</th>
+          <th style="min-width:220px;">Fund / Trust</th>
           <th>Effective Date</th>
           <th>Form</th>
         </tr>
@@ -120,13 +122,15 @@
       <tbody>
         {% for item in recently_effective %}
         <tr>
-          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ item.trust.name }}">
-            {{ item.fund_name if item.fund_name is defined and item.fund_name else item.trust.name }}
+          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust.name }}">
+            <a href="/funds?q={{ (item.fund_name if item.fund_name is defined and item.fund_name else item.trust.name)|urlencode }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name is defined and item.fund_name else item.trust.name }}
+            </a>
           </td>
-          <td class="text-mono" style="white-space:nowrap;">
+          <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
             {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '--' }}
           </td>
-          <td>
+          <td style="padding:8px 10px;">
             <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
           </td>
         </tr>
@@ -145,7 +149,7 @@
     <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
-          <th>Fund / Trust</th>
+          <th style="min-width:220px;">Fund / Trust</th>
           <th>Form</th>
           <th>Effective Date</th>
           <th>Days Until</th>
@@ -154,14 +158,16 @@
       <tbody>
         {% for item in upcoming %}
         <tr>
-          <td style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ item.trust.name }}">
-            {{ item.fund_name if item.fund_name else item.trust.name }}
+          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust.name }}">
+            <a href="/funds?q={{ (item.fund_name if item.fund_name else item.trust.name)|urlencode }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name else item.trust.name }}
+            </a>
           </td>
-          <td>
+          <td style="padding:8px 10px;">
             {% set form_val = item.filing.form_type if item.filing.form_type is defined else item.filing.form %}
             <span class="badge badge-{{ 'primary' if form_val == '485BPOS' else 'warning' }}">{{ form_val }}</span>
           </td>
-          <td class="text-mono" style="white-space:nowrap;">
+          <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
             {% if item.filing.effective_date is defined and item.filing.effective_date %}
               {{ item.filing.effective_date.strftime('%b %d, %Y') }}
             {% elif item.effective_date is defined and item.effective_date %}
@@ -170,7 +176,7 @@
               --
             {% endif %}
           </td>
-          <td>
+          <td style="padding:8px 10px;">
             <span class="urgency-badge urgency-{{ item.urgency }}">
               {% if item.days_until is not none %}{{ item.days_until }}d{% else %}--{% endif %}
             </span>
@@ -213,12 +219,14 @@ function showCalEvents(day) {
   title.textContent = '{{ month_name }} ' + day;
 
   var html = '<table class="data-table" style="font-size:0.82rem;">';
-  html += '<thead><tr><th>Event</th><th>Fund / Trust</th><th>Type</th></tr></thead><tbody>';
+  html += '<thead><tr><th style="min-width:180px;">Event</th><th style="min-width:220px;">Fund / Trust</th><th>Type</th></tr></thead><tbody>';
   events.forEach(function(ev) {
     var cls = ev.type === 'launch' ? 'cal-event-launch' : 'cal-event-upcoming';
+    var fundName = ev.fund_name || ev.trust || '';
+    var fundLink = fundName ? '<a href="/funds?q=' + encodeURIComponent(fundName) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>' : '';
     html += '<tr>';
     html += '<td><span class="' + cls + '" style="padding:2px 6px; border-radius:4px; font-size:0.75rem;">' + escCalHtml(ev.label) + '</span></td>';
-    html += '<td>' + escCalHtml(ev.fund_name || ev.trust || '') + '</td>';
+    html += '<td style="white-space:normal; line-height:1.4; padding:8px 10px;">' + fundLink + '</td>';
     html += '<td>' + escCalHtml(ev.form || '') + '</td>';
     html += '</tr>';
   });
