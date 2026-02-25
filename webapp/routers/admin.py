@@ -275,6 +275,19 @@ def send_weekly(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
 
 
+@router.get("/digest/preview-daily")
+def preview_daily(request: Request, db: Session = Depends(get_db)):
+    """Preview daily brief HTML without sending."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+
+    from etp_tracker.email_alerts import build_digest_html_from_db
+    dashboard_url = str(request.base_url).rstrip("/")
+    html = build_digest_html_from_db(db, dashboard_url=dashboard_url)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
 @router.get("/digest/preview-weekly")
 def preview_weekly(request: Request, db: Session = Depends(get_db)):
     """Preview weekly digest HTML without sending."""

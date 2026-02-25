@@ -1,11 +1,20 @@
 """
-Email Alerts - Daily Digest
+Email Alerts - Daily Brief
 
 Email-client-compatible HTML digest (inline styles, table layout, no JS).
 Works in Outlook, Gmail, Apple Mail, etc.
 
-Executive summary only: Dashboard link + KPIs + what-changed counts.
-All detail lives on the dashboard.
+Focused on what's new: fund launches, new filings, and pending products.
+Scannable in 30 seconds.
+
+Sections:
+  1. Header
+  2. New Fund Launches (went EFFECTIVE in last 24h)
+  3. New Filings (485 forms filed in last 24h)
+  4. Pending Pipeline (funds approaching effectiveness)
+  5. At a Glance (compact KPI strip)
+  6. Dashboard CTA
+  7. Footer
 """
 from __future__ import annotations
 import smtplib
@@ -137,156 +146,428 @@ def _dashboard_cta(dash_link: str) -> str:
     )
 
 
-def _render_digest_html(
-    trust_count: int,
-    total: int,
-    eff_count: int,
-    pend_count: int,
-    delay_count: int,
-    new_filings_count: int,
-    newly_effective_count: int,
-    changed_count: int,
-    dashboard_url: str = "",
-    since_date: str = "",
-) -> str:
-    """Render digest HTML with pre-computed KPI values."""
+def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
+    """Render the daily brief HTML from pre-gathered data."""
     today = datetime.now()
-    if not since_date:
-        since_date = today.strftime("%Y-%m-%d")
-    dash_link = dashboard_url or ""
+    dash_link = _esc(dashboard_url) if dashboard_url else ""
 
-    return f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ETP Filing Tracker - {today.strftime('%Y-%m-%d')}</title>
-</head>
-<body style="margin:0;padding:0;background:{_LIGHT};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:{_NAVY};line-height:1.5;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{_LIGHT};">
-<tr><td align="center" style="padding:20px 10px;">
-<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:{_WHITE};border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-
-<!-- Header -->
+    # --- Section 1: Header ---
+    header = f"""
 <tr><td style="background:{_NAVY};padding:24px 30px;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td style="color:{_WHITE};font-size:22px;font-weight:700;">ETP Filing Tracker</td>
+    <td style="color:{_WHITE};font-size:22px;font-weight:700;">REX ETP Daily Brief</td>
     <td align="right" style="color:rgba(255,255,255,0.7);font-size:13px;">{today.strftime('%A, %B %d, %Y')}</td>
   </tr></table>
-</td></tr>
+</td></tr>"""
 
-<!-- Dashboard Button (TOP) -->
-{_dashboard_cta(dash_link) if dash_link else ""}
-
-<!-- KPI Row -->
+    # --- Section 2: New Fund Launches ---
+    launches = data.get("launches", [])
+    if launches:
+        launch_rows = []
+        for f in launches[:15]:
+            ticker = _esc(f.get("ticker", ""))
+            name = _esc(f.get("fund_name", ""))
+            if len(name) > 40:
+                name = name[:37] + "..."
+            trust = _esc(f.get("trust_name", ""))
+            if len(trust) > 25:
+                trust = trust[:22] + "..."
+            eff_date = _esc(f.get("effective_date", ""))
+            is_rex = f.get("is_rex", False)
+            name_html = name
+            if is_rex:
+                name_html = (
+                    f'{name} <span style="background:{_BLUE};color:{_WHITE};'
+                    f'padding:1px 5px;border-radius:3px;font-size:8px;'
+                    f'font-weight:700;vertical-align:middle;">REX</span>'
+                )
+            launch_rows.append(
+                f'<tr>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;font-weight:600;white-space:nowrap;">{ticker}</td>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;">{name_html}</td>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:10px;color:{_GRAY};">{trust}</td>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:10px;text-align:right;color:{_GRAY};">{eff_date}</td>'
+                f'</tr>'
+            )
+        more_html = ""
+        if len(launches) > 15:
+            more_html = (
+                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
+                f'+ {len(launches) - 15} more on dashboard</div>'
+            )
+        launches_section = f"""
 <tr><td style="padding:20px 30px 10px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td width="20%" align="center" style="padding:12px 8px;background:{_LIGHT};border-radius:8px;">
-      <div style="font-size:28px;font-weight:700;color:{_NAVY};">{trust_count}</div>
-      <div style="font-size:10px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Trusts</div>
-    </td>
-    <td width="4%"></td>
-    <td width="20%" align="center" style="padding:12px 8px;background:{_LIGHT};border-radius:8px;">
-      <div style="font-size:28px;font-weight:700;color:{_NAVY};">{total}</div>
-      <div style="font-size:10px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Total Funds</div>
-    </td>
-    <td width="4%"></td>
-    <td width="16%" align="center" style="padding:12px 8px;background:{_LIGHT};border-radius:8px;">
-      <div style="font-size:28px;font-weight:700;color:{_GREEN};">{eff_count}</div>
-      <div style="font-size:10px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Effective</div>
-    </td>
-    <td width="4%"></td>
-    <td width="16%" align="center" style="padding:12px 8px;background:{_LIGHT};border-radius:8px;">
-      <div style="font-size:28px;font-weight:700;color:{_ORANGE};">{pend_count}</div>
-      <div style="font-size:10px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Pending</div>
-    </td>
-    <td width="4%"></td>
-    <td width="16%" align="center" style="padding:12px 8px;background:{_LIGHT};border-radius:8px;">
-      <div style="font-size:28px;font-weight:700;color:{_RED};">{delay_count}</div>
-      <div style="font-size:10px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Delayed</div>
-    </td>
-  </tr></table>
-</td></tr>
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_GREEN};">
+    New Fund Launches
+  </div>
+  <div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">
+    Funds that went effective since yesterday
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Ticker</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Fund Name</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Trust</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};text-align:right;">Effective</td>
+    </tr>
+    {''.join(launch_rows)}
+  </table>
+  {more_html}
+</td></tr>"""
+    else:
+        launches_section = f"""
+<tr><td style="padding:20px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_GREEN};">
+    New Fund Launches
+  </div>
+  <div style="padding:12px;background:{_LIGHT};border-radius:6px;
+    font-size:13px;color:{_GRAY};text-align:center;">
+    No new launches today.
+  </div>
+</td></tr>"""
 
-<!-- What Changed -->
-<tr><td style="padding:15px 30px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e3f2fd;border-left:4px solid {_BLUE};border-radius:0 8px 8px 0;">
-  <tr><td style="padding:15px 20px;">
-    <div style="font-size:16px;font-weight:700;color:{_NAVY};margin-bottom:6px;">What Changed ({since_date})</div>
-    <table cellpadding="0" cellspacing="0" border="0"><tr>
-      <td style="padding-right:24px;font-size:14px;"><span style="font-size:20px;font-weight:700;color:{_BLUE};">{new_filings_count}</span> new filings</td>
-      <td style="padding-right:24px;font-size:14px;"><span style="font-size:20px;font-weight:700;color:{_GREEN};">{newly_effective_count}</span> newly effective</td>
-      <td style="padding-right:24px;font-size:14px;"><span style="font-size:20px;font-weight:700;color:{_ORANGE};">{changed_count}</span> name changes</td>
-    </tr></table>
-  </td></tr></table>
-</td></tr>
+    # --- Section 3: New Filings ---
+    filing_groups = data.get("filing_groups", [])
+    if filing_groups:
+        filing_rows = []
+        for fg in filing_groups[:10]:
+            trust = _esc(fg.get("trust_name", ""))
+            if len(trust) > 30:
+                trust = trust[:27] + "..."
+            form = _esc(fg.get("form", ""))
+            count = fg.get("fund_count", 0)
+            filing_date = _esc(fg.get("filing_date", ""))
+            is_rex = fg.get("is_rex", False)
+            trust_html = trust
+            if is_rex:
+                trust_html = (
+                    f'{trust} <span style="background:{_BLUE};color:{_WHITE};'
+                    f'padding:1px 5px;border-radius:3px;font-size:8px;'
+                    f'font-weight:700;vertical-align:middle;">REX</span>'
+                )
+            filing_rows.append(
+                f'<tr>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;">{trust_html}</td>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;font-weight:600;text-align:center;">{form}</td>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;text-align:center;">{count}</td>'
+                f'<td style="padding:5px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:10px;text-align:right;color:{_GRAY};">{filing_date}</td>'
+                f'</tr>'
+            )
+        more_html = ""
+        if len(filing_groups) > 10:
+            more_html = (
+                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
+                f'+ {len(filing_groups) - 10} more trusts filed</div>'
+            )
+        filings_section = f"""
+<tr><td style="padding:15px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_BLUE};">
+    New Filings
+  </div>
+  <div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">
+    485 prospectus filings in the last 24 hours
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Trust</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};text-align:center;">Form</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};text-align:center;">Funds</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};text-align:right;">Filed</td>
+    </tr>
+    {''.join(filing_rows)}
+  </table>
+  {more_html}
+</td></tr>"""
+    else:
+        filings_section = f"""
+<tr><td style="padding:15px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_BLUE};">
+    New Filings
+  </div>
+  <div style="padding:12px;background:{_LIGHT};border-radius:6px;
+    font-size:13px;color:{_GRAY};text-align:center;">
+    No new 485 filings today.
+  </div>
+</td></tr>"""
 
-<!-- Dashboard Button (BOTTOM) -->
-{_dashboard_cta(dash_link) if dash_link else ""}
+    # --- Section 4: Pending Pipeline ---
+    pending = data.get("pending", [])
+    pending_section = ""
+    if pending:
+        pending_rows = []
+        for p in pending[:8]:
+            ticker = _esc(p.get("ticker", ""))
+            name = _esc(p.get("fund_name", ""))
+            if len(name) > 35:
+                name = name[:32] + "..."
+            trust = _esc(p.get("trust_name", ""))
+            if len(trust) > 20:
+                trust = trust[:17] + "..."
+            eff_date = _esc(p.get("effective_date", "TBD"))
+            is_rex = p.get("is_rex", False)
+            name_html = name
+            if is_rex:
+                name_html = (
+                    f'{name} <span style="background:{_BLUE};color:{_WHITE};'
+                    f'padding:1px 5px;border-radius:3px;font-size:8px;'
+                    f'font-weight:700;vertical-align:middle;">REX</span>'
+                )
+            pending_rows.append(
+                f'<tr>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;font-weight:600;white-space:nowrap;">{ticker}</td>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:11px;">{name_html}</td>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:10px;color:{_GRAY};">{trust}</td>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
+                f'font-size:10px;text-align:right;color:{_ORANGE};">{eff_date}</td>'
+                f'</tr>'
+            )
+        more_html = ""
+        total_pending = data.get("total_pending", len(pending))
+        if total_pending > 8:
+            more_html = (
+                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
+                f'+ {total_pending - 8} more pending on dashboard</div>'
+            )
+        pending_section = f"""
+<tr><td style="padding:15px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_ORANGE};">
+    Pending Pipeline
+  </div>
+  <div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">
+    Funds approaching effectiveness
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Ticker</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Fund Name</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};">Trust</td>
+      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
+        border-bottom:1px solid {_BORDER};text-align:right;">Expected</td>
+    </tr>
+    {''.join(pending_rows)}
+  </table>
+  {more_html}
+</td></tr>"""
 
-<!-- Footer -->
+    # --- Section 5: At a Glance ---
+    trust_count = data.get("trust_count", 0)
+    total_funds = data.get("total_funds", 0)
+    newly_effective_7d = data.get("newly_effective_7d", 0)
+    total_pending = data.get("total_pending", 0)
+
+    _kpi = f"padding:10px 6px;background:{_LIGHT};border-radius:6px;text-align:center;"
+    _kpi_num = f"font-size:22px;font-weight:700;color:{_NAVY};"
+    _kpi_lbl = f"font-size:9px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;"
+
+    glance_section = f"""
+<tr><td style="padding:15px 30px 10px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td width="23%" style="{_kpi}">
+        <div style="{_kpi_num}">{trust_count}</div>
+        <div style="{_kpi_lbl}">Trusts</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_kpi}">
+        <div style="{_kpi_num}">{total_funds:,}</div>
+        <div style="{_kpi_lbl}">Total Funds</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_kpi}">
+        <div style="{_kpi_num}color:{_GREEN};">{newly_effective_7d}</div>
+        <div style="{_kpi_lbl}">Effective (7d)</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_kpi}">
+        <div style="{_kpi_num}color:{_ORANGE};">{total_pending}</div>
+        <div style="{_kpi_lbl}">Pending</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>"""
+
+    # --- Section 6: Dashboard CTA ---
+    cta_section = _dashboard_cta(dash_link) if dash_link else ""
+
+    # --- Section 7: Footer ---
+    footer = f"""
 <tr><td style="padding:16px 30px;border-top:1px solid {_BORDER};">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td style="font-size:11px;color:{_GRAY};">ETP Filing Tracker | {today.strftime('%Y-%m-%d %H:%M')}</td>
-    <td align="right" style="font-size:11px;color:{_GRAY};">{trust_count} trusts | {total} funds</td>
-  </tr></table>
-</td></tr>
+  <div style="font-size:11px;color:{_GRAY};text-align:center;">
+    REX ETP Daily Brief | {today.strftime('%Y-%m-%d')}
+  </div>
+  <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
+    Data sourced from SEC EDGAR | To unsubscribe, contact relasmar@rexfin.com
+  </div>
+</td></tr>"""
 
+    # --- Assemble ---
+    body = header + launches_section + filings_section + pending_section + glance_section + cta_section + footer
+
+    return f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REX ETP Daily Brief - {today.strftime('%Y-%m-%d')}</title>
+</head>
+<body style="margin:0;padding:0;background:{_LIGHT};
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  color:{_NAVY};line-height:1.5;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{_LIGHT};">
+<tr><td align="center" style="padding:20px 10px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0"
+       style="background:{_WHITE};border-radius:8px;overflow:hidden;
+              box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+{body}
 </table>
 </td></tr></table>
 </body></html>"""
 
 
-def build_digest_html(
-    output_dir: Path,
-    dashboard_url: str = "",
-    since_date: str | None = None,
-) -> str:
-    """Build digest from CSV files in outputs/ directory."""
+def _gather_daily_data(db_session, since_date: str | None = None) -> dict:
+    """Query DB for all daily brief data."""
+    from sqlalchemy import func, select, and_
+    from datetime import date as date_type
+    from webapp.models import Trust, FundStatus, Filing, FundExtraction
+
     today = datetime.now()
     if not since_date:
-        since_date = today.strftime("%Y-%m-%d")
+        since_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    since_dt = date_type.fromisoformat(since_date)
+    week_ago = date_type.today() - timedelta(days=7)
 
-    all_status = []
-    all_names = []
-    for folder in sorted(output_dir.iterdir()):
-        if not folder.is_dir():
-            continue
-        for f4 in folder.glob("*_4_Fund_Status.csv"):
-            all_status.append(pd.read_csv(f4, dtype=str))
-        for f5 in folder.glob("*_5_Name_History.csv"):
-            all_names.append(pd.read_csv(f5, dtype=str))
-
-    df_all = pd.concat(all_status, ignore_index=True) if all_status else pd.DataFrame()
-    df_names = pd.concat(all_names, ignore_index=True) if all_names else pd.DataFrame()
-
-    new_filings_count = 0
-    if not df_all.empty and "Latest Filing Date" in df_all.columns:
-        date_mask = df_all["Latest Filing Date"].fillna("") >= since_date
-        form_mask = df_all["Latest Form"].fillna("").str.upper().str.startswith("485")
-        new_filings_count = int((date_mask & form_mask).sum())
-
-    newly_effective_count = 0
-    if not df_all.empty:
-        eff_mask = (
-            (df_all["Status"] == "EFFECTIVE")
-            & (df_all["Effective Date"].fillna("") >= since_date)
+    # --- New launches: funds that went EFFECTIVE since since_dt ---
+    launch_rows = db_session.execute(
+        select(
+            FundStatus.ticker,
+            FundStatus.fund_name,
+            FundStatus.effective_date,
+            Trust.name.label("trust_name"),
+            Trust.is_rex,
         )
-        newly_effective_count = int(eff_mask.sum())
+        .join(Trust, Trust.id == FundStatus.trust_id)
+        .where(FundStatus.status == "EFFECTIVE")
+        .where(FundStatus.effective_date >= since_dt)
+        .order_by(Trust.is_rex.desc(), FundStatus.effective_date.desc())
+    ).all()
 
-    changed_count = 0
-    if not df_names.empty:
-        multi = df_names.groupby("Series ID").size()
-        changed_count = int((multi > 1).sum())
+    launches = []
+    for r in launch_rows:
+        ticker = _clean_ticker(r.ticker)
+        launches.append({
+            "ticker": ticker if ticker else "--",
+            "fund_name": r.fund_name or "",
+            "trust_name": r.trust_name or "",
+            "effective_date": str(r.effective_date) if r.effective_date else "",
+            "is_rex": r.is_rex,
+        })
 
-    total = len(df_all) if not df_all.empty else 0
-    eff_count = len(df_all[df_all["Status"] == "EFFECTIVE"]) if not df_all.empty else 0
-    pend_count = len(df_all[df_all["Status"] == "PENDING"]) if not df_all.empty else 0
-    delay_count = len(df_all[df_all["Status"] == "DELAYED"]) if not df_all.empty else 0
-    trust_count = df_all["Trust"].nunique() if not df_all.empty else 0
+    # --- New filings: 485 forms since since_dt, grouped by trust + form ---
+    filing_rows = db_session.execute(
+        select(
+            Trust.name.label("trust_name"),
+            Trust.is_rex,
+            Filing.form,
+            Filing.filing_date,
+            func.count(FundExtraction.id).label("fund_count"),
+        )
+        .join(Trust, Trust.id == Filing.trust_id)
+        .outerjoin(FundExtraction, FundExtraction.filing_id == Filing.id)
+        .where(Filing.filing_date >= since_dt)
+        .where(Filing.form.ilike("485%"))
+        .group_by(Trust.name, Trust.is_rex, Filing.form, Filing.filing_date)
+        .order_by(Trust.is_rex.desc(), Filing.filing_date.desc())
+    ).all()
 
-    return _render_digest_html(
-        trust_count, total, eff_count, pend_count, delay_count,
-        new_filings_count, newly_effective_count, changed_count,
-        dashboard_url, since_date,
-    )
+    filing_groups = []
+    for r in filing_rows:
+        filing_groups.append({
+            "trust_name": r.trust_name or "",
+            "form": r.form or "",
+            "fund_count": r.fund_count or 0,
+            "filing_date": str(r.filing_date) if r.filing_date else "",
+            "is_rex": r.is_rex,
+        })
+
+    # --- Pending funds: PENDING status, ordered by expected effective date ---
+    pending_rows = db_session.execute(
+        select(
+            FundStatus.ticker,
+            FundStatus.fund_name,
+            FundStatus.effective_date,
+            Trust.name.label("trust_name"),
+            Trust.is_rex,
+        )
+        .join(Trust, Trust.id == FundStatus.trust_id)
+        .where(FundStatus.status == "PENDING")
+        .order_by(Trust.is_rex.desc(), FundStatus.effective_date.asc())
+    ).all()
+
+    pending = []
+    for r in pending_rows:
+        ticker = _clean_ticker(r.ticker)
+        pending.append({
+            "ticker": ticker if ticker else "--",
+            "fund_name": r.fund_name or "",
+            "trust_name": r.trust_name or "",
+            "effective_date": str(r.effective_date) if r.effective_date else "TBD",
+            "is_rex": r.is_rex,
+        })
+
+    # --- KPI counts ---
+    trust_count = db_session.execute(
+        select(func.count(Trust.id)).where(Trust.is_active == True)
+    ).scalar() or 0
+
+    total_funds = db_session.execute(
+        select(func.count(FundStatus.id))
+    ).scalar() or 0
+
+    newly_effective_7d = db_session.execute(
+        select(func.count(FundStatus.id))
+        .where(FundStatus.status == "EFFECTIVE")
+        .where(FundStatus.effective_date >= week_ago)
+    ).scalar() or 0
+
+    total_pending = db_session.execute(
+        select(func.count(FundStatus.id))
+        .where(FundStatus.status == "PENDING")
+    ).scalar() or 0
+
+    return {
+        "launches": launches,
+        "filing_groups": filing_groups,
+        "pending": pending,
+        "trust_count": trust_count,
+        "total_funds": total_funds,
+        "newly_effective_7d": newly_effective_7d,
+        "total_pending": total_pending,
+    }
 
 
 def build_digest_html_from_db(
@@ -294,69 +575,14 @@ def build_digest_html_from_db(
     dashboard_url: str = "",
     since_date: str | None = None,
 ) -> str:
-    """Build digest from SQLite database (always available, no CSV dependency)."""
-    from sqlalchemy import func, select
-    from datetime import date as date_type
-
-    today = datetime.now()
-    if not since_date:
-        since_date = today.strftime("%Y-%m-%d")
-    since_dt = date_type.fromisoformat(since_date)
-
-    # Import models inside function to avoid circular import
-    from webapp.models import Trust, FundStatus, Filing, NameHistory
-
-    trust_count = db_session.execute(
-        select(func.count(Trust.id)).where(Trust.is_active == True)
-    ).scalar() or 0
-
-    total = db_session.execute(
-        select(func.count(FundStatus.id))
-    ).scalar() or 0
-
-    eff_count = db_session.execute(
-        select(func.count(FundStatus.id)).where(FundStatus.status == "EFFECTIVE")
-    ).scalar() or 0
-
-    pend_count = db_session.execute(
-        select(func.count(FundStatus.id)).where(FundStatus.status == "PENDING")
-    ).scalar() or 0
-
-    delay_count = db_session.execute(
-        select(func.count(FundStatus.id)).where(FundStatus.status == "DELAYED")
-    ).scalar() or 0
-
-    new_filings_count = db_session.execute(
-        select(func.count(Filing.id))
-        .where(Filing.filing_date >= since_dt)
-        .where(Filing.form.ilike("485%"))
-    ).scalar() or 0
-
-    newly_effective_count = db_session.execute(
-        select(func.count(FundStatus.id))
-        .where(FundStatus.status == "EFFECTIVE")
-        .where(FundStatus.effective_date >= since_dt)
-    ).scalar() or 0
-
-    changed_count = db_session.execute(
-        select(func.count()).select_from(
-            select(NameHistory.series_id)
-            .group_by(NameHistory.series_id)
-            .having(func.count(NameHistory.id) > 1)
-            .subquery()
-        )
-    ).scalar() or 0
-
-    return _render_digest_html(
-        trust_count, total, eff_count, pend_count, delay_count,
-        new_filings_count, newly_effective_count, changed_count,
-        dashboard_url, since_date,
-    )
+    """Build daily brief from SQLite database."""
+    data = _gather_daily_data(db_session, since_date)
+    return _render_daily_html(data, dashboard_url)
 
 
 def _send_html_digest(html_body: str, recipients: list[str]) -> bool:
     """Send pre-built HTML digest via Azure Graph or SMTP."""
-    subject = f"ETP Filing Tracker - Daily Digest ({datetime.now().strftime('%Y-%m-%d')})"
+    subject = f"REX ETP Daily Brief - {datetime.now().strftime('%Y-%m-%d')}"
 
     # Try Azure Graph API first
     try:
@@ -403,14 +629,29 @@ def send_digest_from_db(
     return _send_html_digest(html_body, recipients)
 
 
+def build_digest_html(
+    output_dir: Path,
+    dashboard_url: str = "",
+    since_date: str | None = None,
+) -> str:
+    """Legacy CSV entry point -- now delegates to DB-based builder."""
+    from webapp.database import SessionLocal
+    db = SessionLocal()
+    try:
+        return build_digest_html_from_db(db, dashboard_url, since_date)
+    finally:
+        db.close()
+
+
 def send_digest_email(
     output_dir: Path,
     dashboard_url: str = "",
     since_date: str | None = None,
 ) -> bool:
-    """Build and send digest from CSV files. Legacy - prefer send_digest_from_db."""
-    recipients = _load_recipients()
-    if not recipients:
-        return False
-    html_body = build_digest_html(output_dir, dashboard_url, since_date)
-    return _send_html_digest(html_body, recipients)
+    """Legacy CSV entry point -- now delegates to DB-based sender."""
+    from webapp.database import SessionLocal
+    db = SessionLocal()
+    try:
+        return send_digest_from_db(db, dashboard_url, since_date)
+    finally:
+        db.close()
