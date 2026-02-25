@@ -1,5 +1,5 @@
 """
-REX ETF Weekly Report - Executive Email Digest v4
+REX ETF Weekly Report - Executive Email Digest v5
 
 Email-client-compatible HTML digest (inline styles, table layout, no JS).
 Combines Bloomberg market data (ETF-only) and SEC filing activity into a
@@ -8,13 +8,14 @@ comprehensive executive-ready weekly email for REX Financial team members.
 Sections:
   1. Header
   2. Filing Activity
-  3. REX Scorecard (4 KPIs with growth sub-labels)
-  4. AUM by Suite (treemap-style grid)
-  5. 1M Flows by Suite (diverging bar chart)
+  3. REX Scorecard (4 KPIs: AUM, 1W Flows, 1M Flows, Products)
+  4. AUM by Suite (donut chart + legend)
+  5. 1W Flows by Suite (diverging bar chart)
   6. Winners, Losers & Yielders (vertical, with 1W Flow)
-  7. Market Landscape (5 categories, 4 KPIs + AUM bar + top 5 issuers each)
-  8. Dashboard CTA
-  9. Footer
+  7. Market Landscape (5 categories: 3 KPIs + issuer table w/ share & launches)
+  8. ETF Universe (total market donut chart by category)
+  9. Dashboard CTA
+  10. Footer
 
 Supports format="full" (default). format="flash" reserved for future 1-screen summary.
 """
@@ -235,11 +236,8 @@ def _gather_filing_data(db_session, days: int = 7) -> dict:
 # ---------------------------------------------------------------------------
 # Section renderers
 # ---------------------------------------------------------------------------
-def _render_header(week_ending: str, data_as_of: str) -> str:
-    subtitle_parts = [f"Week ending {_esc(week_ending)}"]
-    if data_as_of:
-        subtitle_parts.append(f"Data as of {_esc(data_as_of)}")
-    subtitle = " | ".join(subtitle_parts)
+def _render_header(week_ending: str, data_as_of: str = "") -> str:
+    subtitle = f"Week ending {_esc(week_ending)}"
     return f"""
 <tr><td style="background:{_NAVY};padding:28px 30px;">
   <div style="color:{_WHITE};font-size:24px;font-weight:700;margin-bottom:4px;">
@@ -299,16 +297,21 @@ def _render_scorecard(kpis: dict, rex_df: pd.DataFrame = None) -> str:
             f'{mom_sign}{aum_mom:.1f}% MoM</div>'
         )
 
-    # New products sub-label (inception_date in last 30 days)
+    # New products sub-label (inception_date in last 7 days)
     products_sub = ""
     if rex_df is not None and not rex_df.empty and "inception_date" in rex_df.columns:
-        cutoff_30d = pd.Timestamp.now() - pd.Timedelta(days=30)
+        cutoff_7d = pd.Timestamp.now() - pd.Timedelta(days=7)
         inception = pd.to_datetime(rex_df["inception_date"], errors="coerce")
-        new_count = int((inception >= cutoff_30d).sum())
+        new_count = int((inception >= cutoff_7d).sum())
         if new_count > 0:
             products_sub = (
                 f'<div style="font-size:11px;color:{_GREEN};font-weight:600;margin-top:2px;">'
-                f'+{new_count} new</div>'
+                f'{new_count} launched this week</div>'
+            )
+        else:
+            products_sub = (
+                f'<div style="font-size:11px;color:{_GRAY};margin-top:2px;">'
+                f'0 launched this week</div>'
             )
 
     def _card(value: str, label: str, color: str = _NAVY, sub_label: str = "") -> str:
@@ -351,8 +354,47 @@ def _render_scorecard_unavailable() -> str:
 </td></tr>"""
 
 
+def _render_donut_svg(segments: list[tuple[str, float, str]], total_label: str = "",
+                      size: int = 150, radius: int = 55, stroke: int = 25) -> str:
+    """Render an inline SVG donut chart. segments = [(name, value, color), ...]."""
+    total = sum(v for _, v, _ in segments) or 1
+    circumference = 2 * math.pi * radius
+    cx = cy = size // 2
+    arcs = []
+    offset = 0
+    for name, val, color in segments:
+        pct = val / total
+        dash = pct * circumference
+        gap = circumference - dash
+        arcs.append(
+            f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="none" '
+            f'stroke="{color}" stroke-width="{stroke}" '
+            f'stroke-dasharray="{dash:.1f} {gap:.1f}" '
+            f'stroke-dashoffset="{-offset:.1f}" '
+            f'transform="rotate(-90 {cx} {cy})"/>'
+        )
+        offset += dash
+    center_text = ""
+    if total_label:
+        center_text = (
+            f'<text x="{cx}" y="{cy - 6}" text-anchor="middle" '
+            f'font-size="18" font-weight="700" fill="{_NAVY}" '
+            f'font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif">'
+            f'{_esc(total_label)}</text>'
+            f'<text x="{cx}" y="{cy + 10}" text-anchor="middle" '
+            f'font-size="9" fill="{_GRAY}" '
+            f'font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif">'
+            f'TOTAL AUM</text>'
+        )
+    return (
+        f'<svg viewBox="0 0 {size} {size}" width="{size}" height="{size}" '
+        f'xmlns="http://www.w3.org/2000/svg">'
+        f'{"".join(arcs)}{center_text}</svg>'
+    )
+
+
 def _render_aum_stacked_bar(suites: list[dict], rex_df: pd.DataFrame = None) -> str:
-    """AUM by Suite as a treemap-style grid (thick cells with suite info inside)."""
+    """AUM by Suite as an SVG donut chart with legend."""
     filtered = _filter_suites(suites)
     if not filtered:
         return ""
@@ -361,73 +403,42 @@ def _render_aum_stacked_bar(suites: list[dict], rex_df: pd.DataFrame = None) -> 
     if total <= 0:
         return ""
 
-    # Count new products per suite from rex_df inception dates
-    new_by_suite: dict[str, int] = {}
-    if rex_df is not None and not rex_df.empty and "inception_date" in rex_df.columns:
-        cutoff_30d = pd.Timestamp.now() - pd.Timedelta(days=30)
-        inception = pd.to_datetime(rex_df["inception_date"], errors="coerce")
-        rex_df_copy = rex_df.copy()
-        rex_df_copy["_is_new"] = inception >= cutoff_30d
-        suite_col = next((c for c in rex_df_copy.columns if c.lower() in ("suite", "rex_suite", "suite_display")), None)
-        if suite_col:
-            for suite_name, grp in rex_df_copy.groupby(suite_col):
-                n = int(grp["_is_new"].sum())
-                if n > 0:
-                    new_by_suite[str(suite_name)] = n
-
-    # Build treemap cells
-    bar_cells = []
+    segments = []
+    legend_rows = []
     for s in sorted_suites:
         name = s.get("rex_name", s.get("name", ""))
         aum = s.get("kpis", {}).get("total_aum", 0)
         pct = (aum / total * 100) if total > 0 else 0
         color = _SUITE_COLORS.get(name, _BLUE)
-        num_products = s.get("kpis", {}).get("num_products", s.get("kpis", {}).get("count", 0))
-        new_count = new_by_suite.get(name, 0)
-
         if pct < 0.5:
             continue
-
-        abbrev = _SUITE_ABBREVS.get(name, name[:4])
-        new_label = f" (+{new_count} new)" if new_count > 0 else ""
-
-        if pct >= 8:
-            # Large cell: suite name + AUM + products
-            cell_content = (
-                f'<div style="font-size:11px;font-weight:700;line-height:1.2;">{_esc(name)}</div>'
-                f'<div style="font-size:10px;opacity:0.9;">{_fmt_currency_safe(aum)}</div>'
-                f'<div style="font-size:9px;opacity:0.8;">{num_products} products{new_label}</div>'
-            )
-        elif pct >= 5:
-            # Medium cell: abbreviation + AUM
-            cell_content = (
-                f'<div style="font-size:10px;font-weight:700;line-height:1.2;">{_esc(abbrev)}</div>'
-                f'<div style="font-size:9px;opacity:0.9;">{_fmt_currency_safe(aum)}</div>'
-            )
-        else:
-            # Small cell: just colored block
-            cell_content = ""
-
-        bar_cells.append(
-            f'<td width="{pct:.1f}%" style="background:{color};color:{_WHITE};'
-            f'padding:4px 5px;vertical-align:middle;overflow:hidden;" title="{_esc(name)}: '
-            f'{_fmt_currency_safe(aum)} ({pct:.1f}%)">'
-            f'{cell_content}</td>'
+        segments.append((name, aum, color))
+        legend_rows.append(
+            f'<tr>'
+            f'<td style="padding:3px 6px;width:14px;">'
+            f'<div style="width:10px;height:10px;background:{color};border-radius:2px;"></div></td>'
+            f'<td style="padding:3px 6px;font-size:11px;font-weight:600;">{_esc(name)}</td>'
+            f'<td style="padding:3px 6px;font-size:11px;text-align:right;">{_fmt_currency_safe(aum)}</td>'
+            f'<td style="padding:3px 6px;font-size:10px;text-align:right;color:{_GRAY};">{pct:.0f}%</td>'
+            f'</tr>'
         )
 
-    if not bar_cells:
+    if not segments:
         return ""
+
+    donut = _render_donut_svg(segments, _fmt_currency_safe(total))
 
     return f"""
 <tr><td style="padding:15px 30px;">
   <div style="{_SECTION_TITLE}">AUM by Suite</div>
-  <div style="font-size:12px;color:{_GRAY};margin-bottom:10px;">
-    Total: {_fmt_currency_safe(total)}
-  </div>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"
-         style="border-radius:6px;overflow:hidden;">
-    <tr style="height:70px;">
-      {''.join(bar_cells)}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td width="45%" align="center" style="padding:8px;">{donut}</td>
+      <td width="55%" valign="middle">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          {''.join(legend_rows)}
+        </table>
+      </td>
     </tr>
   </table>
 </td></tr>"""
@@ -548,14 +559,17 @@ def _render_diverging_bar_chart(title: str, items: list[tuple[str, float]], subt
 
 
 def _render_flow_chart(suites: list[dict], flow_chart: dict) -> str:
-    """1M Flows by suite as a horizontal bar chart."""
+    """1W Flows by suite as a diverging bar chart."""
     suite_names = flow_chart.get("suites", [])
-    flow_1m = flow_chart.get("flow_1m", [])
-    if not suite_names or not flow_1m:
+    flow_1w = flow_chart.get("flow_1w", [])
+    if not suite_names or not flow_1w:
+        # Fallback to 1M if 1W not available
+        flow_1w = flow_chart.get("flow_1m", [])
+    if not suite_names or not flow_1w:
         return ""
 
     items = []
-    for name, val in zip(suite_names, flow_1m):
+    for name, val in zip(suite_names, flow_1w):
         if name in _EXCLUDED_SUITES:
             continue
         items.append((name, val))
@@ -564,7 +578,7 @@ def _render_flow_chart(suites: list[dict], flow_chart: dict) -> str:
     items.sort(key=lambda x: x[1], reverse=True)
     total_flow = sum(v for _, v in items)
 
-    return _render_diverging_bar_chart("1M Net Flows by Suite", items,
+    return _render_diverging_bar_chart("1W Net Flows by Suite", items,
                                        subtitle=f"Total: {_fmt_flow_safe(total_flow)}")
 
 
@@ -651,9 +665,9 @@ def _render_winners_losers_yielders(perf_metrics: dict, rex_df: pd.DataFrame) ->
             f'</div>'
         )
 
-    winners_html = _section("Winners (1W Return)", winners, _GREEN)
-    losers_html = _section("Losers (1W Return)", losers, _RED)
-    yielders_html = _section("Top Yielders (Income Suites)", yielders, _GREEN, metric_label="Yield")
+    winners_html = _section("Winners", winners, _GREEN)
+    losers_html = _section("Losers", losers, _RED)
+    yielders_html = _section("Yielders", yielders, _GREEN, metric_label="Yield")
 
     return f"""
 <tr><td style="padding:15px 30px;">
@@ -685,18 +699,18 @@ def _render_category_card(
     cat_data: dict,
     master: pd.DataFrame = None,
 ) -> str:
-    """Render a single category landscape card with 4 KPIs (with growth) and top 5 issuers."""
+    """Render a single category landscape card with 3 KPIs + issuer table."""
     cat_kpis = cat_data.get("cat_kpis", {})
-    rex_share = cat_data.get("rex_share", 0)
 
     cat_aum = cat_kpis.get("total_aum", 0)
-    flow_1m = cat_kpis.get("flow_1m", 0)
+    flow_1w = cat_kpis.get("flow_1w", 0)
     num_products = cat_kpis.get("num_products", cat_kpis.get("count", 0))
 
     # Growth computations from master DataFrame
     aum_growth_sub = ""
-    share_change_sub = ""
     products_new_sub = ""
+    cat_df = pd.DataFrame()
+    launch_by_issuer: dict[str, int] = {}
 
     if master is not None and not master.empty and "category_display" in master.columns:
         cat_df = master[master["category_display"] == cat_name].copy()
@@ -715,59 +729,51 @@ def _render_category_card(
                         f'{g_sign}{aum_growth:.1f}% MoM</div>'
                     )
 
-            # REX share pp change
-            if "t_w4.aum" in cat_df.columns and "t_w4.aum_1" in cat_df.columns:
-                aum_curr_total = float(cat_df["t_w4.aum"].sum())
-                aum_prev_total = float(cat_df["t_w4.aum_1"].sum())
-                rex_cat = cat_df[cat_df["is_rex"] == True]
-                if not rex_cat.empty and aum_curr_total > 0 and aum_prev_total > 0:
-                    share_curr = float(rex_cat["t_w4.aum"].sum()) / aum_curr_total * 100
-                    share_prev = float(rex_cat["t_w4.aum_1"].sum()) / aum_prev_total * 100
-                    share_delta = share_curr - share_prev
-                    s_color = _GREEN if share_delta >= 0 else _RED
-                    s_sign = "+" if share_delta >= 0 else ""
-                    share_change_sub = (
-                        f'<div style="font-size:9px;color:{s_color};font-weight:600;">'
-                        f'{s_sign}{share_delta:.1f}pp</div>'
-                    )
-
-            # New products (inception in last 30 days)
+            # New products (inception in last 7 days) and per-issuer launch counts
             if "inception_date" in cat_df.columns:
-                cutoff_30d = pd.Timestamp.now() - pd.Timedelta(days=30)
+                cutoff_7d = pd.Timestamp.now() - pd.Timedelta(days=7)
                 inception = pd.to_datetime(cat_df["inception_date"], errors="coerce")
-                new_count = int((inception >= cutoff_30d).sum())
+                new_mask = inception >= cutoff_7d
+                new_count = int(new_mask.sum())
                 if new_count > 0:
                     products_new_sub = (
                         f'<div style="font-size:9px;color:{_GREEN};font-weight:600;">'
-                        f'+{new_count} new</div>'
+                        f'+{new_count} this week</div>'
                     )
+                # Per-issuer launch counts
+                if "issuer_display" in cat_df.columns:
+                    new_df = cat_df[new_mask]
+                    if not new_df.empty:
+                        launch_by_issuer = dict(
+                            new_df.groupby("issuer_display").size()
+                        )
 
     # Flow color
-    flow_color = _flow_color(flow_1m)
+    flow_color = _flow_color(flow_1w)
 
-    # 4 KPI row (24% each)
+    # Light gray column header style (matches WLY section)
+    _cat_col_header = (
+        f"padding:3px 6px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
+        f"letter-spacing:0.5px;border-bottom:1px solid {_BORDER};"
+    )
+
+    # 3 KPI row (AUM, 1W Flow, Products)
     _kpi_cell = f"padding:6px 4px;background:{_LIGHT};border-radius:6px;text-align:center;"
     kpi_html = f"""
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
     <tr>
-      <td width="24%" style="{_kpi_cell}">
+      <td width="32%" style="{_kpi_cell}">
         <div style="font-size:15px;font-weight:700;color:{_NAVY};">{_fmt_currency_safe(cat_aum)}</div>
         {aum_growth_sub}
         <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Total AUM</div>
       </td>
-      <td width="1%"></td>
-      <td width="24%" style="{_kpi_cell}">
-        <div style="font-size:15px;font-weight:700;color:{_BLUE};">{rex_share:.1f}%</div>
-        {share_change_sub}
-        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">REX Share</div>
+      <td width="2%"></td>
+      <td width="32%" style="{_kpi_cell}">
+        <div style="font-size:15px;font-weight:700;color:{flow_color};">{_fmt_flow_safe(flow_1w)}</div>
+        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">1W Flows</div>
       </td>
-      <td width="1%"></td>
-      <td width="24%" style="{_kpi_cell}">
-        <div style="font-size:15px;font-weight:700;color:{flow_color};">{_fmt_flow_safe(flow_1m)}</div>
-        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">1M Flows</div>
-      </td>
-      <td width="1%"></td>
-      <td width="24%" style="{_kpi_cell}">
+      <td width="2%"></td>
+      <td width="32%" style="{_kpi_cell}">
         <div style="font-size:15px;font-weight:700;color:{_NAVY};">{num_products}</div>
         {products_new_sub}
         <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Products</div>
@@ -775,104 +781,83 @@ def _render_category_card(
     </tr>
   </table>"""
 
-    # AUM comparison bar: Category vs REX
-    aum_bar_html = ""
-    rex_aum = cat_data.get("rex_kpis", {}).get("total_aum", 0)
-    if cat_aum > 0:
-        rex_pct = (rex_aum / cat_aum * 100) if rex_aum > 0 else 0
-        if rex_aum > 0:
-            aum_bar_html = f"""
-  <div style="margin:8px 0;">
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:4px;">
-      <tr>
-        <td style="font-size:10px;color:{_GRAY};">Category: {_fmt_currency_safe(cat_aum)}</td>
-        <td style="font-size:10px;color:{_BLUE};text-align:right;font-weight:600;">
-          REX: {_fmt_currency_safe(rex_aum)} ({rex_pct:.1f}%)</td>
-      </tr>
-    </table>
-    <div style="background:{_LIGHT};border-radius:4px;overflow:hidden;height:8px;">
-      <div style="background:{_BLUE};height:8px;width:{rex_pct:.1f}%;border-radius:4px;"></div>
-    </div>
-  </div>"""
-        else:
-            aum_bar_html = f"""
-  <div style="margin:8px 0;">
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:4px;">
-      <tr>
-        <td style="font-size:10px;color:{_GRAY};">Category: {_fmt_currency_safe(cat_aum)}</td>
-        <td style="font-size:10px;color:{_GRAY};text-align:right;">REX: $0</td>
-      </tr>
-    </table>
-    <div style="background:{_LIGHT};border-radius:4px;overflow:hidden;height:8px;"></div>
-    <div style="font-size:9px;color:{_GRAY};font-style:italic;margin-top:3px;">
-      REX has no products in this category</div>
-  </div>"""
-
-    # Top 5 issuers table (aggregated from master)
+    # Top 5 issuers table with REX share column, 1W flow, launch indicators
     issuer_table = ""
-    if master is not None and not master.empty and "category_display" in master.columns:
-        cat_df = master[master["category_display"] == cat_name].copy()
-        if not cat_df.empty and "issuer_display" in cat_df.columns:
-            # Identify REX issuers
-            rex_issuers = set()
-            rex_rows = cat_df[cat_df["is_rex"] == True]
-            if not rex_rows.empty and "issuer_display" in rex_rows.columns:
-                rex_issuers = set(rex_rows["issuer_display"].dropna().unique())
+    if not cat_df.empty and "issuer_display" in cat_df.columns:
+        # Identify REX issuers
+        rex_issuers = set()
+        rex_rows = cat_df[cat_df["is_rex"] == True]
+        if not rex_rows.empty and "issuer_display" in rex_rows.columns:
+            rex_issuers = set(rex_rows["issuer_display"].dropna().unique())
 
-            issuer_agg = cat_df.groupby("issuer_display").agg(
-                aum=("t_w4.aum", "sum"),
-                flow_1m=("t_w4.fund_flow_1month", "sum"),
-                count=("t_w4.aum", "size"),
-            ).sort_values("aum", ascending=False).head(5)
+        agg_cols = {"aum": ("t_w4.aum", "sum"), "count": ("t_w4.aum", "size")}
+        if "t_w4.fund_flow_1week" in cat_df.columns:
+            agg_cols["flow_1w"] = ("t_w4.fund_flow_1week", "sum")
+        else:
+            agg_cols["flow_1w"] = ("t_w4.fund_flow_1month", "sum")
 
-            issuer_rows = []
-            for rank, (issuer_name, row) in enumerate(issuer_agg.iterrows(), 1):
-                i_name = _esc(str(issuer_name))
-                if len(i_name) > 22:
-                    i_name = i_name[:19] + "..."
-                i_aum = float(row["aum"])
-                i_flow = float(row["flow_1m"])
-                i_count = int(row["count"])
-                is_rex_issuer = str(issuer_name) in rex_issuers
+        issuer_agg = cat_df.groupby("issuer_display").agg(**agg_cols).sort_values("aum", ascending=False).head(5)
 
-                if is_rex_issuer:
-                    name_cell = (
-                        f'<td style="{_TABLE_CELL}font-weight:700;color:{_BLUE};">'
-                        f'{i_name} '
-                        f'<span style="background:{_BLUE};color:{_WHITE};padding:1px 5px;'
-                        f'border-radius:3px;font-size:8px;font-weight:700;vertical-align:middle;">REX</span>'
-                        f'</td>'
-                    )
-                else:
-                    name_cell = f'<td style="{_TABLE_CELL}font-weight:600;">{i_name}</td>'
+        # Category total AUM for share calculation
+        total_cat_aum = float(cat_df["t_w4.aum"].sum()) if "t_w4.aum" in cat_df.columns else 0
 
-                issuer_rows.append(
-                    f'<tr>'
-                    f'<td style="{_TABLE_CELL}text-align:center;width:26px;color:{_GRAY};">{rank}</td>'
-                    f'{name_cell}'
-                    f'<td style="{_TABLE_CELL_RIGHT}">{_fmt_currency_safe(i_aum)}</td>'
-                    f'<td style="{_TABLE_CELL_RIGHT}color:{_flow_color(i_flow)};">'
-                    f'{_fmt_flow_safe(i_flow)}</td>'
-                    f'<td style="{_TABLE_CELL_RIGHT}">{i_count}</td>'
-                    f'</tr>'
+        issuer_rows = []
+        for rank, (issuer_name, row) in enumerate(issuer_agg.iterrows(), 1):
+            i_name = _esc(str(issuer_name))
+            if len(i_name) > 22:
+                i_name = i_name[:19] + "..."
+            i_aum = float(row["aum"])
+            i_flow = float(row["flow_1w"])
+            i_count = int(row["count"])
+            is_rex_issuer = str(issuer_name) in rex_issuers
+
+            # Market share percentage
+            i_share = (i_aum / total_cat_aum * 100) if total_cat_aum > 0 else 0
+
+            # Launch count indicator
+            launches = launch_by_issuer.get(str(issuer_name), 0)
+            launch_badge = ""
+            if launches > 0:
+                launch_badge = (
+                    f' <span style="color:{_GREEN};font-size:9px;font-weight:700;">'
+                    f'+{launches}</span>'
                 )
 
-            if issuer_rows:
-                issuer_table = (
-                    f'<div style="font-size:11px;color:{_GRAY};margin-top:6px;margin-bottom:2px;">'
-                    f'Top issuers by AUM</div>'
-                    f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
-                    f' style="border-collapse:collapse;">'
-                    f'<tr>'
-                    f'<th style="{_TABLE_HEADER}text-align:center;width:26px;">#</th>'
-                    f'<th style="{_TABLE_HEADER}">Issuer</th>'
-                    f'<th style="{_TABLE_HEADER_RIGHT}">AUM</th>'
-                    f'<th style="{_TABLE_HEADER_RIGHT}">1M Flow</th>'
-                    f'<th style="{_TABLE_HEADER_RIGHT}"># Products</th>'
-                    f'</tr>'
-                    f'{"".join(issuer_rows)}'
-                    f'</table>'
-                )
+            # REX issuer: bold name, no badge
+            if is_rex_issuer:
+                name_cell = f'<td style="{_TABLE_CELL}font-weight:700;">{i_name}</td>'
+            else:
+                name_cell = f'<td style="{_TABLE_CELL}font-weight:600;">{i_name}</td>'
+
+            issuer_rows.append(
+                f'<tr>'
+                f'<td style="{_TABLE_CELL}text-align:center;width:26px;color:{_GRAY};">{rank}</td>'
+                f'{name_cell}'
+                f'<td style="{_TABLE_CELL_RIGHT}">{_fmt_currency_safe(i_aum)}</td>'
+                f'<td style="{_TABLE_CELL_RIGHT}color:{_GRAY};">{i_share:.1f}%</td>'
+                f'<td style="{_TABLE_CELL_RIGHT}color:{_flow_color(i_flow)};">'
+                f'{_fmt_flow_safe(i_flow)}</td>'
+                f'<td style="{_TABLE_CELL_RIGHT}">{i_count}{launch_badge}</td>'
+                f'</tr>'
+            )
+
+        if issuer_rows:
+            issuer_table = (
+                f'<div style="font-size:11px;color:{_GRAY};margin-top:6px;margin-bottom:2px;">'
+                f'Top issuers by AUM</div>'
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+                f' style="border-collapse:collapse;">'
+                f'<tr>'
+                f'<th style="{_cat_col_header}text-align:center;width:26px;">#</th>'
+                f'<th style="{_cat_col_header}">Issuer</th>'
+                f'<th style="{_cat_col_header}text-align:right;">AUM</th>'
+                f'<th style="{_cat_col_header}text-align:right;">Share</th>'
+                f'<th style="{_cat_col_header}text-align:right;">1W Flow</th>'
+                f'<th style="{_cat_col_header}text-align:right;">Products</th>'
+                f'</tr>'
+                f'{"".join(issuer_rows)}'
+                f'</table>'
+            )
 
     return f"""
 <tr><td style="padding:12px 30px 5px;">
@@ -881,7 +866,6 @@ def _render_category_card(
     {_esc(display_name)}
   </div>
   {kpi_html}
-  {aum_bar_html}
   {issuer_table}
 </td></tr>"""
 
@@ -902,6 +886,145 @@ def _render_landscape(landscape: dict, master: pd.DataFrame = None) -> str:
         return ""
 
     return _render_landscape_header() + "\n".join(cards)
+
+
+def _render_etf_universe(master: pd.DataFrame) -> str:
+    """ETF Universe section: total market overview with AUM donut chart by category."""
+    if master is None or master.empty:
+        return ""
+
+    # Deduplicate by ticker
+    if "ticker_clean" in master.columns:
+        deduped = master.drop_duplicates(subset=["ticker_clean"], keep="first").copy()
+    elif "ticker" in master.columns:
+        deduped = master.drop_duplicates(subset=["ticker"], keep="first").copy()
+    else:
+        deduped = master.copy()
+
+    # Filter to ETFs only
+    fund_type_col = next((c for c in deduped.columns if c.lower().strip() == "fund_type"), None)
+    if fund_type_col:
+        deduped = deduped[deduped[fund_type_col] == "ETF"].copy()
+
+    if deduped.empty:
+        return ""
+
+    total_aum = float(deduped["t_w4.aum"].sum()) if "t_w4.aum" in deduped.columns else 0
+    total_products = len(deduped)
+    total_flow_1w = float(deduped["t_w4.fund_flow_1week"].sum()) if "t_w4.fund_flow_1week" in deduped.columns else 0
+    total_issuers = deduped["issuer_display"].nunique() if "issuer_display" in deduped.columns else 0
+
+    # New launches this week
+    launches_sub = ""
+    if "inception_date" in deduped.columns:
+        cutoff_7d = pd.Timestamp.now() - pd.Timedelta(days=7)
+        inception = pd.to_datetime(deduped["inception_date"], errors="coerce")
+        new_count = int((inception >= cutoff_7d).sum())
+        if new_count > 0:
+            launches_sub = (
+                f'<div style="font-size:9px;color:{_GREEN};font-weight:600;margin-top:2px;">'
+                f'+{new_count} this week</div>'
+            )
+
+    # AUM by category for donut chart
+    segments = []
+    cat_colors = {
+        "Leverage & Inverse - Single Stock": "#e74c3c",
+        "Income - Single Stock": "#f39c12",
+        "Income - Index/Basket/ETF Based": "#0984e3",
+        "Crypto": "#8e44ad",
+        "Thematic": "#27ae60",
+        "Leverage & Inverse - Index/Basket/ETF Based": "#2d3436",
+    }
+    if "category_display" in deduped.columns and "t_w4.aum" in deduped.columns:
+        cat_aums = deduped.groupby("category_display")["t_w4.aum"].sum().sort_values(ascending=False)
+        other_aum = 0.0
+        for cat, aum in cat_aums.items():
+            cat_str = str(cat)
+            pct = (aum / total_aum * 100) if total_aum > 0 else 0
+            if cat_str in cat_colors and pct >= 2:
+                segments.append((cat_str, float(aum), cat_colors[cat_str]))
+            else:
+                other_aum += float(aum)
+        if other_aum > 0:
+            segments.append(("Other", other_aum, _GRAY))
+
+    # Donut + legend layout
+    donut_html = ""
+    if segments:
+        donut = _render_donut_svg(segments, _fmt_currency_safe(total_aum))
+        legend_rows = []
+        for name, val, color in segments:
+            pct = (val / total_aum * 100) if total_aum > 0 else 0
+            # Short display names for legend
+            short_names = {
+                "Leverage & Inverse - Single Stock": "Lev Single Stock",
+                "Income - Single Stock": "CC Single Stock",
+                "Income - Index/Basket/ETF Based": "CC Index/ETF",
+                "Leverage & Inverse - Index/Basket/ETF Based": "Lev Index/ETF",
+            }
+            display = short_names.get(name, name)
+            legend_rows.append(
+                f'<tr>'
+                f'<td style="padding:2px 4px;width:10px;">'
+                f'<div style="width:8px;height:8px;background:{color};border-radius:2px;"></div></td>'
+                f'<td style="padding:2px 4px;font-size:10px;">{_esc(display)}</td>'
+                f'<td style="padding:2px 4px;font-size:10px;text-align:right;color:{_GRAY};">{pct:.0f}%</td>'
+                f'</tr>'
+            )
+        donut_html = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;">
+      <tr>
+        <td width="40%" align="center" style="padding:6px;">{donut}</td>
+        <td width="60%" valign="middle">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            {''.join(legend_rows)}
+          </table>
+        </td>
+      </tr>
+    </table>"""
+
+    # KPI cards
+    _kpi_cell = f"padding:6px 4px;background:{_LIGHT};border-radius:6px;text-align:center;"
+    flow_color = _flow_color(total_flow_1w)
+    kpi_html = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
+      <tr>
+        <td width="24%" style="{_kpi_cell}">
+          <div style="font-size:15px;font-weight:700;color:{_NAVY};">{_fmt_currency_safe(total_aum)}</div>
+          <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Total AUM</div>
+        </td>
+        <td width="1%"></td>
+        <td width="24%" style="{_kpi_cell}">
+          <div style="font-size:15px;font-weight:700;color:{flow_color};">{_fmt_flow_safe(total_flow_1w)}</div>
+          <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">1W Flows</div>
+        </td>
+        <td width="1%"></td>
+        <td width="24%" style="{_kpi_cell}">
+          <div style="font-size:15px;font-weight:700;color:{_NAVY};">{total_products}</div>
+          {launches_sub}
+          <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Products</div>
+        </td>
+        <td width="1%"></td>
+        <td width="24%" style="{_kpi_cell}">
+          <div style="font-size:15px;font-weight:700;color:{_NAVY};">{total_issuers}</div>
+          <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Issuers</div>
+        </td>
+      </tr>
+    </table>"""
+
+    return f"""
+<tr><td style="padding:20px 30px 5px;">
+  <div style="font-size:18px;font-weight:700;color:{_NAVY};margin:0;
+    padding-bottom:8px;border-bottom:3px solid {_NAVY};">
+    ETF Universe
+  </div>
+  <div style="font-size:12px;color:{_GRAY};margin-top:6px;margin-bottom:12px;">
+    Total leveraged, income, crypto & thematic ETF market (deduplicated)
+  </div>
+  {kpi_html}
+  {donut_html}
+</td></tr>"""
 
 
 def _render_dashboard_cta(dashboard_url: str) -> str:
@@ -980,12 +1103,12 @@ def build_weekly_digest_html(
         # 3. Scorecard (with growth sub-labels)
         sections.append(_render_scorecard(market["kpis"], rex_df))
 
-        # 4. AUM by Suite (treemap grid)
+        # 4. AUM by Suite (donut chart)
         aum_chart = _render_aum_stacked_bar(market["suites"], rex_df)
         if aum_chart:
             sections.append(aum_chart)
 
-        # 5. 1M Flows by Suite
+        # 5. 1W Flows by Suite
         flow_chart = _render_flow_chart(market["suites"], market["flow_chart"])
         if flow_chart:
             sections.append(flow_chart)
@@ -1001,12 +1124,17 @@ def build_weekly_digest_html(
         landscape_html = _render_landscape(landscape, master_df)
         if landscape_html:
             sections.append(landscape_html)
+
+        # --- PART 4: ETF Universe ---
+        etf_universe = _render_etf_universe(master_df)
+        if etf_universe:
+            sections.append(etf_universe)
     else:
         sections.append(_render_scorecard_unavailable())
         sections.append(_render_market_unavailable())
 
-    # --- PART 4: Close ---
-    # 10. Dashboard CTA
+    # --- PART 5: Close ---
+    # Dashboard CTA
     sections.append(_render_dashboard_cta(dash_url))
 
     # 11. Footer

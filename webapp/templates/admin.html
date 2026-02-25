@@ -143,17 +143,21 @@
     <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
       Send digest emails to all approved recipients using current database data.
     </p>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
       <form method="post" action="/admin/digest/send"
-            onsubmit="return confirm('Send DAILY digest email now?');">
-        <button type="submit" class="btn btn-primary">Send Daily Digest</button>
+            onsubmit="return confirm('Send DAILY brief email now?');">
+        <button type="submit" class="btn" style="background:#1a1a2e; color:#fff; border:none;">Send Daily Brief</button>
       </form>
       <form method="post" action="/admin/digest/send-weekly"
-            onsubmit="return confirm('Send WEEKLY intelligence brief now?');">
-        <button type="submit" class="btn btn-primary" style="background:#0984e3;">Send Weekly Brief</button>
+            onsubmit="return confirm('Send WEEKLY report email now?');">
+        <button type="submit" class="btn" style="background:#0984e3; color:#fff; border:none;">Send Weekly Report</button>
       </form>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="/admin/digest/preview-daily" target="_blank"
+         class="btn" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview Daily</a>
       <a href="/admin/digest/preview-weekly" target="_blank"
-         class="btn" style="background:var(--border); color:var(--fg); text-decoration:none; display:inline-block; text-align:center;">Preview Weekly</a>
+         class="btn" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview Weekly</a>
     </div>
   </div>
 

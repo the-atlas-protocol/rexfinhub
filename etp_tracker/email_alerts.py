@@ -9,9 +9,9 @@ Scannable in 30 seconds.
 
 Sections:
   1. Header
-  2. New Fund Launches (went EFFECTIVE in last 24h)
-  3. New Filings (485 forms filed in last 24h)
-  4. Pending Pipeline (funds approaching effectiveness)
+  2. New Fund Launches (inception in last 7 days, from Bloomberg master data)
+  3. New Filings (485 forms filed in last 24h, REX trusts first)
+  4. Upcoming Launches (PENDING funds with expected effective dates)
   5. At a Glance (compact KPI strip)
   6. Dashboard CTA
   7. Footer
@@ -206,7 +206,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
     New Fund Launches
   </div>
   <div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">
-    Funds that went effective since yesterday
+    New ETF products launched in the past week
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr>
@@ -215,9 +215,9 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
       <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
         border-bottom:1px solid {_BORDER};">Fund Name</td>
       <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
-        border-bottom:1px solid {_BORDER};">Trust</td>
+        border-bottom:1px solid {_BORDER};">Issuer</td>
       <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
-        border-bottom:1px solid {_BORDER};text-align:right;">Effective</td>
+        border-bottom:1px solid {_BORDER};text-align:right;">Launched</td>
     </tr>
     {''.join(launch_rows)}
   </table>
@@ -232,7 +232,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
   </div>
   <div style="padding:12px;background:{_LIGHT};border-radius:6px;
     font-size:13px;color:{_GRAY};text-align:center;">
-    No new launches today.
+    No new launches this week.
   </div>
 </td></tr>"""
 
@@ -281,6 +281,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
   </div>
   <div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">
     485 prospectus filings in the last 24 hours
+    {f' | <a href="{dash_link}/dashboard?days=1" style="color:{_BLUE};font-size:11px;">View on dashboard</a>' if dash_link else ''}
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr>
@@ -310,20 +311,19 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
   </div>
 </td></tr>"""
 
-    # --- Section 4: Pending Pipeline ---
+    # --- Section 4: Upcoming Launches ---
     pending = data.get("pending", [])
     pending_section = ""
     if pending:
         pending_rows = []
         for p in pending[:8]:
-            ticker = _esc(p.get("ticker", ""))
             name = _esc(p.get("fund_name", ""))
-            if len(name) > 35:
-                name = name[:32] + "..."
+            if len(name) > 40:
+                name = name[:37] + "..."
             trust = _esc(p.get("trust_name", ""))
-            if len(trust) > 20:
-                trust = trust[:17] + "..."
-            eff_date = _esc(p.get("effective_date", "TBD"))
+            if len(trust) > 25:
+                trust = trust[:22] + "..."
+            eff_date = _esc(p.get("effective_date", ""))
             is_rex = p.get("is_rex", False)
             name_html = name
             if is_rex:
@@ -335,13 +335,11 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
             pending_rows.append(
                 f'<tr>'
                 f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
-                f'font-size:11px;font-weight:600;white-space:nowrap;">{ticker}</td>'
-                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
                 f'font-size:11px;">{name_html}</td>'
                 f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
                 f'font-size:10px;color:{_GRAY};">{trust}</td>'
                 f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};'
-                f'font-size:10px;text-align:right;color:{_ORANGE};">{eff_date}</td>'
+                f'font-size:10px;text-align:right;color:{_ORANGE};font-weight:600;">{eff_date}</td>'
                 f'</tr>'
             )
         more_html = ""
@@ -349,27 +347,27 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
         if total_pending > 8:
             more_html = (
                 f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
-                f'+ {total_pending - 8} more pending on dashboard</div>'
+                f'+ {total_pending - 8} more on '
+                f'{"<a href=\"" + dash_link + "/dashboard?status=PENDING\" style=\"color:" + _BLUE + ";\">dashboard</a>" if dash_link else "dashboard"}'
+                f'</div>'
             )
         pending_section = f"""
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_ORANGE};">
-    Pending Pipeline
+    Upcoming Launches
   </div>
   <div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">
-    Funds approaching effectiveness
+    Funds with expected effective dates on file
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr>
-      <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
-        border-bottom:1px solid {_BORDER};">Ticker</td>
       <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
         border-bottom:1px solid {_BORDER};">Fund Name</td>
       <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
         border-bottom:1px solid {_BORDER};">Trust</td>
       <td style="padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;
-        border-bottom:1px solid {_BORDER};text-align:right;">Expected</td>
+        border-bottom:1px solid {_BORDER};text-align:right;">Expected Date</td>
     </tr>
     {''.join(pending_rows)}
   </table>
@@ -450,8 +448,8 @@ def _render_daily_html(data: dict, dashboard_url: str = "") -> str:
 
 
 def _gather_daily_data(db_session, since_date: str | None = None) -> dict:
-    """Query DB for all daily brief data."""
-    from sqlalchemy import func, select, and_
+    """Query DB + Bloomberg master data for daily brief."""
+    from sqlalchemy import func, select
     from datetime import date as date_type
     from webapp.models import Trust, FundStatus, Filing, FundExtraction
 
@@ -461,39 +459,66 @@ def _gather_daily_data(db_session, since_date: str | None = None) -> dict:
     since_dt = date_type.fromisoformat(since_date)
     week_ago = date_type.today() - timedelta(days=7)
 
-    # --- New launches: funds that went EFFECTIVE since since_dt ---
-    launch_rows = db_session.execute(
-        select(
-            FundStatus.ticker,
-            FundStatus.fund_name,
-            FundStatus.effective_date,
-            Trust.name.label("trust_name"),
-            Trust.is_rex,
-        )
-        .join(Trust, Trust.id == FundStatus.trust_id)
-        .where(FundStatus.status == "EFFECTIVE")
-        .where(FundStatus.effective_date >= since_dt)
-        .order_by(Trust.is_rex.desc(), FundStatus.effective_date.desc())
-    ).all()
-
+    # --- New launches: prefer Bloomberg inception_date (more accurate) ---
     launches = []
-    for r in launch_rows:
-        ticker = _clean_ticker(r.ticker)
-        launches.append({
-            "ticker": ticker if ticker else "--",
-            "fund_name": r.fund_name or "",
-            "trust_name": r.trust_name or "",
-            "effective_date": str(r.effective_date) if r.effective_date else "",
-            "is_rex": r.is_rex,
-        })
+    try:
+        from webapp.services.market_data import data_available, get_master_data
+        if data_available():
+            master = get_master_data()
+            ft_col = next((c for c in master.columns if c.lower().strip() == "fund_type"), None)
+            if ft_col:
+                master = master[master[ft_col] == "ETF"]
+            if "inception_date" in master.columns and "ticker_clean" in master.columns:
+                master = master.drop_duplicates(subset=["ticker_clean"], keep="first")
+                inception = pd.to_datetime(master["inception_date"], errors="coerce")
+                cutoff = pd.Timestamp.now() - pd.Timedelta(days=7)
+                recent = master[inception >= cutoff].copy()
+                recent["_inception"] = inception[recent.index]
+                recent = recent.sort_values("_inception", ascending=False)
+                is_rex_col = "is_rex" if "is_rex" in recent.columns else None
+                for _, row in recent.iterrows():
+                    ticker = str(row.get("ticker_clean", ""))
+                    name = str(row.get("fund_name", row.get("name", "")))
+                    issuer = str(row.get("issuer_display", row.get("issuer", "")))
+                    inc_date = row["_inception"].strftime("%Y-%m-%d") if pd.notna(row["_inception"]) else ""
+                    is_rex = bool(row.get("is_rex", False)) if is_rex_col else False
+                    launches.append({
+                        "ticker": ticker if ticker else "--",
+                        "fund_name": name,
+                        "trust_name": issuer,
+                        "effective_date": inc_date,
+                        "is_rex": is_rex,
+                    })
+    except Exception:
+        pass
 
-    # --- New filings: 485 forms since since_dt, grouped by trust + form ---
+    # Fallback to DB if no Bloomberg launches
+    if not launches:
+        launch_rows = db_session.execute(
+            select(
+                FundStatus.ticker, FundStatus.fund_name, FundStatus.effective_date,
+                Trust.name.label("trust_name"), Trust.is_rex,
+            )
+            .join(Trust, Trust.id == FundStatus.trust_id)
+            .where(FundStatus.status == "EFFECTIVE")
+            .where(FundStatus.effective_date >= since_dt)
+            .order_by(Trust.is_rex.desc(), FundStatus.effective_date.desc())
+        ).all()
+        for r in launch_rows:
+            ticker = _clean_ticker(r.ticker)
+            launches.append({
+                "ticker": ticker if ticker else "--",
+                "fund_name": r.fund_name or "",
+                "trust_name": r.trust_name or "",
+                "effective_date": str(r.effective_date) if r.effective_date else "",
+                "is_rex": r.is_rex,
+            })
+
+    # --- New filings: 485 forms, REX trusts first, then by date ---
     filing_rows = db_session.execute(
         select(
-            Trust.name.label("trust_name"),
-            Trust.is_rex,
-            Filing.form,
-            Filing.filing_date,
+            Trust.name.label("trust_name"), Trust.is_rex,
+            Filing.form, Filing.filing_date,
             func.count(FundExtraction.id).label("fund_count"),
         )
         .join(Trust, Trust.id == Filing.trust_id)
@@ -514,28 +539,24 @@ def _gather_daily_data(db_session, since_date: str | None = None) -> dict:
             "is_rex": r.is_rex,
         })
 
-    # --- Pending funds: PENDING status, ordered by expected effective date ---
+    # --- Upcoming launches: PENDING with an actual expected date (no TBD) ---
     pending_rows = db_session.execute(
         select(
-            FundStatus.ticker,
-            FundStatus.fund_name,
-            FundStatus.effective_date,
-            Trust.name.label("trust_name"),
-            Trust.is_rex,
+            FundStatus.fund_name, FundStatus.effective_date,
+            Trust.name.label("trust_name"), Trust.is_rex,
         )
         .join(Trust, Trust.id == FundStatus.trust_id)
         .where(FundStatus.status == "PENDING")
+        .where(FundStatus.effective_date.isnot(None))
         .order_by(Trust.is_rex.desc(), FundStatus.effective_date.asc())
     ).all()
 
     pending = []
     for r in pending_rows:
-        ticker = _clean_ticker(r.ticker)
         pending.append({
-            "ticker": ticker if ticker else "--",
             "fund_name": r.fund_name or "",
             "trust_name": r.trust_name or "",
-            "effective_date": str(r.effective_date) if r.effective_date else "TBD",
+            "effective_date": str(r.effective_date) if r.effective_date else "",
             "is_rex": r.is_rex,
         })
 
