@@ -155,10 +155,10 @@
   {% endfor %}
 </div>
 <!-- Real trust cards -->
-<div class="trust-grid trust-grid-real">
+<div class="trust-grid trust-grid-real" id="trust-grid" data-collapsed="true">
   {% set monogram_colors = ['#1565C0','#2E7D32','#6A1B9A','#C62828','#00838F','#4527A0','#AD1457','#EF6C00','#283593','#00695C','#37474F','#5D4037'] %}
   {% for t in trusts %}
-  <a href="/trusts/{{ t.slug }}" class="trust-card">
+  <a href="/trusts/{{ t.slug }}" class="trust-card{% if loop.index0 >= 12 %} trust-card-hidden{% endif %}">
     <div class="trust-card-header">
       <div class="trust-monogram" style="background:{{ monogram_colors[loop.index0 % monogram_colors|length] }};">
         {{ t.name.split()[0][0] }}{{ t.name.split()[1][0] if t.name.split()|length > 1 else '' }}
@@ -195,6 +195,13 @@
   </a>
   {% endfor %}
 </div>
+{% if trusts|length > 12 %}
+<div style="text-align:center; margin-top:var(--sp-4);">
+  <button id="trust-toggle" class="btn btn-sm" onclick="toggleTrusts()" style="padding:8px 24px; font-size:13px; border:1px solid var(--border); border-radius:var(--radius-md); cursor:pointer; background:var(--white); color:var(--gray-600); transition:all 0.2s;">
+    Show all {{ trusts|length }} trusts
+  </button>
+</div>
+{% endif %}
 </div>
 
 {% endblock %}
@@ -210,6 +217,35 @@
   }
   if (document.readyState === 'complete') { reveal(); }
   else { window.addEventListener('load', reveal); }
+})();
+
+// Collapse / expand trust grid
+function toggleTrusts() {
+  var grid = document.getElementById('trust-grid');
+  var btn = document.getElementById('trust-toggle');
+  if (!grid || !btn) return;
+  var collapsed = grid.getAttribute('data-collapsed') === 'true';
+  var cards = grid.querySelectorAll('.trust-card-hidden');
+  if (collapsed) {
+    cards.forEach(function(c) { c.style.display = ''; });
+    grid.setAttribute('data-collapsed', 'false');
+    btn.textContent = 'Show less';
+  } else {
+    cards.forEach(function(c) { c.style.display = 'none'; });
+    grid.setAttribute('data-collapsed', 'true');
+    btn.textContent = 'Show all {{ trusts|length }} trusts';
+    // Scroll back to the trust section
+    var header = grid.closest('#trust-grid-wrapper').previousElementSibling;
+    if (header) header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// Apply initial collapsed state
+(function() {
+  var grid = document.getElementById('trust-grid');
+  if (!grid) return;
+  var cards = grid.querySelectorAll('.trust-card-hidden');
+  cards.forEach(function(c) { c.style.display = 'none'; });
 })();
 </script>
 {% endblock %}

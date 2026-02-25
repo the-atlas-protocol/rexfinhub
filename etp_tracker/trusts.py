@@ -225,9 +225,57 @@ TRUST_CIKS = {
     "2069687": "FIS Trust",  # FIS ETFs
     "1559109": "ETFis Series Trust I",  # Virtus ETFis platform
     "1875710": "Build Funds Trust",  # Build ETFs
-    "1969995": "Nomura ETF Trust",  # Nomura ETFs
+    "1969995": "Macquarie ETF Trust",  # Formerly Nomura ETF Trust, acquired by Macquarie
     "1727398": "Procure ETF Trust II",  # Procure thematic ETFs
     "1704174": "Procure ETF Trust I",
+    # Added 2026-02-25 - Batch expansion from issuer_mapping + q_master_data
+    # All CIKs verified via https://data.sec.gov/submissions/CIK{padded}.json
+    # -- From issuer_mapping (verified 40 Act filers) --
+    "1493580": "BNY Mellon ETF Trust",
+    "2081199": "Baron ETF Trust",
+    "1529390": "Cambria ETF Trust",
+    "1590402": "Cohen & Steers ETF Trust",
+    "1495922": "EntrepreneurShares Series Trust",
+    "915802": "Financial Investors Trust",
+    "1491978": "FlexShares Trust",  # 497 filer (no 485)
+    "919160": "Guinness Atkinson Funds",
+    "923184": "Matthews International Funds",  # 497 filer (no 485)
+    "1552947": "Two Roads Shared Trust",
+    "890540": "Advisors' Inner Circle Fund II",
+    "831114": "RBB Fund, Inc.",
+    "1141819": "Trust for Professional Managers",
+    "1064642": "SPDR Series Trust",  # 497 filer (no 485)
+    "1027596": "Advisors Series Trust",
+    # -- From q_master_data (DWS / Vanguard / multi-strategy platforms) --
+    "1503123": "DBX ETF Trust",  # DWS Xtrackers ETFs
+    "1547580": "Victory Portfolios II",  # 497 filer
+    "1597934": "abrdn ETFs",
+    "1559992": "Stone Ridge Trust",
+    "1081400": "Allspring Funds Trust",
+    "1199046": "Unified Series Trust",
+    "916490": "Timothy Plan",
+    "1511699": "Managed Portfolio Series",
+    "1388485": "FundVantage Trust",
+    "1587551": "Capitol Series Trust",
+    "811030": "Professionally Managed Portfolios",
+    "1545440": "Ultimus Managers Trust",
+    "1359057": "Manager Directed Portfolios",
+    "1479359": "PIMCO Equity Series VIT",
+    # -- 33 Act S-1/10-K filers --
+    "1793497": "VS Trust",  # SVIX, UVIX volatility products
+    "1771951": "Dynamic Shares Trust",  # WEIX
+    "1471824": "Teucrium Commodity Trust",  # CANE, WEAT, CORN, SOYB
+    # -- Vanguard ETF Trusts --
+    "52848": "Vanguard World Fund",
+    "1021882": "Vanguard Scottsdale Funds",
+    "891190": "Vanguard Admiral Funds",
+    "836906": "Vanguard Malvern Funds",
+    "105563": "Vanguard Wellington Fund",
+    "857489": "Vanguard International Equity Index Funds",
+    "225997": "Vanguard Municipal Bond Funds",
+    "1004655": "Vanguard Whitehall Funds",
+    "862084": "Vanguard Institutional Index Funds",
+    "734383": "Vanguard Specialized Funds",
 }
 
 # 33 Act (Securities Act of 1933) filers: S-1/10-K registration.
@@ -277,6 +325,10 @@ ACT_33_CIKS = {
     "1985840",  # Tidal Commodities Trust I (DEFI commodity trust)
     "1415311",  # ProShares Trust II (commodity/currency leveraged)
     "1371571",  # Invesco DB US Dollar Index Trust
+    # Added 2026-02-25 - S-1/10-K filers from batch expansion
+    "1793497",  # VS Trust (SVIX, UVIX)
+    "1771951",  # Dynamic Shares Trust (WEIX)
+    "1471824",  # Teucrium Commodity Trust (CANE, WEAT, CORN, SOYB)
 }
 
 
