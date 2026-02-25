@@ -301,18 +301,18 @@ def _render_scorecard(kpis: dict, rex_df: pd.DataFrame = None) -> str:
     # New products sub-label (inception_date in last 7 days)
     products_sub = ""
     if rex_df is not None and not rex_df.empty and "inception_date" in rex_df.columns:
-        cutoff_7d = pd.Timestamp.now() - pd.Timedelta(days=7)
+        cutoff_7d = pd.Timestamp.today().normalize() - pd.Timedelta(days=7)
         inception = pd.to_datetime(rex_df["inception_date"], errors="coerce")
         new_count = int((inception >= cutoff_7d).sum())
         if new_count > 0:
             products_sub = (
                 f'<div style="font-size:11px;color:{_GREEN};font-weight:600;margin-top:2px;">'
-                f'{new_count} launched this week</div>'
+                f'{new_count} new (7D)</div>'
             )
         else:
             products_sub = (
                 f'<div style="font-size:11px;color:{_GRAY};margin-top:2px;">'
-                f'0 launched this week</div>'
+                f'0 new (7D)</div>'
             )
 
     def _card(value: str, label: str, color: str = _NAVY, sub_label: str = "") -> str:
@@ -732,19 +732,19 @@ def _render_category_card(
 
             # New products (inception in last 7 days) and per-issuer launch counts
             if "inception_date" in cat_df.columns:
-                cutoff_7d = pd.Timestamp.now() - pd.Timedelta(days=7)
+                cutoff_7d = pd.Timestamp.today().normalize() - pd.Timedelta(days=7)
                 inception = pd.to_datetime(cat_df["inception_date"], errors="coerce")
                 new_mask = inception >= cutoff_7d
                 new_count = int(new_mask.sum())
                 if new_count > 0:
                     products_new_sub = (
                         f'<div style="font-size:9px;color:{_GREEN};font-weight:600;">'
-                        f'+{new_count} this week</div>'
+                        f'+{new_count} new (7D)</div>'
                     )
                 else:
                     products_new_sub = (
                         f'<div style="font-size:9px;color:{_GRAY};">'
-                        f'0 launched</div>'
+                        f'0 new (7D)</div>'
                     )
                 # Per-issuer launch counts
                 if "issuer_display" in cat_df.columns:
@@ -844,7 +844,7 @@ def _render_category_card(
 
             issuer_rows.append(
                 f'<tr>'
-                f'<td style="{_TABLE_CELL}text-align:center;width:26px;color:{_GRAY};">{rank}</td>'
+                f'<td style="{_TABLE_CELL}text-align:center;width:26px;color:{_BLUE if is_rex_issuer else _GRAY};font-weight:700;">{rank}</td>'
                 f'{name_cell}'
                 f'<td style="{_TABLE_CELL_RIGHT}">{_fmt_currency_safe(i_aum)}</td>'
                 f'<td style="{_TABLE_CELL_RIGHT}color:{_GRAY};">{i_share:.1f}%</td>'
@@ -926,36 +926,22 @@ def _render_etf_universe(master: pd.DataFrame) -> str:
     total_products = len(deduped)
     total_flow_1w = float(deduped["t_w4.fund_flow_1week"].sum()) if "t_w4.fund_flow_1week" in deduped.columns else 0
     total_flow_1m = float(deduped["t_w4.fund_flow_1month"].sum()) if "t_w4.fund_flow_1month" in deduped.columns else 0
-    total_issuers = deduped["issuer_display"].nunique() if "issuer_display" in deduped.columns else 0
-
-    # New launches & new issuers this week
+    # New launches this week
     launches_sub = ""
-    issuers_sub = ""
     if "inception_date" in deduped.columns:
-        cutoff_7d = pd.Timestamp.now() - pd.Timedelta(days=7)
+        cutoff_7d = pd.Timestamp.today().normalize() - pd.Timedelta(days=7)
         inception = pd.to_datetime(deduped["inception_date"], errors="coerce")
-        new_mask = inception >= cutoff_7d
-        new_count = int(new_mask.sum())
+        new_count = int((inception >= cutoff_7d).sum())
         if new_count > 0:
             launches_sub = (
                 f'<div style="font-size:9px;color:{_GREEN};font-weight:600;margin-top:2px;">'
-                f'+{new_count} this week</div>'
+                f'+{new_count} new (7D)</div>'
             )
         else:
             launches_sub = (
                 f'<div style="font-size:9px;color:{_GRAY};margin-top:2px;">'
-                f'0 launched</div>'
+                f'0 new (7D)</div>'
             )
-        # New issuers: issuers whose ONLY products launched in last 7d
-        if "issuer_display" in deduped.columns:
-            old_issuers = set(deduped[~new_mask]["issuer_display"].dropna().unique())
-            new_product_issuers = set(deduped[new_mask]["issuer_display"].dropna().unique())
-            new_issuer_count = len(new_product_issuers - old_issuers)
-            if new_issuer_count > 0:
-                issuers_sub = (
-                    f'<div style="font-size:9px;color:{_GREEN};font-weight:600;margin-top:2px;">'
-                    f'+{new_issuer_count} new</div>'
-                )
 
     # Row 1: AUM, Products, 1W Flows, 1M Flows
     _kpi_cell = f"padding:6px 4px;background:{_LIGHT};border-radius:6px;text-align:center;"
@@ -987,19 +973,6 @@ def _render_etf_universe(master: pd.DataFrame) -> str:
       </tr>
     </table>"""
 
-    # Row 2: Issuers (standalone, centered)
-    row2 = f"""
-    <table width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr>
-        <td width="24%" style="{_kpi_cell}">
-          <div style="font-size:15px;font-weight:700;color:{_NAVY};">{total_issuers}</div>
-          {issuers_sub}
-          <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Issuers</div>
-        </td>
-        <td width="76%"></td>
-      </tr>
-    </table>"""
-
     return f"""
 <tr><td style="padding:20px 30px 5px;">
   <div style="font-size:18px;font-weight:700;color:{_NAVY};margin:0;
@@ -1010,7 +983,6 @@ def _render_etf_universe(master: pd.DataFrame) -> str:
     Leveraged, income, crypto & thematic ETF market (deduplicated)
   </div>
   {row1}
-  {row2}
 </td></tr>"""
 
 

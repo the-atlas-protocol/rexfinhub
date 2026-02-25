@@ -453,7 +453,7 @@ def _gather_daily_data(db_session, since_date: str | None = None) -> dict:
             if "inception_date" in master.columns and "ticker_clean" in master.columns:
                 master = master.drop_duplicates(subset=["ticker_clean"], keep="first")
                 inception = pd.to_datetime(master["inception_date"], errors="coerce")
-                cutoff = pd.Timestamp.now() - pd.Timedelta(days=1)
+                cutoff = pd.Timestamp.today().normalize() - pd.Timedelta(days=1)
                 recent = master[inception >= cutoff].copy()
                 recent["_inception"] = inception[recent.index]
                 recent = recent.sort_values("_inception", ascending=False)
@@ -484,6 +484,7 @@ def _gather_daily_data(db_session, since_date: str | None = None) -> dict:
             .join(Trust, Trust.id == FundStatus.trust_id)
             .where(FundStatus.status == "EFFECTIVE")
             .where(FundStatus.effective_date >= since_dt)
+            .where(FundStatus.effective_date <= date_type.today())
             .order_by(Trust.is_rex.desc(), FundStatus.effective_date.desc())
         ).all()
         for r in launch_rows:
