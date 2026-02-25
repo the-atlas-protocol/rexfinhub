@@ -637,7 +637,31 @@ def _suite_short(name: str) -> str:
     return mapping.get(name, name)
 
 
-#  Category Summary 
+def _apply_slicer_filter(df: pd.DataFrame, field: str, value) -> pd.DataFrame:
+    """Apply a slicer filter with type-safe comparison.
+
+    URL params are always strings, but DataFrame columns may be numeric.
+    Coerce the filter value to the column's dtype before comparing.
+    """
+    col = df[field]
+    if isinstance(value, list):
+        if pd.api.types.is_numeric_dtype(col.dtype):
+            try:
+                cast = [float(v) for v in value]
+                return df[col.isin(cast)]
+            except (ValueError, TypeError):
+                pass
+        return df[col.isin(value)]
+    else:
+        if pd.api.types.is_numeric_dtype(col.dtype):
+            try:
+                return df[col == float(value)]
+            except (ValueError, TypeError):
+                pass
+        return df[col == value]
+
+
+#  Category Summary
 
 _CATEGORY_SLICERS: dict[str, list[dict]] = {
     "Crypto": [
@@ -721,10 +745,7 @@ def get_category_summary(category: str | None, filters: dict | None = None, fund
     if filters:
         for field, value in filters.items():
             if field in df.columns and value:
-                if isinstance(value, list):
-                    df = df[df[field].isin(value)]
-                else:
-                    df = df[df[field] == value]
+                df = _apply_slicer_filter(df, field, value)
 
     rex_df = df[df["is_rex"] == True]
     non_rex_df = df[df["is_rex"] == False]
@@ -910,10 +931,7 @@ def get_treemap_data(category: str | None = None, fund_type: str | None = None, 
     if filters:
         for field, value in filters.items():
             if field in df.columns and value:
-                if isinstance(value, list):
-                    df = df[df[field].isin(value)]
-                else:
-                    df = df[df[field] == value]
+                df = _apply_slicer_filter(df, field, value)
 
     # Issuer filter
     if issuer_filter and issuer_filter != "All":
@@ -1358,10 +1376,7 @@ def get_time_series(category: str | None = None, is_rex: bool | None = None, fun
         filt = master.copy()
         for field, value in filters.items():
             if field in filt.columns and value:
-                if isinstance(value, list):
-                    filt = filt[filt[field].isin(value)]
-                else:
-                    filt = filt[filt[field] == value]
+                filt = _apply_slicer_filter(filt, field, value)
         valid_tickers = set(filt["ticker"].dropna().unique())
         if "ticker" in ts.columns:
             ts = ts[ts["ticker"].isin(valid_tickers)]
