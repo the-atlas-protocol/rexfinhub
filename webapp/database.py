@@ -43,6 +43,10 @@ def init_db():
     from webapp.models import (  # noqa: F401 - import to register models
         Trust, Filing, FundExtraction, FundStatus,
         NameHistory, AnalysisResult, PipelineRun,
+        MktPipelineRun, MktFundMapping, MktIssuerMapping,
+        MktCategoryAttributes, MktExclusion, MktRexFund,
+        MktMasterData, MktTimeSeries, MktStockData,
+        MktFundClassification, MktMarketStatus,
     )
     Base.metadata.create_all(bind=engine)
 
