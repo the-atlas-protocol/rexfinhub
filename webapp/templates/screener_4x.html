@@ -70,7 +70,8 @@
       <th onclick="sortTable('fourXTable',5)" style="text-align:right;">Daily Vol</th>
       <th onclick="sortTable('fourXTable',6)" style="text-align:center;">2x Cnt</th>
       <th onclick="sortTable('fourXTable',7)">REX 2x</th>
-      <th onclick="sortTable('fourXTable',8)">Risk</th>
+      <th onclick="sortTable('fourXTable',8)">REX 4x</th>
+      <th onclick="sortTable('fourXTable',9)">Risk</th>
     </tr>
   </thead>
   <tbody>
@@ -88,6 +89,7 @@
       <td style="text-align:right; font-size:12px;">{{ "%.1f"|format(c.daily_vol) }}%</td>
       <td style="text-align:center;">{{ c.count_2x }}</td>
       <td><span class="rex-{{ c.rex_2x|lower|replace(' ', '') }}">{{ c.rex_2x }}</span></td>
+      <td><span class="rex-{{ c.rex_4x|lower|replace(' ', '') }}">{{ c.rex_4x }}</span></td>
       <td><span class="risk-{{ c.risk|lower }}">{{ c.risk }}</span></td>
     </tr>
     {% endfor %}

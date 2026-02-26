@@ -86,6 +86,56 @@ def _build_rex_2x_status(etp_df: pd.DataFrame) -> dict[str, str]:
     return status
 
 
+# Ticker aliases: SEC filing name -> Bloomberg underlier
+_TICKER_ALIASES = {"GOOG": "GOOGL"}
+
+
+def _build_rex_4x_status(etp_df: pd.DataFrame) -> dict[str, str]:
+    """Build underlier -> REX 4x filing status lookup.
+
+    Returns: "Yes" (trading), "Filed" (pending/delayed), or absent (no 4x).
+    """
+    rex_mask = (
+        (etp_df.get("is_rex") == True)
+        & (etp_df.get("uses_leverage") == True)
+        & (pd.to_numeric(etp_df.get(LEVERAGE_COL, 0), errors="coerce") == 4.0)
+    )
+    rex_4x = etp_df[rex_mask]
+    aum_col = "t_w4.aum"
+
+    status = {}
+    for _, row in rex_4x.iterrows():
+        underlier = _clean_underlier(row.get(UNDERLIER_COL, ""))
+        if not underlier:
+            continue
+        aum = pd.to_numeric(row.get(aum_col, 0), errors="coerce") or 0
+        if aum > 0:
+            status[underlier] = "Yes"
+        elif underlier not in status:
+            status[underlier] = "Filed"
+
+    # Also check pipeline DB for PENDING 4x filings
+    try:
+        from screener.filing_match import get_filing_status_by_underlier
+        db_map = get_filing_status_by_underlier()
+        for key, entries in db_map.items():
+            clean_key = _TICKER_ALIASES.get(key.upper(), key.upper())
+            if clean_key in status:
+                continue
+            for entry in entries:
+                fname = (entry.get("fund_name") or "").upper()
+                if "4X" in fname and ("T-REX" in fname or "REX" in fname):
+                    st = entry.get("status", "")
+                    if st == "EFFECTIVE":
+                        status[clean_key] = "Yes"
+                    elif st in ("PENDING", "DELAYED"):
+                        status.setdefault(clean_key, "Filed")
+    except Exception:
+        pass
+
+    return status
+
+
 def _build_2x_aum_lookup(etp_df: pd.DataFrame) -> dict[str, dict]:
     """Build underlier -> {aum_2x, count_2x} from all 2x single-stock products."""
     aum_col = "t_w4.aum"
@@ -597,8 +647,9 @@ def get_4x_candidates(
             vol_lookup[tc] = float(row.get("vol_30d", 0))
             daily_vol_lookup[tc] = float(row.get("daily_vol", 0))
 
-    # REX 2x status
+    # REX 2x and 4x status
     rex_2x = _build_rex_2x_status(etp_df)
+    rex_4x = _build_rex_4x_status(etp_df)
 
     # Sector lookup
     sector_lookup = {}
@@ -641,6 +692,7 @@ def get_4x_candidates(
             "daily_vol": round(daily_vol, 2),
             "count_2x": count_2x,
             "rex_2x": rex_2x.get(underlier, "No"),
+            "rex_4x": rex_4x.get(underlier, "No"),
             "risk": risk,
         })
 
