@@ -170,6 +170,257 @@ def _classify_fund(series_name: str) -> str:
     return "other"
 
 
+def _gather_market_snapshot() -> dict | None:
+    """Pull Bloomberg data for the daily brief market sections.
+
+    Returns None if Bloomberg data is unavailable (graceful degradation).
+    """
+    try:
+        from webapp.services.market_data import data_available, get_rex_summary, get_master_data, get_category_summary
+        if not data_available():
+            return None
+
+        # REX KPIs (ETF only)
+        rex = get_rex_summary(fund_structure="ETF")
+        master = get_master_data()
+
+        # Filter to ETFs
+        ft_col = next((c for c in master.columns if c.lower().strip() == "fund_type"), None)
+        if ft_col:
+            master = master[master[ft_col] == "ETF"]
+
+        # 1D flow (sum across all REX ETFs)
+        rex_df = master[master["is_rex"] == True].copy()
+        if "ticker_clean" in rex_df.columns:
+            rex_df = rex_df.drop_duplicates(subset=["ticker_clean"], keep="first")
+        flow_1d = float(rex_df["t_w4.fund_flow_1day"].sum()) if "t_w4.fund_flow_1day" in rex_df.columns else 0.0
+
+        def _fmt_flow_val(val: float) -> str:
+            sign = "+" if val >= 0 else "-"
+            av = abs(val)
+            if av >= 1000:
+                return f"{sign}${av/1000:.1f}B"
+            if av >= 1:
+                return f"{sign}${av:.1f}M"
+            return f"{sign}${av:.2f}M"
+
+        kpis = {
+            "aum": rex.get("total_aum_fmt", "$0"),
+            "flow_1d": flow_1d,
+            "flow_1d_fmt": _fmt_flow_val(flow_1d),
+            "flow_1d_positive": flow_1d >= 0,
+            "flow_1w": rex.get("flow_1w", 0),
+            "flow_1w_fmt": rex.get("flow_1w_fmt", "$0"),
+            "flow_1w_positive": rex.get("flow_1w_positive", True),
+            "products": rex.get("num_products", 0),
+        }
+
+        # Top movers: top 5 inflows + top 3 outflows by 1W flow
+        top_movers = {"inflows": [], "outflows": []}
+        if not rex_df.empty and "t_w4.fund_flow_1week" in rex_df.columns:
+            valid = rex_df[rex_df["t_w4.fund_flow_1week"].notna()].copy()
+            for _, row in valid.nlargest(5, "t_w4.fund_flow_1week").iterrows():
+                flow = float(row.get("t_w4.fund_flow_1week", 0))
+                ret = float(row.get("t_w3.total_return_1week", 0)) if "t_w3.total_return_1week" in row.index else 0
+                top_movers["inflows"].append({
+                    "ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                    "name": str(row.get("fund_name", ""))[:35],
+                    "flow_1w": flow,
+                    "flow_1w_fmt": _fmt_flow_val(flow),
+                    "return_1w": ret,
+                    "return_1w_fmt": f"{ret:+.2f}%",
+                })
+            for _, row in valid.nsmallest(3, "t_w4.fund_flow_1week").iterrows():
+                flow = float(row.get("t_w4.fund_flow_1week", 0))
+                if flow >= 0:
+                    continue
+                ret = float(row.get("t_w3.total_return_1week", 0)) if "t_w3.total_return_1week" in row.index else 0
+                top_movers["outflows"].append({
+                    "ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                    "name": str(row.get("fund_name", ""))[:35],
+                    "flow_1w": flow,
+                    "flow_1w_fmt": _fmt_flow_val(flow),
+                    "return_1w": ret,
+                    "return_1w_fmt": f"{ret:+.2f}%",
+                })
+
+        # Landscape: 5 categories with AUM, 1W flow, REX market share
+        _LANDSCAPE_CATS = [
+            "Leverage & Inverse - Single Stock",
+            "Leverage & Inverse - Index/Basket/ETF Based",
+            "Income - Single Stock",
+            "Income - Index/Basket/ETF Based",
+            "Crypto",
+        ]
+        landscape = []
+        for cat in _LANDSCAPE_CATS:
+            try:
+                cat_data = get_category_summary(cat, fund_structure="ETF")
+                cat_aum = cat_data.get("cat_kpis", {}).get("total_aum", 0)
+                cat_flow_1w = cat_data.get("cat_kpis", {}).get("flow_1w", 0)
+                rex_share = cat_data.get("market_share", 0)
+                landscape.append({
+                    "category": cat,
+                    "aum": cat_aum,
+                    "aum_fmt": f"${cat_aum/1000:.1f}B" if cat_aum >= 1000 else f"${cat_aum:.0f}M",
+                    "flow_1w": cat_flow_1w,
+                    "flow_1w_fmt": _fmt_flow_val(cat_flow_1w),
+                    "flow_1w_positive": cat_flow_1w >= 0,
+                    "rex_share": rex_share,
+                    "rex_share_fmt": f"{rex_share:.1f}%",
+                })
+            except Exception:
+                continue
+
+        return {
+            "kpis": kpis,
+            "top_movers": top_movers,
+            "landscape": landscape,
+        }
+    except Exception:
+        return None
+
+
+def _render_market_scorecard(snapshot: dict) -> str:
+    """Render 4 KPI cards for the REX market snapshot (email-safe HTML)."""
+    kpis = snapshot["kpis"]
+    _cell = f"padding:12px 6px;background:{_LIGHT};border-radius:8px;text-align:center;"
+    _val = f"font-size:20px;font-weight:700;color:{_NAVY};"
+    _lbl = f"font-size:9px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;"
+
+    flow_1d_color = _GREEN if kpis["flow_1d_positive"] else _RED
+    flow_1w_color = _GREEN if kpis["flow_1w_positive"] else _RED
+
+    return f"""
+<tr><td style="padding:15px 30px 5px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_BLUE};">
+    REX Market Snapshot
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}">{_esc(kpis['aum'])}</div>
+        <div style="{_lbl}">REX AUM</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}color:{flow_1d_color};">{_esc(kpis['flow_1d_fmt'])}</div>
+        <div style="{_lbl}">1D Flow</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}color:{flow_1w_color};">{_esc(kpis['flow_1w_fmt'])}</div>
+        <div style="{_lbl}">1W Flow</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}">{kpis['products']}</div>
+        <div style="{_lbl}">Products</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>"""
+
+
+def _render_top_movers(movers: dict) -> str:
+    """Render top inflows/outflows table (email-safe HTML)."""
+    inflows = movers.get("inflows", [])
+    outflows = movers.get("outflows", [])
+    if not inflows and not outflows:
+        return ""
+
+    _col = (
+        f"padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
+        f"border-bottom:1px solid {_BORDER};"
+    )
+
+    rows = []
+    for f in inflows:
+        rows.append(
+            f'<tr>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;font-weight:600;">{_esc(f["ticker"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">{_esc(f["name"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{_GREEN};font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(f["return_1w_fmt"])}</td>'
+            f'</tr>'
+        )
+    for f in outflows:
+        rows.append(
+            f'<tr>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;font-weight:600;">{_esc(f["ticker"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">{_esc(f["name"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{_RED};font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(f["return_1w_fmt"])}</td>'
+            f'</tr>'
+        )
+
+    return f"""
+<tr><td style="padding:10px 30px 5px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    Top Movers
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="{_col}">Ticker</td>
+      <td style="{_col}">Fund Name</td>
+      <td style="{_col}text-align:right;">1W Flow</td>
+      <td style="{_col}text-align:right;">1W Return</td>
+    </tr>
+    {''.join(rows)}
+  </table>
+</td></tr>"""
+
+
+def _render_landscape_compact(landscape: list) -> str:
+    """Render 5-row market landscape table (email-safe HTML)."""
+    if not landscape:
+        return ""
+
+    _col = (
+        f"padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
+        f"border-bottom:1px solid {_BORDER};"
+    )
+
+    # Short display names for categories
+    _SHORT = {
+        "Leverage & Inverse - Single Stock": "L&I Single Stock",
+        "Leverage & Inverse - Index/Basket/ETF Based": "L&I Index/ETF",
+        "Income - Single Stock": "Income Single Stock",
+        "Income - Index/Basket/ETF Based": "Income Index/ETF",
+        "Crypto": "Crypto",
+    }
+
+    rows = []
+    for cat in landscape:
+        name = _SHORT.get(cat["category"], cat["category"])
+        flow_color = _GREEN if cat["flow_1w_positive"] else _RED
+        rows.append(
+            f'<tr>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">{_esc(name)}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(cat["aum_fmt"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{flow_color};">{_esc(cat["flow_1w_fmt"])}</td>'
+            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;font-weight:600;">{_esc(cat["rex_share_fmt"])}</td>'
+            f'</tr>'
+        )
+
+    return f"""
+<tr><td style="padding:10px 30px 10px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    Market Landscape
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="{_col}">Category</td>
+      <td style="{_col}text-align:right;">AUM</td>
+      <td style="{_col}text-align:right;">1W Flow</td>
+      <td style="{_col}text-align:right;">REX Share</td>
+    </tr>
+    {''.join(rows)}
+  </table>
+</td></tr>"""
+
+
 def _dashboard_cta(dash_link: str) -> str:
     return (
         f'<tr><td style="padding:20px 30px;" align="center">'
@@ -183,16 +434,18 @@ def _dashboard_cta(dash_link: str) -> str:
 
 
 def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str = "",
-                       edition: str = "morning") -> str:
+                       edition: str = "daily") -> str:
     """Render the daily brief HTML from pre-gathered data.
 
-    edition: "morning" (full daily brief) or "evening" (intraday update).
+    edition: "daily" (5 PM brief), "morning" (legacy), or "evening" (legacy).
     """
     today = datetime.now()
     dash_link = _esc(dashboard_url) if dashboard_url else ""
 
     _is_evening = edition == "evening"
-    _title = "REX ETF Evening Update" if _is_evening else "REX ETF Morning Brief"
+    _titles = {"daily": "REX ETF Daily Brief", "evening": "REX ETF Evening Update",
+               "morning": "REX ETF Morning Brief"}
+    _title = _titles.get(edition, "REX ETF Daily Brief")
     _header_bg = "#2d3436" if _is_evening else _NAVY
     _accent = _ORANGE if _is_evening else _BLUE
 
@@ -488,22 +741,35 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
   {more_html}
 </td></tr>"""
 
+    # --- Market Snapshot (Bloomberg data — graceful skip if unavailable) ---
+    market_section = ""
+    snapshot = data.get("market_snapshot")
+    if snapshot:
+        market_section = (
+            _render_market_scorecard(snapshot)
+            + _render_top_movers(snapshot.get("top_movers", {}))
+            + _render_landscape_compact(snapshot.get("landscape", []))
+        )
+
     # --- Dashboard CTA ---
     cta_section = _dashboard_cta(dash_link) if dash_link else ""
 
     # --- Footer ---
+    _data_source = "Data sourced from SEC EDGAR"
+    if snapshot:
+        _data_source += " &amp; Bloomberg"
     footer = f"""
 <tr><td style="padding:16px 30px;border-top:1px solid {_BORDER};">
   <div style="font-size:11px;color:{_GRAY};text-align:center;">
     {_title} | {today.strftime('%Y-%m-%d')}
   </div>
   <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
-    Data sourced from SEC EDGAR | To unsubscribe, contact relasmar@rexfin.com
+    {_data_source} | To unsubscribe, contact relasmar@rexfin.com
   </div>
 </td></tr>"""
 
     # --- Assemble (KPIs at top) ---
-    body = header + msg_html + scorecard + launches_section + filings_section + pending_section + cta_section + footer
+    body = header + msg_html + scorecard + launches_section + filings_section + pending_section + market_section + cta_section + footer
 
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
@@ -525,10 +791,10 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 
 
 def _gather_daily_data(db_session, since_date: str | None = None,
-                       edition: str = "morning") -> dict:
+                       edition: str = "daily") -> dict:
     """Query DB + Bloomberg master data for daily brief.
 
-    edition: "morning" looks back 24h, "evening" looks at today only.
+    edition: "daily"/"morning" looks back 24h, "evening" looks at today only.
     """
     from sqlalchemy import func, select
     from datetime import date as date_type
@@ -538,7 +804,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
     if not since_date:
         if edition == "evening":
             since_date = today.strftime("%Y-%m-%d")  # today only
-        else:
+        else:  # "daily" or "morning"
             since_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")  # last 24h
     since_dt = date_type.fromisoformat(since_date)
     yesterday = date_type.today() - timedelta(days=1)
@@ -684,6 +950,9 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         .where(FundStatus.status == "PENDING")
     ).scalar() or 0
 
+    # Market snapshot (Bloomberg data — None if unavailable)
+    market_snapshot = _gather_market_snapshot()
+
     return {
         "launches": launches,
         "filing_groups": filing_groups,
@@ -691,6 +960,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         "trust_count": trust_count,
         "newly_effective_1d": newly_effective_1d,
         "total_pending": total_pending,
+        "market_snapshot": market_snapshot,
     }
 
 
@@ -699,7 +969,7 @@ def build_digest_html_from_db(
     dashboard_url: str = "",
     since_date: str | None = None,
     custom_message: str = "",
-    edition: str = "morning",
+    edition: str = "daily",
 ) -> str:
     """Build daily brief from SQLite database."""
     data = _gather_daily_data(db_session, since_date, edition=edition)
@@ -708,9 +978,10 @@ def build_digest_html_from_db(
 
 
 def _send_html_digest(html_body: str, recipients: list[str],
-                      edition: str = "morning") -> bool:
+                      edition: str = "daily") -> bool:
     """Send pre-built HTML digest via Azure Graph or SMTP."""
-    _label = "Evening Update" if edition == "evening" else "Morning Brief"
+    _labels = {"daily": "Daily Brief", "morning": "Morning Brief", "evening": "Evening Update"}
+    _label = _labels.get(edition, "Daily Brief")
     subject = f"REX ETF {_label} - {datetime.now().strftime('%Y-%m-%d')}"
 
     # Try Azure Graph API first
@@ -750,7 +1021,7 @@ def send_digest_from_db(
     dashboard_url: str = "",
     since_date: str | None = None,
     custom_message: str = "",
-    edition: str = "morning",
+    edition: str = "daily",
 ) -> bool:
     """Build digest from database and send. Always works without CSV files."""
     recipients = _load_recipients()

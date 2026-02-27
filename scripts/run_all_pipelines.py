@@ -4,17 +4,23 @@ Unified Pipeline Orchestrator
 Runs all pipelines in sequence, uploads DB to Render, and sends email digest.
 Designed for Windows Task Scheduler with wake timers.
 
-Execution order:
+Execution order (default):
   1. SEC pipeline (run_daily.main -- pipeline + Excel + DB sync + screener rescore)
   2. Market pipeline (subprocess -- has its own change detection)
   3. Upload DB to Render
   4. Send email digest
 
+Modes:
+  --skip-email    Scrape-only mode (8 AM / 12 PM / 9 PM tasks)
+  --email-only    Email dispatch only (5 PM task): sends daily brief,
+                  plus weekly report on Mondays
+
 Usage:
-    python scripts/run_all_pipelines.py
-    python scripts/run_all_pipelines.py --skip-sec       # skip SEC pipeline
+    python scripts/run_all_pipelines.py                   # full run
+    python scripts/run_all_pipelines.py --skip-email      # scrape only
+    python scripts/run_all_pipelines.py --email-only      # 5 PM email dispatch
+    python scripts/run_all_pipelines.py --skip-sec        # skip SEC pipeline
     python scripts/run_all_pipelines.py --skip-market     # skip market pipeline
-    python scripts/run_all_pipelines.py --skip-email      # skip email digest
     python scripts/run_all_pipelines.py --force-market    # force market even if unchanged
 """
 from __future__ import annotations
@@ -112,9 +118,10 @@ def upload_db() -> bool:
         return False
 
 
-def send_email(edition: str = "morning") -> bool:
+def send_email(edition: str = "daily") -> bool:
     """Send the daily email digest (DB-based)."""
-    _label = "Evening Update" if edition == "evening" else "Morning Brief"
+    _labels = {"daily": "Daily Brief", "morning": "Morning Brief", "evening": "Evening Update"}
+    _label = _labels.get(edition, "Daily Brief")
     print(f"\n--- Email Digest ({_label}) ---")
     try:
         from webapp.database import init_db, SessionLocal
@@ -136,6 +143,45 @@ def send_email(edition: str = "morning") -> bool:
         return False
 
 
+def dispatch_emails() -> dict[str, str]:
+    """5 PM email dispatch: daily brief always, weekly report on Mondays."""
+    results = {}
+
+    # Always send the daily brief
+    ok = send_email(edition="daily")
+    results["daily"] = "ok" if ok else "FAILED"
+
+    # On Monday (weekday 0), also send the weekly report
+    if datetime.now().weekday() == 0:
+        print("\n--- Weekly Report (Monday) ---")
+        try:
+            from webapp.database import init_db, SessionLocal
+            from etp_tracker.weekly_digest import send_weekly_digest
+
+            init_db()
+            db = SessionLocal()
+            try:
+                sent = send_weekly_digest(db)
+                if sent:
+                    print("  Weekly report sent.")
+                else:
+                    print("  Weekly report skipped (SMTP not configured or no recipients).")
+                results["weekly"] = "ok"
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"  Weekly report FAILED: {e}")
+            import traceback
+            traceback.print_exc()
+            results["weekly"] = "FAILED"
+    else:
+        day_name = datetime.now().strftime("%A")
+        print(f"\n--- Weekly Report (skipped -- {day_name}, not Monday) ---")
+        results["weekly"] = "skipped"
+
+    return results
+
+
 def main():
     import argparse
 
@@ -143,15 +189,12 @@ def main():
     parser.add_argument("--skip-sec", action="store_true", help="Skip SEC pipeline")
     parser.add_argument("--skip-market", action="store_true", help="Skip market pipeline")
     parser.add_argument("--skip-email", action="store_true", help="Skip email digest")
+    parser.add_argument("--email-only", action="store_true",
+                        help="Email dispatch only (skip all pipelines + upload)")
     parser.add_argument("--force-market", action="store_true", help="Force market pipeline even if data unchanged")
-    parser.add_argument("--edition", choices=["morning", "evening"], default=None,
-                        help="Digest edition (auto-detected from time of day if omitted)")
+    parser.add_argument("--edition", choices=["morning", "evening", "daily"], default=None,
+                        help="Digest edition (default: daily)")
     args = parser.parse_args()
-
-    # Auto-detect edition from time of day if not specified
-    edition = args.edition
-    if not edition:
-        edition = "evening" if datetime.now().hour >= 14 else "morning"
 
     # Setup logging
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -167,33 +210,42 @@ def main():
 
     results = {}
 
-    # 1. SEC pipeline
-    if args.skip_sec:
-        print("\n--- SEC Pipeline (SKIPPED) ---")
-        results["sec"] = "skipped"
+    if args.email_only:
+        # --- Email-only mode (5 PM task) ---
+        print("\n--- EMAIL-ONLY MODE ---")
+        email_results = dispatch_emails()
+        results.update(email_results)
     else:
-        ok = run_sec_pipeline()
-        results["sec"] = "ok" if ok else "FAILED"
+        # --- Full pipeline mode ---
 
-    # 2. Market pipeline
-    if args.skip_market:
-        print("\n--- Market Pipeline (SKIPPED) ---")
-        results["market"] = "skipped"
-    else:
-        ok = run_market_pipeline(force=args.force_market)
-        results["market"] = "ok" if ok else "FAILED"
+        # 1. SEC pipeline
+        if args.skip_sec:
+            print("\n--- SEC Pipeline (SKIPPED) ---")
+            results["sec"] = "skipped"
+        else:
+            ok = run_sec_pipeline()
+            results["sec"] = "ok" if ok else "FAILED"
 
-    # 3. Upload DB to Render (always, unless both pipelines were skipped)
-    ok = upload_db()
-    results["upload"] = "ok" if ok else "FAILED"
+        # 2. Market pipeline
+        if args.skip_market:
+            print("\n--- Market Pipeline (SKIPPED) ---")
+            results["market"] = "skipped"
+        else:
+            ok = run_market_pipeline(force=args.force_market)
+            results["market"] = "ok" if ok else "FAILED"
 
-    # 4. Email digest
-    if args.skip_email:
-        print("\n--- Email Digest (SKIPPED) ---")
-        results["email"] = "skipped"
-    else:
-        ok = send_email(edition=edition)
-        results["email"] = "ok" if ok else "FAILED"
+        # 3. Upload DB to Render
+        ok = upload_db()
+        results["upload"] = "ok" if ok else "FAILED"
+
+        # 4. Email digest
+        if args.skip_email:
+            print("\n--- Email Digest (SKIPPED) ---")
+            results["email"] = "skipped"
+        else:
+            edition = args.edition or "daily"
+            ok = send_email(edition=edition)
+            results["email"] = "ok" if ok else "FAILED"
 
     # Summary
     elapsed = time.time() - start

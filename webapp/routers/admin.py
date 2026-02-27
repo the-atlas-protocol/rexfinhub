@@ -206,7 +206,7 @@ def send_digest(request: Request, db: Session = Depends(get_db)):
     try:
         from etp_tracker.email_alerts import send_digest_from_db
         dashboard_url = str(request.base_url).rstrip("/")
-        sent = send_digest_from_db(db, dashboard_url=dashboard_url)
+        sent = send_digest_from_db(db, dashboard_url=dashboard_url, edition="daily")
 
         if sent:
             return RedirectResponse("/admin/?digest=sent", status_code=303)
@@ -247,7 +247,7 @@ def preview_daily(request: Request, db: Session = Depends(get_db)):
 
     from etp_tracker.email_alerts import build_digest_html_from_db
     dashboard_url = str(request.base_url).rstrip("/")
-    html = build_digest_html_from_db(db, dashboard_url=dashboard_url)
+    html = build_digest_html_from_db(db, dashboard_url=dashboard_url, edition="daily")
     from fastapi.responses import HTMLResponse
     return HTMLResponse(content=html)
 
@@ -274,8 +274,8 @@ def send_test_digest(request: Request, db: Session = Depends(get_db)):
     try:
         from etp_tracker.email_alerts import build_digest_html_from_db, _send_html_digest
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_digest_html_from_db(db, dashboard_url=dashboard_url)
-        ok = _send_html_digest(html, ["relasmar@rexfin.com"])
+        html = build_digest_html_from_db(db, dashboard_url=dashboard_url, edition="daily")
+        ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily")
 
         if ok:
             return RedirectResponse("/admin/?digest=test_sent", status_code=303)
