@@ -157,6 +157,60 @@
   </tbody>
 </table>
 {% endif %}
+
+<!-- Institutional Holders (13F) -->
+{% if holders_13f %}
+<div class="section-header" style="margin-top:30px">
+  <h2>Institutional Holders (13F)</h2>
+  <span class="badge">{{ holders_count }}</span>
+</div>
+
+<div class="kpi-row" style="margin-bottom:12px;">
+  <div class="kpi">
+    <div class="num">{{ holders_count }}</div>
+    <div class="label">Holders</div>
+  </div>
+  <div class="kpi kpi-green">
+    <div class="num">
+      {% set v = (holders_total_value or 0) * 1000 %}
+      {% if v >= 1000000000 %}${{ '%.1f' | format(v / 1000000000) }}B
+      {% elif v >= 1000000 %}${{ '%.1f' | format(v / 1000000) }}M
+      {% elif v >= 1000 %}${{ '%.0f' | format(v / 1000) }}K
+      {% else %}${{ '%.0f' | format(v) }}{% endif %}
+    </div>
+    <div class="label">Total 13F Value</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Institution</th>
+      <th>Value ($K)</th>
+      <th>Shares</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for h in holders_13f %}
+    <tr>
+      <td>{{ h.name }}</td>
+      <td style="text-align:right;">{{ '{:,.0f}'.format(h.value_usd) if h.value_usd else '--' }}</td>
+      <td style="text-align:right;">{{ '{:,.0f}'.format(h.shares) if h.shares else '--' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if holders_ticker %}
+<div style="margin-top:8px;">
+  <a href="/holdings/fund/{{ holders_ticker }}" class="btn btn-sm">View All Holders &rarr;</a>
+</div>
+{% endif %}
+{% elif holders_ticker %}
+<div class="section-header" style="margin-top:30px">
+  <h2>Institutional Holders (13F)</h2>
+</div>
+<p style="font-size:var(--text-sm); color:var(--muted);">No 13F data available for {{ holders_ticker }}.</p>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}{{ ticker }} Institutional Holders — REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/holdings/">Institutional Holdings</a><span class="sep">/</span>
+    <span>{{ ticker }}</span>
+  </div>
+  <h1>{{ fund_name }}</h1>
+  <div class="date">
+    Ticker: {{ ticker }} &middot; CUSIP: {{ cusip }}
+    {% if latest_date %} &middot; As of {{ latest_date }}{% endif %}
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="num">{{ holder_count }}</div>
+    <div class="label">Institutional Holders</div>
+  </div>
+  <div class="kpi kpi-green">
+    <div class="num">{{ total_value_fmt }}</div>
+    <div class="label">Total 13F Value</div>
+  </div>
+  <div class="kpi {{ 'kpi-green' if qoq_positive else 'kpi-red' }}">
+    <div class="num">
+      {{ '+' if qoq_positive else '-' }}{{ qoq_change_fmt }}
+      {% if qoq_pct is not none %}
+      <span style="font-size:14px;">({{ '%+.1f'|format(qoq_pct) }}%)</span>
+      {% endif %}
+    </div>
+    <div class="label">QoQ Change</div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+  <!-- Top 10 holders bar chart -->
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:16px;">
+    <h3 style="margin:0 0 12px; font-size:14px; color:var(--text-secondary);">Top 10 Holders by Value</h3>
+    <canvas id="topHoldersChart" height="250"></canvas>
+  </div>
+  <!-- Value trend line chart -->
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:16px;">
+    <h3 style="margin:0 0 12px; font-size:14px; color:var(--text-secondary);">Total 13F Value Over Time</h3>
+    <canvas id="valueTrendChart" height="250"></canvas>
+  </div>
+</div>
+
+<!-- Full holders table -->
+<div class="section-header">
+  <h2>All Holders</h2>
+  <span class="badge">{{ holder_count }}</span>
+</div>
+
+{% if holders %}
+<div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+  <span class="form-pill active" onclick="filterHolders('ALL', this)">All</span>
+  <span class="form-pill" onclick="filterHolders('NEW', this)" style="border-color:#3498db;">New</span>
+  <span class="form-pill" onclick="filterHolders('INCREASED', this)" style="border-color:#27ae60;">Increased</span>
+  <span class="form-pill" onclick="filterHolders('DECREASED', this)" style="border-color:#e74c3c;">Decreased</span>
+</div>
+
+<table id="holdersTable">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('holdersTable', 0)">Institution</th>
+      <th class="sortable" onclick="sortTable('holdersTable', 1)">Value</th>
+      <th class="sortable" onclick="sortTable('holdersTable', 2)">Shares</th>
+      <th class="sortable" onclick="sortTable('holdersTable', 3)">QoQ Change</th>
+      <th>Change %</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for h in holders %}
+    <tr data-action="{{ h.change_type }}">
+      <td><a href="/holdings/{{ h.cik }}">{{ h.institution_name }}</a></td>
+      <td style="text-align:right;">{{ h.value_fmt }}</td>
+      <td style="text-align:right;">{{ '{:,.0f}'.format(h.shares) }}</td>
+      <td style="text-align:right;">
+        {% if h.qoq_value_change > 0 %}
+        <span style="color:var(--green);">+{{ h.qoq_value_change_fmt }}</span>
+        {% elif h.qoq_value_change < 0 %}
+        <span style="color:var(--red);">-{{ h.qoq_value_change_fmt }}</span>
+        {% else %}
+        {{ h.qoq_value_change_fmt }}
+        {% endif %}
+      </td>
+      <td style="text-align:right;">
+        {% if h.qoq_value_pct is not none %}
+        <span style="color:{{ 'var(--green)' if h.qoq_value_pct >= 0 else 'var(--red)' }}">
+          {{ '%+.1f'|format(h.qoq_value_pct) }}%
+        </span>
+        {% else %}--{% endif %}
+      </td>
+      <td>
+        {% if h.change_type == 'NEW' %}
+        <span class="badge" style="background:#3498db; color:#fff; font-size:11px;">NEW</span>
+        {% elif h.change_type == 'INCREASED' %}
+        <span class="badge" style="background:#27ae60; color:#fff; font-size:11px;">INCREASED</span>
+        {% elif h.change_type == 'DECREASED' %}
+        <span class="badge" style="background:#e74c3c; color:#fff; font-size:11px;">DECREASED</span>
+        {% else %}
+        <span style="color:var(--muted); font-size:11px;">--</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
+  No institutional holders found for {{ ticker }}. This fund may not have 13F data yet.
+</div>
+{% endif %}
+
+<div style="margin-top:20px;">
+  <a href="/holdings/" class="btn btn-sm">&larr; Back to Institutions</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter pills
+function filterHolders(action, btn) {
+  var rows = document.querySelectorAll('#holdersTable tbody tr');
+  rows.forEach(function(row) {
+    if (action === 'ALL' || row.getAttribute('data-action') === action) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('.form-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+// Charts
+document.addEventListener('DOMContentLoaded', function() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridColor = isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
+  var labelColor = isDark ? '#94a3b8' : '#6b7280';
+
+  // Top 10 horizontal bar chart
+  var holders = {{ holders | tojson }};
+  var top10 = holders.slice(0, 10);
+  var barLabels = top10.map(function(h) {
+    var name = h.institution_name;
+    return name.length > 30 ? name.substring(0, 28) + '...' : name;
+  });
+  var barValues = top10.map(function(h) { return h.value * 1000; }); // convert to actual $
+  var barColors = top10.map(function(h) {
+    if (h.change_type === 'NEW') return '#3498db';
+    if (h.change_type === 'INCREASED') return '#27ae60';
+    if (h.change_type === 'DECREASED') return '#e74c3c';
+    return '#93C5FD';
+  });
+
+  new Chart(document.getElementById('topHoldersChart'), {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [{
+        data: barValues,
+        backgroundColor: barColors,
+        borderRadius: 3
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: {
+            color: labelColor,
+            callback: function(v) {
+              if (v >= 1e9) return '$' + (v/1e9).toFixed(1) + 'B';
+              if (v >= 1e6) return '$' + (v/1e6).toFixed(0) + 'M';
+              if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+              return '$' + v;
+            }
+          }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: labelColor, font: { size: 11 } }
+        }
+      }
+    }
+  });
+
+  // Value trend line chart
+  var trendLabels = {{ trend_labels | tojson }};
+  var trendValues = {{ trend_values | tojson }};
+
+  new Chart(document.getElementById('valueTrendChart'), {
+    type: 'line',
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        label: 'Total 13F Value',
+        data: trendValues,
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59,130,246,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#3B82F6'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: labelColor, font: { size: 11 } }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: {
+            color: labelColor,
+            callback: function(v) {
+              if (v >= 1e9) return '$' + (v/1e9).toFixed(1) + 'B';
+              if (v >= 1e6) return '$' + (v/1e6).toFixed(0) + 'M';
+              return '$' + (v/1e3).toFixed(0) + 'K';
+            }
+          }
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

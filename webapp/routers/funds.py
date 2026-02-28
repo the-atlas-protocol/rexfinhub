@@ -7,12 +7,12 @@ import math
 
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select, or_
+from sqlalchemy import func, select, or_, desc, distinct
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
 from webapp.fund_filters import MUTUAL_FUND_EXCLUSIONS
-from webapp.models import Trust, FundStatus, NameHistory, FundExtraction, Filing
+from webapp.models import Trust, FundStatus, NameHistory, FundExtraction, Filing, CusipMapping, Holding, Institution
 
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
@@ -128,10 +128,48 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
         .order_by(Filing.filing_date.desc())
     ).all()
 
+    # 13F institutional holders for this fund's ticker
+    holders_13f = []
+    holders_count = 0
+    holders_total_value = 0.0
+    holders_ticker = fund.ticker
+    if fund.ticker:
+        mapping = db.execute(
+            select(CusipMapping).where(func.upper(CusipMapping.ticker) == fund.ticker.upper())
+        ).scalar_one_or_none()
+        if mapping and mapping.cusip:
+            latest_q = db.execute(
+                select(func.max(Holding.report_date)).where(Holding.cusip == mapping.cusip)
+            ).scalar()
+            if latest_q:
+                holders_count = db.execute(
+                    select(func.count(distinct(Holding.institution_id)))
+                    .where(Holding.cusip == mapping.cusip, Holding.report_date == latest_q)
+                ).scalar() or 0
+                holders_total_value = db.execute(
+                    select(func.sum(Holding.value_usd))
+                    .where(Holding.cusip == mapping.cusip, Holding.report_date == latest_q)
+                ).scalar() or 0
+                top_holders = db.execute(
+                    select(Holding, Institution.name.label("inst_name"))
+                    .join(Institution, Institution.id == Holding.institution_id)
+                    .where(Holding.cusip == mapping.cusip, Holding.report_date == latest_q)
+                    .order_by(desc(Holding.value_usd))
+                    .limit(10)
+                ).all()
+                holders_13f = [
+                    {"name": r.inst_name, "value_usd": r.Holding.value_usd, "shares": r.Holding.shares}
+                    for r in top_holders
+                ]
+
     return templates.TemplateResponse("fund_detail.html", {
         "request": request,
         "fund": fund,
         "trust": trust,
         "names": names,
         "extractions": extractions,
+        "holders_13f": holders_13f,
+        "holders_count": holders_count,
+        "holders_total_value": holders_total_value,
+        "holders_ticker": holders_ticker,
     })

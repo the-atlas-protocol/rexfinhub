@@ -3,6 +3,10 @@
 
 {% block content %}
 <div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <span>Institutional Holdings</span>
+  </div>
   <h1>Institutional Holdings (13F)</h1>
   <div class="date">{{ total_institutions }} institutions tracked via 13F-HR filings</div>
 </div>
@@ -23,91 +27,172 @@
   </div>
 </div>
 
-<!-- Search -->
-<form method="get" action="/holdings/" style="margin-bottom:12px;">
-  <div class="filter-bar" style="border-radius:8px;">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search institution name..."
-           style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px; min-width:250px;">
-    <select name="sort" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
-      <option value="aum" {% if sort == 'aum' %}selected{% endif %}>Sort by AUM</option>
-      <option value="name" {% if sort == 'name' %}selected{% endif %}>Sort by Name</option>
-      <option value="filings" {% if sort == 'filings' %}selected{% endif %}>Sort by Filings</option>
-      <option value="last_filed" {% if sort == 'last_filed' %}selected{% endif %}>Sort by Last Filed</option>
-    </select>
-    <button type="submit" class="btn btn-primary btn-sm">Search</button>
-    {% if q %}
-    <a href="/holdings/" class="btn btn-sm">Clear</a>
-    {% endif %}
-  </div>
-</form>
-
-<!-- Results -->
-<p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">
-  {{ total_results }} institution{{ 's' if total_results != 1 else '' }} found
-  {% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
-</p>
-
-{% if institutions %}
-<table id="holdingsTable">
-  <thead>
-    <tr>
-      <th class="sortable" onclick="sortTable('holdingsTable', 0)">Institution</th>
-      <th class="sortable" onclick="sortTable('holdingsTable', 1)">CIK</th>
-      <th class="sortable" onclick="sortTable('holdingsTable', 2)">Holdings Value</th>
-      <th class="sortable" onclick="sortTable('holdingsTable', 3)">Positions</th>
-      <th class="sortable" onclick="sortTable('holdingsTable', 4)">Filings</th>
-      <th class="sortable" onclick="sortTable('holdingsTable', 5)">Last Filed</th>
-      <th>Type</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in institutions %}
-    {% set inst = row.Institution %}
-    <tr>
-      <td><a href="/holdings/{{ inst.cik }}">{{ inst.name }}</a></td>
-      <td style="font-family:var(--font-mono); font-size:12px;">{{ inst.cik }}</td>
-      <td>{{ fmt_value(row.total_value) }}</td>
-      <td>{{ row.holding_count }}</td>
-      <td>{{ inst.filing_count }}</td>
-      <td>{{ inst.last_filed or '' }}</td>
-      <td>{{ inst.manager_type or '--' }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-{% if total_pages > 1 %}
-<div class="pagination-bar">
-  <span class="pagination-info">{{ total_results }} institutions &middot; page {{ page }} of {{ total_pages }}</span>
-  <div class="pagination-controls">
-    {% if page > 1 %}
-    <a href="?q={{ q }}&sort={{ sort }}&per_page={{ per_page }}&page={{ page - 1 }}" class="btn btn-sm">Prev</a>
-    {% endif %}
-    {% set start_p = [1, page - 2]|max %}
-    {% set end_p = [total_pages + 1, page + 3]|min %}
-    {% for p in range(start_p, end_p) %}
-    <a href="?q={{ q }}&sort={{ sort }}&per_page={{ per_page }}&page={{ p }}" class="btn btn-sm {{ 'btn-primary' if p == page else '' }}">{{ p }}</a>
-    {% endfor %}
-    {% if page < total_pages %}
-    <a href="?q={{ q }}&sort={{ sort }}&per_page={{ per_page }}&page={{ page + 1 }}" class="btn btn-sm">Next</a>
-    {% endif %}
-  </div>
-  <select class="select-sm" onchange="location='?q={{ q }}&sort={{ sort }}&page=1&per_page='+this.value">
-    {% for n in [25, 50, 100, 200] %}
-    <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
-    {% endfor %}
-  </select>
+<!-- Mode toggle: Institutions | Funds -->
+<div style="display:flex; gap:6px; margin-bottom:12px;">
+  <span class="form-pill active" id="pillInst" onclick="showMode('institutions')">Institutions</span>
+  <span class="form-pill" id="pillFund" onclick="showMode('funds')">Funds</span>
 </div>
-{% endif %}
 
-{% else %}
-<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
-  {% if q %}
-  No institutions match "{{ q }}".
+<!-- Institution mode (default) -->
+<div id="institutionMode">
+  <form method="get" action="/holdings/" style="margin-bottom:12px;">
+    <div class="filter-bar" style="border-radius:8px;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search institution name..."
+             style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px; min-width:250px;">
+      <select name="sort" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
+        <option value="aum" {% if sort == 'aum' %}selected{% endif %}>Sort by AUM</option>
+        <option value="name" {% if sort == 'name' %}selected{% endif %}>Sort by Name</option>
+        <option value="filings" {% if sort == 'filings' %}selected{% endif %}>Sort by Filings</option>
+        <option value="last_filed" {% if sort == 'last_filed' %}selected{% endif %}>Sort by Last Filed</option>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      {% if q %}
+      <a href="/holdings/" class="btn btn-sm">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">
+    {{ total_results }} institution{{ 's' if total_results != 1 else '' }} found
+    {% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
+  </p>
+
+  {% if institutions %}
+  <table id="holdingsTable">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="sortTable('holdingsTable', 0)">Institution</th>
+        <th class="sortable" onclick="sortTable('holdingsTable', 1)">CIK</th>
+        <th class="sortable" onclick="sortTable('holdingsTable', 2)">Holdings Value</th>
+        <th class="sortable" onclick="sortTable('holdingsTable', 3)">Positions</th>
+        <th class="sortable" onclick="sortTable('holdingsTable', 4)">Filings</th>
+        <th class="sortable" onclick="sortTable('holdingsTable', 5)">Last Filed</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in institutions %}
+      {% set inst = row.Institution %}
+      <tr>
+        <td><a href="/holdings/{{ inst.cik }}">{{ inst.name }}</a></td>
+        <td style="font-family:var(--font-mono); font-size:12px;">{{ inst.cik }}</td>
+        <td>{{ fmt_value(row.total_value) }}</td>
+        <td>{{ row.holding_count }}</td>
+        <td>{{ inst.filing_count }}</td>
+        <td>{{ inst.last_filed or '' }}</td>
+        <td>{{ inst.manager_type or '--' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if total_pages > 1 %}
+  <div class="pagination-bar">
+    <span class="pagination-info">{{ total_results }} institutions &middot; page {{ page }} of {{ total_pages }}</span>
+    <div class="pagination-controls">
+      {% if page > 1 %}
+      <a href="?q={{ q }}&sort={{ sort }}&per_page={{ per_page }}&page={{ page - 1 }}" class="btn btn-sm">Prev</a>
+      {% endif %}
+      {% set start_p = [1, page - 2]|max %}
+      {% set end_p = [total_pages + 1, page + 3]|min %}
+      {% for p in range(start_p, end_p) %}
+      <a href="?q={{ q }}&sort={{ sort }}&per_page={{ per_page }}&page={{ p }}" class="btn btn-sm {{ 'btn-primary' if p == page else '' }}">{{ p }}</a>
+      {% endfor %}
+      {% if page < total_pages %}
+      <a href="?q={{ q }}&sort={{ sort }}&per_page={{ per_page }}&page={{ page + 1 }}" class="btn btn-sm">Next</a>
+      {% endif %}
+    </div>
+    <select class="select-sm" onchange="location='?q={{ q }}&sort={{ sort }}&page=1&per_page='+this.value">
+      {% for n in [25, 50, 100, 200] %}
+      <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
   {% else %}
-  No 13F data ingested yet. Run the 13F pipeline to populate this page.
+  <div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
+    {% if q %}
+    No institutions match "{{ q }}".
+    {% else %}
+    No 13F data ingested yet. Run the 13F pipeline to populate this page.
+    {% endif %}
+  </div>
   {% endif %}
 </div>
-{% endif %}
 
+<!-- Fund search mode (hidden by default) -->
+<div id="fundMode" style="display:none;">
+  <div class="filter-bar" style="border-radius:8px; margin-bottom:12px;">
+    <input type="text" id="fundSearchInput" placeholder="Search by ticker or fund name (e.g. SOXL, TQQQ)..."
+           style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px; min-width:300px;"
+           onkeydown="if(event.key==='Enter'){searchFunds(); event.preventDefault();}">
+    <button class="btn btn-primary btn-sm" onclick="searchFunds()">Search</button>
+  </div>
+  <div id="fundResults">
+    <p style="color:var(--muted); font-size:13px;">Search for a fund by ticker or name to see institutional holder stats.</p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showMode(mode) {
+  var instDiv = document.getElementById('institutionMode');
+  var fundDiv = document.getElementById('fundMode');
+  var pillInst = document.getElementById('pillInst');
+  var pillFund = document.getElementById('pillFund');
+  if (mode === 'funds') {
+    instDiv.style.display = 'none';
+    fundDiv.style.display = '';
+    pillInst.classList.remove('active');
+    pillFund.classList.add('active');
+    document.getElementById('fundSearchInput').focus();
+  } else {
+    instDiv.style.display = '';
+    fundDiv.style.display = 'none';
+    pillInst.classList.add('active');
+    pillFund.classList.remove('active');
+  }
+}
+
+function fmtVal(v) {
+  if (v >= 1e9) return '$' + (v/1e9).toFixed(1) + 'B';
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+
+function searchFunds() {
+  var q = document.getElementById('fundSearchInput').value.trim();
+  if (!q) return;
+  var el = document.getElementById('fundResults');
+  el.innerHTML = '<p style="color:var(--muted); font-size:13px;">Searching...</p>';
+
+  fetch('/api/v1/holdings/search-funds?q=' + encodeURIComponent(q))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.results || data.results.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted); font-size:13px;">No matching funds found.</p>';
+        return;
+      }
+      var html = '<table><thead><tr><th>Ticker</th><th>Fund Name</th><th>CUSIP</th><th>Holders</th><th>Total Value</th></tr></thead><tbody>';
+      data.results.forEach(function(r) {
+        html += '<tr>';
+        html += '<td><a href="/holdings/fund/' + r.ticker + '" class="ticker-col">' + (r.ticker || '--') + '</a></td>';
+        html += '<td>' + (r.fund_name || '--') + '</td>';
+        html += '<td style="font-family:var(--font-mono); font-size:12px;">' + (r.cusip || '') + '</td>';
+        html += '<td>' + r.holder_count + '</td>';
+        html += '<td>' + fmtVal(r.total_value) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      el.innerHTML = '<p style="color:var(--red); font-size:13px;">Search failed.</p>';
+    });
+}
+</script>
 {% endblock %}

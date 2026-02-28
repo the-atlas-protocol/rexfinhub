@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}{{ institution.name }} History — REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/holdings/">Institutional Holdings</a><span class="sep">/</span>
+    <a href="/holdings/{{ institution.cik }}">{{ institution.name }}</a><span class="sep">/</span>
+    <span>History</span>
+  </div>
+  <h1>{{ institution.name }}</h1>
+  <div class="date">
+    CIK {{ institution.cik }}
+    {% if institution.manager_type %} &middot; {{ institution.manager_type }}{% endif %}
+    {% if latest_date %} &middot; Latest quarter: {{ latest_date }}{% endif %}
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi kpi-green">
+    <div class="num">{{ current_aum_fmt }}</div>
+    <div class="label">Current AUM</div>
+  </div>
+  <div class="kpi {{ 'kpi-green' if qoq_positive else 'kpi-red' }}">
+    <div class="num">
+      {% if qoq_pct is not none %}{{ '%+.1f'|format(qoq_pct) }}%{% else %}--{% endif %}
+    </div>
+    <div class="label">QoQ Change</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ quarters_on_file }}</div>
+    <div class="label">Quarters on File</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ '%+d'|format(net_new) if net_new else '0' }}</div>
+    <div class="label">Net New Positions</div>
+  </div>
+</div>
+
+<!-- Dual-axis chart: AUM + position count -->
+<div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:24px;">
+  <h3 style="margin:0 0 12px; font-size:14px; color:var(--text-secondary);">AUM &amp; Position Count Over Time</h3>
+  <canvas id="dualAxisChart" height="200"></canvas>
+</div>
+
+<!-- Position Changes Table -->
+<div class="section-header">
+  <h2>Position Changes</h2>
+  {% if latest_date and prior_date %}
+  <span class="badge">{{ prior_date }} &rarr; {{ latest_date }}</span>
+  {% endif %}
+</div>
+
+{% if changes %}
+<div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+  <span class="form-pill active" onclick="filterChanges('ALL', this)">All ({{ changes|length }})</span>
+  <span class="form-pill" onclick="filterChanges('NEW', this)" style="border-color:#3498db;">New</span>
+  <span class="form-pill" onclick="filterChanges('INCREASED', this)" style="border-color:#27ae60;">Increased</span>
+  <span class="form-pill" onclick="filterChanges('DECREASED', this)" style="border-color:#e74c3c;">Decreased</span>
+  <span class="form-pill" onclick="filterChanges('EXITED', this)" style="border-color:#636e72;">Exited</span>
+</div>
+
+<table id="changesTable">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('changesTable', 0)">Issuer</th>
+      <th>CUSIP</th>
+      <th>Fund</th>
+      <th class="sortable" onclick="sortTable('changesTable', 3)">Current Value</th>
+      <th class="sortable" onclick="sortTable('changesTable', 4)">Prior Value</th>
+      <th class="sortable" onclick="sortTable('changesTable', 5)">Change $</th>
+      <th>Change %</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in changes %}
+    <tr data-action="{{ c.action }}">
+      <td>{{ c.issuer_name }}</td>
+      <td style="font-family:var(--font-mono); font-size:12px;">{{ c.cusip }}</td>
+      <td>
+        {% if c.fund_match_ticker %}
+        <a href="/holdings/fund/{{ c.fund_match_ticker }}" class="ticker-col">{{ c.fund_match_ticker }}</a>
+        {% endif %}
+      </td>
+      <td style="text-align:right;">{{ c.current_value_fmt }}</td>
+      <td style="text-align:right;">{{ c.prior_value_fmt }}</td>
+      <td style="text-align:right;">
+        {% if c.change_value > 0 %}
+        <span style="color:var(--green);">+{{ fmt_value(c.change_value / 1000) }}</span>
+        {% elif c.change_value < 0 %}
+        <span style="color:var(--red);">-{{ fmt_value((-c.change_value) / 1000) }}</span>
+        {% else %}--{% endif %}
+      </td>
+      <td style="text-align:right;">
+        {% if c.change_pct is not none %}
+        <span style="color:{{ 'var(--green)' if c.change_pct >= 0 else 'var(--red)' }}">
+          {{ '%+.1f'|format(c.change_pct) }}%
+        </span>
+        {% else %}--{% endif %}
+      </td>
+      <td>
+        {% if c.action == 'NEW' %}
+        <span class="badge" style="background:#3498db; color:#fff; font-size:11px;">NEW</span>
+        {% elif c.action == 'INCREASED' %}
+        <span class="badge" style="background:#27ae60; color:#fff; font-size:11px;">INCREASED</span>
+        {% elif c.action == 'DECREASED' %}
+        <span class="badge" style="background:#e74c3c; color:#fff; font-size:11px;">DECREASED</span>
+        {% elif c.action == 'EXITED' %}
+        <span class="badge" style="background:#636e72; color:#fff; font-size:11px;">EXITED</span>
+        {% else %}
+        <span style="color:var(--muted); font-size:11px;">--</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
+  No position change data available. Need at least 2 quarters of data.
+</div>
+{% endif %}
+
+<div style="margin-top:20px;">
+  <a href="/holdings/{{ institution.cik }}" class="btn btn-sm">&larr; Back to {{ institution.name }}</a>
+  <a href="/holdings/" class="btn btn-sm">All Institutions</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterChanges(action, btn) {
+  var rows = document.querySelectorAll('#changesTable tbody tr');
+  rows.forEach(function(row) {
+    if (action === 'ALL' || row.getAttribute('data-action') === action) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('.form-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridColor = isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
+  var labelColor = isDark ? '#94a3b8' : '#6b7280';
+
+  var labels = {{ trend_labels | tojson }};
+  var aumData = {{ trend_aum | tojson }};
+  var posData = {{ trend_positions | tojson }};
+
+  new Chart(document.getElementById('dualAxisChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Total AUM ($)',
+          data: aumData,
+          borderColor: '#3B82F6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#3B82F6',
+          yAxisID: 'y'
+        },
+        {
+          label: 'Positions',
+          data: posData,
+          borderColor: '#F97316',
+          backgroundColor: 'rgba(249,115,22,0.1)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#F97316',
+          borderDash: [5, 3],
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: labelColor, font: { size: 12 } }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: labelColor, font: { size: 11 } }
+        },
+        y: {
+          type: 'linear',
+          position: 'left',
+          grid: { color: gridColor },
+          ticks: {
+            color: '#3B82F6',
+            callback: function(v) {
+              if (v >= 1e9) return '$' + (v/1e9).toFixed(1) + 'B';
+              if (v >= 1e6) return '$' + (v/1e6).toFixed(0) + 'M';
+              return '$' + (v/1e3).toFixed(0) + 'K';
+            }
+          }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#F97316' }
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -67,11 +67,13 @@ def _load_ciks_fallback() -> tuple[list[str], dict[str, str]]:
 
 
 def _step3_worker(trust_name: str, output_root: Path, user_agent: str,
-                  timeout: int, pause: float, cache_dir: Path) -> dict:
+                  timeout: int, pause: float, cache_dir: Path,
+                  since: str | None = None, until: str | None = None) -> dict:
     """Process a single trust in Step 3 with its own SEC client."""
     client = SECClient(user_agent=user_agent, request_timeout=timeout,
                        pause=pause, cache_dir=cache_dir)
-    return step3_extract_for_trust(client, output_root, trust_name)
+    return step3_extract_for_trust(client, output_root, trust_name,
+                                   since=since, until=until)
 
 
 def _record_pipeline_run(metrics: RunMetrics, triggered_by: str = "manual") -> None:
@@ -168,6 +170,8 @@ def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | No
             clear_manifest(paths["folder"])
 
     # Step 3: Extract filings (parallel - I/O bound, biggest bottleneck)
+    # Auto-adjust per-worker pause to keep aggregate rate under 10 req/s
+    effective_pause = max(pause, max_workers * 0.1)
     workers = min(max_workers, len(trusts))
     if workers > 1:
         lock = threading.Lock()
@@ -176,7 +180,8 @@ def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | No
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {
                 pool.submit(_step3_worker, t, output_root, user_agent,
-                            request_timeout, pause, cache_dir): t
+                            request_timeout, effective_pause, cache_dir,
+                            since, until): t
                 for t in trusts
             }
             for future in as_completed(futures):
@@ -196,7 +201,8 @@ def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | No
     else:
         # Single-worker fallback
         for t in tqdm(trusts, desc="Extract (Step 3)", leave=False):
-            result = step3_extract_for_trust(client, output_root, t)
+            result = step3_extract_for_trust(client, output_root, t,
+                                            since=since, until=until)
             metrics.new_filings += result.get("new", 0)
             metrics.skipped_filings += result.get("skipped", 0)
             metrics.errors += result.get("errors", 0)

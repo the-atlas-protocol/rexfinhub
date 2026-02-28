@@ -105,6 +105,32 @@
   </tbody>
 </table>
 
+<!-- Institutional Interest (13F) -->
+{% if inst_13f_count %}
+<div class="section-header" style="margin-top:30px">
+  <h2>Institutional Interest</h2>
+</div>
+<div class="kpi-row" style="margin-bottom:12px;">
+  <div class="kpi">
+    <div class="num">{{ inst_13f_count }}</div>
+    <div class="label">Unique Institutions</div>
+  </div>
+  <div class="kpi kpi-green">
+    <div class="num">
+      {% set v = (inst_13f_value or 0) * 1000 %}
+      {% if v >= 1000000000 %}${{ '%.1f' | format(v / 1000000000) }}B
+      {% elif v >= 1000000 %}${{ '%.1f' | format(v / 1000000) }}M
+      {% elif v >= 1000 %}${{ '%.0f' | format(v / 1000) }}K
+      {% else %}${{ '%.0f' | format(v) }}{% endif %}
+    </div>
+    <div class="label">Total 13F Value</div>
+  </div>
+</div>
+<p style="font-size:var(--text-sm); color:var(--muted); margin-bottom:16px;">
+  Based on latest quarterly 13F-HR filings for all CUSIPs mapped to this trust.
+</p>
+{% endif %}
+
 {% if recent_filings %}
 <div class="section-header" style="margin-top:30px">
   <h2>Recent Filings</h2>

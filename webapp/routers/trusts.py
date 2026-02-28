@@ -7,11 +7,11 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import select, func, distinct
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
-from webapp.models import Trust, FundStatus, Filing
+from webapp.models import Trust, FundStatus, Filing, CusipMapping, Holding, Institution
 
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
@@ -83,6 +83,32 @@ def trust_detail(slug: str, request: Request, db: Session = Depends(get_db)):
         .limit(20)
     ).scalars().all()
 
+    # 13F institutional interest for this trust
+    trust_cusips = db.execute(
+        select(CusipMapping.cusip)
+        .where(CusipMapping.trust_id == trust.id)
+        .where(CusipMapping.cusip.isnot(None))
+    ).scalars().all()
+
+    inst_13f_count = 0
+    inst_13f_value = 0.0
+    if trust_cusips:
+        latest_q = db.execute(
+            select(func.max(Holding.report_date))
+            .where(Holding.cusip.in_(trust_cusips))
+        ).scalar()
+        if latest_q:
+            inst_13f_count = db.execute(
+                select(func.count(distinct(Holding.institution_id)))
+                .where(Holding.cusip.in_(trust_cusips))
+                .where(Holding.report_date == latest_q)
+            ).scalar() or 0
+            inst_13f_value = db.execute(
+                select(func.sum(Holding.value_usd))
+                .where(Holding.cusip.in_(trust_cusips))
+                .where(Holding.report_date == latest_q)
+            ).scalar() or 0
+
     return templates.TemplateResponse("trust_detail.html", {
         "request": request,
         "trust": trust,
@@ -93,4 +119,6 @@ def trust_detail(slug: str, request: Request, db: Session = Depends(get_db)):
         "delayed": delay_count,
         "recent_filings": recent_filings,
         "today": date.today(),
+        "inst_13f_count": inst_13f_count,
+        "inst_13f_value": inst_13f_value,
     })
