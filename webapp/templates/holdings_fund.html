@@ -30,12 +30,14 @@
   </div>
   <div class="kpi {{ 'kpi-green' if qoq_positive else 'kpi-red' }}">
     <div class="num">
+      {% if qoq_change != 0 %}
       {{ '+' if qoq_positive else '-' }}{{ qoq_change_fmt }}
       {% if qoq_pct is not none %}
       <span style="font-size:14px;">({{ '%+.1f'|format(qoq_pct) }}%)</span>
       {% endif %}
+      {% else %}--{% endif %}
     </div>
-    <div class="label">QoQ Change</div>
+    <div class="label">QoQ Change{% if prior_date %} <span style="font-size:11px; font-weight:normal;">vs {{ prior_date }}</span>{% endif %}</div>
   </div>
 </div>
 
@@ -155,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var name = h.institution_name;
     return name.length > 30 ? name.substring(0, 28) + '...' : name;
   });
-  var barValues = top10.map(function(h) { return h.value * 1000; }); // convert to actual $
+  var barValues = top10.map(function(h) { return h.value; });
   var barColors = top10.map(function(h) {
     if (h.change_type === 'NEW') return '#3498db';
     if (h.change_type === 'INCREASED') return '#27ae60';
