@@ -134,6 +134,19 @@ def _trust_stats(db: Session) -> list[dict]:
     return trusts
 
 
+_ALLOWED_TRUST_FILTERS = {"all", "active", "pending", "no_etf_funds", "s1_filer"}
+
+_STATUS_LABELS = {
+    "all": "All",
+    "active": "With ETF Funds",
+    "pending": "Awaiting Scrape",
+    "no_etf_funds": "No ETF Funds",
+    "s1_filer": "33 Act Filers",
+}
+
+TRUST_PAGE_SIZE = 60
+
+
 @router.get("/dashboard")
 def dashboard(
     request: Request,
@@ -142,20 +155,43 @@ def dashboard(
     form_type: str = "",
     filing_trust_id: int = 0,
     entity_type: str = "",
+    trust_filter: str = "active",
+    trust_page: int = Query(default=1, ge=1),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=50, ge=10, le=200),
     db: Session = Depends(get_db),
 ):
-    trust_list = _trust_stats(db)
+    all_trusts = _trust_stats(db)
 
     # Filter by entity_type if specified
     if entity_type:
-        trust_list = [t for t in trust_list if t.get("entity_type") == entity_type]
+        all_trusts = [t for t in all_trusts if t.get("entity_type") == entity_type]
 
-    total_funds = sum(t["total"] for t in trust_list)
-    total_effective = sum(t["effective"] for t in trust_list)
-    total_pending = sum(t["pending"] for t in trust_list)
-    total_delayed = sum(t["delayed"] for t in trust_list)
+    # KPIs always reflect full (entity-filtered) set
+    total_funds = sum(t["total"] for t in all_trusts)
+    total_effective = sum(t["effective"] for t in all_trusts)
+    total_pending = sum(t["pending"] for t in all_trusts)
+    total_delayed = sum(t["delayed"] for t in all_trusts)
+
+    # Status counts for filter buttons (before applying trust_filter)
+    status_counts = {}
+    for t in all_trusts:
+        s = t["scrape_status"]
+        status_counts[s] = status_counts.get(s, 0) + 1
+
+    # Apply trust_filter to the card grid
+    if trust_filter not in _ALLOWED_TRUST_FILTERS:
+        trust_filter = "active"
+    if trust_filter != "all":
+        trust_list = [t for t in all_trusts if t["scrape_status"] == trust_filter]
+    else:
+        trust_list = all_trusts
+
+    # Server-side pagination for trust grid
+    total_trust_count = len(trust_list)
+    total_trust_pages = max(1, math.ceil(total_trust_count / TRUST_PAGE_SIZE))
+    trust_page = min(trust_page, total_trust_pages)
+    trust_list = trust_list[(trust_page - 1) * TRUST_PAGE_SIZE : trust_page * TRUST_PAGE_SIZE]
 
     # Validate days parameter
     if days not in _ALLOWED_DAYS:
@@ -224,14 +260,31 @@ def dashboard(
         qs_params["entity_type"] = entity_type
     if per_page != 50:
         qs_params["per_page"] = per_page
+    if trust_filter != "active":
+        qs_params["trust_filter"] = trust_filter
     base_qs = urllib.parse.urlencode(qs_params)
 
-    # Entity type counts for the full (unfiltered) trust list
-    all_trusts = _trust_stats(db) if entity_type else trust_list
+    # Entity type counts (reuse all_trusts, no second query)
     type_counts = {}
     for t in all_trusts:
         et = t.get("entity_type") or "unknown"
         type_counts[et] = type_counts.get(et, 0) + 1
+
+    # Trust grid query string (preserves trust_filter + entity_type, resets trust_page)
+    trust_qs_params = {}
+    if trust_filter != "active":
+        trust_qs_params["trust_filter"] = trust_filter
+    if entity_type:
+        trust_qs_params["entity_type"] = entity_type
+    if days != 7:
+        trust_qs_params["days"] = days
+    if form_type:
+        trust_qs_params["form_type"] = form_type
+    if filing_trust_id:
+        trust_qs_params["filing_trust_id"] = filing_trust_id
+    if per_page != 50:
+        trust_qs_params["per_page"] = per_page
+    trust_base_qs = urllib.parse.urlencode(trust_qs_params)
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -255,4 +308,11 @@ def dashboard(
         "total_filings": total_filings,
         "total_pages": total_pages,
         "base_qs": base_qs,
+        "trust_filter": trust_filter,
+        "trust_page": trust_page,
+        "total_trust_count": total_trust_count,
+        "total_trust_pages": total_trust_pages,
+        "trust_base_qs": trust_base_qs,
+        "status_counts": status_counts,
+        "status_labels": _STATUS_LABELS,
     })
