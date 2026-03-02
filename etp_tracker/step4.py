@@ -48,6 +48,17 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
                 return "EFFECTIVE", f"485BXT effective as of {eff_date}"
             else:
                 return "PENDING", f"485BXT effective date {eff_date} is future"
+        # 485BXT extensions are typically 45-120 days from filing
+        # If 150+ days have passed, the extension has elapsed and fund is effective
+        if filing_date:
+            try:
+                fdt = pd.to_datetime(filing_date, errors="coerce")
+                if not pd.isna(fdt):
+                    extension_deadline = fdt + pd.Timedelta(days=150)
+                    if extension_deadline.date() <= today.date():
+                        return "EFFECTIVE", "485BXT presumed effective (extension period elapsed)"
+            except Exception:
+                pass
         return "PENDING", "485BXT filed (awaiting effectiveness)"
 
     # 485APOS = Initial filing
