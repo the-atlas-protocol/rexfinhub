@@ -164,6 +164,11 @@
   <h2>Institutional Holders (13F)</h2>
   <span class="badge">{{ holders_count }}</span>
 </div>
+{% if holders_quarter %}
+<p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">
+  As of {{ holders_quarter }} &middot; Top 10 of {{ holders_count }} holder{{ 's' if holders_count != 1 else '' }}
+</p>
+{% endif %}
 
 <div class="kpi-row" style="margin-bottom:12px;">
   <div class="kpi">
@@ -193,7 +198,7 @@
   <tbody>
     {% for h in holders_13f %}
     <tr>
-      <td>{{ h.name }}</td>
+      <td><a href="/holdings/{{ h.cik }}">{{ h.name }}</a></td>
       <td style="text-align:right;">{{ '{:,.0f}'.format(h.value_usd) if h.value_usd else '--' }}</td>
       <td style="text-align:right;">{{ '{:,.0f}'.format(h.shares) if h.shares else '--' }}</td>
     </tr>

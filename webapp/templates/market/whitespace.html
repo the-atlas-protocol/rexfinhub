@@ -1,0 +1,230 @@
+{% set active_tab = 'whitespace' %}
+{% extends base_template|default("market/base.html") %}
+
+{% block title %}White Space Analyzer — REX Financial Intelligence Hub{% endblock %}
+
+{% block market_content %}
+<div style="max-width:1400px; margin:0 auto;">
+<h2 class="section-title">White Space Analyzer</h2>
+<p style="color:#64748B; font-size:0.85rem; margin-bottom:20px;">
+  Maps every product slot (underlier x direction x leverage) to find gaps where REX has no product.
+  Ranked by opportunity score: market size x competition factor x REX gap.
+</p>
+
+{# Controls #}
+<div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
+  <div style="display:flex; gap:4px;">
+    <a href="/market/whitespace?view=gaps&fund_structure={{ fund_structure }}&min_aum={{ min_aum }}"
+       class="pill {{ 'active' if view == 'gaps' else '' }}" style="font-size:0.8rem; padding:4px 12px;">
+       Gaps (No REX)</a>
+    <a href="/market/whitespace?view=filled&fund_structure={{ fund_structure }}&min_aum={{ min_aum }}"
+       class="pill {{ 'active' if view == 'filled' else '' }}" style="font-size:0.8rem; padding:4px 12px;">
+       REX Covered</a>
+    <a href="/market/whitespace?view=income&fund_structure={{ fund_structure }}&min_aum={{ min_aum }}"
+       class="pill {{ 'active' if view == 'income' else '' }}" style="font-size:0.8rem; padding:4px 12px;">
+       Income</a>
+  </div>
+  <form method="get" action="/market/whitespace" style="display:flex; gap:6px; align-items:center;">
+    <input type="hidden" name="view" value="{{ view }}">
+    <input type="hidden" name="fund_structure" value="{{ fund_structure }}">
+    <label style="font-size:0.8rem; color:var(--text-secondary);">Min AUM ($M):</label>
+    <input type="number" name="min_aum" value="{{ min_aum|int }}" min="0" step="100"
+           class="select-sm" style="width:90px; font-size:0.8rem;">
+    <button type="submit" class="btn btn-sm" style="padding:3px 10px; font-size:0.8rem;">Filter</button>
+  </form>
+</div>
+
+{# KPI cards #}
+{% if ws is defined %}
+<div class="kpi-row" style="margin-bottom:24px;">
+  <div class="kpi" style="border-left:3px solid #EF4444;">
+    <div class="num" style="color:#EF4444;">{{ ws.total_gaps }}</div>
+    <div class="label">Competitor Gaps (No REX)</div>
+  </div>
+  <div class="kpi" style="border-left:3px solid #F59E0B;">
+    <div class="num" style="color:#F59E0B;">{{ ws.empty_slots }}</div>
+    <div class="label">Empty Slots (AUM > $100M)</div>
+  </div>
+  <div class="kpi kpi-green" style="border-left:3px solid #059669;">
+    <div class="num">{{ ws.rex_covered }}</div>
+    <div class="label">REX Covered Slots</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ ws.unique_underliers }}</div>
+    <div class="label">Unique Underliers</div>
+  </div>
+</div>
+{% endif %}
+
+{# --- Gaps view (L&I) --- #}
+{% if view == 'gaps' and ws is defined and ws.gaps %}
+<div class="section-header">
+  <h2>L&I Gaps — REX Not Present</h2>
+  <span class="badge">{{ ws.gaps|length }}</span>
+</div>
+<p style="color:#64748B; font-size:0.82rem; margin-bottom:12px;">
+  Slots where competitors have products but REX does not. Sorted by opportunity score.
+</p>
+<table class="data-table" id="gapTable" style="font-size:0.82rem;">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('gapTable', 0)">Underlier</th>
+      <th>Direction</th>
+      <th>Leverage</th>
+      <th class="sortable" onclick="sortTable('gapTable', 3)" style="text-align:right;">Competitors</th>
+      <th class="sortable" onclick="sortTable('gapTable', 4)" style="text-align:right;">Slot AUM</th>
+      <th class="sortable" onclick="sortTable('gapTable', 5)" style="text-align:right;">Underlier AUM</th>
+      <th class="sortable" onclick="sortTable('gapTable', 6)" style="text-align:right;">Opportunity Score</th>
+      <th>Competitor Tickers</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in ws.gaps %}
+    <tr>
+      <td style="font-weight:600;">{{ g.underlier }}</td>
+      <td>
+        {% if g.direction == 'Long' %}
+        <span class="badge" style="background:#059669; color:#fff; font-size:10px;">Long</span>
+        {% else %}
+        <span class="badge" style="background:#DC2626; color:#fff; font-size:10px;">Short</span>
+        {% endif %}
+      </td>
+      <td style="text-align:center; font-weight:600;">{{ g.leverage }}x</td>
+      <td style="text-align:right;">
+        {% if g.comp_count > 0 %}
+        <span style="color:#EF4444; font-weight:600;">{{ g.comp_count }}</span>
+        {% else %}
+        <span style="color:#94A3B8;">0</span>
+        {% endif %}
+      </td>
+      <td style="text-align:right;">{{ fmt_currency(g.comp_aum) }}</td>
+      <td style="text-align:right; font-weight:600;">{{ fmt_currency(g.market_size) }}</td>
+      <td style="text-align:right;">
+        {% if g.score >= 500 %}
+        <span style="color:#059669; font-weight:700;">{{ '%.0f'|format(g.score) }}</span>
+        {% elif g.score >= 100 %}
+        <span style="color:#F59E0B; font-weight:600;">{{ '%.0f'|format(g.score) }}</span>
+        {% else %}
+        <span style="color:#94A3B8;">{{ '%.0f'|format(g.score) }}</span>
+        {% endif %}
+      </td>
+      <td style="font-size:0.75rem; color:var(--text-secondary);">
+        {{ g.comp_tickers[:5]|join(', ') }}{% if g.comp_tickers|length > 5 %} +{{ g.comp_tickers|length - 5 }}{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif view == 'gaps' and ws is defined %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:0.85rem;">
+  No gaps found with current filters. Try lowering the minimum AUM.
+</div>
+
+{# --- Filled view --- #}
+{% elif view == 'filled' and ws is defined and ws.filled %}
+<div class="section-header">
+  <h2>REX Covered Slots</h2>
+  <span class="badge">{{ ws.filled|length }}</span>
+</div>
+<p style="color:#64748B; font-size:0.82rem; margin-bottom:12px;">
+  Slots where REX has products. Shows market size and competitive density.
+</p>
+<table class="data-table" id="filledTable" style="font-size:0.82rem;">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('filledTable', 0)">Underlier</th>
+      <th>Direction</th>
+      <th>Leverage</th>
+      <th>REX Tickers</th>
+      <th class="sortable" onclick="sortTable('filledTable', 4)" style="text-align:right;">Competitors</th>
+      <th class="sortable" onclick="sortTable('filledTable', 5)" style="text-align:right;">Slot AUM</th>
+      <th class="sortable" onclick="sortTable('filledTable', 6)" style="text-align:right;">Underlier AUM</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in ws.filled %}
+    <tr>
+      <td style="font-weight:600;">{{ g.underlier }}</td>
+      <td>
+        {% if g.direction == 'Long' %}
+        <span class="badge" style="background:#059669; color:#fff; font-size:10px;">Long</span>
+        {% else %}
+        <span class="badge" style="background:#DC2626; color:#fff; font-size:10px;">Short</span>
+        {% endif %}
+      </td>
+      <td style="text-align:center; font-weight:600;">{{ g.leverage }}x</td>
+      <td>
+        {% for t in g.rex_tickers %}
+        <span class="rex-badge" style="font-size:10px;">{{ t }}</span>
+        {% endfor %}
+      </td>
+      <td style="text-align:right;">{{ g.comp_count }}</td>
+      <td style="text-align:right;">{{ fmt_currency(g.comp_aum) }}</td>
+      <td style="text-align:right; font-weight:600;">{{ fmt_currency(g.market_size) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# --- Income view --- #}
+{% elif view == 'income' and ws is defined and ws.cc_gaps %}
+<div class="section-header">
+  <h2>Income Product Landscape</h2>
+  <span class="badge">{{ ws.cc_gaps|length }}</span>
+</div>
+<p style="color:#64748B; font-size:0.82rem; margin-bottom:12px;">
+  Covered call / income products by underlier. Gaps = underliers where REX has no income product.
+</p>
+<table class="data-table" id="incomeTable" style="font-size:0.82rem;">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('incomeTable', 0)">Underlier</th>
+      <th class="sortable" onclick="sortTable('incomeTable', 1)" style="text-align:right;">Products</th>
+      <th class="sortable" onclick="sortTable('incomeTable', 2)" style="text-align:right;">Total AUM</th>
+      <th>REX Present?</th>
+      <th>REX Tickers</th>
+      <th class="sortable" onclick="sortTable('incomeTable', 5)" style="text-align:right;">Opportunity</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in ws.cc_gaps %}
+    <tr>
+      <td style="font-weight:600;">{{ g.underlier }}</td>
+      <td style="text-align:right;">{{ g.comp_count + (g.rex_tickers|length) }}</td>
+      <td style="text-align:right;">{{ fmt_currency(g.total_aum) }}</td>
+      <td>
+        {% if g.has_rex %}
+        <span class="badge" style="background:#059669; color:#fff; font-size:10px;">Yes</span>
+        {% else %}
+        <span class="badge" style="background:#EF4444; color:#fff; font-size:10px;">Gap</span>
+        {% endif %}
+      </td>
+      <td>
+        {% for t in g.rex_tickers %}
+        <span class="rex-badge" style="font-size:10px;">{{ t }}</span>
+        {% endfor %}
+        {% if not g.rex_tickers %}--{% endif %}
+      </td>
+      <td style="text-align:right;">
+        {% if g.score >= 500 %}
+        <span style="color:#059669; font-weight:700;">{{ '%.0f'|format(g.score) }}</span>
+        {% elif g.score >= 100 %}
+        <span style="color:#F59E0B; font-weight:600;">{{ '%.0f'|format(g.score) }}</span>
+        {% else %}
+        <span style="color:#94A3B8;">{{ '%.0f'|format(g.score) }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif view == 'income' and ws is defined %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:0.85rem;">
+  No income product data available.
+</div>
+{% endif %}
+
+</div>
+{% endblock %}

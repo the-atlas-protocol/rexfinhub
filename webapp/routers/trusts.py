@@ -92,12 +92,14 @@ def trust_detail(slug: str, request: Request, db: Session = Depends(get_db)):
 
     inst_13f_count = 0
     inst_13f_value = 0.0
+    inst_13f_quarter = None
     if trust_cusips:
         latest_q = db.execute(
             select(func.max(Holding.report_date))
             .where(Holding.cusip.in_(trust_cusips))
         ).scalar()
         if latest_q:
+            inst_13f_quarter = latest_q
             inst_13f_count = db.execute(
                 select(func.count(distinct(Holding.institution_id)))
                 .where(Holding.cusip.in_(trust_cusips))
@@ -121,4 +123,5 @@ def trust_detail(slug: str, request: Request, db: Session = Depends(get_db)):
         "today": date.today(),
         "inst_13f_count": inst_13f_count,
         "inst_13f_value": inst_13f_value,
+        "inst_13f_quarter": inst_13f_quarter,
     })

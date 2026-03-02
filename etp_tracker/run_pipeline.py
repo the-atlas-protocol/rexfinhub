@@ -68,12 +68,13 @@ def _load_ciks_fallback() -> tuple[list[str], dict[str, str]]:
 
 def _step3_worker(trust_name: str, output_root: Path, user_agent: str,
                   timeout: int, pause: float, cache_dir: Path,
-                  since: str | None = None, until: str | None = None) -> dict:
+                  since: str | None = None, until: str | None = None,
+                  etf_only: bool = False) -> dict:
     """Process a single trust in Step 3 with its own SEC client."""
     client = SECClient(user_agent=user_agent, request_timeout=timeout,
                        pause=pause, cache_dir=cache_dir)
     return step3_extract_for_trust(client, output_root, trust_name,
-                                   since=since, until=until)
+                                   since=since, until=until, etf_only=etf_only)
 
 
 def _record_pipeline_run(metrics: RunMetrics, triggered_by: str = "manual") -> None:
@@ -109,7 +110,7 @@ def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | No
                  refresh_submissions: bool = True, refresh_max_age_hours: int = 6, refresh_force_now: bool = False,
                  force_reprocess: bool = False, max_workers: int = _DEFAULT_WORKERS,
                  use_async: bool = False, use_daily_index: bool = False,
-                 triggered_by: str = "manual") -> int:
+                 triggered_by: str = "manual", etf_only: bool = False) -> int:
     output_root = Path(output_root); cache_dir = Path(cache_dir)
     output_root.mkdir(parents=True, exist_ok=True); cache_dir.mkdir(parents=True, exist_ok=True)
     if not user_agent: user_agent = "REX-SEC-Filer/1.0 (contact: set USER_AGENT)"
@@ -181,7 +182,7 @@ def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | No
             futures = {
                 pool.submit(_step3_worker, t, output_root, user_agent,
                             request_timeout, effective_pause, cache_dir,
-                            since, until): t
+                            since, until, etf_only): t
                 for t in trusts
             }
             for future in as_completed(futures):
@@ -202,7 +203,8 @@ def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | No
         # Single-worker fallback
         for t in tqdm(trusts, desc="Extract (Step 3)", leave=False):
             result = step3_extract_for_trust(client, output_root, t,
-                                            since=since, until=until)
+                                            since=since, until=until,
+                                            etf_only=etf_only)
             metrics.new_filings += result.get("new", 0)
             metrics.skipped_filings += result.get("skipped", 0)
             metrics.errors += result.get("errors", 0)

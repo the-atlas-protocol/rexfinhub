@@ -765,7 +765,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     {_title} | {today.strftime('%Y-%m-%d')}
   </div>
   <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
-    {_data_source} | Reply to this email to unsubscribe
+    {_data_source} | To unsubscribe, contact relasmar@rexfin.com
   </div>
 </td></tr>"""
 
@@ -1038,6 +1038,402 @@ def send_digest_from_db(
         ok = _send_html_digest(html_body, recipients, edition=edition)
     if private:
         _send_html_digest(html_body, private, edition=edition)
+    return ok
+
+
+def _render_morning_brief_html(data: dict, dashboard_url: str = "") -> str:
+    """Render the executive morning brief HTML from pre-gathered data.
+
+    Uses a teal accent (#00897B) to visually distinguish from the navy daily brief.
+    Compact, phone-friendly layout for executive consumption.
+    """
+    today = datetime.now()
+    dash_link = _esc(dashboard_url) if dashboard_url else ""
+
+    _TEAL = "#00897B"
+    _title = "REX Morning Brief"
+
+    # --- Header ---
+    header = f"""
+<tr><td style="background:{_TEAL};padding:24px 30px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td style="color:{_WHITE};font-size:22px;font-weight:700;">{_title}</td>
+    <td align="right" style="color:rgba(255,255,255,0.7);font-size:13px;">{today.strftime('%A, %B %d, %Y')}</td>
+  </tr></table>
+</td></tr>"""
+
+    # --- Section 1: REX AUM Snapshot (from Bloomberg) ---
+    market_scorecard = ""
+    snapshot = data.get("market_snapshot")
+    if snapshot:
+        kpis = snapshot["kpis"]
+        _cell = f"padding:12px 6px;background:{_LIGHT};border-radius:8px;text-align:center;"
+        _val = f"font-size:20px;font-weight:700;color:{_NAVY};"
+        _lbl = f"font-size:9px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;"
+
+        flow_1d_color = _GREEN if kpis["flow_1d_positive"] else _RED
+        flow_1w_color = _GREEN if kpis["flow_1w_positive"] else _RED
+
+        market_scorecard = f"""
+<tr><td style="padding:15px 30px 5px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_TEAL};">
+    REX AUM Snapshot
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}">{_esc(kpis['aum'])}</div>
+        <div style="{_lbl}">Total AUM</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}color:{flow_1d_color};">{_esc(kpis['flow_1d_fmt'])}</div>
+        <div style="{_lbl}">1D Change</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}color:{flow_1w_color};">{_esc(kpis['flow_1w_fmt'])}</div>
+        <div style="{_lbl}">1W Change</div>
+      </td>
+      <td width="2%"></td>
+      <td width="23%" style="{_cell}">
+        <div style="{_val}">{kpis['products']}</div>
+        <div style="{_lbl}">Products</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>"""
+
+    # --- Section 2: Top 3 Flow Movers (inflows + outflows) ---
+    top_movers_section = ""
+    if snapshot:
+        movers = snapshot.get("top_movers", {})
+        inflows = movers.get("inflows", [])[:3]
+        outflows = movers.get("outflows", [])[:3]
+        if inflows or outflows:
+            _col = (
+                f"padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
+                f"border-bottom:1px solid {_BORDER};"
+            )
+            rows = []
+            for f in inflows:
+                rows.append(
+                    f'<tr>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;font-weight:600;">{_esc(f["ticker"])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">{_esc(f["name"])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{_GREEN};font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(f["return_1w_fmt"])}</td>'
+                    f'</tr>'
+                )
+            for f in outflows:
+                rows.append(
+                    f'<tr>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;font-weight:600;">{_esc(f["ticker"])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">{_esc(f["name"])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{_RED};font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(f["return_1w_fmt"])}</td>'
+                    f'</tr>'
+                )
+            top_movers_section = f"""
+<tr><td style="padding:10px 30px 5px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    Top Flow Movers
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="{_col}">Ticker</td>
+      <td style="{_col}">Fund</td>
+      <td style="{_col}text-align:right;">1W Flow</td>
+      <td style="{_col}text-align:right;">1W Return</td>
+    </tr>
+    {''.join(rows)}
+  </table>
+</td></tr>"""
+
+    # --- Section 3: New Competitor Filings (last 24h) ---
+    filing_groups = data.get("filing_groups", [])
+    if filing_groups:
+        filing_items = []
+        for fg in filing_groups[:6]:
+            trust = _esc(fg.get("trust_name", ""))
+            if len(trust) > 35:
+                trust = trust[:32] + "..."
+            form = _esc(fg.get("form", ""))
+            is_rex = fg.get("is_rex", False)
+            total = fg.get("total_funds", 0)
+            cats = fg.get("categories", {})
+
+            trust_label = trust
+            if is_rex:
+                trust_label = (
+                    f'{trust} <span style="background:{_BLUE};color:{_WHITE};'
+                    f'padding:1px 6px;border-radius:3px;font-size:9px;'
+                    f'font-weight:700;vertical-align:middle;">REX</span>'
+                )
+
+            cat_tags = ""
+            for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
+                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
+                cat_tags += (
+                    f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
+                    f'font-size:9px;color:{_WHITE};background:{cat_color};'
+                    f'margin-left:2px;">{cnt} {cat}</span>'
+                )
+
+            _row_style = (
+                f"padding:6px 10px;border-bottom:1px solid {_BORDER};"
+                f"font-size:12px;color:{_NAVY};"
+            )
+            if is_rex:
+                _row_style += "background:#eef3f8;"
+
+            filing_items.append(
+                f'<tr><td style="{_row_style}">'
+                f'{trust_label} '
+                f'<span style="color:{_GRAY};font-size:10px;">{form}</span> '
+                f'<span style="color:{_GRAY};font-size:11px;">-- {total} funds</span>'
+                f'{cat_tags}'
+                f'</td></tr>'
+            )
+
+        more_html = ""
+        if len(filing_groups) > 6:
+            more_html = (
+                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
+                f'+ {len(filing_groups) - 6} more on dashboard</div>'
+            )
+        filings_section = f"""
+<tr><td style="padding:10px 30px 5px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    New Competitor Filings (24h)
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    {''.join(filing_items)}
+  </table>
+  {more_html}
+</td></tr>"""
+    else:
+        filings_section = f"""
+<tr><td style="padding:10px 30px 5px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    New Competitor Filings (24h)
+  </div>
+  <div style="padding:10px;background:{_LIGHT};border-radius:6px;
+    font-size:12px;color:{_GRAY};text-align:center;">
+    No new 485 filings in the last 24 hours.
+  </div>
+</td></tr>"""
+
+    # --- Section 4: Market Share Deltas ---
+    landscape_section = ""
+    if snapshot:
+        landscape_section = _render_landscape_compact(snapshot.get("landscape", []))
+
+    # --- Section 5: Calendar (upcoming effective dates this week) ---
+    calendar_items = data.get("calendar", [])
+    calendar_section = ""
+    if calendar_items:
+        _col = (
+            f"padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
+            f"border-bottom:1px solid {_BORDER};"
+        )
+        cal_rows = []
+        for c in calendar_items[:8]:
+            fund = _esc(c.get("fund_name", ""))
+            if len(fund) > 35:
+                fund = fund[:32] + "..."
+            trust = _esc(c.get("trust_name", ""))
+            if len(trust) > 25:
+                trust = trust[:22] + "..."
+            eff = _esc(c.get("effective_date", ""))
+            is_rex = c.get("is_rex", False)
+            trust_html = trust
+            if is_rex:
+                trust_html = (
+                    f'{trust} <span style="background:{_BLUE};color:{_WHITE};'
+                    f'padding:1px 5px;border-radius:3px;font-size:8px;'
+                    f'font-weight:700;vertical-align:middle;">REX</span>'
+                )
+            cal_rows.append(
+                f'<tr>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">{fund}</td>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:10px;color:{_GRAY};">{trust_html}</td>'
+                f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:10px;text-align:right;color:{_ORANGE};font-weight:600;">{eff}</td>'
+                f'</tr>'
+            )
+        more_html = ""
+        if len(calendar_items) > 8:
+            more_html = (
+                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
+                f'+ {len(calendar_items) - 8} more on dashboard</div>'
+            )
+        calendar_section = f"""
+<tr><td style="padding:10px 30px 5px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    Effective This Week
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="{_col}">Fund</td>
+      <td style="{_col}">Trust</td>
+      <td style="{_col}text-align:right;">Effective Date</td>
+    </tr>
+    {''.join(cal_rows)}
+  </table>
+  {more_html}
+</td></tr>"""
+
+    # --- Section 6: Triggered Alerts Summary ---
+    alert_counts = data.get("alert_counts", {})
+    new_filings_count = alert_counts.get("new_filings", 0)
+    pending_count = alert_counts.get("pending", 0)
+    newly_effective_count = alert_counts.get("newly_effective", 0)
+
+    alerts_section = f"""
+<tr><td style="padding:10px 30px 5px;">
+  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+    Alerts Summary
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td width="31%" style="padding:10px 6px;background:{_LIGHT};border-radius:8px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:{_BLUE};">{new_filings_count}</div>
+        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">New Filings</div>
+      </td>
+      <td width="3%"></td>
+      <td width="31%" style="padding:10px 6px;background:{_LIGHT};border-radius:8px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:{_ORANGE};">{pending_count}</div>
+        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Pending</div>
+      </td>
+      <td width="3%"></td>
+      <td width="31%" style="padding:10px 6px;background:{_LIGHT};border-radius:8px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:{_GREEN};">{newly_effective_count}</div>
+        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Newly Effective</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>"""
+
+    # --- Dashboard CTA ---
+    cta_section = ""
+    if dash_link:
+        cta_section = (
+            f'<tr><td style="padding:20px 30px;" align="center">'
+            f'<table cellpadding="0" cellspacing="0" border="0"><tr>'
+            f'<td style="background:{_TEAL};border-radius:8px;padding:14px 36px;">'
+            f'<a href="{dash_link}" style="color:{_WHITE};text-decoration:none;font-size:15px;font-weight:700;">Open Dashboard</a>'
+            f'</td></tr></table>'
+            f'</td></tr>'
+        )
+
+    # --- Footer ---
+    _data_source = "Data sourced from SEC EDGAR"
+    if snapshot:
+        _data_source += " &amp; Bloomberg"
+    footer = f"""
+<tr><td style="padding:16px 30px;border-top:1px solid {_BORDER};">
+  <div style="font-size:11px;color:{_GRAY};text-align:center;">
+    {_title} | {today.strftime('%Y-%m-%d %H:%M')}
+  </div>
+  <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
+    {_data_source} | To unsubscribe, contact relasmar@rexfin.com
+  </div>
+</td></tr>"""
+
+    # --- Assemble ---
+    body = (header + market_scorecard + top_movers_section + filings_section
+            + landscape_section + calendar_section + alerts_section
+            + cta_section + footer)
+
+    return f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{_title} - {today.strftime('%Y-%m-%d')}</title>
+</head>
+<body style="margin:0;padding:0;background:{_LIGHT};
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  color:{_NAVY};line-height:1.5;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{_LIGHT};">
+<tr><td align="center" style="padding:20px 10px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0"
+       style="background:{_WHITE};border-radius:8px;overflow:hidden;
+              box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+{body}
+</table>
+</td></tr></table>
+</body></html>"""
+
+
+def _gather_morning_brief_data(db_session) -> dict:
+    """Gather data for the morning brief: daily data + calendar for the week."""
+    from sqlalchemy import select
+    from datetime import date as date_type
+    from webapp.models import Trust, FundStatus
+
+    # Reuse daily data gathering (filings, pending, market snapshot)
+    data = _gather_daily_data(db_session, edition="daily")
+
+    # Calendar: PENDING funds with effective dates this week (Mon-Fri)
+    today = date_type.today()
+    # Start of week (Monday)
+    week_start = today - timedelta(days=today.weekday())
+    # End of week (Sunday)
+    week_end = week_start + timedelta(days=6)
+
+    calendar_rows = db_session.execute(
+        select(
+            FundStatus.fund_name, FundStatus.effective_date,
+            Trust.name.label("trust_name"), Trust.is_rex,
+        )
+        .join(Trust, Trust.id == FundStatus.trust_id)
+        .where(FundStatus.status.in_(["PENDING", "EFFECTIVE"]))
+        .where(FundStatus.effective_date >= week_start)
+        .where(FundStatus.effective_date <= week_end)
+        .order_by(Trust.is_rex.desc(), FundStatus.effective_date.asc())
+    ).all()
+
+    calendar = []
+    for r in calendar_rows:
+        calendar.append({
+            "fund_name": r.fund_name or "",
+            "trust_name": r.trust_name or "",
+            "effective_date": str(r.effective_date) if r.effective_date else "",
+            "is_rex": r.is_rex,
+        })
+
+    data["calendar"] = calendar
+
+    # Alert counts for summary
+    data["alert_counts"] = {
+        "new_filings": len(data.get("filing_groups", [])),
+        "pending": data.get("total_pending", 0),
+        "newly_effective": data.get("newly_effective_1d", 0),
+    }
+
+    return data
+
+
+def build_morning_brief_html(db_session, dashboard_url: str = "") -> str:
+    """Build morning brief HTML (for preview/testing)."""
+    data = _gather_morning_brief_data(db_session)
+    return _render_morning_brief_html(data, dashboard_url)
+
+
+def send_morning_brief(db_session, dashboard_url: str = "") -> bool:
+    """Build and send executive morning brief."""
+    recipients = _load_recipients()
+    private = _load_private_recipients()
+    if not recipients and not private:
+        return False
+
+    html_body = build_morning_brief_html(db_session, dashboard_url)
+
+    ok = True
+    if recipients:
+        ok = _send_html_digest(html_body, recipients, edition="morning")
+    if private:
+        _send_html_digest(html_body, private, edition="morning")
     return ok
 
 

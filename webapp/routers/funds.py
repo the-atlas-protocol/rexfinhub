@@ -133,6 +133,7 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
     holders_count = 0
     holders_total_value = 0.0
     holders_ticker = fund.ticker
+    holders_quarter = None
     if fund.ticker:
         mapping = db.execute(
             select(CusipMapping).where(func.upper(CusipMapping.ticker) == fund.ticker.upper())
@@ -142,6 +143,7 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
                 select(func.max(Holding.report_date)).where(Holding.cusip == mapping.cusip)
             ).scalar()
             if latest_q:
+                holders_quarter = latest_q
                 holders_count = db.execute(
                     select(func.count(distinct(Holding.institution_id)))
                     .where(Holding.cusip == mapping.cusip, Holding.report_date == latest_q)
@@ -151,14 +153,14 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
                     .where(Holding.cusip == mapping.cusip, Holding.report_date == latest_q)
                 ).scalar() or 0
                 top_holders = db.execute(
-                    select(Holding, Institution.name.label("inst_name"))
+                    select(Holding, Institution.name.label("inst_name"), Institution.cik.label("inst_cik"))
                     .join(Institution, Institution.id == Holding.institution_id)
                     .where(Holding.cusip == mapping.cusip, Holding.report_date == latest_q)
                     .order_by(desc(Holding.value_usd))
                     .limit(10)
                 ).all()
                 holders_13f = [
-                    {"name": r.inst_name, "value_usd": r.Holding.value_usd, "shares": r.Holding.shares}
+                    {"name": r.inst_name, "cik": r.inst_cik, "value_usd": r.Holding.value_usd, "shares": r.Holding.shares}
                     for r in top_holders
                 ]
 
@@ -172,4 +174,5 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
         "holders_count": holders_count,
         "holders_total_value": holders_total_value,
         "holders_ticker": holders_ticker,
+        "holders_quarter": holders_quarter,
     })

@@ -110,3 +110,19 @@ class SECClient:
             try: cache_path.write_text(json.dumps(data), encoding="utf-8")
             except Exception: pass
             return data
+
+    def get_entity_tickers(self, cik: str) -> list[str]:
+        """Read tickers from cached submissions JSON (no network call).
+
+        Returns list of ticker strings, or empty list on cache miss / parse error.
+        """
+        try:
+            cik_padded = f"{int(str(cik)):010d}"
+            cache_path = self.cache_dir / "submissions" / f"{cik_padded}.json"
+            if not cache_path.exists():
+                return []
+            data = json.loads(cache_path.read_text(encoding="utf-8"))
+            tickers = data.get("tickers", [])
+            return [t for t in tickers if isinstance(t, str) and t.strip()]
+        except Exception:
+            return []

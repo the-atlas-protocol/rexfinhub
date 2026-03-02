@@ -59,10 +59,10 @@
 {% if changes %}
 <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
   <span class="form-pill active" onclick="filterChanges('ALL', this)">All ({{ changes|length }})</span>
-  <span class="form-pill" onclick="filterChanges('NEW', this)" style="border-color:#3498db;">New</span>
-  <span class="form-pill" onclick="filterChanges('INCREASED', this)" style="border-color:#27ae60;">Increased</span>
-  <span class="form-pill" onclick="filterChanges('DECREASED', this)" style="border-color:#e74c3c;">Decreased</span>
-  <span class="form-pill" onclick="filterChanges('EXITED', this)" style="border-color:#636e72;">Exited</span>
+  <span class="form-pill" onclick="filterChanges('NEW', this)" style="border-color:var(--blue);">New</span>
+  <span class="form-pill" onclick="filterChanges('INCREASED', this)" style="border-color:var(--green);">Increased</span>
+  <span class="form-pill" onclick="filterChanges('DECREASED', this)" style="border-color:var(--red);">Decreased</span>
+  <span class="form-pill" onclick="filterChanges('EXITED', this)" style="border-color:var(--muted);">Exited</span>
 </div>
 
 <table id="changesTable">
@@ -122,8 +122,10 @@
   </tbody>
 </table>
 {% else %}
-<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
-  No position change data available. Need at least 2 quarters of data.
+<div style="text-align:center; padding:40px;">
+  <p style="color:var(--muted); font-size:13px;">No position changes recorded yet.</p>
+  <p style="color:var(--gray-500); font-size:12px; margin-top:4px;">Position change history requires at least 2 quarters of 13F-HR filings.</p>
+  <a href="/holdings/{{ institution.cik }}" class="btn btn-sm" style="margin-top:12px;">View current holdings</a>
 </div>
 {% endif %}
 
@@ -148,63 +150,45 @@ function filterChanges(action, btn) {
   btn.classList.add('active');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+var _histLabels = {{ trend_labels | tojson }};
+var _histAum = {{ trend_aum | tojson }};
+var _histPos = {{ trend_positions | tojson }};
+var _dualChart;
+
+function initHistoryChart() {
   var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   var gridColor = isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
   var labelColor = isDark ? '#94a3b8' : '#6b7280';
 
-  var labels = {{ trend_labels | tojson }};
-  var aumData = {{ trend_aum | tojson }};
-  var posData = {{ trend_positions | tojson }};
+  if (_dualChart) _dualChart.destroy();
 
-  new Chart(document.getElementById('dualAxisChart'), {
+  _dualChart = new Chart(document.getElementById('dualAxisChart'), {
     type: 'line',
     data: {
-      labels: labels,
+      labels: _histLabels,
       datasets: [
         {
-          label: 'Total AUM ($)',
-          data: aumData,
-          borderColor: '#3B82F6',
-          backgroundColor: 'rgba(59,130,246,0.1)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 4,
-          pointBackgroundColor: '#3B82F6',
+          label: 'Total AUM ($)', data: _histAum,
+          borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3B82F6',
           yAxisID: 'y'
         },
         {
-          label: 'Positions',
-          data: posData,
-          borderColor: '#F97316',
-          backgroundColor: 'rgba(249,115,22,0.1)',
-          fill: false,
-          tension: 0.3,
-          pointRadius: 4,
-          pointBackgroundColor: '#F97316',
-          borderDash: [5, 3],
-          yAxisID: 'y1'
+          label: 'Positions', data: _histPos,
+          borderColor: '#F97316', backgroundColor: 'rgba(249,115,22,0.1)',
+          fill: false, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#F97316',
+          borderDash: [5, 3], yAxisID: 'y1'
         }
       ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          labels: { color: labelColor, font: { size: 12 } }
-        }
-      },
+      plugins: { legend: { labels: { color: labelColor, font: { size: 12 } } } },
       scales: {
-        x: {
-          grid: { color: gridColor },
-          ticks: { color: labelColor, font: { size: 11 } }
-        },
+        x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } },
         y: {
-          type: 'linear',
-          position: 'left',
-          grid: { color: gridColor },
+          type: 'linear', position: 'left', grid: { color: gridColor },
           ticks: {
             color: '#3B82F6',
             callback: function(v) {
@@ -215,14 +199,15 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         },
         y1: {
-          type: 'linear',
-          position: 'right',
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#F97316' }
+          type: 'linear', position: 'right',
+          grid: { drawOnChartArea: false }, ticks: { color: '#F97316' }
         }
       }
     }
   });
-});
+}
+
+document.addEventListener('DOMContentLoaded', initHistoryChart);
+window.addEventListener('rex-theme-change', initHistoryChart);
 </script>
 {% endblock %}

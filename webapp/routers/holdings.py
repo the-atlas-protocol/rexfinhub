@@ -3,6 +3,7 @@ Holdings router - Institutional holdings from 13F-HR filings.
 
 Page routes (order matters for FastAPI path matching):
   /holdings/              - Institution list
+  /holdings/crossover     - Crossover analysis (prospects)
   /holdings/fund/<ticker> - Fund-level holders view
   /holdings/<cik>/history - Institution history with QoQ changes
   /holdings/<cik>         - Institution detail (catch-all, must be last)
@@ -21,7 +22,7 @@ import math
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, desc, distinct
 from sqlalchemy.orm import Session
@@ -210,15 +211,17 @@ def holdings_list(
     db: Session = Depends(get_db),
 ):
     """List institutions with their holdings summary."""
-    holdings_sq = (
-        select(
-            Holding.institution_id,
-            func.count(Holding.id).label("holding_count"),
-            func.sum(Holding.value_usd).label("total_value"),
-        )
-        .group_by(Holding.institution_id)
-        .subquery()
+    # Scope to latest quarter so we don't double-count across quarters
+    global_latest = db.execute(select(func.max(Holding.report_date))).scalar()
+
+    holdings_base = select(
+        Holding.institution_id,
+        func.count(Holding.id).label("holding_count"),
+        func.sum(Holding.value_usd).label("total_value"),
     )
+    if global_latest:
+        holdings_base = holdings_base.where(Holding.report_date == global_latest)
+    holdings_sq = holdings_base.group_by(Holding.institution_id).subquery()
 
     query = (
         select(
@@ -255,9 +258,14 @@ def holdings_list(
         select(func.count(Institution.id))
     ).scalar() or 0
 
-    total_holdings_value = db.execute(
-        select(func.sum(Holding.value_usd))
-    ).scalar() or 0
+    latest_report_date = db.execute(select(func.max(Holding.report_date))).scalar()
+
+    total_holdings_value = 0
+    if latest_report_date:
+        total_holdings_value = db.execute(
+            select(func.sum(Holding.value_usd))
+            .where(Holding.report_date == latest_report_date)
+        ).scalar() or 0
 
     matched_cusips = db.execute(
         select(func.count(CusipMapping.id)).where(CusipMapping.trust_id.isnot(None))
@@ -275,6 +283,180 @@ def holdings_list(
         "total_institutions": total_institutions,
         "total_holdings_value": _fmt_value(total_holdings_value),
         "matched_cusips": matched_cusips,
+        "latest_report_date": latest_report_date,
+        "fmt_value": _fmt_value,
+    })
+
+
+# --- /holdings/crossover MUST come before /holdings/{cik} ---
+
+@router.get("/holdings/crossover")
+def crossover_view(
+    request: Request,
+    rex_ticker: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    """Institutional crossover analysis: find prospects holding competitors but not REX."""
+    rex_products = []
+    prospects = []
+    prospect_count = 0
+    comp_count = 0
+    already_holding_count = 0
+    total_prospect_value = 0.0
+    error_msg = ""
+
+    try:
+        from webapp.services import market_data as svc
+
+        if not svc.data_available():
+            error_msg = "Bloomberg data not available. Place bbg_data.xlsx in the data folder."
+            return templates.TemplateResponse("crossover.html", {
+                "request": request,
+                "rex_products": rex_products,
+                "selected_ticker": rex_ticker,
+                "prospects": prospects,
+                "prospect_count": prospect_count,
+                "total_prospect_value_fmt": _fmt_value(0),
+                "comp_count": comp_count,
+                "already_holding": already_holding_count,
+                "error_msg": error_msg,
+                "fmt_value": _fmt_value,
+            })
+
+        master = svc.get_master_data()
+
+        # Get REX products with underliers
+        rex_df = master[master["is_rex"] == True].copy()
+        if "ticker_clean" in rex_df.columns:
+            rex_df = rex_df.drop_duplicates(subset=["ticker_clean"], keep="first")
+
+        _UNDERLIER_COLS = [
+            "q_category_attributes.map_li_underlier",
+            "q_category_attributes.map_cc_underlier",
+            "q_category_attributes.map_crypto_underlier",
+        ]
+
+        def _get_underlier(row):
+            for col in _UNDERLIER_COLS:
+                if col in row.index:
+                    val = str(row.get(col, "")).strip()
+                    if val and val.upper() not in ("NAN", "N/A", "", "NONE"):
+                        return val
+            return ""
+
+        # Build REX product list for dropdown
+        for _, row in rex_df.iterrows():
+            underlier = _get_underlier(row)
+            ticker_val = str(row.get("ticker_clean", "")).strip()
+            if not ticker_val:
+                continue
+            rex_products.append({
+                "ticker": ticker_val,
+                "fund_name": str(row.get("fund_name", "")),
+                "underlier": underlier,
+                "aum": float(row.get("t_w4.aum", 0) or 0),
+                "category": str(row.get("category_display", "")),
+            })
+
+        rex_products.sort(key=lambda p: p["aum"], reverse=True)
+
+        # If a REX ticker is selected, find crossover prospects
+        if rex_ticker:
+            selected = [p for p in rex_products if p["ticker"].upper() == rex_ticker.upper()]
+            if selected:
+                sel = selected[0]
+                target_underlier = sel["underlier"]
+
+                if target_underlier:
+                    # Find competitor products on the same underlier
+                    competitor_tickers = []
+                    for _, row in master.iterrows():
+                        if bool(row.get("is_rex", False)):
+                            continue
+                        comp_underlier = _get_underlier(row)
+                        if comp_underlier and comp_underlier.upper() == target_underlier.upper():
+                            t = str(row.get("ticker_clean", "")).strip()
+                            if t:
+                                competitor_tickers.append(t)
+
+                    competitor_tickers = list(set(competitor_tickers))
+                    comp_count = len(competitor_tickers)
+
+                    if competitor_tickers:
+                        rex_tickers = [p["ticker"] for p in rex_products if p["ticker"]]
+
+                        comp_cusip_rows = db.execute(
+                            select(CusipMapping.cusip, CusipMapping.ticker)
+                            .where(CusipMapping.ticker.in_(competitor_tickers))
+                        ).all()
+                        comp_cusip_list = [r.cusip for r in comp_cusip_rows if r.cusip]
+
+                        rex_cusip_list = list(db.execute(
+                            select(CusipMapping.cusip)
+                            .where(CusipMapping.ticker.in_(rex_tickers))
+                        ).scalars().all())
+
+                        if comp_cusip_list:
+                            latest_date = db.execute(
+                                select(func.max(Holding.report_date))
+                            ).scalar()
+
+                            if latest_date:
+                                comp_holders = db.execute(
+                                    select(
+                                        Holding.institution_id,
+                                        Institution.name,
+                                        Institution.cik,
+                                        func.sum(Holding.value_usd).label("comp_value"),
+                                        func.count(Holding.id).label("comp_positions"),
+                                    )
+                                    .join(Institution, Institution.id == Holding.institution_id)
+                                    .where(Holding.cusip.in_(comp_cusip_list))
+                                    .where(Holding.report_date == latest_date)
+                                    .group_by(Holding.institution_id, Institution.name, Institution.cik)
+                                ).all()
+
+                                rex_holder_ids = set()
+                                if rex_cusip_list:
+                                    rex_holder_ids = set(db.execute(
+                                        select(Holding.institution_id)
+                                        .where(Holding.cusip.in_(rex_cusip_list))
+                                        .where(Holding.report_date == latest_date)
+                                    ).scalars().all())
+
+                                comp_holder_ids = {h.institution_id for h in comp_holders}
+                                already_holding_count = len(rex_holder_ids & comp_holder_ids)
+
+                                raw_prospects = [h for h in comp_holders if h.institution_id not in rex_holder_ids]
+                                raw_prospects.sort(key=lambda h: (h.comp_value or 0), reverse=True)
+
+                                for p in raw_prospects:
+                                    val = p.comp_value or 0
+                                    total_prospect_value += val
+                                    prospects.append({
+                                        "institution_name": p.name,
+                                        "cik": p.cik,
+                                        "comp_value": val,
+                                        "comp_value_fmt": _fmt_value(val),
+                                        "comp_positions": p.comp_positions or 0,
+                                    })
+
+                                prospect_count = len(prospects)
+
+    except Exception as exc:
+        log.warning("Crossover analysis error: %s", exc)
+        error_msg = f"Error loading market data: {exc}"
+
+    return templates.TemplateResponse("crossover.html", {
+        "request": request,
+        "rex_products": rex_products,
+        "selected_ticker": rex_ticker,
+        "prospects": prospects,
+        "prospect_count": prospect_count,
+        "total_prospect_value_fmt": _fmt_value(total_prospect_value),
+        "comp_count": comp_count,
+        "already_holding": already_holding_count,
+        "error_msg": error_msg,
         "fmt_value": _fmt_value,
     })
 
@@ -328,11 +510,20 @@ def holdings_fund_page(
         .order_by(Holding.report_date)
     ).all()
 
+    # Look up fund series_id for back-link
+    fund_series_id = None
+    fund_record = db.execute(
+        select(FundStatus).where(func.upper(FundStatus.ticker) == ticker)
+    ).scalar_one_or_none()
+    if fund_record:
+        fund_series_id = fund_record.series_id
+
     return templates.TemplateResponse("holdings_fund.html", {
         "request": request,
         "ticker": ticker,
         "fund_name": mapping.fund_name or ticker,
         "cusip": cusip,
+        "fund_series_id": fund_series_id,
         "latest_date": latest,
         "prior_date": prior,
         "holders": holders,
@@ -452,6 +643,15 @@ def institution_detail(
             ).scalars().all()
             cusip_map = {m.cusip: m for m in mappings}
 
+    # Pre-fetch REX trust IDs for highlighting
+    trust_ids = {m.trust_id for m in cusip_map.values() if m.trust_id}
+    rex_trust_ids: set[int] = set()
+    if trust_ids:
+        rex_trusts = db.execute(
+            select(Trust.id).where(Trust.id.in_(list(trust_ids)), Trust.is_rex == True)
+        ).scalars().all()
+        rex_trust_ids = set(rex_trusts)
+
     matched_holdings = []
     unmatched_holdings = []
     for h in holdings:
@@ -462,7 +662,10 @@ def institution_detail(
                 .where(FundStatus.trust_id == mapping.trust_id)
                 .where(FundStatus.ticker == mapping.ticker)
             ).scalar_one_or_none()
-            matched_holdings.append({"holding": h, "mapping": mapping, "fund": fund})
+            matched_holdings.append({
+                "holding": h, "mapping": mapping, "fund": fund,
+                "is_rex": mapping.trust_id in rex_trust_ids,
+            })
         else:
             unmatched_holdings.append(h)
 
@@ -751,6 +954,98 @@ def api_search_funds(
 
     results.sort(key=lambda r: r["total_value"], reverse=True)
     return {"results": results}
+
+
+@router.get("/api/v1/holdings/fund/{ticker}/export")
+def api_export_fund_holders(
+    ticker: str,
+    db: Session = Depends(get_db),
+):
+    """Export fund holders as CSV."""
+    import io
+    import csv
+
+    ticker = ticker.upper()
+    mapping = db.execute(
+        select(CusipMapping).where(func.upper(CusipMapping.ticker) == ticker)
+    ).scalar_one_or_none()
+    if not mapping or not mapping.cusip:
+        return JSONResponse({"error": f"No CUSIP mapping for {ticker}"}, status_code=404)
+
+    cusip = mapping.cusip
+    latest = _get_latest_report_date(db, cusip=cusip)
+    if not latest:
+        return JSONResponse({"error": "No holdings data"}, status_code=404)
+
+    prior = _get_prior_report_date(db, latest, cusip=cusip)
+    holders, total_value = _build_holders(db, cusip, latest, prior)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Institution", "CIK", "Value ($K)", "Shares", "QoQ Change ($K)", "QoQ %", "Status"])
+    for h in holders:
+        writer.writerow([
+            h["institution_name"], h["cik"],
+            round(h["value"], 0), h["shares"],
+            round(h["qoq_value_change"], 0) if h["qoq_value_change"] else 0,
+            h["qoq_value_pct"] if h["qoq_value_pct"] is not None else "",
+            h["change_type"],
+        ])
+    buf.seek(0)
+    filename = f"{ticker}_holders_{latest}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get("/api/v1/holdings/{cik}/export")
+def api_export_institution_holdings(
+    cik: str,
+    db: Session = Depends(get_db),
+):
+    """Export institution holdings as CSV."""
+    import io
+    import csv
+
+    institution = db.execute(
+        select(Institution).where(Institution.cik == cik)
+    ).scalar_one_or_none()
+    if not institution:
+        return JSONResponse({"error": "Institution not found"}, status_code=404)
+
+    latest_date = db.execute(
+        select(func.max(Holding.report_date)).where(Holding.institution_id == institution.id)
+    ).scalar()
+    if not latest_date:
+        return JSONResponse({"error": "No holdings data"}, status_code=404)
+
+    holdings = db.execute(
+        select(Holding)
+        .where(Holding.institution_id == institution.id, Holding.report_date == latest_date)
+        .order_by(desc(Holding.value_usd))
+    ).scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Issuer", "CUSIP", "Value ($K)", "Shares", "Type", "Discretion",
+                      "Voting Sole", "Voting Shared", "Voting None"])
+    for h in holdings:
+        writer.writerow([
+            h.issuer_name or "", h.cusip or "",
+            round(h.value_usd, 0) if h.value_usd else 0,
+            h.shares or 0, h.share_type or "", h.investment_discretion or "",
+            h.voting_sole or 0, h.voting_shared or 0, h.voting_none or 0,
+        ])
+    buf.seek(0)
+    safe_name = institution.name.replace(" ", "_")[:40]
+    filename = f"{safe_name}_{cik}_{latest_date}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/api/v1/home-kpis")

@@ -78,6 +78,7 @@
         {% else %}
         {{ m.fund_name or '--' }}
         {% endif %}
+        {% if item.is_rex %}<span class="rex-badge" style="font-size:10px; margin-left:4px;">[REX]</span>{% endif %}
       </td>
       <td style="text-align:right;">{{ '{:,.0f}'.format(h.value_usd) if h.value_usd else '--' }}</td>
       <td style="text-align:right;">{{ '{:,.0f}'.format(h.shares) if h.shares else '--' }}</td>
@@ -130,9 +131,12 @@
 </div>
 {% endif %}
 
-<div style="margin-top:20px;">
+<div style="margin-top:20px; display:flex; gap:8px; flex-wrap:wrap;">
   <a href="/holdings/" class="btn btn-sm">&larr; Back to Institutions</a>
   <a href="/holdings/{{ institution.cik }}/history" class="btn btn-sm">View QoQ History &rarr;</a>
+  {% if holdings %}
+  <a href="/api/v1/holdings/{{ institution.cik }}/export" class="btn btn-sm" style="margin-left:auto;">Export CSV</a>
+  {% endif %}
 </div>
 
 {% endblock %}

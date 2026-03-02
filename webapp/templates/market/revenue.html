@@ -1,0 +1,268 @@
+{% set active_tab = 'revenue' %}
+{% extends base_template|default("market/base.html") %}
+
+{% block title %}Revenue Model — REX Financial Intelligence Hub{% endblock %}
+
+{% block market_content %}
+<div style="max-width:1400px; margin:0 auto;">
+<h2 class="section-title">Revenue Model</h2>
+<p style="color:#64748B; font-size:0.85rem; margin-bottom:20px;">
+  Estimated annual management revenue = AUM ($M) x Expense Ratio (%).
+  Projected revenue uses current monthly flow rate extrapolated 12 months.
+</p>
+
+{# View controls #}
+<div style="display:flex; gap:4px; margin-bottom:20px;">
+  <a href="/market/revenue?view=category&fund_structure={{ fund_structure }}"
+     class="pill {{ 'active' if view == 'category' else '' }}"
+     style="font-size:0.8rem; padding:4px 12px;">By Category</a>
+  <a href="/market/revenue?view=issuer&fund_structure={{ fund_structure }}"
+     class="pill {{ 'active' if view == 'issuer' else '' }}"
+     style="font-size:0.8rem; padding:4px 12px;">By Issuer</a>
+  <a href="/market/revenue?view=product&fund_structure={{ fund_structure }}"
+     class="pill {{ 'active' if view == 'product' else '' }}"
+     style="font-size:0.8rem; padding:4px 12px;">By Product</a>
+</div>
+
+{# KPI cards #}
+{% if total is defined %}
+<div class="kpi-row" style="margin-bottom:24px;">
+  <div class="kpi">
+    <div class="num">{{ total.revenue_fmt }}</div>
+    <div class="label">Total Industry Revenue (est.)</div>
+  </div>
+  <div class="kpi kpi-green" style="border-left:3px solid #059669;">
+    <div class="num">{{ rex.revenue_fmt }}</div>
+    <div class="label">REX Revenue ({{ rex.share_pct }}% share)</div>
+  </div>
+  <div class="kpi" style="border-left:3px solid #3B82F6;">
+    <div class="num">{{ total.projected_fmt }}</div>
+    <div class="label">Projected (12M fwd)</div>
+  </div>
+  <div class="kpi" style="border-left:3px solid #8B5CF6;">
+    <div class="num">{{ rex.projected_fmt }}</div>
+    <div class="label">REX Projected (12M fwd)</div>
+  </div>
+</div>
+
+{# Summary stats #}
+<div style="display:flex; gap:12px; margin-bottom:24px; font-size:0.82rem; flex-wrap:wrap;">
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:6px; padding:8px 14px;">
+    <span style="color:var(--text-secondary);">Total AUM:</span>
+    <strong>{{ total.aum_fmt }}</strong>
+  </div>
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:6px; padding:8px 14px;">
+    <span style="color:var(--text-secondary);">Avg ER:</span>
+    <strong>{{ '%.2f'|format(total.avg_er) }}%</strong>
+  </div>
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:6px; padding:8px 14px;">
+    <span style="color:var(--text-secondary);">REX AUM:</span>
+    <strong>{{ rex.aum_fmt }}</strong>
+  </div>
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:6px; padding:8px 14px;">
+    <span style="color:var(--text-secondary);">REX Avg ER:</span>
+    <strong>{{ '%.2f'|format(rex.avg_er) }}%</strong>
+  </div>
+  <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:6px; padding:8px 14px;">
+    <span style="color:var(--text-secondary);">Products:</span>
+    <strong>{{ total.count }}</strong> ({{ rex.count }} REX)
+  </div>
+</div>
+{% endif %}
+
+{# Revenue chart #}
+{% if chart is defined and chart.labels %}
+<div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:24px;">
+  <h3 style="margin:0 0 12px; font-size:0.9rem; color:var(--text-secondary);">
+    Revenue by Category (Total vs REX)
+  </h3>
+  <canvas id="revenueChart" height="280"></canvas>
+</div>
+{% endif %}
+
+{# Main data table #}
+{% if view == 'category' and by_category is defined %}
+<div class="section-header">
+  <h2>Revenue by Category</h2>
+  <span class="badge">{{ by_category|length }}</span>
+</div>
+<table class="data-table" id="revenueTable" style="font-size:0.82rem;">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('revenueTable', 0)">Category</th>
+      <th>Products</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 2)" style="text-align:right;">AUM</th>
+      <th style="text-align:right;">Avg ER</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 4)" style="text-align:right;">Revenue (est.)</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 5)" style="text-align:right;">Projected (12M)</th>
+      <th style="text-align:right;">REX Revenue</th>
+      <th style="text-align:right;">REX Share</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in by_category %}
+    <tr>
+      <td>{{ c.name }}{% if c.has_rex %} <span class="rex-badge" style="font-size:9px;">[REX]</span>{% endif %}</td>
+      <td style="text-align:center;">{{ c.count }}</td>
+      <td style="text-align:right;">{{ c.aum_fmt }}</td>
+      <td style="text-align:right;">{{ '%.2f'|format(c.avg_er) }}%</td>
+      <td style="text-align:right; font-weight:600;">{{ c.revenue_fmt }}</td>
+      <td style="text-align:right; color:#3B82F6;">{{ c.projected_fmt }}</td>
+      <td style="text-align:right; color:#059669;">{{ c.rex_revenue_fmt }}</td>
+      <td style="text-align:right;">{{ c.rex_share_pct }}%</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif view == 'issuer' and by_issuer is defined %}
+<div class="section-header">
+  <h2>Revenue by Issuer</h2>
+  <span class="badge">{{ by_issuer|length }}</span>
+</div>
+<table class="data-table" id="revenueTable" style="font-size:0.82rem;">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('revenueTable', 0)">Issuer</th>
+      <th>Products</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 2)" style="text-align:right;">AUM</th>
+      <th style="text-align:right;">Avg ER</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 4)" style="text-align:right;">Revenue (est.)</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 5)" style="text-align:right;">Projected (12M)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in by_issuer %}
+    <tr>
+      <td>
+        <a href="/market/issuer/detail?issuer={{ c.name|urlencode }}" class="text-link">{{ c.name }}</a>
+        {% if c.has_rex %} <span class="rex-badge" style="font-size:9px;">[REX]</span>{% endif %}
+      </td>
+      <td style="text-align:center;">{{ c.count }}</td>
+      <td style="text-align:right;">{{ c.aum_fmt }}</td>
+      <td style="text-align:right;">{{ '%.2f'|format(c.avg_er) }}%</td>
+      <td style="text-align:right; font-weight:600;">{{ c.revenue_fmt }}</td>
+      <td style="text-align:right; color:#3B82F6;">{{ c.projected_fmt }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif view == 'product' and products is defined %}
+<div class="section-header">
+  <h2>Revenue by Product</h2>
+  <span class="badge">{{ products|length }}</span>
+</div>
+<table class="data-table" id="revenueTable" style="font-size:0.82rem;">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('revenueTable', 0)">Ticker</th>
+      <th>Fund Name</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 2)" style="text-align:right;">AUM</th>
+      <th style="text-align:right;">ER (%)</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 4)" style="text-align:right;">Revenue (est.)</th>
+      <th style="text-align:right;">-20%</th>
+      <th style="text-align:right;">-10%</th>
+      <th style="text-align:right;">+10%</th>
+      <th style="text-align:right;">+20%</th>
+      <th class="sortable" onclick="sortTable('revenueTable', 9)" style="text-align:right;">Projected (12M)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in products %}
+    <tr>
+      <td style="font-weight:600;">{{ p.ticker }}{% if p.is_rex %} <span class="rex-badge" style="font-size:9px;">[REX]</span>{% endif %}</td>
+      <td>{{ p.fund_name }}</td>
+      <td style="text-align:right;">{{ fmt_currency(p.aum) }}</td>
+      <td style="text-align:right;">{{ '%.2f'|format(p.expense_ratio) }}%</td>
+      <td style="text-align:right; font-weight:600;">{{ p.revenue_fmt }}</td>
+      <td style="text-align:right; color:#DC2626; font-size:0.75rem;">{{ fmt_currency(p.rev_minus20) }}</td>
+      <td style="text-align:right; color:#F59E0B; font-size:0.75rem;">{{ fmt_currency(p.rev_minus10) }}</td>
+      <td style="text-align:right; color:#3B82F6; font-size:0.75rem;">{{ fmt_currency(p.rev_plus10) }}</td>
+      <td style="text-align:right; color:#059669; font-size:0.75rem;">{{ fmt_currency(p.rev_plus20) }}</td>
+      <td style="text-align:right; color:#3B82F6;">{{ p.projected_fmt }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block market_scripts %}
+{% if chart is defined and chart.labels %}
+<script>
+var _revChart;
+function initRevenueChart() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridColor = isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
+  var labelColor = isDark ? '#94a3b8' : '#6b7280';
+
+  if (_revChart) _revChart.destroy();
+
+  var labels = {{ chart.labels | tojson }};
+  var revenue = {{ chart.revenue | tojson }};
+  var rex = {{ chart.rex | tojson }};
+
+  _revChart = new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Total Revenue',
+          data: revenue,
+          backgroundColor: '#93C5FD',
+          borderRadius: 3,
+        },
+        {
+          label: 'REX Revenue',
+          data: rex,
+          backgroundColor: '#3B82F6',
+          borderRadius: 3,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: labelColor } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed.y;
+              if (Math.abs(v) >= 1000) return ctx.dataset.label + ': $' + (v/1000).toFixed(1) + 'B';
+              if (Math.abs(v) >= 1) return ctx.dataset.label + ': $' + v.toFixed(1) + 'M';
+              return ctx.dataset.label + ': $' + (v * 1000).toFixed(0) + 'K';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: labelColor, font: { size: 11 } }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: {
+            color: labelColor,
+            callback: function(v) {
+              if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(0) + 'B';
+              if (Math.abs(v) >= 1) return '$' + v.toFixed(0) + 'M';
+              return '$' + (v * 1000).toFixed(0) + 'K';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initRevenueChart);
+window.addEventListener('rex-theme-change', initRevenueChart);
+</script>
+{% endif %}
+{% endblock %}

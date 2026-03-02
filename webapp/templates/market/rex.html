@@ -237,6 +237,7 @@
               <th style="padding:4px 8px; text-align:center;">AUM</th>
               <th style="padding:4px 8px; text-align:center;">1W Flow</th>
               <th style="padding:4px 8px; text-align:center;">Expense Ratio</th>
+              <th style="padding:4px 8px; text-align:center;">Health</th>
             </tr>
           </thead>
           <tbody>
@@ -247,6 +248,17 @@
               <td class="num-cell" style="padding:3px 8px; text-align:center;">{{ p.aum_fmt }}</td>
               <td class="num-cell" style="padding:3px 8px; text-align:center;">{{ p.flow_1w_fmt }}</td>
               <td class="num-cell" style="padding:3px 8px; text-align:center;">{{ p.expense_ratio_fmt or '-' }}</td>
+              <td style="padding:3px 8px; text-align:center;">
+                {% if p.health_score is not none %}
+                {% if p.health_grade == 'GREEN' %}
+                <span style="display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.7rem; font-weight:600; background:#059669; color:#fff;" title="Score: {{ p.health_score }}/100">{{ p.health_score }}</span>
+                {% elif p.health_grade == 'AMBER' %}
+                <span style="display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.7rem; font-weight:600; background:#F59E0B; color:#fff;" title="Score: {{ p.health_score }}/100">{{ p.health_score }}</span>
+                {% else %}
+                <span style="display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.7rem; font-weight:600; background:#EF4444; color:#fff;" title="Score: {{ p.health_score }}/100">{{ p.health_score }}</span>
+                {% endif %}
+                {% else %}-{% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>

@@ -77,6 +77,28 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
     if form.startswith("497"):
         return "EFFECTIVE", "497/497K filed (fund is trading)"
 
+    # POS AM = Post-effective amendment (33 Act annual renewal, trust is trading)
+    if form == "POS AM":
+        return "EFFECTIVE", "POS AM filed (post-effective amendment)"
+
+    # S-1 = Registration statement (33 Act filers: crypto, commodity, volatility)
+    if form.startswith("S-1"):
+        if eff_dt and eff_dt.date() <= today.date():
+            return "EFFECTIVE", f"S-1 effective as of {eff_date}"
+        # Ticker assignment = SEC approved the registration (strong effectiveness signal)
+        ticker_val = str(row.get("Class Symbol", "")).strip().upper()
+        if ticker_val and ticker_val not in _BAD_TICKERS and len(ticker_val) >= 2:
+            return "EFFECTIVE", "S-1 effective (ticker assigned)"
+        return "PENDING", "S-1 filed (registration pending)"
+
+    # S-3 = Post-effective registration (already effective issuer)
+    if form.startswith("S-3"):
+        return "EFFECTIVE", "S-3 filed (registered offering)"
+
+    # EFFECT = SEC effectiveness notice (confirms registration is effective)
+    if form == "EFFECT":
+        return "EFFECTIVE", "EFFECT notice (SEC confirmed effective)"
+
     return "UNKNOWN", f"Unrecognized form type: {form}"
 
 
@@ -126,19 +148,33 @@ def step4_rollup_for_trust(output_root, trust_name: str) -> int:
     for gkey, group in df.groupby("__gkey", dropna=False):
         g = group.sort_values("_fdt", ascending=True)
 
-        # Get latest record for each form type
-        g_bpos = g[g["Form"].fillna("").str.upper().str.contains("485B", na=False)]
-        g_apos = g[g["Form"].fillna("").str.upper().str.startswith("485A", na=False)]
-        g_497 = g[g["Form"].fillna("").str.upper().str.startswith("497", na=False)]
+        # Get latest record for each form type (40 Act + 33 Act)
+        forms_up = g["Form"].fillna("").str.upper()
+        g_bpos = g[forms_up.str.contains("485B", na=False)]
+        g_posam = g[forms_up == "POS AM"]
+        g_effect = g[forms_up == "EFFECT"]
+        g_s3 = g[forms_up.str.startswith("S-3", na=False)]
+        g_497 = g[forms_up.str.startswith("497", na=False)]
+        g_apos = g[forms_up.str.startswith("485A", na=False)]
+        g_s1 = g[forms_up.str.startswith("S-1", na=False)]
 
         # Pick the most authoritative latest filing
-        # Priority: 485BPOS > 485BXT > 497 > 485APOS
+        # 40 Act: 485BPOS > 497 > 485APOS
+        # 33 Act: EFFECT > POS AM > S-3 > S-1
         if not g_bpos.empty:
             latest = g_bpos.iloc[-1]
+        elif not g_effect.empty:
+            latest = g_effect.iloc[-1]
+        elif not g_posam.empty:
+            latest = g_posam.iloc[-1]
+        elif not g_s3.empty:
+            latest = g_s3.iloc[-1]
         elif not g_497.empty:
             latest = g_497.iloc[-1]
         elif not g_apos.empty:
             latest = g_apos.iloc[-1]
+        elif not g_s1.empty:
+            latest = g_s1.iloc[-1]
         else:
             latest = g.iloc[-1]
 
@@ -175,18 +211,34 @@ def step4_rollup_for_trust(output_root, trust_name: str) -> int:
         eff_date = str(latest.get("Effective Date", "")).strip()
         eff_confidence = str(latest.get("Effective Date Confidence", "")).strip() if "Effective Date Confidence" in latest.index else ""
 
-        # Prospectus Link: prefer 485BPOS (actual prospectus), NOT 485BXT (extension)
+        # Prospectus Link: prefer most authoritative filing
+        # 40 Act: 485BPOS > 485APOS | 33 Act: POS AM > S-3 > S-1
         prosp_link = ""
         forms_upper = g["Form"].fillna("").str.upper()
-        # First: latest 485BPOS
-        g_bpos = g[forms_upper.str.contains("485B", na=False) & ~forms_upper.str.contains("BXT", na=False)]
-        if not g_bpos.empty:
-            prosp_link = str(g_bpos.iloc[-1].get("Primary Link", ""))
-        # Fallback: latest 485APOS
+        # 485BPOS (not 485BXT)
+        g_bpos_l = g[forms_upper.str.contains("485B", na=False) & ~forms_upper.str.contains("BXT", na=False)]
+        if not g_bpos_l.empty:
+            prosp_link = str(g_bpos_l.iloc[-1].get("Primary Link", ""))
+        # POS AM (33 Act annual renewal)
         if not prosp_link:
-            g_apos = g[forms_upper.str.startswith("485A")]
-            if not g_apos.empty:
-                prosp_link = str(g_apos.iloc[-1].get("Primary Link", ""))
+            g_posam_l = g[forms_upper == "POS AM"]
+            if not g_posam_l.empty:
+                prosp_link = str(g_posam_l.iloc[-1].get("Primary Link", ""))
+        # S-3 (33 Act shelf registration)
+        if not prosp_link:
+            g_s3_l = g[forms_upper.str.startswith("S-3")]
+            if not g_s3_l.empty:
+                prosp_link = str(g_s3_l.iloc[-1].get("Primary Link", ""))
+        # 485APOS
+        if not prosp_link:
+            g_apos_l = g[forms_upper.str.startswith("485A")]
+            if not g_apos_l.empty:
+                prosp_link = str(g_apos_l.iloc[-1].get("Primary Link", ""))
+        # S-1
+        if not prosp_link:
+            g_s1_l = g[forms_upper.str.startswith("S-1")]
+            if not g_s1_l.empty:
+                prosp_link = str(g_s1_l.iloc[-1].get("Primary Link", ""))
         # Final fallback: latest filing link
         if not prosp_link:
             prosp_link = str(latest.get("Primary Link", ""))

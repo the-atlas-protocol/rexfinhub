@@ -194,6 +194,65 @@ def _find_prospectus_name_for_sgml(sgml_name: str, html_names: list[str]) -> str
 
 
 # ---------------------------------------------------------------------------
+# Strategy: s1_metadata  (S-1, S-3 - 33 Act filers, trust IS the product)
+# ---------------------------------------------------------------------------
+def _extract_s1_metadata(client: SECClient, txt_url: str, form: str,
+                          filing_dt: str, cik: str, registrant: str,
+                          accession: str, prim_url: str) -> list[dict]:
+    """Extract metadata for 33 Act filers (S-1/S-3). Trust IS the product.
+
+    No body parsing needed -- reads SGML header for trust name + effectiveness date,
+    and cached submissions JSON for tickers (zero network calls).
+    """
+    txt_header = ""
+    try:
+        if txt_url:
+            txt_header = client.fetch_header_text(txt_url)
+    except Exception:
+        txt_header = ""
+
+    # Parse company name from SGML header
+    trust_name = registrant  # fallback
+    m = re.search(r"COMPANY CONFORMED NAME:\s*(.+)", txt_header or "", flags=re.IGNORECASE)
+    if m:
+        name = m.group(1).strip()
+        if name:
+            trust_name = name
+
+    eff_date = _extract_effectiveness_from_hdr(txt_header) if txt_header else ""
+    eff_confidence = "HEADER" if eff_date else ""
+
+    # Get tickers from cached submissions JSON (zero network calls)
+    tickers = client.get_entity_tickers(cik)
+
+    base = {
+        "Series ID": "", "Series Name": trust_name,
+        "Class-Contract ID": "", "Class Contract Name": "",
+        "Form": form, "Filing Date": filing_dt, "Accession Number": accession,
+        "Primary Link": prim_url, "Full Submission TXT": txt_url,
+        "Registrant": registrant, "CIK": cik,
+        "Extracted From": "S1-METADATA",
+        "Effective Date": eff_date,
+        "Effective Date Confidence": eff_confidence,
+        "Delaying Amendment": "",
+        "Prospectus Name": "",
+        "Extraction Strategy": "s1_metadata",
+    }
+
+    rows = []
+    if tickers:
+        for tkr in tickers:
+            row = dict(base)
+            row["Class Symbol"] = tkr
+            rows.append(row)
+    else:
+        row = dict(base)
+        row["Class Symbol"] = ""
+        rows.append(row)
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # Strategy: header_only  (485BXT, 497J - fast, ~2KB read from cache)
 # ---------------------------------------------------------------------------
 def _extract_header_only(client: SECClient, txt_url: str, form: str,
@@ -380,11 +439,35 @@ def _extract_full(client: SECClient, txt_url: str, form: str,
 
 
 # ---------------------------------------------------------------------------
+# ETF triage: per-filing header check
+# ---------------------------------------------------------------------------
+def _filing_has_etf(client: SECClient, txt_url: str) -> bool | None:
+    """Read SGML header (~2KB) and check if any Series Name contains 'ETF'.
+
+    Returns True if ETF found, False if no ETF, None on fetch error.
+    """
+    if not txt_url:
+        return None
+    try:
+        header_text = client.fetch_header_text(txt_url)
+    except Exception:
+        return None
+    if not header_text:
+        return None
+    sgml_rows = parse_sgml_series_classes(header_text)
+    if not sgml_rows:
+        return None  # no series info in header -- can't determine, proceed
+    series_names = [r.get("Series Name", "") for r in sgml_rows if r.get("Series Name")]
+    return any("ETF" in name.upper() for name in series_names)
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 def step3_extract_for_trust(client: SECClient, output_root, trust_name: str,
                             since: str | None = None, until: str | None = None,
-                            forms: list[str] | None = None) -> dict:
+                            forms: list[str] | None = None,
+                            etf_only: bool = False) -> dict:
     """Extract fund data from prospectus filings for a single trust.
 
     Returns dict with metrics:
@@ -416,6 +499,7 @@ def step3_extract_for_trust(client: SECClient, output_root, trust_name: str,
     # --- Incremental processing: skip already-processed filings ---
     trust_folder = paths["folder"]
     manifest = load_manifest(trust_folder)
+
     already_done = get_processed_accessions(manifest)
     retry_set = get_retry_accessions(manifest)
 
@@ -446,16 +530,33 @@ def step3_extract_for_trust(client: SECClient, output_root, trust_name: str,
         prim_url  = safe_str(r.get("Primary Link", ""))
         txt_url   = safe_str(r.get("Full Submission TXT", ""))
         is_ixbrl  = safe_str(r.get("isInlineXBRL", "0")) == "1"
+        # EFFECT filings: skip for 40 Act trusts (485 forms already have the data),
+        # but process for 33 Act trusts (EFFECT confirms S-1 effectiveness)
         if (form or "").strip().upper() == "EFFECT":
-            record_success(manifest, accession, form, 0)
-            continue
+            from .trusts import get_act_type
+            if get_act_type(cik) == "40":
+                record_success(manifest, accession, form, 0)
+                continue
 
         # Route to extraction strategy
         form_upper = (form or "").strip().upper()
         strategy = EXTRACTION_STRATEGIES.get(form_upper, DEFAULT_EXTRACTION_STRATEGY)
 
+        # ETF triage: for full-extraction filings, read the header first
+        # to check if any series contains "ETF". Skip if purely mutual fund.
+        if etf_only and strategy not in ("header_only", "s1_metadata"):
+            has_etf = _filing_has_etf(client, txt_url)
+            if has_etf is False:
+                record_success(manifest, accession, form, 0)
+                metrics["skipped_non_etf"] = metrics.get("skipped_non_etf", 0) + 1
+                continue
+
         try:
-            if strategy == "header_only":
+            if strategy == "s1_metadata":
+                extracted_rows = _extract_s1_metadata(
+                    client, txt_url, form, filing_dt, cik, registrant, accession, prim_url,
+                )
+            elif strategy == "header_only":
                 extracted_rows = _extract_header_only(
                     client, txt_url, form, filing_dt, cik, registrant, accession, prim_url,
                 )
@@ -469,7 +570,7 @@ def step3_extract_for_trust(client: SECClient, output_root, trust_name: str,
             metrics["new"] += 1
 
             # Track which strategy was used
-            strat_label = "header_only" if strategy == "header_only" else (
+            strat_label = strategy if strategy in ("header_only", "s1_metadata") else (
                 "full+ixbrl" if is_ixbrl else "full"
             )
             metrics["strategies"][strat_label] = metrics["strategies"].get(strat_label, 0) + 1

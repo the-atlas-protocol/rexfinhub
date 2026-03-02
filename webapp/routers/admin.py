@@ -310,6 +310,62 @@ def send_test_weekly(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
 
 
+# --- Morning Brief ---
+
+@router.post("/morning-brief")
+def admin_send_morning_brief(request: Request, db: Session = Depends(get_db)):
+    """Send morning brief email (admin only)."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/login", status_code=302)
+
+    try:
+        from etp_tracker.email_alerts import send_morning_brief
+        dashboard_url = str(request.base_url).rstrip("/")
+        ok = send_morning_brief(db, dashboard_url=dashboard_url)
+
+        if ok:
+            return RedirectResponse("/admin/?digest=morning_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=morning_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("Morning brief send failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
+@router.get("/morning-brief/preview")
+def admin_preview_morning_brief(request: Request, db: Session = Depends(get_db)):
+    """Preview morning brief in browser (admin only)."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/login", status_code=302)
+
+    from etp_tracker.email_alerts import build_morning_brief_html
+    dashboard_url = str(request.base_url).rstrip("/")
+    html = build_morning_brief_html(db, dashboard_url=dashboard_url)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
+@router.post("/morning-brief/send-test")
+def send_test_morning_brief(request: Request, db: Session = Depends(get_db)):
+    """Send morning brief to relasmar@rexfin.com ONLY (test send)."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+
+    try:
+        from etp_tracker.email_alerts import build_morning_brief_html, _send_html_digest
+        dashboard_url = str(request.base_url).rstrip("/")
+        html = build_morning_brief_html(db, dashboard_url=dashboard_url)
+        ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="morning")
+
+        if ok:
+            return RedirectResponse("/admin/?digest=test_morning_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=test_morning_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("Test morning brief send failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
 # --- Subscriber Management ---
 
 @router.post("/subscribers/approve")

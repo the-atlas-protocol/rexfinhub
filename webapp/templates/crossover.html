@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Crossover Analysis — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/holdings/">Institutional Holdings</a><span class="sep">/</span>
+    <span>Crossover Analysis</span>
+  </div>
+  <h1>Institutional Crossover Analysis</h1>
+  <div class="date">Find institutions that hold competitor products but not REX — prospect list for sales.</div>
+</div>
+
+{% if error_msg %}
+<div style="background:var(--red-bg, rgba(239,68,68,0.1)); border:1px solid var(--red, #ef4444); border-radius:8px; padding:12px 16px; margin-bottom:16px; color:var(--red, #ef4444); font-size:13px;">
+  {{ error_msg }}
+</div>
+{% endif %}
+
+<!-- REX product selector -->
+<form method="get" action="/holdings/crossover" style="margin-bottom:16px;">
+  <div class="filter-bar" style="border-radius:8px;">
+    <select name="rex_ticker" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px; min-width:350px;">
+      <option value="">-- Select a REX product --</option>
+      {% for p in rex_products %}
+      <option value="{{ p.ticker }}" {% if selected_ticker == p.ticker %}selected{% endif %}>
+        {{ p.ticker }} — {{ p.fund_name }}{% if p.underlier %} ({{ p.underlier }}){% endif %}{% if p.aum %} — ${{ '%.1f' % p.aum }}M{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Analyze</button>
+    {% if selected_ticker %}
+    <a href="/holdings/crossover" class="btn btn-sm">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if selected_ticker %}
+<!-- KPI row -->
+<div class="kpi-row">
+  <div class="kpi kpi-green">
+    <div class="num">{{ prospect_count }}</div>
+    <div class="label">Prospects</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ total_prospect_value_fmt }}</div>
+    <div class="label">Total Prospect Value</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ comp_count }}</div>
+    <div class="label">Competitors Analyzed</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ already_holding }}</div>
+    <div class="label">Already Holding REX</div>
+  </div>
+</div>
+
+<!-- Selected product info -->
+{% set sel_product = none %}
+{% for p in rex_products %}
+  {% if p.ticker == selected_ticker %}
+    {% set sel_product = p %}
+  {% endif %}
+{% endfor %}
+{% if sel_product %}
+<p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">
+  Showing prospects for <strong>{{ sel_product.ticker }}</strong>
+  {% if sel_product.underlier %} &middot; Underlier: <strong>{{ sel_product.underlier }}</strong>{% endif %}
+  {% if sel_product.category %} &middot; Category: {{ sel_product.category }}{% endif %}
+</p>
+{% endif %}
+
+{% if not sel_product or not sel_product.underlier %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
+  No underlier mapping found for {{ selected_ticker }}. This product may not have category attributes configured yet.
+</div>
+{% elif prospects %}
+<!-- Prospects table -->
+<div class="section-header">
+  <h2>Prospect Institutions</h2>
+  <span class="badge">{{ prospect_count }}</span>
+</div>
+<p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">
+  Institutions holding competitor products on the same underlier but NOT holding any REX product.
+</p>
+<table id="prospectsTable">
+  <thead>
+    <tr>
+      <th class="sortable" onclick="sortTable('prospectsTable', 0)">Institution Name</th>
+      <th>CIK</th>
+      <th class="sortable" onclick="sortTable('prospectsTable', 2)">Competitor Value ($K)</th>
+      <th class="sortable" onclick="sortTable('prospectsTable', 3)">Competitor Positions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in prospects %}
+    <tr>
+      <td><a href="/holdings/{{ p.cik }}">{{ p.institution_name }}</a></td>
+      <td style="font-family:var(--font-mono); font-size:12px;">{{ p.cik }}</td>
+      <td style="text-align:right;">{{ p.comp_value_fmt }}</td>
+      <td style="text-align:right;">{{ p.comp_positions }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif comp_count == 0 %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
+  No competitor products found for underlier "{{ sel_product.underlier }}".
+</div>
+{% else %}
+<div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
+  All {{ already_holding }} institutions holding competitor products already hold REX. No new prospects found.
+</div>
+{% endif %}
+
+{% else %}
+<!-- Empty state: no ticker selected -->
+<div style="text-align:center; padding:60px 20px; color:var(--muted); font-size:14px;">
+  <p style="margin-bottom:8px; font-size:16px; font-weight:500;">Select a REX product above to find crossover prospects.</p>
+  <p style="font-size:13px;">This analysis identifies institutions that hold competitor products on the same underlier but do not currently hold any REX product.</p>
+</div>
+{% endif %}
+
+<div style="margin-top:20px;">
+  <a href="/holdings/" class="btn btn-sm">&larr; Back to Institutions</a>
+</div>
+
+{% endblock %}

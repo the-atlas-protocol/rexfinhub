@@ -867,6 +867,12 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 [data-theme="dark"] .skeleton-circle { background: var(--surface-3); }
 [data-theme="dark"] .form-badge { background: var(--surface-3); color: var(--text-primary); }
 [data-theme="dark"] .form-pill { background: var(--surface-2); color: var(--text-primary); border-color: var(--card-border); }
+[data-theme="dark"] .form-pill.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+/* Responsive charts grid */
+@media (max-width: 768px) {
+  .charts-row { grid-template-columns: 1fr !important; }
+}
 
 /* Dark mode: alerts */
 [data-theme="dark"] .alert-success { color: #4ade80; }

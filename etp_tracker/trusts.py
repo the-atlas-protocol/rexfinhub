@@ -315,7 +315,6 @@ ACT_33_CIKS = {
     "2033807",  # Franklin Crypto Trust (EZPZ)
     "2074409",  # Invesco Galaxy Solana ETF (QSOL)
     "1767057",  # Osprey Bitcoin Trust (OBTC)
-    "1345125",  # Cyber Hornet Trust (BBB, SSS, EEE, XXX)
     "2039505",  # Canary XRP ETF
     "2039458",  # Canary HBAR ETF
     "2039461",  # Canary Litecoin ETF

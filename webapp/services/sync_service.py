@@ -194,7 +194,7 @@ def sync_fund_status(db: Session, trust: Trust, output_dir: Path) -> int:
     if not csv_path.exists():
         return 0
 
-    df = pd.read_csv(csv_path, dtype=str)
+    df = pd.read_csv(csv_path, dtype=str, on_bad_lines="skip", engine="python")
     if df.empty:
         return 0
 
@@ -202,13 +202,28 @@ def sync_fund_status(db: Session, trust: Trust, output_dir: Path) -> int:
     for _, row in df.iterrows():
         series_id = _str_or_none(row.get("Series ID"))
         class_contract_id = _str_or_none(row.get("Class-Contract ID"))
+        ticker = _str_or_none(row.get("Ticker"))
+
+        # Build lookup conditions — use IS NULL for None values (SQL = NULL is always false)
+        conditions = [FundStatus.trust_id == trust.id]
+        if series_id is None:
+            conditions.append(FundStatus.series_id.is_(None))
+        else:
+            conditions.append(FundStatus.series_id == series_id)
+        if class_contract_id is None:
+            conditions.append(FundStatus.class_contract_id.is_(None))
+        else:
+            conditions.append(FundStatus.class_contract_id == class_contract_id)
+
+        # 33 Act trusts have no Series/Class IDs — use ticker as discriminator
+        if series_id is None and class_contract_id is None:
+            if ticker is not None:
+                conditions.append(FundStatus.ticker == ticker)
+            else:
+                conditions.append(FundStatus.ticker.is_(None))
 
         existing = db.execute(
-            select(FundStatus).where(
-                FundStatus.trust_id == trust.id,
-                FundStatus.series_id == series_id,
-                FundStatus.class_contract_id == class_contract_id,
-            )
+            select(FundStatus).where(*conditions)
         ).scalar_one_or_none()
 
         fund_name = _str_or_none(row.get("Fund Name")) or ""
