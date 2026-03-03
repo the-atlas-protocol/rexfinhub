@@ -31,49 +31,46 @@
   Subscriber rejected.
 </div>
 {% endif %}
-{% if request.query_params.get('digest') == 'sent' %}
+{% set d = request.query_params.get('digest', '') %}
+{% if d == 'sent' %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Daily digest sent successfully.</strong> Check your inbox.
+  <strong style="color:var(--green);">Daily brief sent successfully.</strong> Check your inbox.
 </div>
-{% elif request.query_params.get('digest') == 'weekly_sent' %}
+{% elif d == 'weekly_sent' %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Weekly intelligence brief sent successfully.</strong> Check your inbox.
+  <strong style="color:var(--green);">Weekly report sent successfully.</strong> Check your inbox.
 </div>
-{% elif request.query_params.get('digest') == 'test_sent' %}
+{% elif d == 'test_sent' %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Test daily brief sent to relasmar@rexfin.com.</strong> Check your inbox.
+  <strong style="color:var(--green);">Test daily brief sent to relasmar@rexfin.com.</strong>
 </div>
-{% elif request.query_params.get('digest') == 'test_weekly_sent' %}
+{% elif d == 'test_weekly_sent' %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Test weekly report sent to relasmar@rexfin.com.</strong> Check your inbox.
+  <strong style="color:var(--green);">Test weekly report sent to relasmar@rexfin.com.</strong>
 </div>
-{% elif request.query_params.get('digest') == 'morning_sent' %}
+{% elif d == 'test_li_sent' %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Morning brief sent successfully.</strong> Check your inbox.
+  <strong style="color:var(--green);">Test L&I report sent to relasmar@rexfin.com.</strong>
 </div>
-{% elif request.query_params.get('digest') == 'morning_fail' %}
-<div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--red);">Failed to send morning brief.</strong> Check email configuration.
-</div>
-{% elif request.query_params.get('digest') == 'test_morning_sent' %}
+{% elif d == 'test_cc_sent' %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--green);">Test morning brief sent to relasmar@rexfin.com.</strong> Check your inbox.
+  <strong style="color:var(--green);">Test CC report sent to relasmar@rexfin.com.</strong>
 </div>
-{% elif request.query_params.get('digest') == 'test_morning_fail' or request.query_params.get('digest') == 'test_fail' or request.query_params.get('digest') == 'test_weekly_fail' %}
+{% elif d == 'test_ss_sent' %}
+<div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Test SS report sent to relasmar@rexfin.com.</strong>
+</div>
+{% elif d in ('test_fail', 'test_morning_fail', 'test_weekly_fail') %}
 <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
   <strong style="color:var(--red);">Test send failed.</strong> Check email configuration.
 </div>
-{% elif request.query_params.get('digest') == 'weekly_fail' %}
+{% elif d in ('fail', 'weekly_fail', 'morning_fail') %}
 <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--red);">Failed to send weekly brief.</strong> Check email configuration.
+  <strong style="color:var(--red);">Send failed.</strong> Check email configuration (Azure Graph or SMTP).
 </div>
-{% elif request.query_params.get('digest') == 'fail' %}
+{% elif d == 'error' %}
 <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--red);">Failed to send digest.</strong> Check email configuration (Azure Graph or SMTP).
-</div>
-{% elif request.query_params.get('digest') == 'error' %}
-<div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
-  <strong style="color:var(--red);">Digest error:</strong> {{ request.query_params.get('msg', 'Unknown error') }}
+  <strong style="color:var(--red);">Error:</strong> {{ request.query_params.get('msg', 'Unknown error') }}
 </div>
 {% endif %}
 {% if request.query_params.get('error') == 'missing_data' %}
@@ -162,85 +159,152 @@
   {% endif %}
 </div>
 
-<!-- Email Digest + Subscribers -->
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+<!-- Email Management -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
+  <h3 style="margin:0 0 4px; font-size:16px;">Email Management</h3>
+  <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+    Send digest emails to all {{ recipients|length }} approved recipients.
+  </p>
 
-  <!-- Email Digest -->
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 12px; font-size:16px;">Email Digest</h3>
-    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
-      Send digest emails to all approved recipients using current database data.
-    </p>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-      <form method="post" action="/admin/digest/send"
-            onsubmit="return confirm('Send DAILY brief email now?');">
-        <button type="submit" class="btn" style="background:#1a1a2e; color:#fff; border:none;">Send Daily Brief</button>
-      </form>
-      <form method="post" action="/admin/morning-brief"
-            onsubmit="return confirm('Send MORNING brief email now?');">
-        <button type="submit" class="btn" style="background:#00897B; color:#fff; border:none;">Send Morning Brief</button>
-      </form>
-      <form method="post" action="/admin/digest/send-weekly"
-            onsubmit="return confirm('Send WEEKLY report email now?');">
-        <button type="submit" class="btn" style="background:#0984e3; color:#fff; border:none;">Send Weekly Report</button>
-      </form>
-    </div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-      <a href="/admin/digest/preview-daily" target="_blank"
-         class="btn" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview Daily</a>
-      <a href="/admin/morning-brief/preview" target="_blank"
-         class="btn" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview Morning</a>
-      <a href="/admin/digest/preview-weekly" target="_blank"
-         class="btn" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview Weekly</a>
-    </div>
-    <div style="border-top:1px solid var(--border); padding-top:10px;">
-      <p style="font-size:12px; color:var(--muted); margin-bottom:8px;">Test send (relasmar@rexfin.com only):</p>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+  <!-- Daily + Weekly (editable) -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+
+    <!-- Daily Brief -->
+    <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white);">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00897B;"></span>
+        <strong style="font-size:14px;">Daily Brief</strong>
+      </div>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">SEC filings + REX market snapshot. Sent EOD.</p>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <form method="post" action="/admin/digest/send" onsubmit="return confirm('Send DAILY brief to all recipients?');">
+          <button type="submit" class="btn btn-sm" style="background:#00897B; color:#fff; border:none;">Send All</button>
+        </form>
+        <a href="/admin/digest/preview-daily" target="_blank"
+           class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview</a>
         <form method="post" action="/admin/digest/send-test">
-          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6;">Test Daily (to me)</button>
-        </form>
-        <form method="post" action="/admin/morning-brief/send-test">
-          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6;">Test Morning (to me)</button>
-        </form>
-        <form method="post" action="/admin/digest/send-test-weekly">
-          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6;">Test Weekly (to me)</button>
+          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6;">Test (to me)</button>
         </form>
       </div>
     </div>
+
+    <!-- Weekly Report -->
+    <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white);">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#0984e3;"></span>
+        <strong style="font-size:14px;">Weekly Report</strong>
+      </div>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Executive summary with charts, AUM by suite, market landscape.</p>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <form method="post" action="/admin/digest/send-weekly" onsubmit="return confirm('Send WEEKLY report to all recipients?');">
+          <button type="submit" class="btn btn-sm" style="background:#0984e3; color:#fff; border:none;">Send All</button>
+        </form>
+        <a href="/admin/digest/preview-weekly" target="_blank"
+           class="btn btn-sm" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview</a>
+        <form method="post" action="/admin/digest/send-test-weekly">
+          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6;">Test (to me)</button>
+        </form>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Digest Subscribers -->
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 12px; font-size:16px;">Digest Subscribers</h3>
-    {% if pending_subscribers %}
-    <table style="font-size:13px;">
-      <thead>
-        <tr><th>Email</th><th>Requested</th><th>Actions</th></tr>
-      </thead>
-      <tbody>
-        {% for s in pending_subscribers %}
-        <tr>
-          <td>{{ s.email }}</td>
-          <td style="font-size:12px; color:var(--muted);">{{ s.requested_at.strftime('%Y-%m-%d') if s.requested_at else '' }}</td>
-          <td>
-            <form method="post" action="/admin/subscribers/approve" style="display:inline;">
-              <input type="hidden" name="subscriber_id" value="{{ s.id }}">
-              <button type="submit" class="btn btn-sm" style="background:var(--green); color:white; border:none;">Approve</button>
-            </form>
-            <form method="post" action="/admin/subscribers/reject" style="display:inline; margin-left:4px;">
-              <input type="hidden" name="subscriber_id" value="{{ s.id }}">
-              <button type="submit" class="btn btn-sm" style="background:var(--red); color:white; border:none;">Reject</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p style="font-size:13px; color:var(--muted);">No pending subscriber requests.</p>
-    {% endif %}
+  <!-- Bloomberg Reports (locked until confirmed) -->
+  <div style="border:1px solid #dee2e6; border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <strong style="font-size:14px;">Bloomberg Reports</strong>
+      <span style="background:#e74c3c; color:white; font-size:9px; padding:2px 8px; border-radius:10px; font-weight:600;">LOCKED</span>
+    </div>
+    <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Preview and test only. Will not send to all until confirmed.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+
+      <!-- L&I Report -->
+      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Leveraged & Inverse</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <a href="/admin/reports/preview-li" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview Email</a>
+          <a href="/reports/li" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
+          <form method="post" action="/admin/reports/send-test-li">
+            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- CC Report -->
+      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Covered Call</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <a href="/admin/reports/preview-cc" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview Email</a>
+          <a href="/reports/cc" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
+          <form method="post" action="/admin/reports/send-test-cc">
+            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- SS Report -->
+      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Single-Stock</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <a href="/admin/reports/preview-ss" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview Email</a>
+          <a href="/reports/ss" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
+          <form method="post" action="/admin/reports/send-test-ss">
+            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
   </div>
 
+  <!-- Recipients list -->
+  <details style="margin-top:4px;">
+    <summary style="font-size:12px; color:var(--muted); cursor:pointer;">View all recipients ({{ recipients|length }})</summary>
+    <div style="margin-top:8px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px;">
+      {% for email in recipients %}
+      <div style="font-size:12px; padding:4px 8px; background:var(--white); border:1px solid var(--border); border-radius:4px; font-family:var(--font-mono);">{{ email }}</div>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+
+<!-- Digest Subscribers -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
+  <h3 style="margin:0 0 12px; font-size:16px;">Digest Subscribers</h3>
+  {% if pending_subscribers %}
+  <table style="font-size:13px;">
+    <thead>
+      <tr><th>Email</th><th>Requested</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for s in pending_subscribers %}
+      <tr>
+        <td>{{ s.email }}</td>
+        <td style="font-size:12px; color:var(--muted);">{{ s.requested_at.strftime('%Y-%m-%d') if s.requested_at else '' }}</td>
+        <td>
+          <form method="post" action="/admin/subscribers/approve" style="display:inline;">
+            <input type="hidden" name="subscriber_id" value="{{ s.id }}">
+            <button type="submit" class="btn btn-sm" style="background:var(--green); color:white; border:none;">Approve</button>
+          </form>
+          <form method="post" action="/admin/subscribers/reject" style="display:inline; margin-left:4px;">
+            <input type="hidden" name="subscriber_id" value="{{ s.id }}">
+            <button type="submit" class="btn btn-sm" style="background:var(--red); color:white; border:none;">Reject</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="font-size:13px; color:var(--muted);">No pending subscriber requests.</p>
+  {% endif %}
 </div>
 
 <!-- Data Quality -->

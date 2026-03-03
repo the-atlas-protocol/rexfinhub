@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}L&I Report - REX Financial{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/reports.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="report-header">
+  <h1>U.S. Leveraged & Inverse ETP Report</h1>
+  {% if data_as_of %}<div class="report-data-date">Data as of {{ data_as_of }}</div>{% endif %}
+</div>
+
+<div class="report-tabs">
+  <a href="/reports/li" class="report-tab {% if active_tab == 'li' %}active{% endif %}">Leveraged & Inverse</a>
+  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Covered Call</a>
+  <a href="/reports/ss" class="report-tab {% if active_tab == 'ss' %}active{% endif %}">Single-Stock</a>
+</div>
+
+{% if not available %}
+<div class="alert alert-warning" style="padding:1rem;background:var(--surface-2);border-radius:var(--radius-md);color:var(--text-secondary);">
+  Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in the OneDrive MASTER Data folder.
+  {% if error %}<br><small>{{ error }}</small>{% endif %}
+</div>
+{% else %}
+
+{# KPI Row #}
+{% if kpis %}
+<div class="report-kpi-row">
+  <div class="report-kpi">
+    <div class="label">Total ETPs</div>
+    <div class="num">{{ kpis.count }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">Total AUM</div>
+    <div class="num">{{ kpis.total_aum }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">1W Net Flow</div>
+    <div class="num {{ 'positive' if kpis.flow_1w_positive else 'negative' }}">{{ kpis.flow_1w }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">YTD Net Flow</div>
+    <div class="num {{ 'positive' if kpis.flow_ytd_positive else 'negative' }}">{{ kpis.flow_ytd }}</div>
+  </div>
+</div>
+{% endif %}
+
+{# Table 1: Provider Summary #}
+<h2 class="report-section-title">Provider Summary</h2>
+<div class="report-table-wrap">
+  <table class="report-table sortable">
+    <thead>
+      <tr>
+        <th>Provider</th>
+        <th class="num-col"># ETPs</th>
+        <th class="num-col">AUM ($M)</th>
+        <th class="num-col">1W Flow ($M)</th>
+        <th class="num-col">1M Flow ($M)</th>
+        <th class="num-col">YTD Flow ($M)</th>
+        <th class="num-col">Mkt Share</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in providers %}
+      <tr class="{{ 'row-rex' if p.is_rex else '' }}">
+        <td>{{ p.issuer }}</td>
+        <td class="num-col">{{ p.count }}</td>
+        <td class="num-col">{{ p.aum_fmt }}</td>
+        <td class="num-col {{ 'positive' if p.flow_1w >= 0 else 'negative' }}">{{ p.flow_1w_fmt }}</td>
+        <td class="num-col {{ 'positive' if p.flow_1m >= 0 else 'negative' }}">{{ p.flow_1m_fmt }}</td>
+        <td class="num-col {{ 'positive' if p.flow_ytd >= 0 else 'negative' }}">{{ p.flow_ytd_fmt }}</td>
+        <td class="num-col">{{ "%.1f"|format(p.market_share) }}%</td>
+      </tr>
+      {% endfor %}
+      {% if total_row %}
+      <tr class="row-total">
+        <td>{{ total_row.issuer }}</td>
+        <td class="num-col">{{ total_row.count }}</td>
+        <td class="num-col">{{ total_row.aum_fmt }}</td>
+        <td class="num-col">{{ total_row.flow_1w_fmt }}</td>
+        <td class="num-col">{{ total_row.flow_1m_fmt }}</td>
+        <td class="num-col">{{ total_row.flow_ytd_fmt }}</td>
+        <td class="num-col">100.0%</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{# Table 2: Top 10 Weekly Inflows #}
+<h2 class="report-section-title">Top 10 Weekly Inflows</h2>
+<div class="report-table-wrap">
+  <table class="report-table sortable">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Fund Name</th>
+        <th>Issuer</th>
+        <th class="num-col">AUM ($M)</th>
+        <th class="num-col">1D Flow ($M)</th>
+        <th class="num-col">1W Flow ($M)</th>
+        <th class="num-col">Mkt Share</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in top10 %}
+      <tr class="{{ 'row-rex' if f.is_rex else '' }}">
+        <td><strong>{{ f.ticker }}</strong></td>
+        <td>{{ f.fund_name }}</td>
+        <td>{{ f.issuer }}</td>
+        <td class="num-col">{{ f.aum_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_1d >= 0 else 'negative' }}">{{ f.flow_1d_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_1w >= 0 else 'negative' }}">{{ f.flow_1w_fmt }}</td>
+        <td class="num-col">{{ "%.2f"|format(f.market_share) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Table 3: Top 10 Weekly Outflows #}
+<h2 class="report-section-title">Top 10 Weekly Outflows</h2>
+<div class="report-table-wrap">
+  <table class="report-table sortable">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Fund Name</th>
+        <th>Issuer</th>
+        <th class="num-col">AUM ($M)</th>
+        <th class="num-col">1D Flow ($M)</th>
+        <th class="num-col">1W Flow ($M)</th>
+        <th class="num-col">Mkt Share</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in bottom10 %}
+      <tr class="{{ 'row-rex' if f.is_rex else '' }}">
+        <td><strong>{{ f.ticker }}</strong></td>
+        <td>{{ f.fund_name }}</td>
+        <td>{{ f.issuer }}</td>
+        <td class="num-col">{{ f.aum_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_1d >= 0 else 'negative' }}">{{ f.flow_1d_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_1w >= 0 else 'negative' }}">{{ f.flow_1w_fmt }}</td>
+        <td class="num-col">{{ "%.2f"|format(f.market_share) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Chart: Historical AUM by Provider #}
+<h2 class="report-section-title">Historical AUM by Provider</h2>
+<div class="report-chart-row-1">
+  <div class="report-chart-box">
+    <canvas id="chartHistoricalAum" height="300"></canvas>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var chartData = {{ chart | tojson }};
+  if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  var textColor = isDark ? '#9CA3AF' : '#6B7280';
+
+  var palette = [
+    '#1E40AF', '#059669', '#DC2626', '#7C3AED', '#D97706',
+    '#0891B2', '#BE185D', '#4338CA', '#9CA3AF'
+  ];
+
+  var datasets = [];
+  chartData.datasets.forEach(function(ds, i) {
+    datasets.push({
+      label: ds.label,
+      data: ds.data,
+      backgroundColor: palette[i % palette.length],
+      borderWidth: 0,
+      stack: 'stack',
+      order: 2,
+    });
+  });
+
+  // Total line overlay
+  if (chartData.total && chartData.total.length > 0) {
+    datasets.push({
+      label: 'Total AUM',
+      data: chartData.total,
+      type: 'line',
+      borderColor: isDark ? '#E5E7EB' : '#111827',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 0,
+      yAxisID: 'y1',
+      order: 1,
+    });
+  }
+
+  new Chart(document.getElementById('chartHistoricalAum'), {
+    type: 'bar',
+    data: { labels: chartData.labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: textColor, boxWidth: 12, padding: 10, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var val = ctx.parsed.y;
+              if (Math.abs(val) >= 1000) return ctx.dataset.label + ': $' + (val/1000).toFixed(1) + 'B';
+              return ctx.dataset.label + ': $' + val.toFixed(0) + 'M';
+            }
+          }
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: textColor, font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 18 }
+        },
+        y: {
+          stacked: true,
+          position: 'left',
+          grid: { color: gridColor },
+          ticks: {
+            color: textColor,
+            font: { size: 10 },
+            callback: function(v) {
+              if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(0) + 'B';
+              return '$' + v.toFixed(0) + 'M';
+            }
+          }
+        },
+        y1: {
+          position: 'right',
+          display: chartData.total && chartData.total.length > 0,
+          grid: { drawOnChartArea: false },
+          ticks: {
+            color: textColor,
+            font: { size: 10 },
+            callback: function(v) {
+              if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(0) + 'B';
+              return '$' + v.toFixed(0) + 'M';
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

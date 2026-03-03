@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Analytics — REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <span>Analytics</span>
+  </div>
+  <h1>Filing Analytics</h1>
+  <div class="date">Data across all monitored trusts</div>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="num">{{ "{:,}".format(total_trusts) }}</div>
+    <div class="label">Trusts</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ "{:,}".format(total_filings) }}</div>
+    <div class="label">Filings</div>
+  </div>
+  <div class="kpi">
+    <div class="num">{{ "{:,}".format(total_funds) }}</div>
+    <div class="label">Funds</div>
+  </div>
+  <div class="kpi kpi-green">
+    <div class="num">{{ "{:,}".format(filings_7d) }}</div>
+    <div class="label">Filings (7d)</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="analytics-chart-grid">
+  <div class="chart-box-analytics">
+    <h3>Filing Volume by Month</h3>
+    <canvas id="volumeChart"></canvas>
+  </div>
+  <div class="chart-box-analytics">
+    <h3>Trust Growth (Cumulative)</h3>
+    <canvas id="growthChart"></canvas>
+  </div>
+  <div class="chart-box-analytics">
+    <h3>Fund Status Distribution</h3>
+    <canvas id="statusChart"></canvas>
+  </div>
+  <div class="chart-box-analytics">
+    <h3>Top Form Types</h3>
+    <canvas id="formChart"></canvas>
+  </div>
+</div>
+
+<div class="analytics-chart-grid analytics-chart-grid--single" style="margin-top:20px;">
+  <div class="chart-box-analytics">
+    <h3>Entity Type Breakdown</h3>
+    <div style="max-width:360px;margin:0 auto;">
+      <canvas id="entityChart"></canvas>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var isDark = window.RexTheme && window.RexTheme.isDark();
+  var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  var textColor = isDark ? '#94A3B8' : '#475569';
+
+  Chart.defaults.color = textColor;
+  Chart.defaults.borderColor = gridColor;
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+  var statusColorMap = {
+    'EFFECTIVE': '#00C853',
+    'PENDING': '#FF9800',
+    'DELAYED': '#F44336',
+    'UNKNOWN': '#9CA3AF',
+    'WITHDRAWN': '#7B1FA2',
+  };
+
+  var entityColorMap = {
+    'etf_trust': '#2196F3',
+    'mutual_fund': '#FF9800',
+    'grantor_trust': '#7B1FA2',
+    'unknown': '#9CA3AF',
+  };
+
+  // 1. Filing Volume by Month (bar)
+  new Chart(document.getElementById('volumeChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ volume_labels | tojson }},
+      datasets: [{
+        label: 'Filings',
+        data: {{ volume_data | tojson }},
+        backgroundColor: isDark ? 'rgba(33,150,243,0.7)' : 'rgba(33,150,243,0.8)',
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, datalabels: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  // 2. Trust Growth (line, filled)
+  new Chart(document.getElementById('growthChart'), {
+    type: 'line',
+    data: {
+      labels: {{ growth_labels | tojson }},
+      datasets: [{
+        label: 'Total Trusts',
+        data: {{ growth_data | tojson }},
+        borderColor: '#059669',
+        backgroundColor: isDark ? 'rgba(5,150,105,0.15)' : 'rgba(5,150,105,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, datalabels: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  // 3. Fund Status Distribution (doughnut)
+  var sLabels = {{ status_labels | tojson }};
+  var sColors = sLabels.map(function(s) { return statusColorMap[s] || '#9CA3AF'; });
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: sLabels,
+      datasets: [{
+        data: {{ status_data | tojson }},
+        backgroundColor: sColors,
+        borderWidth: 2,
+        borderColor: isDark ? '#1a2636' : '#ffffff',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right', labels: { padding: 12, font: { size: 11 } } },
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold', size: 11 },
+          formatter: function(v, ctx) {
+            var total = ctx.dataset.data.reduce(function(a, b){ return a + b; }, 0);
+            var pct = ((v / total) * 100).toFixed(1);
+            return pct > 3 ? pct + '%' : '';
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  // 4. Top Form Types (horizontal bar)
+  new Chart(document.getElementById('formChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ form_labels | tojson }},
+      datasets: [{
+        label: 'Count',
+        data: {{ form_data | tojson }},
+        backgroundColor: isDark ? 'rgba(67,56,202,0.7)' : 'rgba(67,56,202,0.8)',
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false }, datalabels: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: gridColor } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // 5. Entity Type Breakdown (doughnut)
+  var eLabels = {{ entity_labels | tojson }};
+  var eColors = eLabels.map(function(e) { return entityColorMap[e] || '#9CA3AF'; });
+  new Chart(document.getElementById('entityChart'), {
+    type: 'doughnut',
+    data: {
+      labels: eLabels,
+      datasets: [{
+        data: {{ entity_data | tojson }},
+        backgroundColor: eColors,
+        borderWidth: 2,
+        borderColor: isDark ? '#1a2636' : '#ffffff',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right', labels: { padding: 12, font: { size: 11 } } },
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold', size: 11 },
+          formatter: function(v, ctx) {
+            var total = ctx.dataset.data.reduce(function(a, b){ return a + b; }, 0);
+            var pct = ((v / total) * 100).toFixed(1);
+            return pct > 3 ? pct + '%' : '';
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  // Re-render on theme change
+  window.addEventListener('rex-theme-change', function() { location.reload(); });
+})();
+</script>
+{% endblock %}

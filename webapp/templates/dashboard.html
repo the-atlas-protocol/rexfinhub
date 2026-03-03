@@ -39,6 +39,7 @@
   <div class="kpi kpi-red">
     <div class="num">{{ total_delayed }}</div>
     <div class="label">Delayed</div>
+    <div class="kpi-trend">+{{ new_filings_7d }} this week</div>
   </div>
 </div>
 {% if type_counts and type_counts|length > 1 %}
@@ -149,6 +150,14 @@
   <h2>Monitored Trusts</h2>
   <div style="display:flex; align-items:center; gap:8px;">
     <span class="badge">{{ total_trust_count }}</span>
+    <div class="view-toggle">
+      <button class="view-toggle-btn active" data-view="grid" onclick="setTrustView('grid')" title="Grid view">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      </button>
+      <button class="view-toggle-btn" data-view="list" onclick="setTrustView('list')" title="List view">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2.5" rx="1"/><rect x="1" y="6.75" width="14" height="2.5" rx="1"/><rect x="1" y="11.5" width="14" height="2.5" rx="1"/></svg>
+      </button>
+    </div>
     <a href="/search/" class="btn btn-primary btn-sm">+ Request a Trust</a>
   </div>
 </div>
@@ -174,7 +183,11 @@
       </div>
       <div>
         <h3>{{ t.name }}</h3>
-        {% if t.is_rex %}<span class="rex-badge">[REX]</span>{% endif %}
+        <div class="trust-card-meta">
+          {% if t.is_rex %}<span class="rex-badge">[REX]</span>{% endif %}
+          {% if t.entity_type %}<span class="entity-badge entity-badge--{{ t.entity_type }}">{{ type_labels.get(t.entity_type, t.entity_type) }}</span>{% endif %}
+          {% if t.source == 'bulk_discovery' %}<span class="source-badge">New</span>{% endif %}
+        </div>
       </div>
     </div>
     {% if t.scrape_status == 'pending' %}
@@ -199,6 +212,10 @@
       {% endif %}
     </div>
     {% endif %}
+    <div class="trust-card-footer">
+      <span>{{ t.filing_count }} filings</span>
+      {% if t.last_filed %}<span>Last: {{ t.last_filed }}</span>{% endif %}
+    </div>
   </a>
   {% endfor %}
 </div>

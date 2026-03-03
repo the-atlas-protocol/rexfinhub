@@ -9,11 +9,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Data file resolution
 # ---------------------------------------------------------------------------
 # Primary: OneDrive MASTER Data folder (synced, Ryu updates here)
+_ONEDRIVE_BBG_DAILY = Path(
+    r"C:\Users\RyuEl-Asmar\REX Financial LLC"
+    r"\REX Financial LLC - Rex Financial LLC"
+    r"\Product Development\MasterFiles\MASTER Data\bloomberg_daily_file.xlsm"
+)
 _ONEDRIVE_BBG = Path(
     r"C:\Users\RyuEl-Asmar\REX Financial LLC"
     r"\REX Financial LLC - Rex Financial LLC"
     r"\Product Development\MasterFiles\MASTER Data\bbg_data.xlsx"
 )
+_FALLBACK_BBG_DAILY = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
 _FALLBACK_BBG = PROJECT_ROOT / "data" / "DASHBOARD" / "bbg_data.xlsx"
 _LEGACY_ONEDRIVE = Path(
     r"C:\Users\RyuEl-Asmar\REX Financial LLC"
@@ -22,15 +28,24 @@ _LEGACY_ONEDRIVE = Path(
 )
 _LEGACY_FALLBACK = PROJECT_ROOT / "data" / "DASHBOARD" / "The Dashboard.xlsx"
 
-# Resolution order: OneDrive bbg_data -> local fallback -> legacy OneDrive -> legacy local
-if _ONEDRIVE_BBG.exists():
-    DATA_FILE = _ONEDRIVE_BBG
-elif _FALLBACK_BBG.exists():
-    DATA_FILE = _FALLBACK_BBG
-elif _LEGACY_ONEDRIVE.exists():
-    DATA_FILE = _LEGACY_ONEDRIVE
-else:
-    DATA_FILE = _LEGACY_FALLBACK
+# Resolution order: OneDrive daily -> local daily -> OneDrive bbg_data -> local bbg_data -> legacy
+def _resolve_data_file() -> Path:
+    for candidate in [
+        _ONEDRIVE_BBG_DAILY, _FALLBACK_BBG_DAILY,
+        _ONEDRIVE_BBG, _FALLBACK_BBG,
+        _LEGACY_ONEDRIVE, _LEGACY_FALLBACK,
+    ]:
+        if candidate.exists():
+            # Verify file is actually readable (not locked by Excel/OneDrive)
+            try:
+                with open(candidate, "rb") as f:
+                    f.read(4)
+                return candidate
+            except PermissionError:
+                continue
+    return _LEGACY_FALLBACK
+
+DATA_FILE = _resolve_data_file()
 
 RULES_DIR = PROJECT_ROOT / "data" / "rules"
 EXPORT_DIR = PROJECT_ROOT / "data" / "DASHBOARD" / "exports"
@@ -188,7 +203,7 @@ LI_ATTR_COLS = [
     "map_li_leverage_amount", "map_li_underlier",
 ]
 
-CC_ATTR_COLS = ["map_cc_underlier", "map_cc_index"]
+CC_ATTR_COLS = ["map_cc_underlier", "map_cc_index", "cc_type", "cc_category"]
 
 CRYPTO_ATTR_COLS = ["map_crypto_is_spot", "map_crypto_underlier"]
 

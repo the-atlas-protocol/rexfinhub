@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}Covered Call Report - REX Financial{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/reports.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="report-header">
+  <h1>Covered Call ETFs AUM and Flows</h1>
+  {% if data_as_of %}<div class="report-data-date">Data as of {{ data_as_of }}</div>{% endif %}
+</div>
+
+<div class="report-tabs">
+  <a href="/reports/li" class="report-tab {% if active_tab == 'li' %}active{% endif %}">Leveraged & Inverse</a>
+  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Covered Call</a>
+  <a href="/reports/ss" class="report-tab {% if active_tab == 'ss' %}active{% endif %}">Single-Stock</a>
+</div>
+
+{% if not available %}
+<div class="alert alert-warning" style="padding:1rem;background:var(--surface-2);border-radius:var(--radius-md);color:var(--text-secondary);">
+  Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in the OneDrive MASTER Data folder.
+  {% if error %}<br><small>{{ error }}</small>{% endif %}
+</div>
+{% else %}
+
+{# KPI Row #}
+{% if kpis %}
+<div class="report-kpi-row">
+  <div class="report-kpi">
+    <div class="label">Total CC Funds</div>
+    <div class="num">{{ kpis.count }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">Total AUM</div>
+    <div class="num">{{ kpis.total_aum }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">1W Net Flow</div>
+    <div class="num {{ 'positive' if kpis.flow_1w_positive else 'negative' }}">{{ kpis.flow_1w }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">Avg Yield</div>
+    <div class="num">{{ kpis.avg_yield }}</div>
+  </div>
+</div>
+{% endif %}
+
+{# Table 1: REX Covered Call Funds #}
+<h2 class="report-section-title">REX Covered Call Funds</h2>
+<div class="report-table-wrap">
+  <table class="report-table sortable">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Fund Name</th>
+        <th class="num-col">AUM ($M)</th>
+        <th class="num-col">1W Return</th>
+        <th class="num-col">1W Flow ($M)</th>
+        <th class="num-col">1M Flow ($M)</th>
+        <th class="num-col">YTD Flow ($M)</th>
+        <th class="num-col">Yield</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in rex_funds %}
+      <tr class="row-rex">
+        <td><strong>{{ f.ticker }}</strong></td>
+        <td>{{ f.fund_name }}</td>
+        <td class="num-col">{{ f.aum_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.return_1w >= 0 else 'negative' }}">{{ f.return_1w_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_1w >= 0 else 'negative' }}">{{ f.flow_1w_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_1m >= 0 else 'negative' }}">{{ f.flow_1m_fmt }}</td>
+        <td class="num-col {{ 'positive' if f.flow_ytd >= 0 else 'negative' }}">{{ f.flow_ytd_fmt }}</td>
+        <td class="num-col">{{ f.yield_fmt }}</td>
+      </tr>
+      {% endfor %}
+      {% if rex_funds %}
+      <tr class="row-total">
+        <td colspan="2"><strong>REX Total</strong></td>
+        <td class="num-col">{{ rex_total_aum }}</td>
+        <td class="num-col"></td>
+        <td class="num-col"></td>
+        <td class="num-col"></td>
+        <td class="num-col"></td>
+        <td class="num-col"></td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{# Table 2: Top Funds by 1M Flow (segmented) #}
+<h2 class="report-section-title">Top Funds by 1-Month Flow</h2>
+<div class="segment-tabs" id="flowSegTabs">
+  {% for seg in ['All', 'Traditional', 'Synthetic', 'Single Stock'] %}
+  <button class="segment-tab {% if loop.first %}active{% endif %}" data-target="flow-{{ seg | lower | replace(' ', '-') }}">{{ seg }}</button>
+  {% endfor %}
+</div>
+{% for seg_name, funds in top_flow_segments.items() %}
+<div class="segment-panel {% if loop.first %}active{% endif %}" id="flow-{{ seg_name | lower | replace(' ', '-') }}">
+  <div class="report-table-wrap">
+    <table class="report-table sortable">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Fund Name</th>
+          <th>Issuer</th>
+          <th>Category</th>
+          <th class="num-col">AUM ($M)</th>
+          <th class="num-col">1M Flow ($M)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in funds %}
+        <tr>
+          <td><strong>{{ f.ticker }}</strong></td>
+          <td>{{ f.fund_name }}</td>
+          <td>{{ f.issuer }}</td>
+          <td>{{ f.cc_category }}</td>
+          <td class="num-col">{{ f.aum_fmt }}</td>
+          <td class="num-col {{ 'positive' if f.flow_1m >= 0 else 'negative' }}">{{ f.flow_1m_fmt }}</td>
+        </tr>
+        {% endfor %}
+        {% if not funds %}
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No data for this segment</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+
+{# Table 3: Top Funds by Yield (segmented) #}
+<h2 class="report-section-title">Top Funds by Yield</h2>
+<div class="segment-tabs" id="yieldSegTabs">
+  {% for seg in ['All', 'Traditional', 'Synthetic', 'Single Stock'] %}
+  <button class="segment-tab {% if loop.first %}active{% endif %}" data-target="yield-{{ seg | lower | replace(' ', '-') }}">{{ seg }}</button>
+  {% endfor %}
+</div>
+{% for seg_name, funds in top_yield_segments.items() %}
+<div class="segment-panel {% if loop.first %}active{% endif %}" id="yield-{{ seg_name | lower | replace(' ', '-') }}">
+  <div class="report-table-wrap">
+    <table class="report-table sortable">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Fund Name</th>
+          <th>Issuer</th>
+          <th>Category</th>
+          <th class="num-col">AUM ($M)</th>
+          <th class="num-col">Yield</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in funds %}
+        <tr>
+          <td><strong>{{ f.ticker }}</strong></td>
+          <td>{{ f.fund_name }}</td>
+          <td>{{ f.issuer }}</td>
+          <td>{{ f.cc_category }}</td>
+          <td class="num-col">{{ f.aum_fmt }}</td>
+          <td class="num-col">{{ f.yield_fmt }}</td>
+        </tr>
+        {% endfor %}
+        {% if not funds %}
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No data for this segment</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+
+{# Table 4: AUM by Category #}
+<h2 class="report-section-title">AUM by Category</h2>
+<div class="report-table-wrap">
+  <table class="report-table sortable">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th class="num-col"># Funds</th>
+        <th class="num-col">AUM ($M)</th>
+        <th class="num-col">1W Flow ($M)</th>
+        <th class="num-col">1M Flow ($M)</th>
+        <th class="num-col">Mkt Share</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in aum_by_category %}
+      <tr>
+        <td>{{ c.category }}</td>
+        <td class="num-col">{{ c.count }}</td>
+        <td class="num-col">{{ c.aum_fmt }}</td>
+        <td class="num-col {{ 'positive' if c.flow_1w >= 0 else 'negative' }}">{{ c.flow_1w_fmt }}</td>
+        <td class="num-col {{ 'positive' if c.flow_1m >= 0 else 'negative' }}">{{ c.flow_1m_fmt }}</td>
+        <td class="num-col">{{ "%.1f"|format(c.market_share) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Table 5: Issuer Ranking #}
+<h2 class="report-section-title">Issuer Ranking</h2>
+<div class="report-table-wrap">
+  <table class="report-table sortable">
+    <thead>
+      <tr>
+        <th>Issuer</th>
+        <th class="num-col"># Funds</th>
+        <th class="num-col">AUM ($M)</th>
+        <th class="num-col">1W Flow ($M)</th>
+        <th class="num-col">1M Flow ($M)</th>
+        <th class="num-col">YTD Flow ($M)</th>
+        <th class="num-col">Mkt Share</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for iss in issuers %}
+      <tr>
+        <td>{{ iss.issuer }}</td>
+        <td class="num-col">{{ iss.count }}</td>
+        <td class="num-col">{{ iss.aum_fmt }}</td>
+        <td class="num-col {{ 'positive' if iss.flow_1w >= 0 else 'negative' }}">{{ iss.flow_1w_fmt }}</td>
+        <td class="num-col {{ 'positive' if iss.flow_1m >= 0 else 'negative' }}">{{ iss.flow_1m_fmt }}</td>
+        <td class="num-col {{ 'positive' if iss.flow_ytd >= 0 else 'negative' }}">{{ iss.flow_ytd_fmt }}</td>
+        <td class="num-col">{{ "%.1f"|format(iss.market_share) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Charts Row: Issuer Doughnut + REX Time Series #}
+<div class="report-chart-row-2">
+  {# Chart 1: AUM by Issuer Doughnut #}
+  <div class="report-chart-box">
+    <h3>AUM by Issuer</h3>
+    <canvas id="chartIssuerAum" height="280"></canvas>
+  </div>
+  {# Chart 2: REX CC AUM & Market Share #}
+  <div class="report-chart-box">
+    <h3>REX CC AUM & Market Share</h3>
+    <canvas id="chartRexTs" height="280"></canvas>
+  </div>
+</div>
+
+{# Table 6: All CC Products #}
+<h2 class="report-section-title">All Covered Call Products</h2>
+<div class="report-table-wrap">
+  <div class="report-table-scroll">
+    <table class="report-table sortable">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Fund Name</th>
+          <th>Issuer</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th class="num-col">AUM ($M)</th>
+          <th class="num-col">1M Flow ($M)</th>
+          <th class="num-col">Yield</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in all_products %}
+        <tr>
+          <td><strong>{{ f.ticker }}</strong></td>
+          <td>{{ f.fund_name }}</td>
+          <td>{{ f.issuer }}</td>
+          <td>{{ f.cc_type }}</td>
+          <td>{{ f.cc_category }}</td>
+          <td class="num-col">{{ f.aum_fmt }}</td>
+          <td class="num-col {{ 'positive' if f.flow_1m >= 0 else 'negative' }}">{{ f.flow_1m_fmt }}</td>
+          <td class="num-col">{{ f.yield_fmt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Segment tab switching
+document.querySelectorAll('.segment-tabs').forEach(function(tabGroup) {
+  tabGroup.querySelectorAll('.segment-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      // Deactivate siblings
+      tabGroup.querySelectorAll('.segment-tab').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+
+      // Find all panels that are siblings of this tab group
+      var target = btn.getAttribute('data-target');
+      var parent = tabGroup.parentElement;
+      parent.querySelectorAll('.segment-panel').forEach(function(panel) {
+        panel.classList.remove('active');
+      });
+      var targetPanel = document.getElementById(target);
+      if (targetPanel) targetPanel.classList.add('active');
+    });
+  });
+});
+
+// Charts
+(function() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var textColor = isDark ? '#9CA3AF' : '#6B7280';
+  var palette = [
+    '#1E40AF', '#059669', '#DC2626', '#7C3AED', '#D97706',
+    '#0891B2', '#BE185D', '#4338CA', '#65A30D', '#0D9488', '#9CA3AF'
+  ];
+
+  // Chart 1: Issuer Doughnut
+  var issuerData = {{ issuer_aum_chart | tojson }};
+  if (issuerData && issuerData.labels && issuerData.labels.length > 0) {
+    new Chart(document.getElementById('chartIssuerAum'), {
+      type: 'doughnut',
+      data: {
+        labels: issuerData.labels,
+        datasets: [{
+          data: issuerData.values,
+          backgroundColor: palette.slice(0, issuerData.labels.length),
+          borderWidth: 1,
+          borderColor: isDark ? '#1a2636' : '#ffffff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: textColor, boxWidth: 10, padding: 8, font: { size: 10 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var total = ctx.dataset.data.reduce(function(a,b){ return a+b; }, 0);
+                var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0';
+                var val = ctx.parsed;
+                if (Math.abs(val) >= 1000) return ctx.label + ': $' + (val/1000).toFixed(1) + 'B (' + pct + '%)';
+                return ctx.label + ': $' + val.toFixed(0) + 'M (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 2: REX CC Time Series (dual axis)
+  var rexTs = {{ rex_ts_chart | tojson }};
+  if (rexTs && rexTs.labels && rexTs.labels.length > 0) {
+    new Chart(document.getElementById('chartRexTs'), {
+      type: 'bar',
+      data: {
+        labels: rexTs.labels,
+        datasets: [
+          {
+            label: 'REX CC AUM ($M)',
+            data: rexTs.rex_aum,
+            backgroundColor: '#059669',
+            borderWidth: 0,
+            yAxisID: 'y',
+            order: 2,
+          },
+          {
+            label: 'Market Share (%)',
+            data: rexTs.share_pct,
+            type: 'line',
+            borderColor: '#DC2626',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 0,
+            yAxisID: 'y1',
+            order: 1,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: textColor, boxWidth: 12, padding: 10, font: { size: 11 } }
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: textColor, font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+          },
+          y: {
+            position: 'left',
+            grid: { color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+            ticks: {
+              color: textColor, font: { size: 10 },
+              callback: function(v) {
+                if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(1) + 'B';
+                return '$' + v.toFixed(0) + 'M';
+              }
+            }
+          },
+          y1: {
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: {
+              color: textColor, font: { size: 10 },
+              callback: function(v) { return v.toFixed(1) + '%'; }
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -35,6 +35,7 @@ _GRAY = "#636e72"
 _LIGHT = "#f8f9fa"
 _BORDER = "#dee2e6"
 _WHITE = "#ffffff"
+_TEAL = "#00897B"
 
 
 def _load_recipients(project_root: Path | None = None) -> list[str]:
@@ -447,8 +448,8 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     _titles = {"daily": "REX ETF Daily Brief", "evening": "REX ETF Evening Update",
                "morning": "REX ETF Morning Brief"}
     _title = _titles.get(edition, "REX ETF Daily Brief")
-    _header_bg = "#2d3436" if _is_evening else _NAVY
-    _accent = _ORANGE if _is_evening else _BLUE
+    _header_bg = "#2d3436" if _is_evening else _TEAL
+    _accent = _ORANGE if _is_evening else _TEAL
 
     # --- Custom message ---
     msg_html = ""
@@ -980,11 +981,15 @@ def build_digest_html_from_db(
 
 
 def _send_html_digest(html_body: str, recipients: list[str],
-                      edition: str = "daily") -> bool:
+                      edition: str = "daily",
+                      subject_override: str = "") -> bool:
     """Send pre-built HTML digest via Azure Graph or SMTP."""
-    _labels = {"daily": "Daily Brief", "morning": "Morning Brief", "evening": "Evening Update"}
-    _label = _labels.get(edition, "Daily Brief")
-    subject = f"REX ETF {_label} - {datetime.now().strftime('%Y-%m-%d')}"
+    if subject_override:
+        subject = f"{subject_override} - {datetime.now().strftime('%Y-%m-%d')}"
+    else:
+        _labels = {"daily": "Daily Brief", "morning": "Morning Brief", "evening": "Evening Update"}
+        _label = _labels.get(edition, "Daily Brief")
+        subject = f"REX ETF {_label} - {datetime.now().strftime('%Y-%m-%d')}"
 
     # Try Azure Graph API first
     try:

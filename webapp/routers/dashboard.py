@@ -81,6 +81,8 @@ def _trust_stats(db: Session) -> list[dict]:
             Trust.is_rex,
             Trust.entity_type,
             Trust.regulatory_act,
+            Trust.last_filed,
+            Trust.source,
             func.coalesce(fund_sq.c.total, 0).label("total"),
             func.coalesce(fund_sq.c.effective, 0).label("effective"),
             func.coalesce(fund_sq.c.pending, 0).label("pending"),
@@ -112,6 +114,8 @@ def _trust_stats(db: Session) -> list[dict]:
             "filing_count": r.filing_count or 0,
             "act_type": act_type,
             "entity_type": getattr(r, 'entity_type', None),
+            "last_filed": getattr(r, 'last_filed', None),
+            "source": getattr(r, 'source', None),
         }
         # Classify scrape status for display
         if t["filing_count"] == 0:
@@ -172,6 +176,12 @@ def dashboard(
     total_effective = sum(t["effective"] for t in all_trusts)
     total_pending = sum(t["pending"] for t in all_trusts)
     total_delayed = sum(t["delayed"] for t in all_trusts)
+
+    # Weekly filing delta for KPI trend
+    cutoff_7d = date.today() - timedelta(days=7)
+    new_filings_7d = db.execute(
+        select(func.count(Filing.id)).where(Filing.filing_date >= cutoff_7d)
+    ).scalar() or 0
 
     # Status counts for filter buttons (before applying trust_filter)
     status_counts = {}
@@ -315,4 +325,5 @@ def dashboard(
         "trust_base_qs": trust_base_qs,
         "status_counts": status_counts,
         "status_labels": _STATUS_LABELS,
+        "new_filings_7d": new_filings_7d,
     })

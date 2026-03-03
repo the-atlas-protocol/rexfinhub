@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Single-Stock Report - REX Financial{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/reports.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="report-header">
+  <h1>Single-Stock Leveraged ETFs</h1>
+  {% if data_as_of %}<div class="report-data-date">Data as of {{ data_as_of }}</div>{% endif %}
+</div>
+
+<div class="report-tabs">
+  <a href="/reports/li" class="report-tab {% if active_tab == 'li' %}active{% endif %}">Leveraged & Inverse</a>
+  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Covered Call</a>
+  <a href="/reports/ss" class="report-tab {% if active_tab == 'ss' %}active{% endif %}">Single-Stock</a>
+</div>
+
+{% if not available %}
+<div class="alert alert-warning" style="padding:1rem;background:var(--surface-2);border-radius:var(--radius-md);color:var(--text-secondary);">
+  Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in the OneDrive MASTER Data folder.
+  {% if error %}<br><small>{{ error }}</small>{% endif %}
+</div>
+{% else %}
+
+{# KPI Row #}
+{% if kpis %}
+<div class="report-kpi-row">
+  <div class="report-kpi">
+    <div class="label">Total SS ETFs</div>
+    <div class="num">{{ kpis.count }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">Total AUM</div>
+    <div class="num">{{ kpis.total_aum }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">Issuers</div>
+    <div class="num">{{ kpis.issuers }}</div>
+  </div>
+  <div class="report-kpi">
+    <div class="label">Top Underlying</div>
+    <div class="num" style="font-size:var(--text-lg);">{{ kpis.top_underlier }}</div>
+  </div>
+</div>
+{% endif %}
+
+{# AUM Share by Issuer (doughnut) #}
+<h2 class="report-section-title">AUM Share by Issuer</h2>
+<div class="report-chart-row-2">
+  <div class="report-chart-box">
+    <canvas id="chartAumPie" height="300"></canvas>
+  </div>
+  <div></div>
+</div>
+
+{# Flow Charts (3-column) #}
+<h2 class="report-section-title">Cumulative Flows</h2>
+<div class="report-chart-row">
+  <div class="report-chart-box">
+    <h3>Total</h3>
+    <canvas id="chartFlowTotal" height="220"></canvas>
+  </div>
+  <div class="report-chart-box">
+    <h3>By Issuer (Top 5)</h3>
+    <canvas id="chartFlowIssuer" height="220"></canvas>
+  </div>
+  <div class="report-chart-box">
+    <h3>By Underlying (Top 5)</h3>
+    <canvas id="chartFlowUnderlier" height="220"></canvas>
+  </div>
+</div>
+
+{# AUM Charts (3-column) #}
+<h2 class="report-section-title">AUM</h2>
+<div class="report-chart-row">
+  <div class="report-chart-box">
+    <h3>Total</h3>
+    <canvas id="chartAumTotal" height="220"></canvas>
+  </div>
+  <div class="report-chart-box">
+    <h3>By Issuer (Top 5)</h3>
+    <canvas id="chartAumIssuer" height="220"></canvas>
+  </div>
+  <div class="report-chart-box">
+    <h3>By Underlying (Top 5)</h3>
+    <canvas id="chartAumUnderlier" height="220"></canvas>
+  </div>
+</div>
+
+{# Volume Charts (3-column) #}
+<h2 class="report-section-title">10-Day Rolling Avg Turnover</h2>
+<div class="report-chart-row">
+  <div class="report-chart-box">
+    <h3>Total</h3>
+    <canvas id="chartVolTotal" height="220"></canvas>
+  </div>
+  <div class="report-chart-box">
+    <h3>By Issuer (Top 5)</h3>
+    <canvas id="chartVolIssuer" height="220"></canvas>
+  </div>
+  <div class="report-chart-box">
+    <h3>By Underlying (Top 5)</h3>
+    <canvas id="chartVolUnderlier" height="220"></canvas>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  var textColor = isDark ? '#9CA3AF' : '#6B7280';
+
+  var palette = [
+    '#1E40AF', '#059669', '#DC2626', '#7C3AED', '#D97706',
+    '#0891B2', '#BE185D', '#4338CA', '#65A30D', '#0D9488'
+  ];
+
+  function fmtMoney(v) {
+    if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(1) + 'B';
+    if (Math.abs(v) >= 1) return '$' + v.toFixed(0) + 'M';
+    return '$' + v.toFixed(2) + 'M';
+  }
+
+  // Thin labels: show only every Nth
+  function thinLabels(labels, maxShow) {
+    maxShow = maxShow || 12;
+    if (labels.length <= maxShow) return labels;
+    var step = Math.ceil(labels.length / maxShow);
+    return labels.map(function(l, i) { return i % step === 0 ? l : ''; });
+  }
+
+  // AUM Pie
+  var aumPie = {{ aum_pie | tojson }};
+  if (aumPie && aumPie.labels && aumPie.labels.length > 0) {
+    new Chart(document.getElementById('chartAumPie'), {
+      type: 'doughnut',
+      data: {
+        labels: aumPie.labels,
+        datasets: [{
+          data: aumPie.values,
+          backgroundColor: palette.slice(0, aumPie.labels.length),
+          borderWidth: 1,
+          borderColor: isDark ? '#1a2636' : '#ffffff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: textColor, boxWidth: 10, padding: 8, font: { size: 10 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var total = ctx.dataset.data.reduce(function(a,b){ return a+b; }, 0);
+                var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0';
+                return ctx.label + ': ' + fmtMoney(ctx.parsed) + ' (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Helper: create a line chart
+  function makeLineChart(canvasId, chartData, opts) {
+    if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+    opts = opts || {};
+
+    var datasets = [];
+    chartData.datasets.forEach(function(ds, i) {
+      var color = i === 0 && chartData.datasets.length === 1 ? '#1E40AF' : palette[i % palette.length];
+      var cfg = {
+        label: ds.label,
+        data: ds.data,
+        borderColor: color,
+        backgroundColor: opts.fill ? color + '33' : 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: opts.fill || false,
+        tension: 0.1,
+      };
+      if (opts.stacked && i > 0) {
+        cfg.fill = opts.fill ? '-1' : false;
+      }
+      datasets.push(cfg);
+    });
+
+    var displayLabels = thinLabels(chartData.labels, 10);
+
+    new Chart(document.getElementById(canvasId), {
+      type: 'line',
+      data: { labels: chartData.labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: chartData.datasets.length > 1,
+            position: 'bottom',
+            labels: { color: textColor, boxWidth: 10, padding: 6, font: { size: 9 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return ctx.dataset.label + ': ' + fmtMoney(ctx.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: textColor, font: { size: 9 },
+              maxRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 10,
+              callback: function(value, index) {
+                return displayLabels[index] || '';
+              }
+            }
+          },
+          y: {
+            stacked: opts.stacked || false,
+            grid: { color: gridColor },
+            ticks: {
+              color: textColor, font: { size: 9 },
+              callback: function(v) { return fmtMoney(v); }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Flow charts
+  var flowCharts = {{ flow_charts | tojson }};
+  makeLineChart('chartFlowTotal', flowCharts.total);
+  makeLineChart('chartFlowIssuer', flowCharts.by_issuer);
+  makeLineChart('chartFlowUnderlier', flowCharts.by_underlier);
+
+  // AUM charts
+  var aumCharts = {{ aum_charts | tojson }};
+  makeLineChart('chartAumTotal', aumCharts.total, { fill: true });
+  makeLineChart('chartAumIssuer', aumCharts.by_issuer, { fill: true, stacked: true });
+  makeLineChart('chartAumUnderlier', aumCharts.by_underlier, { fill: true, stacked: true });
+
+  // Volume charts
+  var volumeCharts = {{ volume_charts | tojson }};
+  makeLineChart('chartVolTotal', volumeCharts.total);
+  makeLineChart('chartVolIssuer', volumeCharts.by_issuer);
+  makeLineChart('chartVolUnderlier', volumeCharts.by_underlier);
+})();
+</script>
+{% endblock %}

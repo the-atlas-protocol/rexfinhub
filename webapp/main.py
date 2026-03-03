@@ -183,7 +183,7 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse("home.html", {"request": request})
 
     # --- Routers ---
-    from webapp.routers import auth_routes, dashboard, trusts, funds, search, analysis, digest, downloads, api, admin, screener, market, filings, universe, holdings
+    from webapp.routers import auth_routes, dashboard, trusts, funds, search, analysis, digest, downloads, api, admin, screener, market, filings, universe, holdings, global_search, analytics, reports
     from webapp.routers.market_advanced import router as market_advanced_router
     app.include_router(auth_routes.router)
     app.include_router(dashboard.router)
@@ -201,6 +201,9 @@ def create_app() -> FastAPI:
     app.include_router(filings.router, prefix="/filings")
     app.include_router(universe.router)
     app.include_router(holdings.router)
+    app.include_router(global_search.router)
+    app.include_router(analytics.router)
+    app.include_router(reports.router)
 
     # Health check
     @app.get("/health")

@@ -92,6 +92,15 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         .where(AnalysisResult.created_at >= today_start)
     ).scalar() or 0
 
+    # Load email recipients list
+    recipients = []
+    if RECIPIENTS_FILE.exists():
+        recipients = [
+            line.strip()
+            for line in RECIPIENTS_FILE.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.startswith("#")
+        ]
+
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "pending_requests": pending_requests,
@@ -100,6 +109,7 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         "tracked_ciks": tracked_ciks,
         "ai_configured": ai_configured(),
         "ai_usage_today": ai_usage_today,
+        "recipients": recipients,
     })
 
 
@@ -363,6 +373,107 @@ def send_test_morning_brief(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         from urllib.parse import quote
         log.error("Test morning brief send failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
+# --- Bloomberg Report Emails (L&I, CC, SS) ---
+
+@router.get("/reports/preview-li")
+def preview_li_report(request: Request):
+    """Preview L&I report email in browser."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    from webapp.services.report_emails import build_li_email
+    dashboard_url = str(request.base_url).rstrip("/")
+    html = build_li_email(dashboard_url=dashboard_url)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
+@router.get("/reports/preview-cc")
+def preview_cc_report(request: Request):
+    """Preview CC report email in browser."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    from webapp.services.report_emails import build_cc_email
+    dashboard_url = str(request.base_url).rstrip("/")
+    html = build_cc_email(dashboard_url=dashboard_url)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
+@router.get("/reports/preview-ss")
+def preview_ss_report(request: Request):
+    """Preview SS report email in browser."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    from webapp.services.report_emails import build_ss_email
+    dashboard_url = str(request.base_url).rstrip("/")
+    html = build_ss_email(dashboard_url=dashboard_url)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
+@router.post("/reports/send-test-li")
+def send_test_li_report(request: Request):
+    """Send L&I report email to relasmar@rexfin.com only."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.report_emails import build_li_email
+        from etp_tracker.email_alerts import _send_html_digest
+        dashboard_url = str(request.base_url).rstrip("/")
+        html = build_li_email(dashboard_url=dashboard_url)
+        ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
+                               subject_override="U.S. Leveraged & Inverse ETP Report")
+        if ok:
+            return RedirectResponse("/admin/?digest=test_li_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=test_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("Test L&I report send failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
+@router.post("/reports/send-test-cc")
+def send_test_cc_report(request: Request):
+    """Send CC report email to relasmar@rexfin.com only."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.report_emails import build_cc_email
+        from etp_tracker.email_alerts import _send_html_digest
+        dashboard_url = str(request.base_url).rstrip("/")
+        html = build_cc_email(dashboard_url=dashboard_url)
+        ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
+                               subject_override="Covered Call ETFs AUM and Flows")
+        if ok:
+            return RedirectResponse("/admin/?digest=test_cc_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=test_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("Test CC report send failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
+@router.post("/reports/send-test-ss")
+def send_test_ss_report(request: Request):
+    """Send SS report email to relasmar@rexfin.com only."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.report_emails import build_ss_email
+        from etp_tracker.email_alerts import _send_html_digest
+        dashboard_url = str(request.base_url).rstrip("/")
+        html = build_ss_email(dashboard_url=dashboard_url)
+        ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
+                               subject_override="Single-Stock Leveraged ETFs")
+        if ok:
+            return RedirectResponse("/admin/?digest=test_ss_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=test_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("Test SS report send failed: %s", e)
         return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
 
 
