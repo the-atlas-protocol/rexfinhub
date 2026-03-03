@@ -95,9 +95,18 @@ def _load_master(db: Session) -> pd.DataFrame:
     Renames flat DB columns to prefixed names for backward compatibility with
     all existing business logic, templates, and JavaScript.
     """
-    rows = db.execute(select(MktMasterData)).scalars().all()
+    try:
+        rows = db.execute(select(MktMasterData)).scalars().all()
+    except Exception as e:
+        log.error("Failed to query mkt_master_data: %s", e)
+        rows = []
     if not rows:
-        return pd.DataFrame()
+        # Return empty DF with expected columns so downstream code doesn't KeyError
+        _EXPECTED = ["ticker", "fund_name", "issuer", "etp_category", "category_display",
+                      "issuer_display", "is_rex", "ticker_clean", "fund_type",
+                      "t_w4.aum", "t_w4.fund_flow_1week", "t_w4.fund_flow_1month",
+                      "t_w4.fund_flow_ytd"]
+        return pd.DataFrame(columns=_EXPECTED)
 
     records = []
     for r in rows:

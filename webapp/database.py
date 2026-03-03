@@ -38,7 +38,7 @@ class Base(DeclarativeBase):
 
 
 def init_db():
-    """Create all tables if they don't exist."""
+    """Create all tables if they don't exist, and migrate missing columns."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     from webapp.models import (  # noqa: F401 - import to register models
         Trust, Filing, FundExtraction, FundStatus,
@@ -46,12 +46,45 @@ def init_db():
         MktPipelineRun, MktFundMapping, MktIssuerMapping,
         MktCategoryAttributes, MktExclusion, MktRexFund,
         MktMasterData, MktTimeSeries, MktReportCache, MktStockData,
-        MktFundClassification, MktMarketStatus,
+        MktFundClassification, MktMarketStatus, MktGlobalEtp,
         Institution, Holding, CusipMapping,
         TrustRequest, DigestSubscriber,
         FilingAlert, TrustCandidate,
     )
     Base.metadata.create_all(bind=engine)
+    _migrate_missing_columns()
+
+
+def _migrate_missing_columns():
+    """Add columns that exist in models but not yet in SQLite tables.
+
+    SQLAlchemy create_all() only creates new tables, not new columns on
+    existing ones. This runs ALTER TABLE ADD COLUMN for anything missing.
+    """
+    import sqlite3
+    conn = sqlite3.connect(str(DB_PATH))
+    try:
+        cur = conn.cursor()
+        for table in Base.metadata.sorted_tables:
+            # Get existing columns in the SQLite table
+            cur.execute(f"PRAGMA table_info('{table.name}')")
+            existing = {row[1] for row in cur.fetchall()}
+            if not existing:
+                continue  # table doesn't exist yet (create_all handles it)
+            # Add any missing columns
+            for col in table.columns:
+                if col.name not in existing:
+                    col_type = col.type.compile(dialect=engine.dialect)
+                    try:
+                        cur.execute(
+                            f"ALTER TABLE '{table.name}' ADD COLUMN "
+                            f"'{col.name}' {col_type}"
+                        )
+                    except sqlite3.OperationalError:
+                        pass  # column already exists (race condition)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_db():
