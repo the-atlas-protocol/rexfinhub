@@ -296,6 +296,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% if available %}
 <script>
 // Segment tab switching
 document.querySelectorAll('.segment-tabs').forEach(function(tabGroup) {
@@ -481,4 +482,5 @@ document.querySelectorAll('.segment-tabs').forEach(function(tabGroup) {
   }
 })();
 </script>
+{% endif %}
 {% endblock %}

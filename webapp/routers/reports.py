@@ -35,7 +35,8 @@ def li_report(request: Request):
         log.error("L&I report error: %s", e, exc_info=True)
         return templates.TemplateResponse("reports/leveraged_inverse.html", {
             "request": request, "active_tab": "li",
-            "available": False, "data_as_of": "", "error": str(e),
+            "available": False, "data_as_of": "", "data_as_of_short": "",
+            "error": str(e),
         })
 
 
@@ -51,7 +52,8 @@ def cc_report(request: Request):
         log.error("CC report error: %s", e, exc_info=True)
         return templates.TemplateResponse("reports/covered_call.html", {
             "request": request, "active_tab": "cc",
-            "available": False, "data_as_of": "", "error": str(e),
+            "available": False, "data_as_of": "", "data_as_of_short": "",
+            "error": str(e),
         })
 
 
@@ -67,5 +69,6 @@ def ss_report(request: Request):
         log.error("SS report error: %s", e, exc_info=True)
         return templates.TemplateResponse("reports/single_stock.html", {
             "request": request, "active_tab": "ss",
-            "available": False, "data_as_of": "", "error": str(e),
+            "available": False, "data_as_of": "", "data_as_of_short": "",
+            "error": str(e),
         })

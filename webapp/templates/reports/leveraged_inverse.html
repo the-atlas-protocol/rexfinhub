@@ -173,6 +173,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% if available %}
 <script>
 (function() {
   var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -313,4 +314,5 @@
   }
 })();
 </script>
+{% endif %}
 {% endblock %}

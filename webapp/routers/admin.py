@@ -644,6 +644,41 @@ async def upload_dashboard(request: Request, file: UploadFile = File(...)):
         return JSONResponse({"error": "Upload failed. Check server logs."}, status_code=500)
 
 
+@router.post("/upload/bloomberg")
+async def upload_bloomberg(request: Request, file: UploadFile = File(...)):
+    """Upload bloomberg_daily_file.xlsm to data/DASHBOARD/ on the persistent disk."""
+    if not _is_admin(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=403)
+
+    dest = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with dest.open("wb") as f:
+            shutil.copyfileobj(file.file, f)
+        size_mb = dest.stat().st_size / 1_048_576
+
+        # Invalidate report cache so next request re-reads the new file
+        try:
+            from webapp.services.report_data import invalidate_cache
+            invalidate_cache()
+        except Exception as e:
+            log.warning("Could not invalidate report_data cache: %s", e)
+
+        # Also invalidate market data cache (shares same underlying data)
+        try:
+            from webapp.services.market_data import invalidate_cache as invalidate_market
+            invalidate_market()
+        except Exception as e:
+            log.warning("Could not invalidate market_data cache: %s", e)
+
+        log.info("Bloomberg daily file uploaded: %.1f MB -> %s", size_mb, dest)
+        return JSONResponse({"ok": True, "path": str(dest), "size_mb": round(size_mb, 2)})
+    except Exception as e:
+        log.error("Bloomberg daily file upload failed: %s", e, exc_info=True)
+        return JSONResponse({"error": "Upload failed. Check server logs."}, status_code=500)
+
+
 @router.post("/upload/screener-cache")
 async def upload_screener_cache(request: Request, file: UploadFile = File(...)):
     """Upload a pre-computed screener cache.json directly into memory + disk."""

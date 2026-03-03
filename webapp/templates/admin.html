@@ -209,6 +209,42 @@
 
   </div>
 
+  <!-- Bloomberg Data Upload -->
+  <div style="border:1px solid #dee2e6; border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
+    <strong style="font-size:14px;">Bloomberg Data Upload</strong>
+    <p style="font-size:12px; color:var(--muted); margin:4px 0 12px;">Upload <code>bloomberg_daily_file.xlsm</code> to power the report pages on Render.</p>
+    <form id="bbgUploadForm" style="display:flex; gap:8px; align-items:center;">
+      <input type="file" id="bbgFile" accept=".xlsm,.xlsx" style="font-size:12px;">
+      <button type="submit" class="btn btn-sm" style="background:#0984e3; color:white; border:none; font-size:12px; padding:4px 12px;">Upload</button>
+      <span id="bbgStatus" style="font-size:12px; color:var(--muted);"></span>
+    </form>
+    <script>
+    document.getElementById('bbgUploadForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fileInput = document.getElementById('bbgFile');
+      var status = document.getElementById('bbgStatus');
+      if (!fileInput.files.length) { status.textContent = 'Select a file first.'; return; }
+      status.textContent = 'Uploading...';
+      var fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      try {
+        var resp = await fetch('/admin/upload/bloomberg', { method: 'POST', body: fd });
+        var data = await resp.json();
+        if (data.ok) {
+          status.textContent = 'Uploaded ' + data.size_mb + ' MB. Caches cleared.';
+          status.style.color = '#27ae60';
+        } else {
+          status.textContent = 'Error: ' + (data.error || 'Unknown');
+          status.style.color = '#e74c3c';
+        }
+      } catch(err) {
+        status.textContent = 'Upload failed: ' + err.message;
+        status.style.color = '#e74c3c';
+      }
+    });
+    </script>
+  </div>
+
   <!-- Bloomberg Reports (locked until confirmed) -->
   <div style="border:1px solid #dee2e6; border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">

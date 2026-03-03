@@ -113,6 +113,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% if available %}
 <script>
 (function() {
   var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -266,4 +267,5 @@
   makeLineChart('chartVolUnderlier', volumeCharts.by_underlier);
 })();
 </script>
+{% endif %}
 {% endblock %}
