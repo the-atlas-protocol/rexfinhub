@@ -38,9 +38,24 @@ _REX_SUITE_NAMES = {
     "Leverage & Inverse - Unknown/Miscellaneous": "L&I Other",
 }
 
+# File resolution: prefer The Dashboard.xlsx (has q_master_data), fallback to data_engine build
 _LOCAL_DATA = Path(r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - Rex Financial LLC\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx")
 _FALLBACK_DATA = Path("data/DASHBOARD/The Dashboard.xlsx")
-DATA_FILE = _LOCAL_DATA if _LOCAL_DATA.exists() else _FALLBACK_DATA
+
+
+def _resolve_market_data_file() -> Path:
+    for candidate in [_LOCAL_DATA, _FALLBACK_DATA]:
+        if candidate.exists():
+            try:
+                with open(candidate, "rb") as f:
+                    f.read(4)
+                return candidate
+            except PermissionError:
+                continue
+    return _FALLBACK_DATA
+
+
+DATA_FILE = _resolve_market_data_file()
 
 #  Cache 
 _lock = threading.Lock()
@@ -70,10 +85,38 @@ def get_data_as_of() -> str:
 
 
 def _load_fresh() -> dict[str, Any]:
-    """Load all required sheets from Excel."""
-    log.info("Loading The Dashboard.xlsx ")
-    master = pd.read_excel(DATA_FILE, sheet_name="q_master_data", engine="openpyxl")
-    ts = pd.read_excel(DATA_FILE, sheet_name="q_aum_time_series_labeled", engine="openpyxl")
+    """Load all required sheets from Excel, or build via data_engine."""
+    log.info("Loading market data from %s", DATA_FILE)
+
+    # Check available sheets
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(DATA_FILE, read_only=True, data_only=True)
+        available_sheets = set(wb.sheetnames)
+        wb.close()
+    except Exception as e:
+        log.error("Cannot open market data file: %s", e)
+        return {"master": pd.DataFrame(), "ts": pd.DataFrame()}
+
+    if "q_master_data" in available_sheets:
+        # Direct read from pre-computed Power Query output
+        master = pd.read_excel(DATA_FILE, sheet_name="q_master_data", engine="openpyxl")
+        ts_sheet = "q_aum_time_series_labeled" if "q_aum_time_series_labeled" in available_sheets else None
+        ts = pd.read_excel(DATA_FILE, sheet_name=ts_sheet, engine="openpyxl") if ts_sheet else pd.DataFrame()
+    elif "data_import" in available_sheets:
+        # Build from raw sheets using data_engine
+        log.info("No q_master_data sheet, building via data_engine...")
+        try:
+            from webapp.services.data_engine import build_all
+            result = build_all(DATA_FILE)
+            master = result.get("master", pd.DataFrame())
+            ts = result.get("ts", pd.DataFrame())
+        except Exception as e:
+            log.error("data_engine build failed: %s", e)
+            return {"master": pd.DataFrame(), "ts": pd.DataFrame()}
+    else:
+        log.warning("Data file has neither q_master_data nor data_import sheet")
+        return {"master": pd.DataFrame(), "ts": pd.DataFrame()}
 
     # Normalise booleans that may come in as object columns
     for col in ("is_rex",):

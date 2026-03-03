@@ -25,38 +25,47 @@ def reports_index():
 
 @router.get("/li")
 def li_report(request: Request):
-    svc = _svc()
     try:
+        svc = _svc()
         data = svc.get_li_report()
+        return templates.TemplateResponse("reports/leveraged_inverse.html", {
+            "request": request, "active_tab": "li", **data,
+        })
     except Exception as e:
         log.error("L&I report error: %s", e, exc_info=True)
-        data = {"available": False, "data_as_of": "", "error": str(e)}
-    return templates.TemplateResponse("reports/leveraged_inverse.html", {
-        "request": request, "active_tab": "li", **data,
-    })
+        return templates.TemplateResponse("reports/leveraged_inverse.html", {
+            "request": request, "active_tab": "li",
+            "available": False, "data_as_of": "", "error": str(e),
+        })
 
 
 @router.get("/cc")
 def cc_report(request: Request):
-    svc = _svc()
     try:
+        svc = _svc()
         data = svc.get_cc_report()
+        return templates.TemplateResponse("reports/covered_call.html", {
+            "request": request, "active_tab": "cc", **data,
+        })
     except Exception as e:
         log.error("CC report error: %s", e, exc_info=True)
-        data = {"available": False, "data_as_of": "", "error": str(e)}
-    return templates.TemplateResponse("reports/covered_call.html", {
-        "request": request, "active_tab": "cc", **data,
-    })
+        return templates.TemplateResponse("reports/covered_call.html", {
+            "request": request, "active_tab": "cc",
+            "available": False, "data_as_of": "", "error": str(e),
+        })
 
 
 @router.get("/ss")
 def ss_report(request: Request):
-    svc = _svc()
     try:
+        svc = _svc()
         data = svc.get_ss_report()
+        return templates.TemplateResponse("reports/single_stock.html", {
+            "request": request, "active_tab": "ss", **data,
+        })
     except Exception as e:
         log.error("SS report error: %s", e, exc_info=True)
-        data = {"available": False, "data_as_of": "", "error": str(e)}
-    return templates.TemplateResponse("reports/single_stock.html", {
-        "request": request, "active_tab": "ss", **data,
-    })
+        return templates.TemplateResponse("reports/single_stock.html", {
+            "request": request, "active_tab": "ss",
+            "available": False, "data_as_of": "", "error": str(e),
+        })

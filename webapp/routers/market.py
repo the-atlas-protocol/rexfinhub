@@ -708,7 +708,11 @@ def _build_white_space(df) -> dict:
         for _, row in li_df.iterrows():
             underlier = str(row.get(li_underlier, "")).strip()
             direction = str(row.get(li_direction, "Long")).strip()
-            leverage = int(float(row.get(li_leverage, 2) or 2))
+            try:
+                lev_raw = row.get(li_leverage, 2) or 2
+                leverage = int(float(str(lev_raw).replace("x", "").replace("X", "").strip() or "2"))
+            except (ValueError, TypeError):
+                leverage = 2
             aum = float(row.get(aum_col, 0) or 0)
             is_rex = bool(row.get("is_rex", False))
             ticker = str(row.get("ticker_clean", row.get("ticker", "")))

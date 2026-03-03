@@ -108,11 +108,31 @@ def _load_all() -> dict[str, Any]:
 
     log.info("Loading report data from %s", path)
 
+    # Check which sheets are available
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        available_sheets = set(wb.sheetnames)
+        wb.close()
+    except Exception as e:
+        log.error("Cannot open data file %s: %s", path, e)
+        return {"available": False}
+
+    required = {"w1", "w2", "w3", "w4"}
+    if not required.issubset(available_sheets):
+        missing = required - available_sheets
+        log.warning("Data file missing required sheets %s: %s", missing, path)
+        return {"available": False}
+
     # Read w1-w4
-    w1 = pd.read_excel(path, sheet_name="w1", engine="openpyxl")
-    w2 = pd.read_excel(path, sheet_name="w2", engine="openpyxl")
-    w3 = pd.read_excel(path, sheet_name="w3", engine="openpyxl")
-    w4_raw = pd.read_excel(path, sheet_name="w4", engine="openpyxl")
+    try:
+        w1 = pd.read_excel(path, sheet_name="w1", engine="openpyxl")
+        w2 = pd.read_excel(path, sheet_name="w2", engine="openpyxl")
+        w3 = pd.read_excel(path, sheet_name="w3", engine="openpyxl")
+        w4_raw = pd.read_excel(path, sheet_name="w4", engine="openpyxl")
+    except Exception as e:
+        log.error("Error reading sheets from %s: %s", path, e)
+        return {"available": False}
 
     # Rename w1 columns
     w1 = w1.rename(columns=W1_COL_MAP)
