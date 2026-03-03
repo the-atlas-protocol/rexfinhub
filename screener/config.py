@@ -4,8 +4,16 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _LOCAL_DATA = Path(r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - Rex Financial LLC\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx")
 _SCREENER_DATA = PROJECT_ROOT / "data" / "SCREENER" / "data.xlsx"
+_BLOOMBERG_DAILY = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
 _LEGACY_DATA = PROJECT_ROOT / "data" / "DASHBOARD" / "The Dashboard.xlsx"
-DATA_FILE = _LOCAL_DATA if _LOCAL_DATA.exists() else (_SCREENER_DATA if _SCREENER_DATA.exists() else _LEGACY_DATA)
+
+def _resolve_data_file() -> Path:
+    for p in (_LOCAL_DATA, _SCREENER_DATA, _BLOOMBERG_DAILY, _LEGACY_DATA):
+        if p.exists():
+            return p
+    return _LEGACY_DATA
+
+DATA_FILE = _resolve_data_file()
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
 # --- Scoring weights (data-driven from correlation analysis, n=64 underliers) ---

@@ -28,9 +28,13 @@ def _resolve_path(path: Path | str | None = None) -> Path:
 
 
 def load_stock_data(path: Path | str | None = None) -> pd.DataFrame:
-    """Load stock_data sheet (US equity universe)."""
+    """Load stock_data sheet (US equity universe). Falls back to s1 sheet."""
     p = _resolve_path(path)
-    df = pd.read_excel(p, sheet_name="stock_data", engine="openpyxl")
+    try:
+        df = pd.read_excel(p, sheet_name="stock_data", engine="openpyxl")
+    except ValueError:
+        df = pd.read_excel(p, sheet_name="s1", engine="openpyxl")
+        log.info("Fell back to s1 sheet for stock_data")
     log.info("stock_data loaded: %d rows x %d cols", len(df), len(df.columns))
 
     # Drop rows with missing tickers (trailing empty rows in Excel)
@@ -65,15 +69,23 @@ def load_stock_data(path: Path | str | None = None) -> pd.DataFrame:
 
 
 def load_etp_data(path: Path | str | None = None) -> pd.DataFrame:
-    """Load etp_data sheet (full US ETP universe, all columns)."""
+    """Load etp_data sheet (full US ETP universe, all columns).
+    Falls back to q_master_data, then builds from w1-w4 via data_engine."""
     p = _resolve_path(path)
-    # Try etp_data first (data/SCREENER/data.xlsx), fall back to q_master_data (The Dashboard.xlsx)
+    # Try etp_data first, then q_master_data, then build from w1-w4
     try:
         df = pd.read_excel(p, sheet_name="etp_data", engine="openpyxl")
         log.info("etp_data loaded: %d rows x %d cols", len(df), len(df.columns))
     except ValueError:
-        df = pd.read_excel(p, sheet_name="q_master_data", engine="openpyxl")
-        log.info("q_master_data loaded: %d rows x %d cols", len(df), len(df.columns))
+        try:
+            df = pd.read_excel(p, sheet_name="q_master_data", engine="openpyxl")
+            log.info("q_master_data loaded: %d rows x %d cols", len(df), len(df.columns))
+        except ValueError:
+            log.info("No etp_data/q_master_data sheet, building from w1-w4 via data_engine")
+            from webapp.services.data_engine import build_all
+            result = build_all(p)
+            df = result.get("master", pd.DataFrame())
+            log.info("etp_data built from data_engine: %d rows x %d cols", len(df), len(df.columns))
 
     # Normalize underlier ticker
     underlier_col = "q_category_attributes.map_li_underlier"
