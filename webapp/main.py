@@ -110,7 +110,11 @@ templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
 
 def _prewarm_screener_cache() -> None:
-    """Pre-warm screener cache in a background thread."""
+    """Pre-warm screener cache in a background thread (skipped on Render)."""
+    import os
+    if os.environ.get("RENDER"):
+        log.info("Skipping screener cache warm-up on Render (memory constrained).")
+        return
     from webapp.services.screener_3x_cache import warm_cache
     import threading
     t = threading.Thread(target=warm_cache, name="screener-cache-warm", daemon=True)
