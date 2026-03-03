@@ -87,9 +87,16 @@ def load_etp_data(path: Path | str | None = None) -> pd.DataFrame:
             df = result.get("master", pd.DataFrame())
             log.info("etp_data built from data_engine: %d rows x %d cols", len(df), len(df.columns))
 
-    # Normalize underlier ticker
-    underlier_col = "q_category_attributes.map_li_underlier"
-    if underlier_col in df.columns:
+    # Normalize underlier ticker (column name varies by data source)
+    underlier_col = None
+    for candidate in ["q_category_attributes.map_li_underlier", "map_li_underlier"]:
+        if candidate in df.columns:
+            underlier_col = candidate
+            break
+    if underlier_col:
+        # Alias to canonical name for downstream consumers
+        if underlier_col != "q_category_attributes.map_li_underlier":
+            df["q_category_attributes.map_li_underlier"] = df[underlier_col]
         df["underlier_clean"] = df[underlier_col].fillna("").str.replace(r"\s+US$", "", regex=True)
 
     return df
