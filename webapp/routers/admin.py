@@ -379,7 +379,7 @@ def send_test_morning_brief(request: Request, db: Session = Depends(get_db)):
 # --- Bloomberg Report Emails (L&I, CC, SS) ---
 
 @router.get("/reports/preview-li")
-def preview_li_report(request: Request):
+def preview_li_report(request: Request, db: Session = Depends(get_db)):
     """Preview L&I report email in browser."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
@@ -387,7 +387,7 @@ def preview_li_report(request: Request):
     try:
         from webapp.services.report_emails import build_li_email
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_li_email(dashboard_url=dashboard_url)
+        html = build_li_email(dashboard_url=dashboard_url, db=db)
         return HTMLResponse(content=html)
     except Exception as e:
         log.error("L&I email preview failed: %s", e, exc_info=True)
@@ -395,7 +395,7 @@ def preview_li_report(request: Request):
 
 
 @router.get("/reports/preview-cc")
-def preview_cc_report(request: Request):
+def preview_cc_report(request: Request, db: Session = Depends(get_db)):
     """Preview CC report email in browser."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
@@ -403,7 +403,7 @@ def preview_cc_report(request: Request):
     try:
         from webapp.services.report_emails import build_cc_email
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_cc_email(dashboard_url=dashboard_url)
+        html = build_cc_email(dashboard_url=dashboard_url, db=db)
         return HTMLResponse(content=html)
     except Exception as e:
         log.error("CC email preview failed: %s", e, exc_info=True)
@@ -411,7 +411,7 @@ def preview_cc_report(request: Request):
 
 
 @router.get("/reports/preview-ss")
-def preview_ss_report(request: Request):
+def preview_ss_report(request: Request, db: Session = Depends(get_db)):
     """Preview SS report email in browser."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
@@ -419,7 +419,7 @@ def preview_ss_report(request: Request):
     try:
         from webapp.services.report_emails import build_ss_email
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_ss_email(dashboard_url=dashboard_url)
+        html = build_ss_email(dashboard_url=dashboard_url, db=db)
         return HTMLResponse(content=html)
     except Exception as e:
         log.error("SS email preview failed: %s", e, exc_info=True)
@@ -427,7 +427,7 @@ def preview_ss_report(request: Request):
 
 
 @router.post("/reports/send-test-li")
-def send_test_li_report(request: Request):
+def send_test_li_report(request: Request, db: Session = Depends(get_db)):
     """Send L&I report email to relasmar@rexfin.com only."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
@@ -435,7 +435,7 @@ def send_test_li_report(request: Request):
         from webapp.services.report_emails import build_li_email
         from etp_tracker.email_alerts import _send_html_digest
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_li_email(dashboard_url=dashboard_url)
+        html = build_li_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
                                subject_override="U.S. Leveraged & Inverse ETP Report")
         if ok:
@@ -448,7 +448,7 @@ def send_test_li_report(request: Request):
 
 
 @router.post("/reports/send-test-cc")
-def send_test_cc_report(request: Request):
+def send_test_cc_report(request: Request, db: Session = Depends(get_db)):
     """Send CC report email to relasmar@rexfin.com only."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
@@ -456,7 +456,7 @@ def send_test_cc_report(request: Request):
         from webapp.services.report_emails import build_cc_email
         from etp_tracker.email_alerts import _send_html_digest
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_cc_email(dashboard_url=dashboard_url)
+        html = build_cc_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
                                subject_override="Covered Call ETFs AUM and Flows")
         if ok:
@@ -469,7 +469,7 @@ def send_test_cc_report(request: Request):
 
 
 @router.post("/reports/send-test-ss")
-def send_test_ss_report(request: Request):
+def send_test_ss_report(request: Request, db: Session = Depends(get_db)):
     """Send SS report email to relasmar@rexfin.com only."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
@@ -477,7 +477,7 @@ def send_test_ss_report(request: Request):
         from webapp.services.report_emails import build_ss_email
         from etp_tracker.email_alerts import _send_html_digest
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_ss_email(dashboard_url=dashboard_url)
+        html = build_ss_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
                                subject_override="Single-Stock Leveraged ETFs")
         if ok:
@@ -617,79 +617,10 @@ def ticker_qc(request: Request, db: Session = Depends(get_db)):
 
 
 # --- Data File Upload ---
-
-@router.post("/upload/dashboard")
-async def upload_dashboard(request: Request, file: UploadFile = File(...)):
-    """Upload The Dashboard.xlsx to data/DASHBOARD/ on the persistent disk."""
-    if not _is_admin(request):
-        return JSONResponse({"error": "Unauthorized"}, status_code=403)
-
-    dest = PROJECT_ROOT / "data" / "DASHBOARD" / "The Dashboard.xlsx"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-
-    try:
-        with dest.open("wb") as f:
-            shutil.copyfileobj(file.file, f)
-        size_mb = dest.stat().st_size / 1_048_576
-
-        # Invalidate market data cache so next request re-reads the new file
-        try:
-            from webapp.services.market_data import invalidate_cache
-            invalidate_cache()
-        except Exception as e:
-            log.warning("Could not invalidate market_data cache: %s", e)
-
-        # Trigger screener cache rebuild in background
-        try:
-            import threading
-            from webapp.services.screener_3x_cache import compute_and_cache
-            t = threading.Thread(target=compute_and_cache, name="screener-rebuild", daemon=True)
-            t.start()
-            log.info("Screener cache rebuild started in background")
-        except Exception as e:
-            log.warning("Could not start screener rebuild: %s", e)
-
-        log.info("Dashboard uploaded: %.1f MB -> %s", size_mb, dest)
-        return JSONResponse({"ok": True, "path": str(dest), "size_mb": round(size_mb, 2)})
-    except Exception as e:
-        log.error("Dashboard upload failed: %s", e, exc_info=True)
-        return JSONResponse({"error": "Upload failed. Check server logs."}, status_code=500)
-
-
-@router.post("/upload/bloomberg")
-async def upload_bloomberg(request: Request, file: UploadFile = File(...)):
-    """Upload bloomberg_daily_file.xlsm to data/DASHBOARD/ on the persistent disk."""
-    if not _is_admin(request):
-        return JSONResponse({"error": "Unauthorized"}, status_code=403)
-
-    dest = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-
-    try:
-        with dest.open("wb") as f:
-            shutil.copyfileobj(file.file, f)
-        size_mb = dest.stat().st_size / 1_048_576
-
-        # Invalidate report cache so next request re-reads the new file
-        try:
-            from webapp.services.report_data import invalidate_cache
-            invalidate_cache()
-        except Exception as e:
-            log.warning("Could not invalidate report_data cache: %s", e)
-
-        # Also invalidate market data cache (shares same underlying data)
-        try:
-            from webapp.services.market_data import invalidate_cache as invalidate_market
-            invalidate_market()
-        except Exception as e:
-            log.warning("Could not invalidate market_data cache: %s", e)
-
-        log.info("Bloomberg daily file uploaded: %.1f MB -> %s", size_mb, dest)
-        return JSONResponse({"ok": True, "path": str(dest), "size_mb": round(size_mb, 2)})
-    except Exception as e:
-        log.error("Bloomberg daily file upload failed: %s", e, exc_info=True)
-        return JSONResponse({"error": "Upload failed. Check server logs."}, status_code=500)
-
+# NOTE: Bloomberg upload removed (2026-03-03).  Market data is synced to
+# SQLite locally via run_daily.py -> market_sync.sync_market_data(), then the
+# DB is uploaded to Render.  Uploading the Excel file to Render does nothing
+# since all routes read from SQLite.
 
 @router.post("/upload/screener-cache")
 async def upload_screener_cache(request: Request, file: UploadFile = File(...)):

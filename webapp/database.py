@@ -45,7 +45,7 @@ def init_db():
         NameHistory, AnalysisResult, PipelineRun,
         MktPipelineRun, MktFundMapping, MktIssuerMapping,
         MktCategoryAttributes, MktExclusion, MktRexFund,
-        MktMasterData, MktTimeSeries, MktStockData,
+        MktMasterData, MktTimeSeries, MktReportCache, MktStockData,
         MktFundClassification, MktMarketStatus,
         Institution, Holding, CusipMapping,
         TrustRequest, DigestSubscriber,

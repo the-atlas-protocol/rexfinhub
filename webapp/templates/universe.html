@@ -52,19 +52,13 @@
       <option value="{{ val }}" {% if regulatory_act == val %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    <select name="source" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
-      <option value="">All Sources</option>
-      {% for val, label in source_labels.items() %}
-      <option value="{{ val }}" {% if source == val %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
     <select name="is_active" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
       <option value="">Active & Inactive</option>
       <option value="true" {% if is_active == 'true' %}selected{% endif %}>Active Only</option>
       <option value="false" {% if is_active == 'false' %}selected{% endif %}>Inactive Only</option>
     </select>
     <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-    {% if q or entity_type or regulatory_act or source or is_active %}
+    {% if q or entity_type or regulatory_act or is_active %}
     <a href="/universe/" class="btn btn-sm">Clear</a>
     {% endif %}
   </div>
@@ -88,7 +82,6 @@
       <th class="sortable" onclick="sortTable('universeTable', 4)">Filings</th>
       <th class="sortable" onclick="sortTable('universeTable', 5)">Funds</th>
       <th class="sortable" onclick="sortTable('universeTable', 6)">Last Filed</th>
-      <th class="sortable" onclick="sortTable('universeTable', 7)">Source</th>
       <th>Status</th>
     </tr>
   </thead>
@@ -112,17 +105,6 @@
       <td>{{ t.filing_count or 0 }}</td>
       <td>{{ row.fund_count }}</td>
       <td>{{ t.last_filed or '' }}</td>
-      <td>
-        {% if t.source == 'curated' %}
-        <span style="color:var(--green); font-weight:500;">Curated</span>
-        {% elif t.source == 'bulk_discovery' %}
-        <span style="color:var(--blue);">Discovered</span>
-        {% elif t.source == 'watcher' %}
-        <span style="color:var(--orange);">Watcher</span>
-        {% else %}
-        <span style="color:var(--muted);">--</span>
-        {% endif %}
-      </td>
       <td>
         {% if t.is_active %}
         <span style="color:var(--green); font-weight:600;">Active</span>
@@ -161,7 +143,7 @@
 
 {% else %}
 <div style="text-align:center; padding:40px; color:var(--muted); font-size:13px;">
-  {% if q or entity_type or regulatory_act or source %}
+  {% if q or entity_type or regulatory_act %}
   No trusts match the selected filters.
   {% else %}
   No trusts in the database. Run the import script first.

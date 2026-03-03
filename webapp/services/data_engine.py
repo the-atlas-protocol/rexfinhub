@@ -2,10 +2,13 @@
 data_engine.py -- Python replication of Excel Power Query pipeline.
 
 Replicates the transformation logic that produces q_master_data and
-q_aum_time_series_labeled from the raw input sheets in The Dashboard.xlsx.
+q_aum_time_series_labeled from the raw input sheets in bloomberg_daily_file.xlsm.
 
 Input sheets used:
-  - data_import          Raw Bloomberg fund universe (5,000+ rows, 110 cols)
+  - w1                   Base fund info (ticker, issuer, etc.)
+  - w2                   Metrics (expense ratio, spread, etc.)
+  - w3                   Returns (1D, 1W, 1M, etc.)
+  - w4                   Flows + AUM history
   - fund_mapping         Ticker -> etp_category mapping (creates duplicates for multi-category tickers)
   - issuer_mapping       (etp_category, issuer) -> issuer_nickname
   - category_mapping     Per-category attribute mappings (LI/CC/Crypto/Defined/Thematic blocks)
@@ -30,21 +33,25 @@ from datetime import datetime
 import pandas as pd
 
 # ---------------------------------------------------------------------------
-# Data file resolution
+# Data file resolution -- single source of truth: bloomberg_daily_file.xlsm
 # ---------------------------------------------------------------------------
-_LOCAL_DATA = Path(
+_ONEDRIVE_BBG_DAILY = Path(
     r"C:\Users\RyuEl-Asmar\REX Financial LLC"
     r"\REX Financial LLC - Rex Financial LLC"
-    r"\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx"
+    r"\Product Development\MasterFiles\MASTER Data\bloomberg_daily_file.xlsm"
 )
-_BLOOMBERG_DAILY = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")
-_FALLBACK_DATA = Path("data/DASHBOARD/The Dashboard.xlsx")
+_LOCAL_BBG_DAILY = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")
 
 def _resolve_engine_data_file() -> Path:
-    for p in (_LOCAL_DATA, _BLOOMBERG_DAILY, _FALLBACK_DATA):
+    for p in (_ONEDRIVE_BBG_DAILY, _LOCAL_BBG_DAILY):
         if p.exists():
-            return p
-    return _FALLBACK_DATA
+            try:
+                with open(p, "rb") as f:
+                    f.read(4)
+                return p
+            except PermissionError:
+                continue
+    return _LOCAL_BBG_DAILY
 
 DATA_FILE = _resolve_engine_data_file()
 
@@ -663,8 +670,270 @@ def build_time_series(master_df: pd.DataFrame, xl: pd.ExcelFile = None) -> pd.Da
 
 
 # ---------------------------------------------------------------------------
+# Memory optimisation helpers
+# ---------------------------------------------------------------------------
+def _optimise_master_dtypes(df: pd.DataFrame) -> None:
+    """Convert object columns to efficient dtypes in-place.
+
+    Metric columns (t_w2.*, t_w3.*, t_w4.*) become float32 (4 bytes vs ~50).
+    Low-cardinality string columns become category (~1 byte vs ~50).
+    """
+    _NUMERIC_PREFIXES = ("t_w2.", "t_w3.", "t_w4.")
+    _CATEGORY_COLS = {
+        "etp_category", "category_display", "issuer_display", "issuer",
+        "issuer_nickname", "fund_type",
+        "q_category_attributes.map_li_category",
+        "q_category_attributes.map_li_subcategory",
+        "q_category_attributes.map_li_direction",
+        "q_category_attributes.map_cc_index",
+        "q_category_attributes.map_cc_underlier",
+        "q_category_attributes.cc_type",
+        "q_category_attributes.cc_category",
+    }
+    _SENTINEL_VALUES = ("Unknown", "")
+    for col in list(df.columns):
+        if col in _CATEGORY_COLS:
+            cat = df[col].astype("category")
+            missing = [v for v in _SENTINEL_VALUES if v not in cat.cat.categories]
+            if missing:
+                cat = cat.cat.add_categories(missing)
+            df[col] = cat
+        elif df[col].dtype == object and any(col.startswith(p) for p in _NUMERIC_PREFIXES):
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("float32")
+
+
+def _optimise_ts_dtypes(ts: pd.DataFrame) -> None:
+    """Optimise time series DataFrame dtypes in-place."""
+    if "ticker" in ts.columns:
+        ts["ticker"] = ts["ticker"].astype("category")
+    if "aum_value" in ts.columns:
+        ts["aum_value"] = pd.to_numeric(
+            ts["aum_value"], errors="coerce"
+        ).astype("float32")
+    if "months_ago" in ts.columns:
+        ts["months_ago"] = ts["months_ago"].astype("int16")
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+def build_all_from_csvs(csv_dir: Path) -> dict:
+    """Build master + time series from pre-exported CSV sheets.
+
+    No openpyxl needed -- reads w1-w4 CSVs and config/rules/ CSVs.
+    Returns {"master": DataFrame, "ts": DataFrame} matching build_all() output.
+    """
+    from market.config import (
+        W1_COL_MAP, W2_COL_MAP, W3_COL_MAP, W4_FLOW_COL_MAP,
+        RULES_DIR, ATTR_PREFIX,
+    )
+    csv_dir = Path(csv_dir)
+
+    # --- Read w1-w4 CSVs -------------------------------------------------
+    w1 = pd.read_csv(csv_dir / "w1.csv", engine="python", on_bad_lines="skip")
+    w2 = pd.read_csv(csv_dir / "w2.csv", engine="python", on_bad_lines="skip")
+    w3 = pd.read_csv(csv_dir / "w3.csv", engine="python", on_bad_lines="skip")
+    w4 = pd.read_csv(csv_dir / "w4.csv", engine="python", on_bad_lines="skip")
+
+    # Drop unnamed index column that to_csv(index=True) produces
+    for sheet in [w1, w2, w3, w4]:
+        if sheet.columns[0].startswith("Unnamed"):
+            sheet.drop(columns=[sheet.columns[0]], inplace=True)
+
+    # Rename columns
+    w1 = w1.rename(columns=W1_COL_MAP)
+    if "ticker" in w1.columns:
+        w1 = w1.dropna(subset=["ticker"])
+
+    w2 = w2.rename(columns=W2_COL_MAP)
+    if "Fund Name" in w2.columns:
+        w2 = w2.drop(columns=["Fund Name"])
+
+    w3 = w3.rename(columns=W3_COL_MAP)
+    if "Fund Name" in w3.columns:
+        w3 = w3.drop(columns=["Fund Name"])
+
+    w4 = w4.rename(columns=W4_FLOW_COL_MAP)
+    if "Fund Name" in w4.columns:
+        w4 = w4.drop(columns=["Fund Name"])
+
+    # Find AUM column in w4 (first non-flow, non-ticker column)
+    for col in list(w4.columns):
+        if col not in W4_FLOW_COL_MAP.values() and col not in ("ticker", "Fund Name"):
+            w4 = w4.rename(columns={col: "aum"})
+            break
+    if "aum" not in w4.columns and len(w4.columns) > 10:
+        w4 = w4.rename(columns={w4.columns[10]: "aum"})
+
+    # Rename historical AUM columns: aum_1..aum_36
+    aum_idx = 1
+    found_aum = False
+    for col in list(w4.columns):
+        if col == "aum":
+            found_aum = True
+            continue
+        if found_aum and col not in W4_FLOW_COL_MAP.values() and col != "ticker":
+            w4 = w4.rename(columns={col: f"aum_{aum_idx}"})
+            aum_idx += 1
+
+    # --- Merge on ticker --------------------------------------------------
+    df = w1.copy()
+    for sheet_df in [w2, w3, w4]:
+        if "ticker" in sheet_df.columns:
+            merge_cols = [c for c in sheet_df.columns
+                         if c != "ticker" and c not in df.columns]
+            if merge_cols:
+                df = df.merge(sheet_df[["ticker"] + merge_cols],
+                              on="ticker", how="left")
+
+    # --- Apply t_w2/t_w3/t_w4 prefixes -----------------------------------
+    rename_map = {}
+    for field in _W2_FIELDS:
+        if field in df.columns:
+            rename_map[field] = f"t_w2.{field}"
+    for field in _W3_FIELDS:
+        if field in df.columns:
+            rename_map[field] = f"t_w3.{field}"
+    for field in _W4_FIELDS:
+        if field in df.columns:
+            rename_map[field] = f"t_w4.{field}"
+    df = df.rename(columns=rename_map)
+
+    # --- Join rules CSVs --------------------------------------------------
+    def _csv(name: str) -> pd.DataFrame:
+        p = RULES_DIR / name
+        if not p.exists():
+            return pd.DataFrame()
+        return pd.read_csv(p, engine="python", on_bad_lines="skip")
+
+    # fund_mapping -> etp_category
+    fm = _csv("fund_mapping.csv")
+    if {"ticker", "etp_category"}.issubset(fm.columns):
+        fm = fm[["ticker", "etp_category"]].dropna(subset=["ticker"])
+        fm = fm.drop_duplicates(subset=["ticker", "etp_category"])
+        df = df.merge(fm, on="ticker", how="left")
+    else:
+        df["etp_category"] = pd.NA
+
+    # issuer_mapping -> issuer_nickname / issuer_display
+    im = _csv("issuer_mapping.csv")
+    if {"etp_category", "issuer", "issuer_nickname"}.issubset(im.columns):
+        im = im[["etp_category", "issuer", "issuer_nickname"]].dropna(
+            subset=["etp_category", "issuer"])
+        im = im.drop_duplicates(subset=["etp_category", "issuer"])
+        df = df.merge(im, on=["etp_category", "issuer"], how="left")
+        df["issuer_display"] = df["issuer_nickname"].fillna(
+            df.get("issuer", ""))
+    else:
+        df["issuer_display"] = df.get("issuer", "")
+
+    # Category attribute CSVs -> q_category_attributes.* columns
+    _ATTR_FILES = {
+        "attributes_LI.csv": ["map_li_category", "map_li_subcategory",
+                              "map_li_direction", "map_li_leverage_amount",
+                              "map_li_underlier"],
+        "attributes_CC.csv": ["map_cc_underlier", "map_cc_index",
+                              "cc_type", "cc_category"],
+        "attributes_Crypto.csv": ["map_crypto_is_spot", "map_crypto_underlier"],
+        "attributes_Defined.csv": ["map_defined_category"],
+        "attributes_Thematic.csv": ["map_thematic_category"],
+    }
+    for fname, attr_cols in _ATTR_FILES.items():
+        attrs = _csv(fname)
+        if "ticker" in attrs.columns:
+            rename_a = {c: f"{ATTR_PREFIX}{c}" for c in attrs.columns
+                        if c != "ticker" and c in attr_cols}
+            attrs = attrs.rename(columns=rename_a)
+            df = df.merge(attrs, on="ticker", how="left", suffixes=("", "_dup"))
+            df = df[[c for c in df.columns if not c.endswith("_dup")]]
+
+    # rex_funds -> is_rex
+    rf = _csv("rex_funds.csv")
+    if "ticker" in rf.columns:
+        rex_set = set(rf["ticker"].dropna().astype(str).str.strip())
+        existing = df["is_rex"].map(
+            lambda v: bool(v) if pd.notna(v) else False
+        ) if "is_rex" in df.columns else False
+        df["is_rex"] = df["ticker"].isin(rex_set) | existing
+    else:
+        df["is_rex"] = False
+
+    # --- Derive category_display from etp_category + attributes -----------
+    _derive_category_display(df)
+
+    # --- Optimise dtypes to reduce memory (object -> float32/category) ----
+    _optimise_master_dtypes(df)
+
+    # --- Build time series ------------------------------------------------
+    # Deduplicate by ticker BEFORE unpivoting -- multi-category tickers have
+    # identical AUM values; unpivoting duplicates wastes ~5x memory.
+    deduped = df.drop_duplicates(subset=["ticker"], keep="first")
+    ts = _unpivot_aum(deduped)
+    _optimise_ts_dtypes(ts)
+
+    return {"master": df, "ts": ts}
+
+
+def _derive_category_display(df: pd.DataFrame) -> None:
+    """Derive category_display from etp_category + attribute columns.
+
+    Replicates what dim_fund_category provides when loaded from Excel.
+    """
+    from market.config import (
+        CAT_LI_SS, CAT_LI_INDEX, CAT_LI_OTHER,
+        CAT_CC_SS, CAT_CC_INDEX, CAT_CC_OTHER,
+        CAT_CRYPTO, CAT_DEFINED, CAT_THEMATIC, ATTR_PREFIX,
+    )
+
+    cat = df.get("etp_category", pd.Series(dtype=str)).fillna("").astype(str)
+    df["category_display"] = ""
+
+    # LI
+    li_mask = cat == "LI"
+    if li_mask.any():
+        sub_col = None
+        for c in [f"{ATTR_PREFIX}map_li_subcategory", "map_li_subcategory"]:
+            if c in df.columns:
+                sub_col = c
+                break
+        if sub_col:
+            sub = df[sub_col].fillna("").astype(str).str.lower()
+            df.loc[li_mask & sub.str.contains("single", na=False),
+                   "category_display"] = CAT_LI_SS
+            df.loc[li_mask & ~sub.str.contains("single", na=False)
+                   & (sub != "") & (sub != "nan"),
+                   "category_display"] = CAT_LI_INDEX
+            df.loc[li_mask & ((sub == "") | (sub == "nan")),
+                   "category_display"] = CAT_LI_OTHER
+        else:
+            df.loc[li_mask, "category_display"] = CAT_LI_OTHER
+
+    # CC
+    cc_mask = cat == "CC"
+    if cc_mask.any():
+        cc_col = None
+        for c in [f"{ATTR_PREFIX}cc_category", "cc_category"]:
+            if c in df.columns:
+                cc_col = c
+                break
+        if cc_col:
+            cc_val = df[cc_col].fillna("").astype(str).str.lower()
+            df.loc[cc_mask & cc_val.str.contains("single", na=False),
+                   "category_display"] = CAT_CC_SS
+            df.loc[cc_mask & ~cc_val.str.contains("single", na=False)
+                   & (cc_val != "") & (cc_val != "nan"),
+                   "category_display"] = CAT_CC_INDEX
+            df.loc[cc_mask & ((cc_val == "") | (cc_val == "nan")),
+                   "category_display"] = CAT_CC_OTHER
+        else:
+            df.loc[cc_mask, "category_display"] = CAT_CC_OTHER
+
+    # Simple mappings
+    df.loc[cat == "Crypto", "category_display"] = CAT_CRYPTO
+    df.loc[cat == "Defined", "category_display"] = CAT_DEFINED
+    df.loc[cat == "Thematic", "category_display"] = CAT_THEMATIC
+
+
 def build_all(data_file: Path = None) -> dict:
     """
     Build all outputs.

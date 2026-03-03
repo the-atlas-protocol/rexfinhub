@@ -6,7 +6,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
-# Data file resolution
+# Data file resolution -- single source of truth: bloomberg_daily_file.xlsm
 # ---------------------------------------------------------------------------
 # Primary: OneDrive MASTER Data folder (synced, Ryu updates here)
 _ONEDRIVE_BBG_DAILY = Path(
@@ -14,36 +14,19 @@ _ONEDRIVE_BBG_DAILY = Path(
     r"\REX Financial LLC - Rex Financial LLC"
     r"\Product Development\MasterFiles\MASTER Data\bloomberg_daily_file.xlsm"
 )
-_ONEDRIVE_BBG = Path(
-    r"C:\Users\RyuEl-Asmar\REX Financial LLC"
-    r"\REX Financial LLC - Rex Financial LLC"
-    r"\Product Development\MasterFiles\MASTER Data\bbg_data.xlsx"
-)
 _FALLBACK_BBG_DAILY = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
-_FALLBACK_BBG = PROJECT_ROOT / "data" / "DASHBOARD" / "bbg_data.xlsx"
-_LEGACY_ONEDRIVE = Path(
-    r"C:\Users\RyuEl-Asmar\REX Financial LLC"
-    r"\REX Financial LLC - Rex Financial LLC"
-    r"\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx"
-)
-_LEGACY_FALLBACK = PROJECT_ROOT / "data" / "DASHBOARD" / "The Dashboard.xlsx"
 
-# Resolution order: OneDrive daily -> local daily -> OneDrive bbg_data -> local bbg_data -> legacy
+# Resolution order: OneDrive daily -> local daily
 def _resolve_data_file() -> Path:
-    for candidate in [
-        _ONEDRIVE_BBG_DAILY, _FALLBACK_BBG_DAILY,
-        _ONEDRIVE_BBG, _FALLBACK_BBG,
-        _LEGACY_ONEDRIVE, _LEGACY_FALLBACK,
-    ]:
+    for candidate in [_ONEDRIVE_BBG_DAILY, _FALLBACK_BBG_DAILY]:
         if candidate.exists():
-            # Verify file is actually readable (not locked by Excel/OneDrive)
             try:
                 with open(candidate, "rb") as f:
                     f.read(4)
                 return candidate
             except PermissionError:
                 continue
-    return _LEGACY_FALLBACK
+    return _FALLBACK_BBG_DAILY
 
 DATA_FILE = _resolve_data_file()
 

@@ -1,13 +1,13 @@
 """
 One-time migration: extract current Excel mapping sheets to CSV files in data/rules/.
 
-This reads the existing Dashboard.xlsx mapping sheets (fund_mapping, issuer_mapping,
+This reads the bloomberg_daily_file.xlsm mapping sheets (fund_mapping, issuer_mapping,
 category_mapping, dim_fund_category, rex_funds) and converts them into the CSV
 format expected by the new market pipeline.
 
 Usage:
     python scripts/seed_market_rules.py
-    python scripts/seed_market_rules.py --data path/to/Dashboard.xlsx
+    python scripts/seed_market_rules.py --data path/to/bloomberg_daily_file.xlsm
     python scripts/seed_market_rules.py --dry-run
 """
 import argparse

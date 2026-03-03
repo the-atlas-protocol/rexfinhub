@@ -154,10 +154,10 @@ def _section_title(title: str, accent: str = _TEAL) -> str:
 # ---------------------------------------------------------------------------
 # L&I Report Email
 # ---------------------------------------------------------------------------
-def build_li_email(dashboard_url: str = "") -> str:
+def build_li_email(dashboard_url: str = "", db=None) -> str:
     """Build email-safe HTML for L&I report."""
     from webapp.services.report_data import get_li_report
-    data = get_li_report()
+    data = get_li_report(db)
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email("U.S. Leveraged & Inverse ETP Report", _TEAL,
@@ -167,15 +167,19 @@ def build_li_email(dashboard_url: str = "") -> str:
     kpis = data["kpis"]
     body = ""
 
-    # KPIs
-    body += _kpi_row([
+    # KPIs (5 items including WoW change)
+    kpi_items = [
         ("Total ETPs", str(kpis.get("count", 0)), _NAVY),
         ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
         ("1W Net Flow", kpis.get("flow_1w", "$0"), _GREEN if kpis.get("flow_1w_positive", True) else _RED),
         ("YTD Net Flow", kpis.get("flow_ytd", "$0"), _GREEN if kpis.get("flow_ytd_positive", True) else _RED),
-    ])
+    ]
+    wow = kpis.get("aum_change_1w", "")
+    if wow:
+        kpi_items.insert(2, ("AUM WoW", wow, _GREEN if kpis.get("aum_change_positive", True) else _RED))
+    body += _kpi_row(kpi_items)
 
-    # Provider Summary (top 15)
+    # Provider Summary (top 15 + total row)
     body += _section_title("Provider Summary")
     headers = ["Provider", "# ETPs", "AUM", "1W Flow", "1M Flow", "YTD Flow", "Share"]
     aligns = ["left", "right", "right", "right", "right", "right", "right"]
@@ -186,7 +190,15 @@ def build_li_email(dashboard_url: str = "") -> str:
             p["flow_1w_fmt"], p["flow_1m_fmt"], p["flow_ytd_fmt"],
             f'{p["market_share"]:.1f}%',
         ])
-    body += _table(headers, rows, aligns)
+    # Total row
+    total_row = data.get("total_row")
+    if total_row:
+        rows.append([
+            "TOTAL", str(total_row["count"]), total_row["aum_fmt"],
+            total_row["flow_1w_fmt"], total_row["flow_1m_fmt"], total_row["flow_ytd_fmt"],
+            "100.0%",
+        ])
+    body += _table(headers, rows, aligns, highlight_col=3)
 
     # Top 10 Inflows
     body += _section_title("Top 10 Weekly Inflows", _GREEN)
@@ -195,14 +207,14 @@ def build_li_email(dashboard_url: str = "") -> str:
     rows = []
     for f in data["top10"]:
         rows.append([f["ticker"], f["fund_name"][:35], f["issuer"][:25], f["aum_fmt"], f["flow_1w_fmt"]])
-    body += _table(headers, rows, aligns)
+    body += _table(headers, rows, aligns, highlight_col=4)
 
     # Top 10 Outflows
     body += _section_title("Top 10 Weekly Outflows", _RED)
     rows = []
     for f in data["bottom10"]:
         rows.append([f["ticker"], f["fund_name"][:35], f["issuer"][:25], f["aum_fmt"], f["flow_1w_fmt"]])
-    body += _table(headers, rows, aligns)
+    body += _table(headers, rows, aligns, highlight_col=4)
 
     return _wrap_email("U.S. Leveraged & Inverse ETP Report", _TEAL, body, dashboard_url)
 
@@ -210,10 +222,10 @@ def build_li_email(dashboard_url: str = "") -> str:
 # ---------------------------------------------------------------------------
 # Covered Call Report Email
 # ---------------------------------------------------------------------------
-def build_cc_email(dashboard_url: str = "") -> str:
+def build_cc_email(dashboard_url: str = "", db=None) -> str:
     """Build email-safe HTML for Covered Call report."""
     from webapp.services.report_data import get_cc_report
-    data = get_cc_report()
+    data = get_cc_report(db)
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email("Covered Call ETFs AUM and Flows", _TEAL,
@@ -223,24 +235,44 @@ def build_cc_email(dashboard_url: str = "") -> str:
     kpis = data["kpis"]
     body = ""
 
-    # KPIs
-    body += _kpi_row([
+    # KPIs (include WoW AUM change)
+    kpi_items = [
         ("CC Funds", str(kpis.get("count", 0)), _NAVY),
         ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
         ("1W Net Flow", kpis.get("flow_1w", "$0"), _GREEN if kpis.get("flow_1w_positive", True) else _RED),
         ("Avg Yield", kpis.get("avg_yield", "0.0%"), _TEAL),
-    ])
+    ]
+    wow = kpis.get("aum_change_1w", "")
+    if wow:
+        kpi_items.insert(2, ("AUM WoW", wow, _GREEN if kpis.get("aum_change_positive", True) else _RED))
+    body += _kpi_row(kpi_items)
+
+    # Segment Summary (AUM by category: Traditional, Synthetic, Single Stock)
+    aum_by_cat = data.get("aum_by_category", [])
+    if aum_by_cat:
+        body += _section_title("Segment Summary")
+        headers = ["Segment", "# Funds", "AUM", "1W Flow", "1M Flow", "Share"]
+        aligns = ["left", "right", "right", "right", "right", "right"]
+        rows = []
+        for c in aum_by_cat:
+            rows.append([
+                c["category"], str(c["count"]), c["aum_fmt"],
+                c["flow_1w_fmt"], c["flow_1m_fmt"],
+                f'{c["market_share"]:.1f}%',
+            ])
+        body += _table(headers, rows, aligns, highlight_col=3)
 
     # REX CC Funds
-    if data["rex_funds"]:
+    if data.get("rex_funds"):
         body += _section_title("REX Covered Call Funds", _GREEN)
-        headers = ["Ticker", "Fund Name", "AUM", "1W Flow", "1M Flow", "Yield"]
-        aligns = ["left", "left", "right", "right", "right", "right"]
+        headers = ["Ticker", "Fund Name", "AUM", "1W Flow", "1M Flow", "YTD Flow", "Yield"]
+        aligns = ["left", "left", "right", "right", "right", "right", "right"]
         rows = []
         for f in data["rex_funds"]:
             rows.append([f["ticker"], f["fund_name"][:35], f["aum_fmt"],
-                         f["flow_1w_fmt"], f["flow_1m_fmt"], f["yield_fmt"]])
-        body += _table(headers, rows, aligns)
+                         f["flow_1w_fmt"], f["flow_1m_fmt"], f["flow_ytd_fmt"],
+                         f["yield_fmt"]])
+        body += _table(headers, rows, aligns, highlight_col=3)
 
     # Top 10 by 1M Flow (All segment)
     top_all = data.get("top_flow_segments", {}).get("All", [])
@@ -251,7 +283,7 @@ def build_cc_email(dashboard_url: str = "") -> str:
         rows = []
         for f in top_all[:10]:
             rows.append([f["ticker"], f["fund_name"][:30], f["issuer"][:25], f["aum_fmt"], f["flow_1m_fmt"]])
-        body += _table(headers, rows, aligns)
+        body += _table(headers, rows, aligns, highlight_col=4)
 
     # Top 10 by Yield (All segment)
     top_yield = data.get("top_yield_segments", {}).get("All", [])
@@ -265,15 +297,16 @@ def build_cc_email(dashboard_url: str = "") -> str:
         body += _table(headers, rows, aligns)
 
     # Issuer Ranking (top 15)
-    if data["issuers"]:
+    if data.get("issuers"):
         body += _section_title("Issuer Ranking")
-        headers = ["Issuer", "# Funds", "AUM", "1W Flow", "1M Flow", "Share"]
-        aligns = ["left", "right", "right", "right", "right", "right"]
+        headers = ["Issuer", "# Funds", "AUM", "1W Flow", "1M Flow", "YTD Flow", "Share"]
+        aligns = ["left", "right", "right", "right", "right", "right", "right"]
         rows = []
         for iss in data["issuers"][:15]:
             rows.append([iss["issuer"][:30], str(iss["count"]), iss["aum_fmt"],
-                         iss["flow_1w_fmt"], iss["flow_1m_fmt"], f'{iss["market_share"]:.1f}%'])
-        body += _table(headers, rows, aligns)
+                         iss["flow_1w_fmt"], iss["flow_1m_fmt"], iss["flow_ytd_fmt"],
+                         f'{iss["market_share"]:.1f}%'])
+        body += _table(headers, rows, aligns, highlight_col=3)
 
     return _wrap_email("Covered Call ETFs AUM and Flows", _TEAL, body, dashboard_url)
 
@@ -281,10 +314,10 @@ def build_cc_email(dashboard_url: str = "") -> str:
 # ---------------------------------------------------------------------------
 # Single-Stock Report Email
 # ---------------------------------------------------------------------------
-def build_ss_email(dashboard_url: str = "") -> str:
+def build_ss_email(dashboard_url: str = "", db=None) -> str:
     """Build email-safe HTML for Single-Stock report."""
-    from webapp.services.report_data import get_ss_report, _get_cache, _fmt_currency
-    data = get_ss_report()
+    from webapp.services.report_data import get_ss_report, _fmt_currency
+    data = get_ss_report(db)
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email("Single-Stock Leveraged ETFs", _TEAL,

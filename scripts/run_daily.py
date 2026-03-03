@@ -136,6 +136,19 @@ def main():
     except Exception as e:
         print(f"  DB sync failed (non-fatal): {e}")
 
+    # Step 3.25: Sync market data to SQLite
+    print("\n[3.25/5] Syncing market data...")
+    try:
+        from webapp.services.market_sync import sync_market_data
+        db_mkt = SessionLocal()
+        try:
+            mkt_result = sync_market_data(db_mkt)
+            print(f"  Market: {mkt_result['master_rows']} funds, {mkt_result['ts_rows']} TS rows, {len(mkt_result['report_keys'])} reports cached")
+        finally:
+            db_mkt.close()
+    except Exception as e:
+        print(f"  Market sync failed (non-fatal): {e}")
+
     # Step 3.5: Rescore screener
     print("\n[3.5/5] Rescoring screener...")
     try:

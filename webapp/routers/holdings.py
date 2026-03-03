@@ -308,8 +308,8 @@ def crossover_view(
     try:
         from webapp.services import market_data as svc
 
-        if not svc.data_available():
-            error_msg = "Bloomberg data not available. Place bbg_data.xlsx in the data folder."
+        if not svc.data_available(db):
+            error_msg = "Bloomberg data not available. Place bloomberg_daily_file.xlsm in data/DASHBOARD/."
             return templates.TemplateResponse("crossover.html", {
                 "request": request,
                 "rex_products": rex_products,
@@ -323,7 +323,7 @@ def crossover_view(
                 "fmt_value": _fmt_value,
             })
 
-        master = svc.get_master_data()
+        master = svc.get_master_data(db)
 
         # Get REX products with underliers
         rex_df = master[master["is_rex"] == True].copy()
@@ -1056,11 +1056,12 @@ def api_home_kpis(db: Session = Depends(get_db)):
     weekly_flows = None
     try:
         from webapp.services.market_data import get_rex_summary
-        summary = get_rex_summary()
+        summary = get_rex_summary(db)
         if summary:
-            rex_aum = summary.get("total_aum_fmt", "--")
-            rex_aum_change_pct = summary.get("aum_mom_pct", 0)
-            weekly_flows = summary.get("flow_1w_fmt", "--")
+            kpis = summary.get("kpis", {})
+            rex_aum = kpis.get("total_aum_fmt", "--")
+            rex_aum_change_pct = kpis.get("aum_mom_pct", 0)
+            weekly_flows = kpis.get("flow_1w_fmt", "--")
     except Exception:
         log.debug("Market data unavailable for home KPIs")
 

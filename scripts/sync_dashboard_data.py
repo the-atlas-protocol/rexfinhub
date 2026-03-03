@@ -1,5 +1,5 @@
 """
-Sync The Dashboard.xlsx from OneDrive to local fallback.
+Sync bloomberg_daily_file.xlsm from OneDrive to local fallback.
 
 - Archives current fallback to data/DASHBOARD/history/ (date-stamped)
 - Copies fresh file from OneDrive
@@ -21,9 +21,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ONEDRIVE_SRC = Path(
     r"C:\Users\RyuEl-Asmar\REX Financial LLC"
     r"\REX Financial LLC - Rex Financial LLC"
-    r"\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx"
+    r"\Product Development\MasterFiles\MASTER Data\bloomberg_daily_file.xlsm"
 )
-FALLBACK_DST = PROJECT_ROOT / "data" / "DASHBOARD" / "The Dashboard.xlsx"
+FALLBACK_DST = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
 HISTORY_DIR = PROJECT_ROOT / "data" / "DASHBOARD" / "history"
 
 
@@ -46,7 +46,7 @@ def sync(force: bool = False) -> bool:
     # Archive current fallback before overwriting
     if FALLBACK_DST.exists():
         dst_mtime = datetime.fromtimestamp(FALLBACK_DST.stat().st_mtime)
-        archive_name = f"The Dashboard_{dst_mtime.strftime('%Y-%m-%d')}.xlsx"
+        archive_name = f"bbg_data_{dst_mtime.strftime('%Y-%m-%d')}.xlsm"
         archive_path = HISTORY_DIR / archive_name
 
         # Don't overwrite an existing archive for the same date
@@ -65,7 +65,7 @@ def sync(force: bool = False) -> bool:
     # Prune history older than 90 days
     cutoff = datetime.now().timestamp() - (90 * 86400)
     pruned = 0
-    for old_file in HISTORY_DIR.glob("The Dashboard_*.xlsx"):
+    for old_file in HISTORY_DIR.glob("bbg_data_*.xlsm"):
         if old_file.stat().st_mtime < cutoff:
             old_file.unlink()
             pruned += 1

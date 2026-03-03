@@ -2,13 +2,14 @@
 Market Intelligence router.
 
 Routes:
-  GET /market/            -> redirect to /market/rex
-  GET /market/rex         -> REX View (suite-by-suite performance)
-  GET /market/category    -> Category View (competitive landscape)
-  GET /market/api/rex-summary       -> JSON for REX View charts
-  GET /market/api/category-summary  -> JSON for Category View (with filters)
-  GET /market/api/time-series       -> JSON for line charts
-  GET /market/api/slicers/{cat}     -> JSON slicer options for a category
+  GET /market/                       -> redirect to /market/rex
+  GET /market/rex                    -> REX View (suite-by-suite performance)
+  GET /market/category               -> Category View (competitive landscape)
+  GET /market/underlier              -> Underlier drill-down
+  GET /market/api/rex-summary        -> JSON for REX View charts
+  GET /market/api/category-summary   -> JSON for Category View (with filters)
+  GET /market/api/time-series        -> JSON for line charts
+  GET /market/api/slicers/{cat}      -> JSON slicer options for a category
 """
 from __future__ import annotations
 
@@ -17,9 +18,12 @@ import logging
 import urllib.parse
 from typing import Any, Optional
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+from webapp.dependencies import get_db
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/market", tags=["market"])
@@ -170,10 +174,10 @@ def _enrich_summary_with_health(summary: dict, health_scores: dict):
 
 
 @router.get("/rex")
-def rex_view(request: Request, product_type: str = Query(default="All"), fund_structure: str = Query(default="ETF"), category: str = Query(default="All")):
+def rex_view(request: Request, db: Session = Depends(get_db), product_type: str = Query(default="All"), fund_structure: str = Query(default="ETF"), category: str = Query(default="All")):
     """REX View - executive dashboard by suite."""
     svc = _svc()
-    available = svc.data_available()
+    available = svc.data_available(db)
     # Filter out "Defined Outcome" from categories (no REX products)
     rex_categories = [c for c in svc.ALL_CATEGORIES if c != "Defined Outcome"]
     if not available:
@@ -182,22 +186,22 @@ def rex_view(request: Request, product_type: str = Query(default="All"), fund_st
             "available": False,
             "active_tab": "rex",
             "categories": rex_categories,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
     try:
         cat_arg = category if category != "All" else None
-        summary = svc.get_rex_summary(fund_structure=fund_structure, category=cat_arg)
+        summary = svc.get_rex_summary(db, fund_structure=fund_structure, category=cat_arg)
 
         # Compute and inject health scores
-        master = svc.get_master_data()
+        master = svc.get_master_data(db)
         health_scores = _compute_health_scores(master)
         _enrich_summary_with_health(summary, health_scores)
 
-        trend = _parse_ts(svc.get_time_series(is_rex=True, category=cat_arg, fund_type=fund_structure))
+        trend = _parse_ts(svc.get_time_series(db, is_rex=True, category=cat_arg, fund_type=fund_structure))
         # If a specific category is selected, also provide "all REX" trend for overlay
         trend_all = None
         if cat_arg:
-            trend_all = _parse_ts(svc.get_time_series(is_rex=True, fund_type=fund_structure))
+            trend_all = _parse_ts(svc.get_time_series(db, is_rex=True, fund_type=fund_structure))
         return templates.TemplateResponse("market/rex.html", {
             "request": request,
             "available": True,
@@ -209,7 +213,7 @@ def rex_view(request: Request, product_type: str = Query(default="All"), fund_st
             "fund_structure": fund_structure,
             "category": category,
             "categories": rex_categories,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
     except Exception as e:
         log.error("REX view error: %s", e, exc_info=True)
@@ -219,13 +223,14 @@ def rex_view(request: Request, product_type: str = Query(default="All"), fund_st
             "active_tab": "rex",
             "error": str(e),
             "categories": rex_categories,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
 
 
 @router.get("/category")
 def category_view(
     request: Request,
+    db: Session = Depends(get_db),
     cat: str = Query(default="All"),
     filters: str = Query(default=None),
     fund_structure: str = Query(default="ETF"),
@@ -234,7 +239,7 @@ def category_view(
 ):
     """Category View - competitive landscape with dynamic filters."""
     svc = _svc()
-    available = svc.data_available()
+    available = svc.data_available(db)
 
     # Default to first category instead of "All" (aggregating all categories is misleading)
     if cat == "All" and available:
@@ -252,7 +257,7 @@ def category_view(
             "active_tab": "category",
             "categories": svc.ALL_CATEGORIES,
             "category": cat,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
     try:
         # Build filter dict from either JSON or individual query params
@@ -268,14 +273,14 @@ def category_view(
                 filter_dict[key] = val
 
         cat_arg = cat if cat != "All" else None
-        summary = svc.get_category_summary(cat_arg, filter_dict, fund_structure=fund_structure, page=page, per_page=per_page)
+        summary = svc.get_category_summary(db, cat_arg, filter_dict, fund_structure=fund_structure, page=page, per_page=per_page)
 
         # Treemap data for this category
-        treemap_data = svc.get_treemap_data(cat_arg, fund_type=fund_structure, filters=filter_dict)
+        treemap_data = svc.get_treemap_data(db, cat_arg, fund_type=fund_structure, filters=filter_dict)
 
-        slicers = svc.get_slicer_options(cat) if cat and cat != "All" else []
-        ts_cat = _parse_ts(svc.get_time_series(category=cat_arg, filters=filter_dict))
-        ts_rex = _parse_ts(svc.get_time_series(category=cat_arg, is_rex=True, filters=filter_dict))
+        slicers = svc.get_slicer_options(db, cat) if cat and cat != "All" else []
+        ts_cat = _parse_ts(svc.get_time_series(db, category=cat_arg, filters=filter_dict))
+        ts_rex = _parse_ts(svc.get_time_series(db, category=cat_arg, is_rex=True, filters=filter_dict))
         trend = {
             "labels": ts_cat["labels"],
             "total_values": ts_cat["values"],
@@ -304,7 +309,7 @@ def category_view(
             "page": page,
             "per_page": per_page,
             "base_qs": base_qs,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
     except Exception as e:
         log.error("Category view error: %s", e, exc_info=True)
@@ -315,7 +320,7 @@ def category_view(
             "categories": svc.ALL_CATEGORIES,
             "category": cat,
             "error": str(e),
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
 
 
@@ -329,22 +334,22 @@ def treemap_view(request: Request, cat: str = Query(default="")):
 
 
 @router.get("/issuer")
-def issuer_view(request: Request, cat: str = Query(default="All"), fund_structure: str = Query(default="ETF")):
+def issuer_view(request: Request, db: Session = Depends(get_db), cat: str = Query(default="All"), fund_structure: str = Query(default="ETF")):
     svc = _svc()
-    available = svc.data_available()
+    available = svc.data_available(db)
     if not available:
         return templates.TemplateResponse("market/issuer.html", {
             "request": request, "available": False, "active_tab": "issuer",
-            "categories": svc.ALL_CATEGORIES, "data_as_of": svc.get_data_as_of(),
+            "categories": svc.ALL_CATEGORIES, "data_as_of": svc.get_data_as_of(db),
         })
     try:
         cat_arg = cat if cat != "All" else None
-        summary = svc.get_issuer_summary(cat_arg, fund_structure=fund_structure)
+        summary = svc.get_issuer_summary(db, cat_arg, fund_structure=fund_structure)
         # Trend/share data for charts (donut + 12-month trend)
         share_data = {}
         if cat_arg:
             try:
-                share_data = svc.get_issuer_share(cat_arg)
+                share_data = svc.get_issuer_share(db, cat_arg)
             except Exception:
                 pass
         return templates.TemplateResponse("market/issuer.html", {
@@ -352,7 +357,7 @@ def issuer_view(request: Request, cat: str = Query(default="All"), fund_structur
             "summary": summary, "categories": svc.ALL_CATEGORIES, "category": cat,
             "fund_structure": fund_structure,
             "share_data": share_data,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
     except Exception as e:
         log.error("Issuer view error: %s", e, exc_info=True)
@@ -360,18 +365,18 @@ def issuer_view(request: Request, cat: str = Query(default="All"), fund_structur
         return templates.TemplateResponse("market/issuer.html", {
             "request": request, "available": True, "active_tab": "issuer",
             "summary": empty_summary, "categories": svc.ALL_CATEGORIES, "category": cat,
-            "error": str(e), "data_as_of": svc.get_data_as_of(),
+            "error": str(e), "data_as_of": svc.get_data_as_of(db),
         })
 
 
 @router.get("/issuer/detail")
-def issuer_detail_view(request: Request, issuer: str = Query(default="")):
+def issuer_detail_view(request: Request, db: Session = Depends(get_db), issuer: str = Query(default="")):
     """Issuer deep-dive: all products, AUM trend, category breakdown."""
     import math
     import pandas as pd
     from datetime import datetime
     svc = _svc()
-    available = svc.data_available()
+    available = svc.data_available(db)
     issuer_data = {}
     products = []
     categories = []
@@ -384,7 +389,7 @@ def issuer_detail_view(request: Request, issuer: str = Query(default="")):
 
     if available and issuer:
         try:
-            master = svc.get_master_data()
+            master = svc.get_master_data(db)
             if not master.empty:
                 ticker_col = next((c for c in master.columns if c.lower().strip() == "ticker"), "ticker")
                 issuer_col = next((c for c in master.columns if c.lower().strip() == "issuer_display"), None)
@@ -461,7 +466,7 @@ def issuer_detail_view(request: Request, issuer: str = Query(default="")):
         "products": products,
         "categories": categories,
         "aum_trend": aum_trend,
-        "data_as_of": svc.get_data_as_of() if available else "",
+        "data_as_of": svc.get_data_as_of(db) if available else "",
         "error": error_msg,
     })
 
@@ -476,390 +481,30 @@ def share_timeline_view(request: Request, cat: str = Query(default="")):
 
 
 @router.get("/underlier")
-def underlier_view(request: Request, type: str = Query(default="income"), underlier: str = Query(default=None)):
+def underlier_view(request: Request, db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     svc = _svc()
-    available = svc.data_available()
+    available = svc.data_available(db)
     if not available:
-        return templates.TemplateResponse("market/underlier.html", {"request": request, "available": False, "active_tab": "underlier", "data_as_of": svc.get_data_as_of()})
+        return templates.TemplateResponse("market/underlier.html", {"request": request, "available": False, "active_tab": "underlier", "data_as_of": svc.get_data_as_of(db)})
     try:
-        summary = svc.get_underlier_summary(type, underlier)
+        summary = svc.get_underlier_summary(db, type, underlier)
         return templates.TemplateResponse("market/underlier.html", {
             "request": request, "available": True, "active_tab": "underlier",
             "summary": summary, "underlier_type": type, "selected_underlier": underlier,
-            "data_as_of": svc.get_data_as_of(),
+            "data_as_of": svc.get_data_as_of(db),
         })
     except Exception as e:
         log.error("Underlier view error: %s", e, exc_info=True)
-        return templates.TemplateResponse("market/underlier.html", {"request": request, "available": False, "active_tab": "underlier", "error": str(e), "data_as_of": svc.get_data_as_of()})
-
-
-# ---------- Flow Decomposition ----------
-
-_DECOMP_PERIODS = [
-    {"key": "1m", "label": "1 Month", "aum_col": "t_w4.aum_1", "flow_col": "t_w4.fund_flow_1month"},
-    {"key": "3m", "label": "3 Month", "aum_col": "t_w4.aum_3", "flow_col": "t_w4.fund_flow_3month"},
-    {"key": "6m", "label": "6 Month", "aum_col": "t_w4.aum_6", "flow_col": "t_w4.fund_flow_6month"},
-    {"key": "1y", "label": "1 Year", "aum_col": "t_w4.aum_12", "flow_col": "t_w4.fund_flow_1year"},
-]
-
-
-def _compute_flow_decomp(df, period: dict) -> list[dict]:
-    """Compute per-product flow decomposition for a period."""
-    import math
-    aum_col = period["aum_col"]
-    flow_col = period["flow_col"]
-
-    if aum_col not in df.columns or flow_col not in df.columns:
-        return []
-
-    results = []
-    for _, row in df.iterrows():
-        aum_now = float(row.get("t_w4.aum", 0) or 0)
-        aum_prior = float(row.get(aum_col, 0) or 0)
-        organic_flow = float(row.get(flow_col, 0) or 0)
-        total_change = aum_now - aum_prior
-        market_effect = total_change - organic_flow
-
-        if aum_prior == 0 and aum_now == 0:
-            continue
-
-        ticker = str(row.get("ticker_clean", row.get("ticker", "")))
-        results.append({
-            "ticker": ticker,
-            "fund_name": str(row.get("fund_name", ""))[:40],
-            "category": str(row.get("category_display", "")),
-            "issuer": str(row.get("issuer_display", "")),
-            "is_rex": bool(row.get("is_rex", False)),
-            "aum_prior": round(aum_prior, 2),
-            "aum_now": round(aum_now, 2),
-            "total_change": round(total_change, 2),
-            "organic_flow": round(organic_flow, 2),
-            "market_effect": round(market_effect, 2),
-            "flow_pct": round(organic_flow / aum_prior * 100, 2) if aum_prior > 0 else 0.0,
-            "market_pct": round(market_effect / aum_prior * 100, 2) if aum_prior > 0 else 0.0,
-        })
-    return results
-
-
-def _aggregate_decomp(products: list[dict], group_key: str) -> list[dict]:
-    """Aggregate decomposition by a group key (category or issuer)."""
-    from collections import defaultdict
-    groups: dict[str, dict] = {}
-    for p in products:
-        gk = p.get(group_key, "Unknown") or "Unknown"
-        if gk not in groups:
-            groups[gk] = {"name": gk, "aum_prior": 0, "aum_now": 0, "organic_flow": 0,
-                          "market_effect": 0, "total_change": 0, "count": 0, "has_rex": False}
-        g = groups[gk]
-        g["aum_prior"] += p["aum_prior"]
-        g["aum_now"] += p["aum_now"]
-        g["organic_flow"] += p["organic_flow"]
-        g["market_effect"] += p["market_effect"]
-        g["total_change"] += p["total_change"]
-        g["count"] += 1
-        if p.get("is_rex"):
-            g["has_rex"] = True
-
-    result = []
-    for g in groups.values():
-        g["aum_prior"] = round(g["aum_prior"], 2)
-        g["aum_now"] = round(g["aum_now"], 2)
-        g["organic_flow"] = round(g["organic_flow"], 2)
-        g["market_effect"] = round(g["market_effect"], 2)
-        g["total_change"] = round(g["total_change"], 2)
-        g["flow_pct"] = round(g["organic_flow"] / g["aum_prior"] * 100, 2) if g["aum_prior"] > 0 else 0.0
-        g["market_pct"] = round(g["market_effect"] / g["aum_prior"] * 100, 2) if g["aum_prior"] > 0 else 0.0
-        result.append(g)
-    return sorted(result, key=lambda x: abs(x["total_change"]), reverse=True)
-
-
-@router.get("/flow-decomposition")
-def flow_decomposition_redirect():
-    """Redirect to REX View (page removed)."""
-    return RedirectResponse("/market/rex", status_code=302)
-
-
-def _flow_decomposition_view_REMOVED(
-    request: Request,
-    period: str = Query(default="1m"),
-    view: str = Query(default="category"),
-    fund_structure: str = Query(default="ETF"),
-):
-    """Flow Decomposition - separate AUM changes into organic flow vs market performance."""
-    svc = _svc()
-    available = svc.data_available()
-    if not available:
-        return templates.TemplateResponse("market/flow_decomposition.html", {
-            "request": request, "available": False, "active_tab": "flow",
-            "data_as_of": svc.get_data_as_of(),
-        })
-    try:
-        df = svc.get_master_data()
-        # Filter by fund structure
-        ft_col = next((c for c in df.columns if c.lower().strip() == "fund_type"), None)
-        if ft_col and fund_structure != "all":
-            df = df[df[ft_col].isin([t.strip() for t in fund_structure.split(",")])]
-        # Deduplicate by ticker
-        if "ticker_clean" in df.columns:
-            df = df.drop_duplicates(subset=["ticker_clean"], keep="first")
-
-        # Find matching period
-        period_cfg = next((p for p in _DECOMP_PERIODS if p["key"] == period), _DECOMP_PERIODS[0])
-
-        # Compute per-product decomposition
-        products = _compute_flow_decomp(df, period_cfg)
-
-        # Category and issuer aggregates
-        by_category = _aggregate_decomp(products, "category")
-        by_issuer = _aggregate_decomp(products, "issuer")
-
-        # Overall totals
-        total_aum_prior = sum(p["aum_prior"] for p in products)
-        total_aum_now = sum(p["aum_now"] for p in products)
-        total_organic = sum(p["organic_flow"] for p in products)
-        total_market = sum(p["market_effect"] for p in products)
-        total_change = total_aum_now - total_aum_prior
-
-        # REX-only totals
-        rex_products = [p for p in products if p.get("is_rex")]
-        rex_organic = sum(p["organic_flow"] for p in rex_products)
-        rex_market = sum(p["market_effect"] for p in rex_products)
-        rex_change = sum(p["total_change"] for p in rex_products)
-
-        # Top movers by organic flow (top 10 inflows + top 10 outflows)
-        sorted_by_flow = sorted(products, key=lambda x: x["organic_flow"], reverse=True)
-        top_inflows = [p for p in sorted_by_flow[:10] if p["organic_flow"] > 0]
-        top_outflows = [p for p in sorted_by_flow[-10:] if p["organic_flow"] < 0]
-        top_outflows.reverse()
-
-        # Waterfall chart data (category level)
-        waterfall_labels = [c["name"][:25] for c in by_category[:8]]
-        waterfall_flows = [c["organic_flow"] for c in by_category[:8]]
-        waterfall_market = [c["market_effect"] for c in by_category[:8]]
-
-        from webapp.services.market_data import _fmt_currency, _fmt_flow
-
-        return templates.TemplateResponse("market/flow_decomposition.html", {
-            "request": request,
-            "available": True,
-            "active_tab": "flow",
-            "period": period,
-            "period_label": period_cfg["label"],
-            "periods": _DECOMP_PERIODS,
-            "view": view,
-            "fund_structure": fund_structure,
-            "products": sorted(products, key=lambda x: abs(x["total_change"]), reverse=True)[:100],
-            "by_category": by_category,
-            "by_issuer": by_issuer,
-            "total": {
-                "aum_prior": round(total_aum_prior, 2),
-                "aum_prior_fmt": _fmt_currency(total_aum_prior),
-                "aum_now": round(total_aum_now, 2),
-                "aum_now_fmt": _fmt_currency(total_aum_now),
-                "organic_flow": round(total_organic, 2),
-                "organic_flow_fmt": _fmt_flow(total_organic),
-                "market_effect": round(total_market, 2),
-                "market_effect_fmt": _fmt_flow(total_market),
-                "total_change": round(total_change, 2),
-                "total_change_fmt": _fmt_flow(total_change),
-            },
-            "rex_total": {
-                "organic_flow": round(rex_organic, 2),
-                "organic_flow_fmt": _fmt_flow(rex_organic),
-                "market_effect": round(rex_market, 2),
-                "market_effect_fmt": _fmt_flow(rex_market),
-                "total_change": round(rex_change, 2),
-                "total_change_fmt": _fmt_flow(rex_change),
-            },
-            "top_inflows": top_inflows,
-            "top_outflows": top_outflows,
-            "waterfall": {
-                "labels": waterfall_labels,
-                "flows": waterfall_flows,
-                "market": waterfall_market,
-            },
-            "data_as_of": svc.get_data_as_of(),
-            "fmt_currency": _fmt_currency,
-            "fmt_flow": _fmt_flow,
-        })
-    except Exception as e:
-        log.error("Flow decomposition error: %s", e, exc_info=True)
-        return templates.TemplateResponse("market/flow_decomposition.html", {
-            "request": request, "available": False, "active_tab": "flow",
-            "error": str(e), "data_as_of": svc.get_data_as_of(),
-        })
-
-
-# ---------- White Space Analyzer ----------
-
-def _build_white_space(df) -> dict:
-    """Analyze product slots (underlier x direction x leverage) for gaps."""
-    import math
-    from collections import defaultdict
-
-    li_underlier = "q_category_attributes.map_li_underlier"
-    li_direction = "q_category_attributes.map_li_direction"
-    li_leverage = "q_category_attributes.map_li_leverage_amount"
-    cc_underlier = "q_category_attributes.map_cc_underlier"
-    aum_col = "t_w4.aum"
-
-    # --- L&I white space ---
-    li_df = df[df[li_underlier].notna() & (df[li_underlier].astype(str).str.strip() != "")].copy() if li_underlier in df.columns else None
-
-    slots = {}  # (underlier, direction, leverage) -> {products, aum, rex_count, ...}
-    underlier_totals = defaultdict(lambda: {"aum": 0, "products": 0})
-
-    if li_df is not None and not li_df.empty:
-        for _, row in li_df.iterrows():
-            underlier = str(row.get(li_underlier, "")).strip()
-            direction = str(row.get(li_direction, "Long")).strip()
-            try:
-                lev_raw = row.get(li_leverage, 2) or 2
-                leverage = int(float(str(lev_raw).replace("x", "").replace("X", "").strip() or "2"))
-            except (ValueError, TypeError):
-                leverage = 2
-            aum = float(row.get(aum_col, 0) or 0)
-            is_rex = bool(row.get("is_rex", False))
-            ticker = str(row.get("ticker_clean", row.get("ticker", "")))
-
-            if not underlier or underlier.upper() in ("NAN", "N/A"):
-                continue
-
-            key = (underlier, direction, leverage)
-            if key not in slots:
-                slots[key] = {"underlier": underlier, "direction": direction, "leverage": leverage,
-                              "products": [], "total_aum": 0, "rex_products": [], "rex_aum": 0}
-            slots[key]["products"].append(ticker)
-            slots[key]["total_aum"] += aum
-            if is_rex:
-                slots[key]["rex_products"].append(ticker)
-                slots[key]["rex_aum"] += aum
-
-            underlier_totals[underlier]["aum"] += aum
-            underlier_totals[underlier]["products"] += 1
-
-    # --- Generate gap opportunities ---
-    # For each underlier with existing products, check what slots are missing
-    all_underliers = set()
-    for key in slots:
-        all_underliers.add(key[0])
-
-    # Standard leverage/direction combinations to check
-    _COMBOS = [
-        ("Long", 2), ("Short", 2), ("Long", 3), ("Short", 3), ("Long", 4), ("Short", 4),
-    ]
-
-    gaps = []
-    filled = []
-    for underlier in sorted(all_underliers):
-        ut = underlier_totals[underlier]
-        for direction, leverage in _COMBOS:
-            key = (underlier, direction, leverage)
-            slot = slots.get(key)
-            has_rex = bool(slot and slot["rex_products"])
-            comp_count = len(slot["products"]) if slot else 0
-            comp_aum = slot["total_aum"] if slot else 0
-
-            # Opportunity score: higher = better opportunity
-            # Factors: underlier total AUM (market size), no REX presence, low competition
-            market_size = ut["aum"]
-            # Score: market_size * (1 if no REX else 0.2) * (1 / (1 + comp_count))
-            rex_factor = 0.2 if has_rex else 1.0
-            comp_factor = 1.0 / (1 + comp_count) if not has_rex else 0.3
-            score = market_size * rex_factor * comp_factor
-
-            entry = {
-                "underlier": underlier,
-                "direction": direction,
-                "leverage": leverage,
-                "slot_label": f"{underlier} {direction} {leverage}x",
-                "comp_count": comp_count,
-                "comp_aum": round(comp_aum, 2),
-                "has_rex": has_rex,
-                "rex_tickers": slot["rex_products"] if slot else [],
-                "comp_tickers": [t for t in (slot["products"] if slot else []) if t not in (slot["rex_products"] if slot else [])],
-                "market_size": round(market_size, 2),
-                "score": round(score, 2),
-            }
-
-            if has_rex:
-                filled.append(entry)
-            else:
-                gaps.append(entry)
-
-    gaps.sort(key=lambda x: x["score"], reverse=True)
-    filled.sort(key=lambda x: x["market_size"], reverse=True)
-
-    # --- Income white space ---
-    cc_gaps = []
-    if cc_underlier in df.columns:
-        cc_df = df[df[cc_underlier].notna() & (df[cc_underlier].astype(str).str.strip() != "")].copy()
-        if not cc_df.empty:
-            cc_slots = defaultdict(lambda: {"products": [], "aum": 0, "rex_products": [], "rex_aum": 0})
-            for _, row in cc_df.iterrows():
-                underlier = str(row.get(cc_underlier, "")).strip()
-                aum = float(row.get(aum_col, 0) or 0)
-                is_rex = bool(row.get("is_rex", False))
-                ticker = str(row.get("ticker_clean", ""))
-                if not underlier or underlier.upper() in ("NAN", "N/A"):
-                    continue
-                cc_slots[underlier]["products"].append(ticker)
-                cc_slots[underlier]["aum"] += aum
-                if is_rex:
-                    cc_slots[underlier]["rex_products"].append(ticker)
-                    cc_slots[underlier]["rex_aum"] += aum
-
-            for underlier, slot in cc_slots.items():
-                has_rex = bool(slot["rex_products"])
-                comp_count = len(slot["products"]) - len(slot["rex_products"])
-                cc_gaps.append({
-                    "underlier": underlier,
-                    "comp_count": comp_count,
-                    "total_aum": round(slot["aum"], 2),
-                    "has_rex": has_rex,
-                    "rex_tickers": slot["rex_products"],
-                    "score": round(slot["aum"] * (0.2 if has_rex else 1.0), 2),
-                })
-            cc_gaps.sort(key=lambda x: x["score"], reverse=True)
-
-    # Summary stats
-    total_gaps = len([g for g in gaps if g["comp_count"] > 0])
-    empty_slots = len([g for g in gaps if g["comp_count"] == 0 and g["market_size"] > 100])
-    rex_covered = len(filled)
-
-    return {
-        "gaps": gaps[:100],
-        "filled": filled,
-        "cc_gaps": cc_gaps[:50],
-        "total_gaps": total_gaps,
-        "empty_slots": empty_slots,
-        "rex_covered": rex_covered,
-        "total_slots": len(gaps) + len(filled),
-        "unique_underliers": len(all_underliers),
-    }
-
-
-@router.get("/whitespace")
-def whitespace_redirect():
-    """Redirect to REX View (page removed)."""
-    return RedirectResponse("/market/rex", status_code=302)
-
-
-# ---------- Revenue Model ----------
-
-@router.get("/revenue")
-def revenue_redirect():
-    """Redirect to REX View (page removed)."""
-    return RedirectResponse("/market/rex", status_code=302)
+        return templates.TemplateResponse("market/underlier.html", {"request": request, "available": False, "active_tab": "underlier", "error": str(e), "data_as_of": svc.get_data_as_of(db)})
 
 
 #  API endpoints (AJAX)
 
 @router.get("/api/rex-summary")
-def api_rex_summary():
+def api_rex_summary(db: Session = Depends(get_db)):
     try:
         svc = _svc()
-        return JSONResponse(svc.get_rex_summary())
+        return JSONResponse(svc.get_rex_summary(db))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
@@ -867,6 +512,7 @@ def api_rex_summary():
 
 @router.get("/api/category-summary")
 def api_category_summary(
+    db: Session = Depends(get_db),
     category: str = Query(default="All"),
     filters: str = Query(default=None),
 ):
@@ -874,7 +520,7 @@ def api_category_summary(
         svc = _svc()
         filter_dict = json.loads(filters) if filters else {}
         cat = category if category != "All" else None
-        data = svc.get_category_summary(cat, filter_dict)
+        data = svc.get_category_summary(db, cat, filter_dict)
         return JSONResponse(data)
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
@@ -883,6 +529,7 @@ def api_category_summary(
 
 @router.get("/api/time-series")
 def api_time_series(
+    db: Session = Depends(get_db),
     category: str = Query(default="All"),
     is_rex: str = Query(default="both"),
 ):
@@ -890,13 +537,13 @@ def api_time_series(
         svc = _svc()
         cat = category if category != "All" else None
         if is_rex == "true":
-            data = svc.get_time_series(category=cat, is_rex=True)
+            data = svc.get_time_series(db, category=cat, is_rex=True)
         elif is_rex == "false":
-            data = svc.get_time_series(category=cat, is_rex=False)
+            data = svc.get_time_series(db, category=cat, is_rex=False)
         else:
             # Return both
-            all_ts = svc.get_time_series(category=cat)
-            rex_ts = svc.get_time_series(category=cat, is_rex=True)
+            all_ts = svc.get_time_series(db, category=cat)
+            rex_ts = svc.get_time_series(db, category=cat, is_rex=True)
             data = {
                 "labels": all_ts["labels"],
                 "values_all": all_ts["values"],
@@ -909,50 +556,50 @@ def api_time_series(
 
 
 @router.get("/api/slicers/{category:path}")
-def api_slicers(category: str):
+def api_slicers(category: str, db: Session = Depends(get_db)):
     try:
         svc = _svc()
-        return JSONResponse(svc.get_slicer_options(category))
+        return JSONResponse(svc.get_slicer_options(db, category))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
 
 @router.get("/api/treemap")
-def api_treemap(category: str = Query(default="All")):
+def api_treemap(db: Session = Depends(get_db), category: str = Query(default="All")):
     try:
         svc = _svc()
         cat = category if category != "All" else None
-        return JSONResponse(svc.get_treemap_data(cat))
+        return JSONResponse(svc.get_treemap_data(db, cat))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
 
 @router.get("/api/issuer")
-def api_issuer(category: str = Query(default="All")):
+def api_issuer(db: Session = Depends(get_db), category: str = Query(default="All")):
     try:
         svc = _svc()
         cat = category if category != "All" else None
-        return JSONResponse(svc.get_issuer_summary(cat))
+        return JSONResponse(svc.get_issuer_summary(db, cat))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
 
 @router.get("/api/share")
-def api_share():
+def api_share(db: Session = Depends(get_db)):
     try:
-        return JSONResponse(_svc().get_market_share_timeline())
+        return JSONResponse(_svc().get_market_share_timeline(db))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
 
 @router.get("/api/underlier")
-def api_underlier(type: str = Query(default="income"), underlier: str = Query(default=None)):
+def api_underlier(db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     try:
-        return JSONResponse(_svc().get_underlier_summary(type, underlier))
+        return JSONResponse(_svc().get_underlier_summary(db, type, underlier))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)

@@ -30,20 +30,12 @@ _ACT_LABELS = {
     "unknown": "Unknown",
 }
 
-_SOURCE_LABELS = {
-    "curated": "Curated",
-    "bulk_discovery": "Discovered",
-    "watcher": "Watcher",
-}
-
-
 @router.get("/universe/")
 def universe(
     request: Request,
     q: str = "",
     entity_type: str = "",
     regulatory_act: str = "",
-    source: str = "",
     is_active: str = "",
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=100, ge=10, le=500),
@@ -78,8 +70,6 @@ def universe(
         query = query.where(Trust.entity_type == entity_type)
     if regulatory_act:
         query = query.where(Trust.regulatory_act == regulatory_act)
-    if source:
-        query = query.where(Trust.source == source)
     if is_active == "true":
         query = query.where(Trust.is_active == True)
     elif is_active == "false":
@@ -105,12 +95,6 @@ def universe(
     ).all()
     type_counts = {row[0] or "unknown": row[1] for row in type_counts_raw}
 
-    source_counts_raw = db.execute(
-        select(Trust.source, func.count(Trust.id))
-        .group_by(Trust.source)
-    ).all()
-    source_counts = {row[0] or "unknown": row[1] for row in source_counts_raw}
-
     total_trusts = db.execute(select(func.count(Trust.id))).scalar() or 0
 
     # Build query string for pagination
@@ -121,8 +105,6 @@ def universe(
         qs_params["entity_type"] = entity_type
     if regulatory_act:
         qs_params["regulatory_act"] = regulatory_act
-    if source:
-        qs_params["source"] = source
     if is_active:
         qs_params["is_active"] = is_active
     if per_page != 100:
@@ -135,7 +117,6 @@ def universe(
         "q": q,
         "entity_type": entity_type,
         "regulatory_act": regulatory_act,
-        "source": source,
         "is_active": is_active,
         "page": page,
         "per_page": per_page,
@@ -143,9 +124,7 @@ def universe(
         "total_pages": total_pages,
         "total_trusts": total_trusts,
         "type_counts": type_counts,
-        "source_counts": source_counts,
         "base_qs": base_qs,
         "type_labels": _TYPE_LABELS,
         "act_labels": _ACT_LABELS,
-        "source_labels": _SOURCE_LABELS,
     })

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+from webapp.dependencies import get_db
 
 log = logging.getLogger(__name__)
 
@@ -24,10 +27,10 @@ def reports_index():
 
 
 @router.get("/li")
-def li_report(request: Request):
+def li_report(request: Request, db: Session = Depends(get_db)):
     try:
         svc = _svc()
-        data = svc.get_li_report()
+        data = svc.get_li_report(db)
         return templates.TemplateResponse("reports/leveraged_inverse.html", {
             "request": request, "active_tab": "li", **data,
         })
@@ -41,10 +44,10 @@ def li_report(request: Request):
 
 
 @router.get("/cc")
-def cc_report(request: Request):
+def cc_report(request: Request, db: Session = Depends(get_db)):
     try:
         svc = _svc()
-        data = svc.get_cc_report()
+        data = svc.get_cc_report(db)
         return templates.TemplateResponse("reports/covered_call.html", {
             "request": request, "active_tab": "cc", **data,
         })
@@ -58,17 +61,5 @@ def cc_report(request: Request):
 
 
 @router.get("/ss")
-def ss_report(request: Request):
-    try:
-        svc = _svc()
-        data = svc.get_ss_report()
-        return templates.TemplateResponse("reports/single_stock.html", {
-            "request": request, "active_tab": "ss", **data,
-        })
-    except Exception as e:
-        log.error("SS report error: %s", e, exc_info=True)
-        return templates.TemplateResponse("reports/single_stock.html", {
-            "request": request, "active_tab": "ss",
-            "available": False, "data_as_of": "", "data_as_of_short": "",
-            "error": str(e),
-        })
+def ss_report():
+    return RedirectResponse("/reports/li", status_code=302)

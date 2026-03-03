@@ -11,9 +11,31 @@
   <div class="date">Export data for offline analysis</div>
 </div>
 
-<!-- Section 1: Global Live Exports -->
+<!-- Section 1: Market Data Exports -->
 <div class="section-header">
-  <h2>Live Data Exports</h2>
+  <h2>Market Data Exports</h2>
+</div>
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 6px 0; font-size:16px;">Market Master Data</h3>
+    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">Full fund universe with AUM, flows, returns, expense ratios, and category attributes.</p>
+    <a href="/downloads/export/market/master" class="btn btn-primary btn-sm">Download CSV</a>
+  </div>
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 6px 0; font-size:16px;">Category Summary</h3>
+    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">AUM and flows aggregated by category (L&I, Covered Call, Crypto, etc.).</p>
+    <a href="/downloads/export/market/category-summary" class="btn btn-primary btn-sm">Download CSV</a>
+  </div>
+  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
+    <h3 style="margin:0 0 6px 0; font-size:16px;">Issuer Summary</h3>
+    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">AUM and flows aggregated by issuer and category.</p>
+    <a href="/downloads/export/market/issuer-summary" class="btn btn-primary btn-sm">Download CSV</a>
+  </div>
+</div>
+
+<!-- Section 2: SEC Filing Exports -->
+<div class="section-header">
+  <h2>SEC Filing Exports</h2>
 </div>
 <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
   <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">

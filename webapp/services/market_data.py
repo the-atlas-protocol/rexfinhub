@@ -1,29 +1,25 @@
 ﻿"""
-Market Intelligence data loader and cache.
+Market Intelligence data service.
 
-Loads data/DASHBOARD/The Dashboard.xlsx and provides:
-- get_master_data()          -> Full fund universe (q_master_data)
-- get_rex_summary()          -> REX totals + per-suite breakdown
-- get_category_summary()     -> Category totals, REX share, top products
-- get_time_series()          -> AUM time series for charts
-- get_kpis()                 -> Calculate standard KPIs from a dataframe
-- get_slicer_options()       -> Available filter values for a category
-- invalidate_cache()         -> Clear cache (e.g. after data file update)
+Loads fund universe and time series from SQLite (mkt_master_data, mkt_time_series).
+Data is written to SQLite by market_sync.py during the local daily pipeline.
+All functions accept a SQLAlchemy Session and return dicts/DataFrames.
+No in-memory cache -- data is read from DB per request (transient, freed after).
 """
 from __future__ import annotations
 
 import json
 import logging
 import math
-import re
-import threading
-import time
-from pathlib import Path
 from typing import Any
 
 from datetime import datetime as _dt
 
 import pandas as pd
+from sqlalchemy import func, select, text
+from sqlalchemy.orm import Session
+
+from webapp.models import MktMasterData, MktPipelineRun, MktTimeSeries
 
 log = logging.getLogger(__name__)
 
@@ -38,93 +34,100 @@ _REX_SUITE_NAMES = {
     "Leverage & Inverse - Unknown/Miscellaneous": "L&I Other",
 }
 
-# File resolution: prefer The Dashboard.xlsx (has q_master_data), fallback to data_engine build
-_LOCAL_DATA = Path(r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - Rex Financial LLC\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx")
-_BLOOMBERG_DAILY = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")
-_FALLBACK_DATA = Path("data/DASHBOARD/The Dashboard.xlsx")
+# ---------------------------------------------------------------------------
+# Column mapping: flat DB names -> legacy prefixed names (backward compat)
+# ---------------------------------------------------------------------------
+_FLAT_TO_PREFIXED = {
+    # W2 metrics
+    "expense_ratio": "t_w2.expense_ratio",
+    "management_fee": "t_w2.management_fee",
+    "average_bidask_spread": "t_w2.average_bidask_spread",
+    "nav_tracking_error": "t_w2.nav_tracking_error",
+    "percentage_premium": "t_w2.percentage_premium",
+    "average_percent_premium_52week": "t_w2.average_percent_premium_52week",
+    "average_vol_30day": "t_w2.average_vol_30day",
+    "percent_short_interest": "t_w2.percent_short_interest",
+    "open_interest": "t_w2.open_interest",
+    # W3 returns
+    "total_return_1day": "t_w3.total_return_1day",
+    "total_return_1week": "t_w3.total_return_1week",
+    "total_return_1month": "t_w3.total_return_1month",
+    "total_return_3month": "t_w3.total_return_3month",
+    "total_return_6month": "t_w3.total_return_6month",
+    "total_return_ytd": "t_w3.total_return_ytd",
+    "total_return_1year": "t_w3.total_return_1year",
+    "total_return_3year": "t_w3.total_return_3year",
+    "annualized_yield": "t_w3.annualized_yield",
+    # W4 flows + AUM
+    "fund_flow_1day": "t_w4.fund_flow_1day",
+    "fund_flow_1week": "t_w4.fund_flow_1week",
+    "fund_flow_1month": "t_w4.fund_flow_1month",
+    "fund_flow_3month": "t_w4.fund_flow_3month",
+    "fund_flow_6month": "t_w4.fund_flow_6month",
+    "fund_flow_ytd": "t_w4.fund_flow_ytd",
+    "fund_flow_1year": "t_w4.fund_flow_1year",
+    "fund_flow_3year": "t_w4.fund_flow_3year",
+    "aum": "t_w4.aum",
+    # Category attributes
+    "map_li_category": "q_category_attributes.map_li_category",
+    "map_li_subcategory": "q_category_attributes.map_li_subcategory",
+    "map_li_direction": "q_category_attributes.map_li_direction",
+    "map_li_leverage_amount": "q_category_attributes.map_li_leverage_amount",
+    "map_li_underlier": "q_category_attributes.map_li_underlier",
+    "map_cc_underlier": "q_category_attributes.map_cc_underlier",
+    "map_cc_index": "q_category_attributes.map_cc_index",
+    "map_crypto_is_spot": "q_category_attributes.map_crypto_is_spot",
+    "map_crypto_underlier": "q_category_attributes.map_crypto_underlier",
+    "map_defined_category": "q_category_attributes.map_defined_category",
+    "map_thematic_category": "q_category_attributes.map_thematic_category",
+    "cc_type": "q_category_attributes.cc_type",
+    "cc_category": "q_category_attributes.cc_category",
+}
 
 
-def _resolve_market_data_file() -> Path:
-    for candidate in [_LOCAL_DATA, _BLOOMBERG_DAILY, _FALLBACK_DATA]:
-        if candidate.exists():
+# ---------------------------------------------------------------------------
+# DB -> DataFrame loaders (transient per-request, freed after)
+# ---------------------------------------------------------------------------
+def _load_master(db: Session) -> pd.DataFrame:
+    """Load mkt_master_data into a DataFrame with legacy prefixed column names.
+
+    Unpacks aum_history_json into individual t_w4.aum_1..t_w4.aum_36 columns.
+    Renames flat DB columns to prefixed names for backward compatibility with
+    all existing business logic, templates, and JavaScript.
+    """
+    rows = db.execute(select(MktMasterData)).scalars().all()
+    if not rows:
+        return pd.DataFrame()
+
+    records = []
+    for r in rows:
+        d = {c.key: getattr(r, c.key) for c in MktMasterData.__table__.columns if c.key != "id"}
+        # Unpack AUM history
+        if r.aum_history_json:
             try:
-                with open(candidate, "rb") as f:
-                    f.read(4)
-                return candidate
-            except PermissionError:
-                continue
-    return _FALLBACK_DATA
+                history = json.loads(r.aum_history_json)
+                d.update(history)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        records.append(d)
 
+    df = pd.DataFrame(records)
 
-DATA_FILE = _resolve_market_data_file()
+    # Rename flat columns to prefixed names for backward compat
+    rename = {}
+    for flat, prefixed in _FLAT_TO_PREFIXED.items():
+        if flat in df.columns:
+            rename[flat] = prefixed
+    # AUM history columns
+    for i in range(1, 37):
+        key = f"aum_{i}"
+        if key in df.columns:
+            rename[key] = f"t_w4.{key}"
+    df = df.rename(columns=rename)
 
-#  Cache 
-_lock = threading.Lock()
-_cache: dict[str, Any] = {}
-_cache_time: float = 0.0
-_CACHE_TTL = 3600  # 1 hour
-
-
-def _is_fresh() -> bool:
-    return bool(_cache) and (time.time() - _cache_time) < _CACHE_TTL
-
-
-def invalidate_cache() -> None:
-    global _cache, _cache_time
-    with _lock:
-        _cache = {}
-        _cache_time = 0.0
-    log.info("Market data cache invalidated")
-
-
-def get_data_as_of() -> str:
-    """Return file modification date as 'Feb 20, 2026' or empty string."""
-    try:
-        return _dt.fromtimestamp(DATA_FILE.stat().st_mtime).strftime("%b %d, %Y")
-    except Exception:
-        return ""
-
-
-def _load_fresh() -> dict[str, Any]:
-    """Load all required sheets from Excel, or build via data_engine."""
-    log.info("Loading market data from %s", DATA_FILE)
-
-    # Check available sheets
-    try:
-        import openpyxl
-        wb = openpyxl.load_workbook(DATA_FILE, read_only=True, data_only=True)
-        available_sheets = set(wb.sheetnames)
-        wb.close()
-    except Exception as e:
-        log.error("Cannot open market data file: %s", e)
-        return {"master": pd.DataFrame(), "ts": pd.DataFrame()}
-
-    if "q_master_data" in available_sheets:
-        # Direct read from pre-computed Power Query output
-        master = pd.read_excel(DATA_FILE, sheet_name="q_master_data", engine="openpyxl")
-        ts_sheet = "q_aum_time_series_labeled" if "q_aum_time_series_labeled" in available_sheets else None
-        ts = pd.read_excel(DATA_FILE, sheet_name=ts_sheet, engine="openpyxl") if ts_sheet else pd.DataFrame()
-    elif "data_import" in available_sheets or {"w1", "w2", "w3", "w4"}.issubset(available_sheets):
-        # Build from raw sheets using data_engine (data_import or w1-w4 format)
-        log.info("Building market data via data_engine...")
-        try:
-            from webapp.services.data_engine import build_all
-            result = build_all(DATA_FILE)
-            master = result.get("master", pd.DataFrame())
-            ts = result.get("ts", pd.DataFrame())
-        except Exception as e:
-            log.error("data_engine build failed: %s", e)
-            return {"master": pd.DataFrame(), "ts": pd.DataFrame()}
-    else:
-        log.warning("Data file has neither q_master_data nor data_import/w1-w4 sheets")
-        return {"master": pd.DataFrame(), "ts": pd.DataFrame()}
-
-    # Normalise booleans that may come in as object columns
-    for col in ("is_rex",):
-        if col in master.columns:
-            master[col] = master[col].fillna(False).astype(bool)
-    if "is_rex" in ts.columns:
-        ts["is_rex"] = ts["is_rex"].fillna(False).astype(bool)
+    # Normalize types
+    if "is_rex" in df.columns:
+        df["is_rex"] = df["is_rex"].fillna(False).astype(bool)
 
     # Numeric coercions for metric columns
     _NUMERIC = [
@@ -139,53 +142,74 @@ def _load_fresh() -> dict[str, Any]:
         "t_w2.average_vol_30day",
         "t_w2.average_bidask_spread",
     ] + [f"t_w4.aum_{i}" for i in range(1, 37)]
-
     for col in _NUMERIC:
-        if col in master.columns:
-            master[col] = pd.to_numeric(master[col], errors="coerce").fillna(0.0)
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
 
-    # Strip " US" suffix from tickers for clean matching
-    ticker_col = next((c for c in master.columns if c.lower().strip() == "ticker"), None)
-    if ticker_col:
-        master["ticker_clean"] = master[ticker_col].str.replace(r"\s+US$", "", regex=True)
-    else:
-        master["ticker_clean"] = ""
-
-    if "aum_value" in ts.columns:
-        ts["aum_value"] = pd.to_numeric(ts["aum_value"], errors="coerce").fillna(0.0)
-
-    # Date normalisation for time series
-    if "date" in ts.columns:
-        ts["date"] = pd.to_datetime(ts["date"], errors="coerce")
-
-    log.info("Loaded %d funds, %d time-series rows", len(master), len(ts))
-    return {"master": master, "ts": ts}
+    return df
 
 
-def _get_cache() -> dict[str, Any]:
-    global _cache, _cache_time
-    with _lock:
-        if _is_fresh():
-            return _cache
-    data = _load_fresh()
-    with _lock:
-        _cache = data
-        _cache_time = time.time()
-    return data
+def _load_ts(db: Session) -> pd.DataFrame:
+    """Load mkt_time_series into a DataFrame."""
+    rows = db.execute(select(MktTimeSeries)).scalars().all()
+    if not rows:
+        return pd.DataFrame()
+
+    records = []
+    for r in rows:
+        d = {c.key: getattr(r, c.key) for c in MktTimeSeries.__table__.columns if c.key != "id"}
+        records.append(d)
+
+    df = pd.DataFrame(records)
+
+    if "is_rex" in df.columns:
+        df["is_rex"] = df["is_rex"].fillna(False).astype(bool)
+    if "aum_value" in df.columns:
+        df["aum_value"] = pd.to_numeric(df["aum_value"], errors="coerce").fillna(0.0)
+
+    # Synthesize a date column from months_ago for backward compat
+    if "months_ago" in df.columns:
+        now = pd.Timestamp(_dt.now().date())
+        df["date"] = df["months_ago"].apply(lambda m: now - pd.DateOffset(months=int(m)))
+
+    return df
 
 
-#  Public helpers 
-
-def data_available() -> bool:
-    return DATA_FILE.exists()
-
-
-def get_master_data() -> pd.DataFrame:
-    return _get_cache()["master"].copy()
+# ---------------------------------------------------------------------------
+# Public helpers
+# ---------------------------------------------------------------------------
+def invalidate_cache() -> None:
+    """No-op: data is always fresh from SQLite."""
+    pass
 
 
-def get_time_series_df() -> pd.DataFrame:
-    return _get_cache()["ts"].copy()
+def data_available(db: Session) -> bool:
+    """Return True if market data exists in the database."""
+    result = db.execute(text("SELECT 1 FROM mkt_master_data LIMIT 1")).first()
+    return result is not None
+
+
+def get_data_as_of(db: Session) -> str:
+    """Return latest pipeline run date as 'Feb 20, 2026' or empty string."""
+    row = db.execute(
+        select(MktPipelineRun.finished_at)
+        .where(MktPipelineRun.status == "completed")
+        .order_by(MktPipelineRun.finished_at.desc())
+        .limit(1)
+    ).scalar()
+    if row:
+        return row.strftime("%b %d, %Y")
+    return ""
+
+
+def get_master_data(db: Session) -> pd.DataFrame:
+    """Return full fund universe as DataFrame (transient, freed after request)."""
+    return _load_master(db)
+
+
+def get_time_series_df(db: Session) -> pd.DataFrame:
+    """Return full time series as DataFrame (transient, freed after request)."""
+    return _load_ts(db)
 
 
 def _fmt_currency(val: float) -> str:
@@ -243,14 +267,15 @@ _SUITE_ORDER = [
 ]
 
 
-def get_rex_summary(fund_structure: str | None = None, category: str | None = None) -> dict:
+def get_rex_summary(db: Session, fund_structure: str | None = None, category: str | None = None) -> dict:
     """Return REX overall KPIs + per-suite breakdown.
 
     Args:
+        db: SQLAlchemy session.
         fund_structure: "ETF", "ETN", "ETF,ETN", or "all" to filter by fund type.
         category: If set (and not "All"), filter to only REX products in that category.
     """
-    df = get_master_data()
+    df = _load_master(db)
 
     # ETF/ETN filter (supports comma-separated multi-select)
     if fund_structure and fund_structure != "all":
@@ -259,7 +284,7 @@ def get_rex_summary(fund_structure: str | None = None, category: str | None = No
             types = [t.strip() for t in fund_structure.split(",") if t.strip()]
             df = df[df[fund_type_col].isin(types)].copy()
 
-    all_cats = df[df["category_display"].notna()].copy()
+    all_cats = df[df["category_display"].notna()]
     rex = df[df["is_rex"] == True].copy()
 
     # Deduplicate products by ticker (products can appear in multiple rows)
@@ -747,9 +772,9 @@ ALL_CATEGORIES = [
 ]
 
 
-def get_slicer_options(category: str) -> list[dict]:
+def get_slicer_options(db: Session, category: str) -> list[dict]:
     """Return slicer definitions + current values for a category."""
-    df = get_master_data()
+    df = _load_master(db)
     slicers = _CATEGORY_SLICERS.get(category, [])
     result = []
     for s in slicers:
@@ -768,9 +793,9 @@ def get_slicer_options(category: str) -> list[dict]:
     return result
 
 
-def get_category_summary(category: str | None, filters: dict | None = None, fund_structure: str | None = None, page: int = 1, per_page: int = 50) -> dict:
+def get_category_summary(db: Session, category: str | None, filters: dict | None = None, fund_structure: str | None = None, page: int = 1, per_page: int = 50) -> dict:
     """Return category totals, REX share, top products, issuer breakdown."""
-    df = get_master_data()
+    df = _load_master(db)
 
     # ETF/ETN filter (supports comma-separated multi-select)
     if fund_structure and fund_structure != "all":
@@ -874,7 +899,7 @@ def get_category_summary(category: str | None, filters: dict | None = None, fund
 
     # Issuer breakdown (for bar chart)
     issuer_aum = (
-        df.groupby("issuer_display")["t_w4.aum"]
+        df.groupby("issuer_display", observed=False)["t_w4.aum"]
         .sum()
         .sort_values(ascending=False)
         .head(15)
@@ -954,12 +979,12 @@ def get_category_summary(category: str | None, filters: dict | None = None, fund
 
 #  Treemap
 
-def get_treemap_data(category: str | None = None, fund_type: str | None = None, issuer_filter: str | None = None, filters: dict | None = None) -> dict:
+def get_treemap_data(db: Session, category: str | None = None, fund_type: str | None = None, issuer_filter: str | None = None, filters: dict | None = None) -> dict:
     """Return hierarchical issuer-grouped treemap data (top 200 by AUM).
 
     Returns both flat `products` list (for backward compat) and `issuers` hierarchy.
     """
-    df = get_master_data()
+    df = _load_master(db)
     if category and category != "All":
         df = df[df["category_display"].str.strip() == category.strip()].copy()
     else:
@@ -1069,9 +1094,9 @@ def get_treemap_data(category: str | None = None, fund_type: str | None = None, 
 
 #  Issuer Summary
 
-def get_issuer_summary(category: str | None = None, fund_structure: str | None = None) -> dict:
+def get_issuer_summary(db: Session, category: str | None = None, fund_structure: str | None = None) -> dict:
     """Return per-issuer AUM, flows, product count, market share."""
-    df = get_master_data()
+    df = _load_master(db)
     if category and category != "All":
         df = df[df["category_display"].str.strip() == category.strip()].copy()
     else:
@@ -1093,7 +1118,7 @@ def get_issuer_summary(category: str | None = None, fund_structure: str | None =
     rex_issuers = set(df[df["is_rex"] == True]["issuer_display"].dropna().unique())
 
     try:
-        grouped = df.groupby("issuer_display")
+        grouped = df.groupby("issuer_display", observed=False)
         issuers = []
         for issuer_name, grp in grouped:
             aum = float(grp["t_w4.aum"].sum())
@@ -1130,18 +1155,18 @@ def get_issuer_summary(category: str | None = None, fund_structure: str | None =
 
 #  Market Share Timeline
 
-def get_market_share_timeline() -> dict:
+def get_market_share_timeline(db: Session) -> dict:
     """Return monthly category market share % over last 24 months."""
-    ts = get_time_series_df()
+    ts = _load_ts(db)
 
     if ts.empty or "date" not in ts.columns or "category_display" not in ts.columns:
         return {"labels": [], "series": []}
 
-    ts = ts.dropna(subset=["date", "category_display"]).copy()
+    ts = ts.dropna(subset=["date", "category_display"])
 
     # Aggregate: for each (date, category), sum aum_value
     agg = (
-        ts.groupby(["date", "category_display"])["aum_value"]
+        ts.groupby(["date", "category_display"], observed=False)["aum_value"]
         .sum()
         .reset_index()
         .sort_values("date")
@@ -1156,7 +1181,7 @@ def get_market_share_timeline() -> dict:
     labels = [d.strftime("%b %Y") for d in dates]
 
     # For each date, compute total AUM across all categories
-    date_totals = agg.groupby("date")["aum_value"].sum()
+    date_totals = agg.groupby("date", observed=False)["aum_value"].sum()
 
     series = []
     for cat in ALL_CATEGORIES:
@@ -1178,9 +1203,9 @@ def get_market_share_timeline() -> dict:
 
 #  Issuer Market Share (per category)
 
-def get_issuer_share(cat: str) -> dict:
+def get_issuer_share(db: Session, cat: str) -> dict:
     """Issuer market share within a specific category."""
-    master = get_master_data()
+    master = _load_master(db)
     if master.empty:
         return {}
 
@@ -1196,7 +1221,7 @@ def get_issuer_share(cat: str) -> dict:
     # Replace null issuer_display
     df["issuer_display"] = df["issuer_display"].fillna("Unknown")
 
-    grouped = df.groupby("issuer_display")["t_w4.aum"].sum().sort_values(ascending=False)
+    grouped = df.groupby("issuer_display", observed=False)["t_w4.aum"].sum().sort_values(ascending=False)
     issuers = []
     for issuer_name, aum in grouped.items():
         aum_val = float(aum)
@@ -1213,7 +1238,7 @@ def get_issuer_share(cat: str) -> dict:
 
     # Trend: top 5 issuers, last 12 months from time series
     top_5_issuers = [i["name"] for i in issuers[:5]]
-    ts = get_time_series_df()
+    ts = _load_ts(db)
     trend = {"months": [], "series": []}
     pct_trend = {"months": [], "series": []}
     if not ts.empty and "date" in ts.columns and "issuer_display" in ts.columns:
@@ -1227,7 +1252,7 @@ def get_issuer_share(cat: str) -> dict:
             trend["months"] = [d.strftime("%b %Y") for d in dates]
             pct_trend["months"] = trend["months"]
             # Compute date totals for percentage calculation
-            date_totals = ts_cat.groupby("date")["aum_value"].sum()
+            date_totals = ts_cat.groupby("date", observed=False)["aum_value"].sum()
             for issuer_name in top_5_issuers:
                 issuer_ts = ts_cat[ts_cat["issuer_display"] == issuer_name]
                 values = []
@@ -1260,9 +1285,9 @@ def get_issuer_share(cat: str) -> dict:
 
 #  Underlier Deep-Dive
 
-def get_underlier_summary(underlier_type: str = "income", underlier: str | None = None) -> dict:
+def get_underlier_summary(db: Session, underlier_type: str = "income", underlier: str | None = None) -> dict:
     """Return underlier-level stats for covered call (income) or L&I single stock."""
-    df = get_master_data()
+    df = _load_master(db)
 
     if underlier_type == "income":
         cat_filter = "Income - Single Stock"
@@ -1279,7 +1304,7 @@ def get_underlier_summary(underlier_type: str = "income", underlier: str | None 
 
     if underlier is None:
         # Return list of underliers with aggregated stats
-        grouped = df.groupby(field)
+        grouped = df.groupby(field, observed=False)
         underliers = []
         for ul_name, grp in grouped:
             if not str(ul_name).strip():
@@ -1340,7 +1365,7 @@ def get_underlier_summary(underlier_type: str = "income", underlier: str | None 
                 "is_rex": bool(row.get("is_rex", False)),
             })
         underliers_list = []  # Also return the full list so UI can show selector
-        for ul_name, grp in df.groupby(field):
+        for ul_name, grp in df.groupby(field, observed=False):
             if not str(ul_name).strip():
                 continue
             underliers_list.append({
@@ -1384,7 +1409,7 @@ def get_underlier_summary(underlier_type: str = "income", underlier: str | None 
 
 #  Time Series
 
-def get_time_series(category: str | None = None, is_rex: bool | None = None, fund_type: str | None = None, filters: dict | None = None) -> dict:
+def get_time_series(db: Session, category: str | None = None, is_rex: bool | None = None, fund_type: str | None = None, filters: dict | None = None) -> dict:
     """Return aggregated monthly AUM time series for charts.
 
     Args:
@@ -1394,7 +1419,7 @@ def get_time_series(category: str | None = None, is_rex: bool | None = None, fun
                    Requires joining with master data by ticker.
         filters: Dynamic slicer filters dict (field -> value).
     """
-    ts = get_time_series_df()
+    ts = _load_ts(db)
 
     if category and category != "All":
         ts = ts[ts["category_display"] == category]
@@ -1406,7 +1431,7 @@ def get_time_series(category: str | None = None, is_rex: bool | None = None, fun
 
     # Fund type filter: join with master data to get fund_type per ticker
     if fund_type and fund_type != "all":
-        master = get_master_data()
+        master = _load_master(db)
         fund_type_col = next((c for c in master.columns if c.lower().strip() == "fund_type"), None)
         ticker_col = "ticker" if "ticker" in ts.columns else None
         if fund_type_col and ticker_col:
@@ -1416,7 +1441,7 @@ def get_time_series(category: str | None = None, is_rex: bool | None = None, fun
 
     # Dynamic slicer filters: filter by matching tickers from master data
     if filters:
-        master = get_master_data()
+        master = _load_master(db)
         filt = master.copy()
         for field, value in filters.items():
             if field in filt.columns and value:
@@ -1430,7 +1455,7 @@ def get_time_series(category: str | None = None, is_rex: bool | None = None, fun
 
     agg = (
         ts.dropna(subset=["date"])
-        .groupby("date")["aum_value"]
+        .groupby("date", observed=False)["aum_value"]
         .sum()
         .reset_index()
         .sort_values("date")
