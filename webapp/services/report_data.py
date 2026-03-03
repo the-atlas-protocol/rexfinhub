@@ -648,8 +648,8 @@ def get_li_report(db: Session | None = None) -> dict:
     data_notional = cache["data_notional"]
     rex_tickers = cache["rex_tickers"]
 
-    # Filter to LI tickers
-    li = master[master["etp_category"] == "LI"].copy()
+    # Filter to LI tickers (ETF only -- exclude ETNs)
+    li = master[(master["etp_category"] == "LI") & (master["fund_type"] == "ETF")].copy()
     if li.empty:
         return {"available": True, "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
                 "kpis": {}, "providers": [], "top10": [], "bottom10": [],
@@ -782,10 +782,14 @@ def _fund_rows(df: pd.DataFrame, total_aum: float) -> list[dict]:
         ticker = str(r.get("ticker_clean", r.get("ticker", "")))
         aum = _safe_float(r.get("aum", 0))
         issuer_display = str(r.get("issuer_display", r.get("issuer", "")))
+        # Product type: prefer explicit ss_product_type (for SS report), else derive
+        ss_type = str(r.get("ss_product_type", ""))
         direction = str(r.get("map_li_direction", "")).lower()
         leverage = _safe_float(r.get("map_li_leverage_amount", 0))
-        # Product type label
-        if direction in ("short", "inverse"):
+        if ss_type == "Covered Call":
+            ptype = "Covered Call"
+            lev_factor = ""
+        elif direction in ("short", "inverse"):
             ptype = "Inverse"
             lev_factor = f"-{leverage * 100:.0f}%" if leverage else ""
         else:
@@ -1071,11 +1075,27 @@ def get_ss_report(db: Session | None = None) -> dict:
     data_flow = cache["data_flow"]
     data_notional = cache["data_notional"]
 
-    # Filter to single-stock L&I: attributes_LI where subcategory = "Single Stock"
-    ss = master[
+    # Filter to single-stock ETFs: leveraged (LI subcategory) + covered call (CC category)
+    # ETF only -- exclude ETNs
+    ss_li = master[
         (master["etp_category"] == "LI") &
+        (master["fund_type"] == "ETF") &
         (master.get("map_li_subcategory", pd.Series(dtype=str)).str.lower() == "single stock")
     ].copy() if "map_li_subcategory" in master.columns else pd.DataFrame()
+
+    ss_cc = master[
+        (master["etp_category"] == "CC") &
+        (master["fund_type"] == "ETF") &
+        (master.get("cc_category", pd.Series(dtype=str)) == "Single Stock")
+    ].copy() if "cc_category" in master.columns else pd.DataFrame()
+
+    # Tag product type for display
+    if not ss_li.empty:
+        ss_li["ss_product_type"] = "Leveraged"
+    if not ss_cc.empty:
+        ss_cc["ss_product_type"] = "Covered Call"
+
+    ss = pd.concat([ss_li, ss_cc], ignore_index=True)
 
     if ss.empty:
         return {"available": True, "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
@@ -1088,15 +1108,30 @@ def get_ss_report(db: Session | None = None) -> dict:
     # Unique issuers and underliers
     issuers_unique = ss[issuer_col].dropna().unique().tolist()
     underlier_col = "map_li_underlier" if "map_li_underlier" in ss.columns else None
-    underliers_unique = ss[underlier_col].dropna().unique().tolist() if underlier_col else []
+    # For CC, underlier is in map_cc_underlier
+    cc_underlier_col = "map_cc_underlier" if "map_cc_underlier" in ss.columns else None
+    all_underliers = set()
+    if underlier_col:
+        all_underliers.update(ss[underlier_col].dropna().unique())
+    if cc_underlier_col:
+        all_underliers.update(ss[cc_underlier_col].dropna().unique())
+    underliers_unique = sorted(all_underliers)
     top_underlier = underliers_unique[0] if underliers_unique else "N/A"
+
+    # Segment counts for KPIs
+    num_leveraged = len(ss_li)
+    num_cc = len(ss_cc)
 
     # WoW AUM change
     aum_change_1w, aum_change_positive = _compute_aum_wow(data_aum, ss["ticker_clean"].tolist())
 
     kpis = {
         "count": len(ss),
+        "num_leveraged": num_leveraged,
+        "num_cc": num_cc,
         "total_aum": _fmt_currency(total_aum),
+        "aum_leveraged": _fmt_currency(float(ss_li["aum"].sum())) if not ss_li.empty else "$0",
+        "aum_cc": _fmt_currency(float(ss_cc["aum"].sum())) if not ss_cc.empty else "$0",
         "aum_change_1w": aum_change_1w,
         "aum_change_positive": aum_change_positive,
         "issuers": len(issuers_unique),

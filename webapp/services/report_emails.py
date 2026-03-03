@@ -230,7 +230,7 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
 
     date_str = _data_date_str(data)
     date_short = _data_date_short(data)
-    title = f"U.S. Leveraged and Inverse ETP Report: {date_short}"
+    title = f"U.S. Leveraged & Inverse ETF Report: {date_short}"
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email(title, _TEAL,
@@ -366,7 +366,7 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
 
     date_str = _data_date_str(data)
     date_short = _data_date_short(data)
-    title = f"Covered Call ETFs AUM and Flows - Week Ending {date_short}"
+    title = f"Covered Call ETF Report: {date_short}"
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email(title, _BLUE,
@@ -484,16 +484,16 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
 # Single-Stock Report Email
 # ---------------------------------------------------------------------------
 def build_ss_email(dashboard_url: str = "", db=None) -> str:
-    """Build email-safe HTML for Single-Stock Leveraged ETFs report.
+    """Build email-safe HTML for Single-Stock ETF Report.
 
-    Includes provider summary, AUM by issuer, and top movers.
+    Covers both Single-Stock Leveraged and Single-Stock Covered Call ETFs.
     """
-    from webapp.services.report_data import get_ss_report
+    from webapp.services.report_data import get_ss_report, _fmt_currency
     data = get_ss_report(db)
 
     date_str = _data_date_str(data)
     date_short = _data_date_short(data)
-    title = f"Single-Stock Leveraged ETFs - {date_short}"
+    title = f"Single-Stock ETF Report: {date_short}"
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email(title, _NAVY,
@@ -503,34 +503,17 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
     kpis = data["kpis"]
     body = ""
 
-    # KPIs
+    # KPIs — show combined + segment breakdown
     kpi_items = [
         ("SS ETFs", str(kpis.get("count", 0)), _NAVY),
         ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
-        ("Issuers", str(kpis.get("issuers", 0)), _NAVY),
-        ("Top Underlying", kpis.get("top_underlier", "N/A"), _TEAL),
+        ("Leveraged", f'{kpis.get("num_leveraged", 0)} / {kpis.get("aum_leveraged", "$0")}', _TEAL),
+        ("Covered Call", f'{kpis.get("num_cc", 0)} / {kpis.get("aum_cc", "$0")}', _BLUE),
     ]
     wow = kpis.get("aum_change_1w", "")
     if wow:
         kpi_items.insert(2, ("AUM WoW", wow, _GREEN if kpis.get("aum_change_positive", True) else _RED))
     body += _kpi_row(kpi_items)
-
-    # AUM by Issuer (table version of pie chart)
-    pie = data.get("aum_pie", {})
-    if pie.get("labels"):
-        body += _section_title("AUM Breakdown by Issuer")
-        headers = ["Issuer", "AUM", "Share"]
-        aligns = ["left", "right", "right"]
-        rows = []
-        total = sum(pie["values"])
-        rex_idxs = set()
-        for i, (label, val) in enumerate(zip(pie["labels"], pie["values"])):
-            pct = (val / total * 100) if total > 0 else 0
-            if "REX" in label.upper() or "T-REX" in label.upper():
-                rex_idxs.add(i)
-            from webapp.services.report_data import _fmt_currency
-            rows.append([label, _fmt_currency(val), f"{pct:.1f}%"])
-        body += _table(headers, rows, aligns, rex_rows=rex_idxs)
 
     # Provider Summary
     providers = data.get("providers", [])
@@ -551,23 +534,43 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
             ])
         body += _table(headers, rows, aligns, highlight_col=3, rex_rows=rex_idxs)
 
+    # AUM by Issuer
+    pie = data.get("aum_pie", {})
+    if pie.get("labels"):
+        body += _section_title("AUM Breakdown by Issuer")
+        headers = ["Issuer", "AUM", "Share"]
+        aligns = ["left", "right", "right"]
+        rows = []
+        total = sum(pie["values"])
+        rex_idxs = set()
+        for i, (label, val) in enumerate(zip(pie["labels"], pie["values"])):
+            pct = (val / total * 100) if total > 0 else 0
+            if "REX" in label.upper() or "T-REX" in label.upper():
+                rex_idxs.add(i)
+            rows.append([label, _fmt_currency(val), f"{pct:.1f}%"])
+        body += _table(headers, rows, aligns, rex_rows=rex_idxs)
+
     # Top 10 Weekly Inflows
     if data.get("top10"):
         body += _section_title("Top 10 Weekly Inflows", _GREEN)
-        headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1W Flow"]
+        headers = ["Ticker", "Fund Name", "Type", "AUM", "1W Flow"]
         aligns = ["left", "left", "left", "right", "right"]
         rows = []
         for f in data["top10"]:
-            rows.append([f["ticker"], f["fund_name"][:35], f["issuer"][:25],
+            rows.append([f["ticker"], f["fund_name"][:35],
+                         f.get("product_type", ""),
                          f["aum_fmt"], f["flow_1w_fmt"]])
         body += _table(headers, rows, aligns, highlight_col=4)
 
     # Top 10 Weekly Outflows
     if data.get("bottom10"):
         body += _section_title("Top 10 Weekly Outflows", _RED)
+        headers = ["Ticker", "Fund Name", "Type", "AUM", "1W Flow"]
+        aligns = ["left", "left", "left", "right", "right"]
         rows = []
         for f in data["bottom10"]:
-            rows.append([f["ticker"], f["fund_name"][:35], f["issuer"][:25],
+            rows.append([f["ticker"], f["fund_name"][:35],
+                         f.get("product_type", ""),
                          f["aum_fmt"], f["flow_1w_fmt"]])
         body += _table(headers, rows, aligns, highlight_col=4)
 
