@@ -37,8 +37,16 @@ _LOCAL_DATA = Path(
     r"\REX Financial LLC - Rex Financial LLC"
     r"\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx"
 )
+_BLOOMBERG_DAILY = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")
 _FALLBACK_DATA = Path("data/DASHBOARD/The Dashboard.xlsx")
-DATA_FILE = _LOCAL_DATA if _LOCAL_DATA.exists() else _FALLBACK_DATA
+
+def _resolve_engine_data_file() -> Path:
+    for p in (_LOCAL_DATA, _BLOOMBERG_DAILY, _FALLBACK_DATA):
+        if p.exists():
+            return p
+    return _FALLBACK_DATA
+
+DATA_FILE = _resolve_engine_data_file()
 
 
 def data_available() -> bool:

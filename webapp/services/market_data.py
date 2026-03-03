@@ -40,11 +40,12 @@ _REX_SUITE_NAMES = {
 
 # File resolution: prefer The Dashboard.xlsx (has q_master_data), fallback to data_engine build
 _LOCAL_DATA = Path(r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - Rex Financial LLC\Product Development\MasterFiles\MASTER Data\The Dashboard.xlsx")
+_BLOOMBERG_DAILY = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")
 _FALLBACK_DATA = Path("data/DASHBOARD/The Dashboard.xlsx")
 
 
 def _resolve_market_data_file() -> Path:
-    for candidate in [_LOCAL_DATA, _FALLBACK_DATA]:
+    for candidate in [_LOCAL_DATA, _BLOOMBERG_DAILY, _FALLBACK_DATA]:
         if candidate.exists():
             try:
                 with open(candidate, "rb") as f:
