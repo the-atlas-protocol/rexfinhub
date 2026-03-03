@@ -21,7 +21,7 @@
 
 {% if not available %}
 <div class="alert alert-warning" style="padding:1rem;background:var(--surface-2);border-radius:var(--radius-md);color:var(--text-secondary);">
-  Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in the OneDrive MASTER Data folder.
+  Report data not yet available. Run the daily pipeline to generate and cache reports.
   {% if error %}<br><small>{{ error }}</small>{% endif %}
 </div>
 {% else %}

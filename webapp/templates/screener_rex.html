@@ -8,7 +8,7 @@
     {% if upload %}
       Data as of {{ upload.uploaded_at.strftime('%b %d, %Y') }}
     {% else %}
-      No data loaded. Upload Bloomberg data from the <a href="/admin/">Admin panel</a>.
+      No data loaded. Run the daily pipeline to score Bloomberg data.
     {% endif %}
   </div>
 </div>
@@ -183,7 +183,7 @@
 {% elif not rex_track %}
 <div class="what-changed">
   <h2>No REX fund data available</h2>
-  <p>Upload Bloomberg data from the <a href="/admin/">Admin panel</a> to see REX fund performance.</p>
+  <p>Run the daily pipeline to load Bloomberg data and view REX fund performance.</p>
 </div>
 {% endif %}
 

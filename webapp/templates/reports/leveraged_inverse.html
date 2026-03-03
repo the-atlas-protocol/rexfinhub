@@ -16,11 +16,12 @@
 <div class="report-tabs">
   <a href="/reports/li" class="report-tab {% if active_tab == 'li' %}active{% endif %}">Leveraged & Inverse</a>
   <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Covered Call</a>
+  <a href="/reports/ss" class="report-tab {% if active_tab == 'ss' %}active{% endif %}">Single-Stock</a>
 </div>
 
 {% if not available %}
 <div class="alert alert-warning" style="padding:1rem;background:var(--surface-2);border-radius:var(--radius-md);color:var(--text-secondary);">
-  Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in the OneDrive MASTER Data folder.
+  Report data not yet available. Run the daily pipeline to generate and cache reports.
   {% if error %}<br><small>{{ error }}</small>{% endif %}
 </div>
 {% else %}

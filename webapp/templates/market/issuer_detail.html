@@ -5,7 +5,7 @@
 
 {% block market_content %}
 {% if not available %}
-<div class="alert alert-info">Market data not available. Upload bloomberg_daily_file.xlsm via Admin panel.</div>
+<div class="alert alert-info">Market data not yet available. Run the daily pipeline to sync Bloomberg data.</div>
 {% elif error %}
 <div class="alert alert-warning">{{ error }}</div>
 {% elif not issuer_data %}

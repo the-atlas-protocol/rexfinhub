@@ -61,5 +61,17 @@ def cc_report(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/ss")
-def ss_report():
-    return RedirectResponse("/reports/li", status_code=302)
+def ss_report(request: Request, db: Session = Depends(get_db)):
+    try:
+        svc = _svc()
+        data = svc.get_ss_report(db)
+        return templates.TemplateResponse("reports/single_stock.html", {
+            "request": request, "active_tab": "ss", **data,
+        })
+    except Exception as e:
+        log.error("SS report error: %s", e, exc_info=True)
+        return templates.TemplateResponse("reports/single_stock.html", {
+            "request": request, "active_tab": "ss",
+            "available": False, "data_as_of": "", "data_as_of_short": "",
+            "error": str(e),
+        })

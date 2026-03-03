@@ -26,7 +26,7 @@
 <div id="tab-content">
 {% if not available %}
 <div class="alert alert-warning">
-  Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in <code>data/DASHBOARD/</code>.
+  Market data not yet available. Run the daily pipeline to sync Bloomberg data.
 </div>
 {% else %}
 {% block market_content %}{% endblock %}

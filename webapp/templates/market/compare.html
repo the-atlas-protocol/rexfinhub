@@ -27,7 +27,7 @@
 {% endif %}
 
 {% if not available %}
-<div class="alert alert-warning">Bloomberg data file not found. Place <code>bloomberg_daily_file.xlsm</code> in <code>data/DASHBOARD/</code>.</div>
+<div class="alert alert-warning">Market data not yet available. Run the daily pipeline to sync Bloomberg data.</div>
 {% elif ticker_list and fund_data %}
 
 {# --- AUM Over Time Chart --- #}
