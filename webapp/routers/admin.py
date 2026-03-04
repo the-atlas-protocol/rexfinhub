@@ -421,7 +421,7 @@ def send_test_li_report(request: Request, db: Session = Depends(get_db)):
         dashboard_url = str(request.base_url).rstrip("/")
         html, images = build_li_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
-                               subject_override="U.S. Leveraged & Inverse ETP Report",
+                               subject_override="REX ETF Leveraged & Inverse Report",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=test_li_sent", status_code=303)
@@ -443,7 +443,7 @@ def send_test_cc_report(request: Request, db: Session = Depends(get_db)):
         dashboard_url = str(request.base_url).rstrip("/")
         html, images = build_cc_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
-                               subject_override="Income ETF Report",
+                               subject_override="REX ETF Income Report",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=test_cc_sent", status_code=303)
@@ -451,6 +451,56 @@ def send_test_cc_report(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         from urllib.parse import quote
         log.error("Test CC report send failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
+@router.post("/reports/send-li")
+def send_li_report(request: Request, db: Session = Depends(get_db)):
+    """Send L&I report email to all recipients."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.report_emails import build_li_email
+        from etp_tracker.email_alerts import _send_html_digest, _load_recipients
+        dashboard_url = str(request.base_url).rstrip("/")
+        html, images = build_li_email(dashboard_url=dashboard_url, db=db)
+        recipients = _load_recipients()
+        if not recipients:
+            return RedirectResponse("/admin/?digest=no_recipients", status_code=303)
+        ok = _send_html_digest(html, recipients, edition="daily",
+                               subject_override="REX ETF Leveraged & Inverse Report",
+                               images=images)
+        if ok:
+            return RedirectResponse("/admin/?digest=li_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=li_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("L&I report send-all failed: %s", e)
+        return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
+
+
+@router.post("/reports/send-cc")
+def send_cc_report(request: Request, db: Session = Depends(get_db)):
+    """Send Income report email to all recipients."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.report_emails import build_cc_email
+        from etp_tracker.email_alerts import _send_html_digest, _load_recipients
+        dashboard_url = str(request.base_url).rstrip("/")
+        html, images = build_cc_email(dashboard_url=dashboard_url, db=db)
+        recipients = _load_recipients()
+        if not recipients:
+            return RedirectResponse("/admin/?digest=no_recipients", status_code=303)
+        ok = _send_html_digest(html, recipients, edition="daily",
+                               subject_override="REX ETF Income Report",
+                               images=images)
+        if ok:
+            return RedirectResponse("/admin/?digest=cc_sent", status_code=303)
+        return RedirectResponse("/admin/?digest=cc_fail", status_code=303)
+    except Exception as e:
+        from urllib.parse import quote
+        log.error("CC report send-all failed: %s", e)
         return RedirectResponse(f"/admin/?digest=error&msg={quote(str(e)[:100])}", status_code=303)
 
 

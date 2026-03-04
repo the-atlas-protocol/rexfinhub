@@ -205,24 +205,29 @@
 
   </div>
 
-  <!-- Bloomberg Reports (locked until confirmed) -->
+  <!-- Bloomberg Reports -->
   <div style="border:1px solid #dee2e6; border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
       <strong style="font-size:14px;">Bloomberg Reports</strong>
-      <span style="background:#e74c3c; color:white; font-size:9px; padding:2px 8px; border-radius:10px; font-weight:600;">LOCKED</span>
     </div>
-    <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Preview and test only. Will not send to all until confirmed.</p>
+    <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Leveraged & Inverse and Income reports sourced from Bloomberg data.</p>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
 
       <!-- L&I Report -->
       <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
-        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Leveraged & Inverse</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a1a2e;"></span>
+          <strong style="font-size:13px;">Leveraged & Inverse</strong>
+        </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <form method="post" action="/admin/reports/send-li" onsubmit="return confirm('Send L&I report to all recipients?');">
+            <button type="submit" class="btn btn-sm" style="background:#1a1a2e; color:#fff; border:none; font-size:11px;">Send All</button>
+          </form>
           <a href="/admin/reports/preview-li" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview Email</a>
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
           <a href="/reports/li" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
           <form method="post" action="/admin/reports/send-test-li">
             <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
           </form>
@@ -231,12 +236,18 @@
 
       <!-- Income Report -->
       <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
-        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Income Report</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a1a2e;"></span>
+          <strong style="font-size:13px;">Income Report</strong>
+        </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <form method="post" action="/admin/reports/send-cc" onsubmit="return confirm('Send Income report to all recipients?');">
+            <button type="submit" class="btn btn-sm" style="background:#1a1a2e; color:#fff; border:none; font-size:11px;">Send All</button>
+          </form>
           <a href="/admin/reports/preview-cc" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview Email</a>
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
           <a href="/reports/cc" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">View Page</a>
           <form method="post" action="/admin/reports/send-test-cc">
             <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
           </form>

@@ -171,6 +171,9 @@ def _wrap_email(title: str, accent: str, body: str,
   <div style="font-size:11px;color:{_GRAY};">
     REX Financial Intelligence Hub &middot; Data sourced from Bloomberg L.P. and REX Shares, LLC
   </div>
+  <div style="font-size:10px;color:{_GRAY};margin-top:4px;font-style:italic;">
+    Note: ETNs are excluded from this report due to how Bloomberg classifies the underlying data.
+  </div>
 </td></tr>
 
 </table></td></tr></table></body></html>"""
@@ -754,8 +757,8 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
       Market Share + Issuer Breakdown + Category/Underlier Breakdown + Flows
 
     Layout:
-      1. Index / ETF / Basket segment (KPI, chart, spotlight, tables)
-      2. Single Stock segment (KPI, chart, spotlight, tables)
+      1. Single Stock segment (KPI, chart, spotlight, tables)
+      2. Index / ETF / Basket segment (KPI, chart, spotlight, tables)
     """
     date_str = _data_date_str(data)
 
@@ -768,7 +771,37 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
     body = ""
 
     # ====================================================================
-    # INDEX / ETF / BASKET SEGMENT
+    # SINGLE STOCK SEGMENT (first)
+    # ====================================================================
+    body += _section_title("Single Stock", accent)
+
+    # KPI Banner
+    body += _segment_kpi_banner(data.get("ss_kpis", {}))
+
+    # AUM Timeline Chart
+    ss_timeline = data.get("ss_aum_timeline", {})
+    if ss_timeline.get("labels"):
+        body += _aum_timeline_chart(ss_timeline, accent)
+
+    # REX Spotlight
+    ss_rex = data.get("ss_rex_funds", [])
+    if ss_rex:
+        body += _rex_spotlight(ss_rex, _GREEN)
+
+    # Market Share + Issuer + Breakdown + Flows
+    body += _segment_tables(
+        data.get("ss_issuers", []),
+        data.get("ss_top10", []),
+        data.get("ss_bottom10", []),
+        include_yield=include_yield,
+        breakdown=data.get("ss_by_underlier", []),
+        breakdown_label="Underlier",
+        breakdown_direction=is_li,
+        breakdown_type=not is_li,
+    )
+
+    # ====================================================================
+    # INDEX / ETF / BASKET SEGMENT (second)
     # ====================================================================
     body += _section_title("Index / ETF / Basket", accent)
 
@@ -797,36 +830,6 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
         breakdown_type=not is_li,
     )
 
-    # ====================================================================
-    # SINGLE STOCK SEGMENT
-    # ====================================================================
-    body += _section_title("Single Stock", _NAVY)
-
-    # KPI Banner
-    body += _segment_kpi_banner(data.get("ss_kpis", {}))
-
-    # AUM Timeline Chart
-    ss_timeline = data.get("ss_aum_timeline", {})
-    if ss_timeline.get("labels"):
-        body += _aum_timeline_chart(ss_timeline, _NAVY)
-
-    # REX Spotlight
-    ss_rex = data.get("ss_rex_funds", [])
-    if ss_rex:
-        body += _rex_spotlight(ss_rex, _GREEN)
-
-    # Market Share + Issuer + Breakdown + Flows
-    body += _segment_tables(
-        data.get("ss_issuers", []),
-        data.get("ss_top10", []),
-        data.get("ss_bottom10", []),
-        include_yield=include_yield,
-        breakdown=data.get("ss_by_underlier", []),
-        breakdown_label="Underlier",
-        breakdown_direction=is_li,
-        breakdown_type=not is_li,
-    )
-
     return _wrap_email(title, accent, body, dashboard_url, date_str)
 
 
@@ -841,11 +844,11 @@ def build_li_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     from webapp.services.report_data import get_li_report
     data = get_li_report(db)
 
-    date_short = _data_date_short(data)
-    title = f"U.S. Leveraged & Inverse ETF Report: {date_short}"
+    date_str = _data_date_str(data)
+    title = f"REX ETF Leveraged & Inverse Report - {date_str}"
 
     html = _build_report_email(
-        data, "li", title, _TEAL,
+        data, "li", title, _NAVY,
         dashboard_url=dashboard_url, include_yield=False,
     )
     return html, []
@@ -862,11 +865,11 @@ def build_cc_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     from webapp.services.report_data import get_cc_report
     data = get_cc_report(db)
 
-    date_short = _data_date_short(data)
-    title = f"Income ETF Report: {date_short}"
+    date_str = _data_date_str(data)
+    title = f"REX ETF Income Report - {date_str}"
 
     html = _build_report_email(
-        data, "cc", title, _BLUE,
+        data, "cc", title, _NAVY,
         dashboard_url=dashboard_url, include_yield=True,
     )
     return html, []
