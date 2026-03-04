@@ -396,6 +396,169 @@ def _key_highlights(data: dict, report_type: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Inline HTML charts (email-safe, no images)
+# ---------------------------------------------------------------------------
+_CHART_COLORS = ["#0984e3", "#00897B", "#e67e22", "#8e44ad", "#e74c3c",
+                 "#2ecc71", "#f39c12", "#3498db", "#1abc9c", "#e91e63"]
+
+
+def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
+                          label_key: str = "name", value_fmt_key: str = "aum_fmt",
+                          title: str = "", max_bars: int = 8,
+                          accent: str = _TEAL) -> str:
+    """Render a horizontal bar chart using pure HTML tables.
+
+    Each bar is a colored <td> with percentage width inside a fixed-width cell.
+    """
+    if not items:
+        return ""
+    items = items[:max_bars]
+    max_val = max(abs(b.get(value_key, 0)) for b in items) or 1
+
+    bars_html = ""
+    for i, b in enumerate(items):
+        val = b.get(value_key, 0)
+        pct = abs(val) / max_val * 100
+        bar_width = max(pct, 2)  # minimum visible width
+        color = _CHART_COLORS[i % len(_CHART_COLORS)]
+        label = _esc(str(b.get(label_key, ""))[:22])
+        val_display = _esc(str(b.get(value_fmt_key, "")))
+        share = f'{b.get("market_share", 0):.1f}%' if "market_share" in b else ""
+
+        bars_html += f"""<tr>
+<td style="padding:3px 0;font-size:11px;color:{_NAVY};width:100px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;">{label}</td>
+<td style="padding:3px 6px;width:100%;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+  <tr><td style="width:{bar_width:.0f}%;background:{color};height:16px;border-radius:3px;
+    font-size:0;line-height:0;">&nbsp;</td>
+  <td style="width:{100 - bar_width:.0f}%;font-size:0;">&nbsp;</td></tr>
+  </table>
+</td>
+<td style="padding:3px 4px;font-size:11px;color:{_NAVY};text-align:right;white-space:nowrap;
+  width:70px;">{val_display}</td>
+<td style="padding:3px 0;font-size:10px;color:{_GRAY};text-align:right;white-space:nowrap;
+  width:40px;">{share}</td>
+</tr>"""
+
+    title_html = ""
+    if title:
+        title_html = (f'<tr><td colspan="4" style="padding:0 0 6px;font-size:11px;'
+                      f'font-weight:600;color:{_GRAY};text-transform:uppercase;'
+                      f'letter-spacing:0.5px;">{_esc(title)}</td></tr>')
+
+    return (
+        f'<tr><td style="padding:8px 30px 10px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{_WHITE};border:1px solid {_BORDER};border-radius:8px;padding:10px 12px;">'
+        f'{title_html}{bars_html}'
+        f'</table></td></tr>'
+    )
+
+
+def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 5) -> str:
+    """Render a bi-directional flow chart: green bars right for inflows, red bars left for outflows."""
+    top_in = inflows[:n]
+    top_out = outflows[:n]
+    if not top_in and not top_out:
+        return ""
+
+    all_flows = [abs(f.get("flow_1w", 0)) for f in top_in + top_out]
+    max_flow = max(all_flows) if all_flows else 1
+
+    rows_html = ""
+    for f in top_in:
+        flow = f.get("flow_1w", 0)
+        pct = abs(flow) / max_flow * 100
+        bar_w = max(pct, 3)
+        rows_html += f"""<tr>
+<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;white-space:nowrap;">{_esc(f["ticker"])}</td>
+<td style="padding:2px 4px;width:100%;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+  <tr><td style="width:{bar_w:.0f}%;background:{_GREEN};height:14px;border-radius:3px;
+    font-size:0;">&nbsp;</td>
+  <td style="width:{100 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr>
+  </table>
+</td>
+<td style="padding:2px 0;font-size:11px;color:{_GREEN};text-align:right;white-space:nowrap;
+  width:70px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
+</tr>"""
+
+    for f in top_out:
+        flow = f.get("flow_1w", 0)
+        pct = abs(flow) / max_flow * 100
+        bar_w = max(pct, 3)
+        rows_html += f"""<tr>
+<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;white-space:nowrap;">{_esc(f["ticker"])}</td>
+<td style="padding:2px 4px;width:100%;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+  <tr><td style="width:{bar_w:.0f}%;background:{_RED};height:14px;border-radius:3px;
+    font-size:0;">&nbsp;</td>
+  <td style="width:{100 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr>
+  </table>
+</td>
+<td style="padding:2px 0;font-size:11px;color:{_RED};text-align:right;white-space:nowrap;
+  width:70px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
+</tr>"""
+
+    return (
+        f'<tr><td style="padding:8px 30px 10px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{_WHITE};border:1px solid {_BORDER};border-radius:8px;padding:10px 12px;">'
+        f'<tr><td colspan="3" style="padding:0 0 6px;font-size:11px;font-weight:600;'
+        f'color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Weekly Fund Flows</td></tr>'
+        f'{rows_html}'
+        f'</table></td></tr>'
+    )
+
+
+def _issuer_share_bars(issuers: list[dict], n: int = 6) -> str:
+    """Render a stacked market share bar for top issuers."""
+    if not issuers:
+        return ""
+    top = issuers[:n]
+    # Stacked horizontal bar
+    segments = ""
+    legend = ""
+    for i, iss in enumerate(top):
+        share = iss.get("market_share", 0)
+        color = _CHART_COLORS[i % len(_CHART_COLORS)]
+        name = _esc(iss["issuer"][:18])
+        if share >= 1:
+            segments += (f'<td style="width:{share:.1f}%;background:{color};height:22px;'
+                         f'font-size:0;line-height:0;">&nbsp;</td>')
+        legend += (f'<td style="padding:3px 6px 3px 0;font-size:10px;color:{_NAVY};'
+                   f'white-space:nowrap;">'
+                   f'<span style="display:inline-block;width:8px;height:8px;'
+                   f'background:{color};border-radius:2px;margin-right:3px;'
+                   f'vertical-align:middle;"></span>'
+                   f'{name} ({share:.0f}%)</td>')
+
+    other_share = 100 - sum(iss.get("market_share", 0) for iss in top)
+    if other_share > 1:
+        segments += (f'<td style="width:{other_share:.1f}%;background:{_BORDER};height:22px;'
+                     f'font-size:0;line-height:0;">&nbsp;</td>')
+        legend += (f'<td style="padding:3px 6px 3px 0;font-size:10px;color:{_GRAY};'
+                   f'white-space:nowrap;">'
+                   f'<span style="display:inline-block;width:8px;height:8px;'
+                   f'background:{_BORDER};border-radius:2px;margin-right:3px;'
+                   f'vertical-align:middle;"></span>'
+                   f'Other ({other_share:.0f}%)</td>')
+
+    return (
+        f'<tr><td style="padding:8px 30px 4px;">'
+        f'<div style="font-size:11px;font-weight:600;color:{_GRAY};text-transform:uppercase;'
+        f'letter-spacing:0.5px;margin-bottom:6px;">Market Share</div>'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border-collapse:collapse;border-radius:6px;overflow:hidden;">'
+        f'<tr>{segments}</tr></table>'
+        f'<table cellpadding="0" cellspacing="0" border="0" style="margin-top:6px;">'
+        f'<tr>{legend}</tr></table>'
+        f'</td></tr>'
+    )
+
+
+# ---------------------------------------------------------------------------
 # Segment section builder (shared by both emails)
 # ---------------------------------------------------------------------------
 def _breakdown_table(breakdown: list[dict], breakdown_label: str,
@@ -452,10 +615,28 @@ def _segment_section(segment_title: str, accent: str,
                      breakdown_label: str = "Category",
                      breakdown_direction: bool = False,
                      breakdown_type: bool = False) -> str:
-    """Build one segment section: attribute breakdown + issuer table + top 10 inflows/outflows."""
+    """Build one segment section: charts + tables for a full segment."""
     body = ""
     body += _section_title(segment_title, accent)
 
+    # --- Visual charts ---
+    # 1. AUM distribution bar chart for category/underlier
+    if breakdown:
+        chart_title = f"AUM by {breakdown_label}"
+        body += _horizontal_bar_chart(
+            breakdown, value_key="aum", label_key="name", value_fmt_key="aum_fmt",
+            title=chart_title, max_bars=8, accent=accent,
+        )
+
+    # 2. Issuer market share stacked bar
+    if issuers:
+        body += _issuer_share_bars(issuers, n=6)
+
+    # 3. Weekly flow direction bars
+    if top10 or bottom10:
+        body += _flow_bars(top10, bottom10, n=5)
+
+    # --- Data tables ---
     # Attribute breakdown table (category or underlier)
     if breakdown:
         body += _breakdown_table(
