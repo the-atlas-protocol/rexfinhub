@@ -185,13 +185,13 @@
   <!-- Daily + Weekly (editable) -->
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
 
-    <!-- Daily Brief -->
+    <!-- Daily Filing Report -->
     <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white);">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
         <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00897B;"></span>
-        <strong style="font-size:14px;">Daily Brief</strong>
+        <strong style="font-size:14px;">Daily Filing Report</strong>
       </div>
-      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">SEC filings + REX market snapshot. Sent EOD.</p>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">SEC filings, daily movers, market snapshot. Sent to ETFUpdates@rexfin.com.</p>
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
         <form method="post" action="/admin/digest/send" onsubmit="return confirm('Send DAILY brief to all recipients?');">
           <button type="submit" class="btn btn-sm" style="background:#00897B; color:#fff; border:none;">Send All</button>
