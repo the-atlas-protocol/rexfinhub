@@ -159,6 +159,16 @@ def main():
     except Exception as e:
         print(f"  Screener rescore failed (non-fatal): {e}")
 
+    # Step 3.75: Checkpoint WAL so upload sends complete data
+    try:
+        import sqlite3
+        _db_path = str(PROJECT_ROOT / "data" / "etp_tracker.db")
+        _conn = sqlite3.connect(_db_path)
+        _conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        _conn.close()
+    except Exception:
+        pass
+
     # Step 4: Upload DB to Render
     print("\n[4/5] Uploading database to Render...")
     upload_db_to_render()

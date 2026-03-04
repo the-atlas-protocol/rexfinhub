@@ -196,33 +196,6 @@ def send_digest(
     return {"sent": sent}
 
 
-@router.get("/db/report-cache-check")
-async def report_cache_check(_: None = Depends(verify_api_key)):
-    """Debug: check what keys exist in the report cache."""
-    import json as _json
-    import sqlite3 as _sq
-    from webapp.database import DB_PATH
-    out = {}
-    try:
-        conn = _sq.connect(str(DB_PATH))
-        cur = conn.cursor()
-        for row in cur.execute("SELECT report_key, data_json FROM mkt_report_cache"):
-            key, blob = row
-            d = _json.loads(blob)
-            out[key] = {
-                "keys": sorted(d.keys()),
-                "available": d.get("available"),
-                "index_kpis_keys": sorted(d.get("index_kpis", {}).keys()) if isinstance(d.get("index_kpis"), dict) else "missing",
-                "index_by_category_len": len(d.get("index_by_category", [])),
-                "ss_by_underlier_len": len(d.get("ss_by_underlier", [])),
-                "index_issuers_len": len(d.get("index_issuers", [])),
-            }
-        conn.close()
-    except Exception as e:
-        out["error"] = str(e)
-    return out
-
-
 @router.post("/db/upload")
 async def upload_db(
     file: UploadFile = File(...),
