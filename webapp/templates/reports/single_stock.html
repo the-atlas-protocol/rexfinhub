@@ -15,7 +15,7 @@
 
 <div class="report-tabs">
   <a href="/reports/li" class="report-tab {% if active_tab == 'li' %}active{% endif %}">Leveraged & Inverse</a>
-  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Covered Call</a>
+  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Income</a>
   <a href="/reports/ss" class="report-tab {% if active_tab == 'ss' %}active{% endif %}">Single-Stock</a>
 </div>
 
@@ -237,6 +237,8 @@
           },
           y: {
             stacked: opts.stacked || false,
+            beginAtZero: true,
+            title: { display: true, text: opts.yTitle || '$M', color: textColor, font: { size: 10 } },
             grid: { color: gridColor },
             ticks: {
               color: textColor, font: { size: 9 },
@@ -250,21 +252,21 @@
 
   // Flow charts
   var flowCharts = {{ flow_charts | tojson }};
-  makeLineChart('chartFlowTotal', flowCharts.total);
-  makeLineChart('chartFlowIssuer', flowCharts.by_issuer);
-  makeLineChart('chartFlowUnderlier', flowCharts.by_underlier);
+  makeLineChart('chartFlowTotal', flowCharts.total, { yTitle: 'Cumulative Net Flow ($M)' });
+  makeLineChart('chartFlowIssuer', flowCharts.by_issuer, { yTitle: 'Cumulative Net Flow ($M)' });
+  makeLineChart('chartFlowUnderlier', flowCharts.by_underlier, { yTitle: 'Cumulative Net Flow ($M)' });
 
   // AUM charts
   var aumCharts = {{ aum_charts | tojson }};
-  makeLineChart('chartAumTotal', aumCharts.total, { fill: true });
-  makeLineChart('chartAumIssuer', aumCharts.by_issuer, { fill: true, stacked: true });
-  makeLineChart('chartAumUnderlier', aumCharts.by_underlier, { fill: true, stacked: true });
+  makeLineChart('chartAumTotal', aumCharts.total, { fill: true, yTitle: 'AUM ($M)' });
+  makeLineChart('chartAumIssuer', aumCharts.by_issuer, { fill: true, stacked: true, yTitle: 'AUM ($M)' });
+  makeLineChart('chartAumUnderlier', aumCharts.by_underlier, { fill: true, stacked: true, yTitle: 'AUM ($M)' });
 
   // Volume charts
   var volumeCharts = {{ volume_charts | tojson }};
-  makeLineChart('chartVolTotal', volumeCharts.total);
-  makeLineChart('chartVolIssuer', volumeCharts.by_issuer);
-  makeLineChart('chartVolUnderlier', volumeCharts.by_underlier);
+  makeLineChart('chartVolTotal', volumeCharts.total, { yTitle: 'Notional Volume ($M)' });
+  makeLineChart('chartVolIssuer', volumeCharts.by_issuer, { yTitle: 'Notional Volume ($M)' });
+  makeLineChart('chartVolUnderlier', volumeCharts.by_underlier, { yTitle: 'Notional Volume ($M)' });
 })();
 </script>
 {% endif %}

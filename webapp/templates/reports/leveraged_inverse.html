@@ -15,7 +15,7 @@
 
 <div class="report-tabs">
   <a href="/reports/li" class="report-tab {% if active_tab == 'li' %}active{% endif %}">Leveraged & Inverse</a>
-  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Covered Call</a>
+  <a href="/reports/cc" class="report-tab {% if active_tab == 'cc' %}active{% endif %}">Income</a>
   <a href="/reports/ss" class="report-tab {% if active_tab == 'ss' %}active{% endif %}">Single-Stock</a>
 </div>
 
@@ -263,12 +263,15 @@
           y: {
             stacked: true,
             position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'AUM ($M)', color: textColor, font: { size: 11 } },
             grid: { color: gridColor },
             ticks: { color: textColor, font: { size: 10 }, callback: function(v) { return fmtMoney(v); } }
           },
           y1: {
             position: 'right',
             display: chartData.total && chartData.total.length > 0,
+            title: { display: true, text: 'Total AUM ($M)', color: textColor, font: { size: 11 } },
             grid: { drawOnChartArea: false },
             ticks: { color: textColor, font: { size: 10 }, callback: function(v) { return fmtMoney(v); } }
           }
@@ -321,6 +324,7 @@
             ticks: { color: textColor, font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
           },
           y: {
+            title: { display: true, text: 'Cumulative Net Flow ($M)', color: textColor, font: { size: 11 } },
             grid: { color: gridColor },
             ticks: { color: textColor, font: { size: 10 }, callback: function(v) { return fmtMoney(v); } }
           }
@@ -330,7 +334,7 @@
   }
 
   // Chart 3: Daily Net Flow Trend (7-Day Avg)
-  function renderDailyLineChart(canvasId, chartDataObj) {
+  function renderDailyLineChart(canvasId, chartDataObj, yTitle) {
     if (!chartDataObj || !chartDataObj.labels || chartDataObj.labels.length === 0) return;
     var ds = [];
     chartDataObj.datasets.forEach(function(d, i) {
@@ -368,6 +372,8 @@
             ticks: { color: textColor, font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
           },
           y: {
+            beginAtZero: true,
+            title: { display: true, text: yTitle || 'Net Flow ($M)', color: textColor, font: { size: 11 } },
             grid: { color: gridColor },
             ticks: { color: textColor, font: { size: 10 }, callback: function(v) { return fmtMoney(v); } }
           }
@@ -376,8 +382,8 @@
     });
   }
 
-  renderDailyLineChart('chartDailyFlow', {{ daily_flow_chart | default({}) | tojson }});
-  renderDailyLineChart('chartDailyVolume', {{ daily_volume_chart | default({}) | tojson }});
+  renderDailyLineChart('chartDailyFlow', {{ daily_flow_chart | default({}) | tojson }}, 'Net Flow ($M)');
+  renderDailyLineChart('chartDailyVolume', {{ daily_volume_chart | default({}) | tojson }}, 'Notional Volume ($M)');
 })();
 </script>
 {% endif %}

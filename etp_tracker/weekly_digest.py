@@ -524,7 +524,7 @@ def _render_diverging_bar_chart(title: str, items: list[tuple[str, float]], subt
 
         rows.append(
             f'<tr>'
-            f'<td style="padding:4px 6px;font-size:12px;font-weight:600;width:60px;'
+            f'<td style="padding:4px 6px;font-size:11px;font-weight:600;width:130px;'
             f'white-space:nowrap;">{_esc(label)}</td>'
             f'<td style="padding:4px 0;">'
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
@@ -558,8 +558,7 @@ def _render_flow_chart(suites: list[dict], flow_chart: dict) -> str:
     for name, val in zip(suite_names, flow_1w):
         if name in _EXCLUDED_SUITES:
             continue
-        abbrev = _SUITE_ABBREVS.get(name, name)
-        items.append((abbrev, val))
+        items.append((name, val))
 
     # Sort by value descending (most positive at top)
     items.sort(key=lambda x: x[1], reverse=True)

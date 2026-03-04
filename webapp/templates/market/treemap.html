@@ -99,6 +99,15 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if summary and summary.products %}
   var products = {{ summary.products|tojson }};
 
+  // Build issuersMap from summary data for captions
+  var issuersMap = {};
+  {% if summary.issuers is defined %}
+  var issuersData = {{ summary.issuers|tojson }};
+  issuersData.forEach(function(iss) {
+    issuersMap[iss.issuer] = { pct: iss.pct, aum_fmt: iss.aum_fmt || '' };
+  });
+  {% endif %}
+
   var ctx = document.getElementById('treemapChart');
   if (ctx && products.length > 0) {
     var groupColors = {};
@@ -116,14 +125,28 @@ document.addEventListener('DOMContentLoaded', function() {
           label: 'AUM by Product',
           tree: products,
           key: 'value',
-          groups: ['group'],
+          groups: ['group', 'label'],
           backgroundColor: function(c) {
             if (!c.raw || !c.raw.g) return '#6B7280';
-            var base = groupColors[c.raw.g] || '#6B7280';
+            // For nested treemap, color by the top-level group (issuer)
+            var issuer = c.raw.g;
+            // If this is a leaf node, get issuer from _data
+            if (c.raw._data && c.raw._data.group) {
+              issuer = c.raw._data.group;
+            }
+            var base = groupColors[issuer] || '#6B7280';
             return c.raw._data && c.raw._data.is_rex ? base : base + '99';
           },
           captions: {
             display: true,
+            formatter: function(ctx) {
+              var g = ctx.raw.g || '';
+              var issuerInfo = issuersMap[g];
+              if (issuerInfo) {
+                return g + ' (' + issuerInfo.pct.toFixed(1) + '%)';
+              }
+              return g;
+            },
             color: function() { return RexTheme.isDark() ? '#e2e8f0' : '#1E293B'; },
             font: { size: 12, weight: 'bold' },
             align: 'left',
@@ -133,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
             display: true,
             formatter: function(c) {
               if (c.raw && c.raw._data) {
-                return c.raw._data.label || c.raw._data.ticker || '';
+                return c.raw._data.ticker || c.raw._data.label || '';
               }
               return '';
             },

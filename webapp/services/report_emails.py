@@ -1,13 +1,21 @@
 """
-Email-safe HTML builders for Bloomberg weekly reports (L&I, CC, SS).
+Email-safe HTML builders for Bloomberg weekly reports (L&I, CC/Income, SS).
 
-These produce table-based, inline-styled HTML suitable for Outlook/Gmail.
-Charts cannot be included in email - only tables and KPIs.
-Data date comes from the report (not datetime.now()).
+Standardized 7-section format:
+  1. Header + Date (via _wrap_email)
+  2. KPI Banner
+  3. REX Spotlight (transposed table)
+  4. Market Overview Charts (stacked bar + bar/diverging)
+  5. Provider / Category Breakdown Table
+  6. Top Movers (Inflows + Outflows)
+  7. CTA + Footer (via _wrap_email)
+
+Charts use email-safe HTML (table-based, inline styles, no JS).
 """
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 
 log = logging.getLogger(__name__)
@@ -25,17 +33,41 @@ _WHITE = "#ffffff"
 _ORANGE = "#e67e22"
 _REX_ROW_BG = "#e8f5e9"
 
+# Chart bar palette (issuer/category colors)
+_CHART_PALETTE = [
+    "#1E40AF", "#059669", "#7C3AED", "#D97706", "#0891B2",
+    "#E11D48", "#65A30D", "#9333EA", "#DC2626", "#0D9488",
+]
+
 
 def _esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _flow_color(val: float) -> str:
+    if val is None or (isinstance(val, float) and math.isnan(val)):
+        return _GRAY
     return _GREEN if val >= 0 else _RED
 
 
+def _fmt_currency(val: float) -> str:
+    if val is None or (isinstance(val, float) and math.isnan(val)):
+        return "$0"
+    if abs(val) >= 1_000:
+        return f"${val / 1_000:,.1f}B"
+    if abs(val) >= 1:
+        return f"${val:,.1f}M"
+    return f"${val:.2f}M"
+
+
+def _fmt_flow(val: float) -> str:
+    if val is None or (isinstance(val, float) and math.isnan(val)):
+        return "$0"
+    sign = "+" if val >= 0 else ""
+    return f"{sign}{_fmt_currency(val)}"
+
+
 def _is_valid_date(date_str: str) -> bool:
-    """Check if a date string is valid and recent (after 2020)."""
     if not date_str:
         return False
     try:
@@ -55,7 +87,6 @@ def _yesterday() -> datetime:
 
 
 def _data_date_str(data: dict, fmt: str = "%B %d, %Y") -> str:
-    """Extract report data date. Falls back to yesterday."""
     full = data.get("data_as_of", "")
     if _is_valid_date(full):
         return full
@@ -69,7 +100,6 @@ def _data_date_str(data: dict, fmt: str = "%B %d, %Y") -> str:
 
 
 def _data_date_short(data: dict) -> str:
-    """Extract short date (MM/DD/YYYY). Falls back to yesterday."""
     short = data.get("data_as_of_short", "")
     if _is_valid_date(short):
         return short
@@ -82,9 +112,11 @@ def _data_date_short(data: dict) -> str:
     return _yesterday().strftime("%m/%d/%Y")
 
 
+# ---------------------------------------------------------------------------
+# Email envelope
+# ---------------------------------------------------------------------------
 def _wrap_email(title: str, accent: str, body: str,
                 dashboard_url: str = "", date_str: str = "") -> str:
-    """Wrap report body in email-safe HTML envelope."""
     if not date_str:
         date_str = (datetime.now() - timedelta(days=1)).strftime("%B %d, %Y")
     dash_link = _esc(dashboard_url) if dashboard_url else ""
@@ -129,8 +161,10 @@ def _wrap_email(title: str, accent: str, body: str,
 </table></td></tr></table></body></html>"""
 
 
+# ---------------------------------------------------------------------------
+# Shared section renderers
+# ---------------------------------------------------------------------------
 def _kpi_row(kpis: list[tuple[str, str, str]]) -> str:
-    """Render KPI row. Each kpi = (label, value, color)."""
     n = len(kpis)
     width = int(100 / n) if n else 25
     cells = []
@@ -150,16 +184,18 @@ def _kpi_row(kpis: list[tuple[str, str, str]]) -> str:
     )
 
 
+def _section_title(title: str, accent: str = _TEAL) -> str:
+    return (
+        f'<tr><td style="padding:15px 30px 5px;">'
+        f'<div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
+        f'padding-bottom:6px;border-bottom:2px solid {accent};">{_esc(title)}</div>'
+        f'</td></tr>'
+    )
+
+
 def _table(headers: list[str], rows: list[list[str]], align: list[str] | None = None,
            highlight_col: int | None = None, bold_last_row: bool = False,
            rex_rows: set[int] | None = None) -> str:
-    """Render an email-safe table.
-
-    Args:
-        highlight_col: Color positive/negative values in this column.
-        bold_last_row: Render the last row with bold font (for totals).
-        rex_rows: Set of row indices to highlight with green background.
-    """
     if not rows:
         return '<tr><td style="padding:10px 30px;color:#636e72;font-size:13px;">No data available.</td></tr>'
 
@@ -207,24 +243,176 @@ def _table(headers: list[str], rows: list[list[str]], align: list[str] | None = 
     )
 
 
-def _section_title(title: str, accent: str = _TEAL) -> str:
+def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN, label: str = "REX Spotlight") -> str:
+    """Transposed REX product table (metrics as rows, tickers as columns)."""
+    if not rex_funds:
+        return ""
+    sorted_rex = sorted(rex_funds, key=lambda f: f.get("aum", 0), reverse=True)[:12]
+    headers = ["Metric"] + [f["ticker"] for f in sorted_rex]
+    aligns = ["left"] + ["right"] * len(sorted_rex)
+    aum_row = ["AUM"] + [f["aum_fmt"] for f in sorted_rex]
+    flow_1w_row = ["1W Flow"] + [f.get("flow_1w_fmt", "--") for f in sorted_rex]
+    flow_1m_row = ["1M Flow"] + [f.get("flow_1m_fmt", "--") for f in sorted_rex]
+    rows = [aum_row, flow_1w_row, flow_1m_row]
+    # Add yield row if any fund has it
+    if any(f.get("yield_fmt") and f.get("yield_val", 0) for f in sorted_rex):
+        yield_row = ["Yield"] + [f.get("yield_fmt", "--") for f in sorted_rex]
+        rows.append(yield_row)
+    return _section_title(label, accent) + _table(headers, rows, aligns)
+
+
+# ---------------------------------------------------------------------------
+# Email-safe chart helpers (adapted from weekly_digest.py)
+# ---------------------------------------------------------------------------
+def _render_stacked_bar(segments: list[tuple[str, float, str]], total_label: str = "") -> str:
+    """Horizontal stacked bar. segments = [(name, value, color), ...]."""
+    total = sum(v for _, v, _ in segments) or 1
+    bar_cells = []
+    for name, val, color in segments:
+        pct = val / total * 100
+        if pct < 0.5:
+            continue
+        bar_cells.append(
+            f'<td style="background:{color};height:18px;width:{pct:.1f}%;'
+            f'font-size:1px;line-height:18px;">&nbsp;</td>'
+        )
+    legend_rows = []
+    for name, val, color in segments:
+        pct = val / total * 100
+        if pct < 0.5:
+            continue
+        legend_rows.append(
+            f'<tr>'
+            f'<td style="padding:3px 6px;width:14px;">'
+            f'<div style="width:10px;height:10px;background:{color};border-radius:2px;"></div></td>'
+            f'<td style="padding:3px 6px;font-size:11px;font-weight:600;">{_esc(name)}</td>'
+            f'<td style="padding:3px 6px;font-size:11px;text-align:right;">{_fmt_currency(val)}</td>'
+            f'<td style="padding:3px 6px;font-size:10px;text-align:right;color:{_GRAY};">{pct:.0f}%</td>'
+            f'</tr>'
+        )
+    if not bar_cells:
+        return ""
     return (
-        f'<tr><td style="padding:15px 30px 5px;">'
-        f'<div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
-        f'padding-bottom:6px;border-bottom:2px solid {accent};">{_esc(title)}</div>'
-        f'</td></tr>'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border-radius:6px;overflow:hidden;border-collapse:collapse;">'
+        f'<tr>{"".join(bar_cells)}</tr></table>'
+        f'<div style="font-size:15px;font-weight:700;color:{_NAVY};text-align:center;'
+        f'margin-top:6px;">{_esc(total_label)}'
+        f'<span style="font-size:9px;color:{_GRAY};font-weight:400;margin-left:4px;">'
+        f'TOTAL AUM</span></div>'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:6px;">'
+        f'{"".join(legend_rows)}</table>'
     )
+
+
+def _render_bar_chart(title: str, items: list[tuple[str, float]], subtitle: str = "") -> str:
+    """Horizontal bar chart. items = [(label, value), ...]"""
+    if not items:
+        return ""
+    max_abs = max(abs(v) for _, v in items) if items else 1
+    if max_abs == 0:
+        max_abs = 1
+    sub_html = f'<div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">{_esc(subtitle)}</div>' if subtitle else ""
+    rows = []
+    for i, (label, val) in enumerate(items):
+        color = _CHART_PALETTE[i % len(_CHART_PALETTE)]
+        bar_width = max(abs(val) / max_abs * 100, 2)
+        val_fmt = _fmt_currency(val)
+        rows.append(
+            f'<tr>'
+            f'<td style="padding:4px 8px;font-size:12px;font-weight:600;width:120px;'
+            f'white-space:nowrap;">{_esc(label)}</td>'
+            f'<td style="padding:4px 8px;">'
+            f'<div style="background:{_LIGHT};border-radius:4px;overflow:hidden;">'
+            f'<div style="background:{color};height:18px;width:{bar_width:.1f}%;'
+            f'border-radius:4px;min-width:4px;"></div>'
+            f'</div></td>'
+            f'<td style="padding:4px 8px;font-size:12px;text-align:right;width:80px;'
+            f'font-weight:600;">{val_fmt}</td>'
+            f'</tr>'
+        )
+    return (
+        f'<div style="font-size:14px;font-weight:700;color:{_NAVY};margin-bottom:6px;">{_esc(title)}</div>'
+        f'{sub_html}'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+        f'{"".join(rows)}</table>'
+    )
+
+
+def _render_diverging_bar_chart(title: str, items: list[tuple[str, float]], subtitle: str = "") -> str:
+    """Diverging horizontal bar chart: bars grow left/right from center."""
+    if not items:
+        return ""
+    max_abs = max(abs(v) for _, v in items) if items else 1
+    if max_abs == 0:
+        max_abs = 1
+    sub_html = (
+        f'<div style="font-size:12px;color:{_GRAY};margin-bottom:8px;">{_esc(subtitle)}</div>'
+        if subtitle else ""
+    )
+    rows = []
+    for label, val in items:
+        bar_pct = abs(val) / max_abs * 50
+        val_fmt = _fmt_flow(val)
+        val_color = _flow_color(val)
+        bar_color = _BLUE if val >= 0 else _RED
+        _bar_h = "height:16px;font-size:1px;line-height:16px;"
+        if val < 0:
+            left_empty = 50 - bar_pct
+            bar_html = (
+                f'<td style="width:{left_empty:.1f}%;{_bar_h}padding:0;">&nbsp;</td>'
+                f'<td style="width:{bar_pct:.1f}%;background:{bar_color};'
+                f'{_bar_h}border-radius:3px 0 0 3px;padding:0;">&nbsp;</td>'
+                f'<td style="width:2px;background:{_BORDER};{_bar_h}padding:0;">&nbsp;</td>'
+                f'<td style="width:50%;{_bar_h}padding:0;">&nbsp;</td>'
+            )
+        elif val > 0:
+            right_empty = 50 - bar_pct
+            bar_html = (
+                f'<td style="width:50%;{_bar_h}padding:0;">&nbsp;</td>'
+                f'<td style="width:2px;background:{_BORDER};{_bar_h}padding:0;">&nbsp;</td>'
+                f'<td style="width:{bar_pct:.1f}%;background:{bar_color};'
+                f'{_bar_h}border-radius:0 3px 3px 0;padding:0;">&nbsp;</td>'
+                f'<td style="width:{right_empty:.1f}%;{_bar_h}padding:0;">&nbsp;</td>'
+            )
+        else:
+            bar_html = (
+                f'<td style="width:50%;{_bar_h}padding:0;">&nbsp;</td>'
+                f'<td style="width:2px;background:{_BORDER};{_bar_h}padding:0;">&nbsp;</td>'
+                f'<td style="width:50%;{_bar_h}padding:0;">&nbsp;</td>'
+            )
+        rows.append(
+            f'<tr>'
+            f'<td style="padding:4px 6px;font-size:12px;font-weight:600;width:80px;'
+            f'white-space:nowrap;">{_esc(label)}</td>'
+            f'<td style="padding:4px 0;">'
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'<tr>{bar_html}</tr></table></td>'
+            f'<td style="padding:4px 6px;font-size:12px;text-align:right;width:70px;'
+            f'font-weight:600;color:{val_color};white-space:nowrap;">{val_fmt}</td>'
+            f'</tr>'
+        )
+    return (
+        f'<div style="font-size:14px;font-weight:700;color:{_NAVY};margin-bottom:6px;">{_esc(title)}</div>'
+        f'{sub_html}'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+        f'{"".join(rows)}</table>'
+    )
+
+
+def _chart_section(*charts_html: str) -> str:
+    """Wrap 1-2 charts in a padded section."""
+    inner = "".join(c for c in charts_html if c)
+    if not inner:
+        return ""
+    return f'<tr><td style="padding:15px 30px;">{inner}</td></tr>'
 
 
 # ---------------------------------------------------------------------------
 # L&I Report Email
 # ---------------------------------------------------------------------------
 def build_li_email(dashboard_url: str = "", db=None) -> str:
-    """Build email-safe HTML for U.S. Leveraged & Inverse ETP Report.
-
-    Matches the reference format with provider summary (leveraged/inverse split),
-    top 10 inflows, and top 10 outflows.
-    """
+    """Build email for U.S. Leveraged & Inverse ETP Report."""
     from webapp.services.report_data import get_li_report
     data = get_li_report(db)
 
@@ -240,7 +428,7 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
     kpis = data["kpis"]
     body = ""
 
-    # KPIs
+    # --- 1. KPI Banner ---
     kpi_items = [
         ("Total ETPs", str(kpis.get("count", 0)), _NAVY),
         ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
@@ -252,9 +440,32 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
         kpi_items.insert(2, ("AUM WoW", wow, _GREEN if kpis.get("aum_change_positive", True) else _RED))
     body += _kpi_row(kpi_items)
 
-    # Provider Summary with leveraged/inverse split
-    body += _section_title("Provider Summary")
+    # --- 2. REX Spotlight ---
+    body += _rex_spotlight(data.get("rex_funds", []), _GREEN, "REX Leveraged & Inverse Spotlight")
+
+    # --- 3. Market Overview Charts ---
     providers = data.get("providers", [])
+    # Stacked bar: AUM by provider (top 8 + Other)
+    top_providers = providers[:8]
+    other_aum = sum(p["aum"] for p in providers[8:]) if len(providers) > 8 else 0
+    segments = []
+    for i, p in enumerate(top_providers):
+        segments.append((p["issuer"], p["aum"], _CHART_PALETTE[i % len(_CHART_PALETTE)]))
+    if other_aum > 0:
+        segments.append(("Other", other_aum, _GRAY))
+    total_aum_val = sum(p["aum"] for p in providers)
+    stacked_html = _render_stacked_bar(segments, _fmt_currency(total_aum_val))
+
+    # Diverging bar: 1W Flow by provider (top 10 by absolute flow)
+    flow_items = sorted(providers, key=lambda p: abs(p["flow_1w"]), reverse=True)[:10]
+    diverging_html = _render_diverging_bar_chart(
+        "1W Net Flow by Provider",
+        [(p["issuer"][:20], p["flow_1w"]) for p in flow_items],
+    )
+    body += _chart_section(stacked_html, diverging_html)
+
+    # --- 4. Provider Summary Table ---
+    body += _section_title("Provider Summary")
     total_row = data.get("total_row")
     has_split = total_row and "num_leveraged" in total_row
 
@@ -296,7 +507,6 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
         body += _table(headers, rows, aligns, highlight_col=7,
                        bold_last_row=True, rex_rows=rex_idxs)
     else:
-        # Fallback: no leveraged/inverse split
         headers = ["Provider", "# ETPs", "AUM", "1W Flow", "1M Flow", "YTD Flow", "Share"]
         aligns = ["left", "right", "right", "right", "right", "right", "right"]
         rows = []
@@ -319,9 +529,9 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
         body += _table(headers, rows, aligns, highlight_col=3,
                        bold_last_row=True, rex_rows=rex_idxs)
 
-    # Top 10 Weekly Inflows
+    # --- 5. Top Movers ---
     body += _section_title("Top 10 Weekly Inflows", _GREEN)
-    headers = ["Ticker", "Fund Name", "Type", "Leverage", "AUM", "1W Flow"]
+    headers = ["Ticker", "Fund Name", "Type", "AUM", "1W Flow", "1M Flow"]
     aligns = ["left", "left", "left", "right", "right", "right"]
     rows = []
     for f in data.get("top10", []):
@@ -329,13 +539,12 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
             f["ticker"],
             f["fund_name"][:35],
             f.get("product_type", ""),
-            f.get("leverage_factor", ""),
             f["aum_fmt"],
             f["flow_1w_fmt"],
+            f.get("flow_1m_fmt", ""),
         ])
-    body += _table(headers, rows, aligns, highlight_col=5)
+    body += _table(headers, rows, aligns, highlight_col=4)
 
-    # Top 10 Weekly Outflows
     body += _section_title("Top 10 Weekly Outflows", _RED)
     rows = []
     for f in data.get("bottom10", []):
@@ -343,30 +552,26 @@ def build_li_email(dashboard_url: str = "", db=None) -> str:
             f["ticker"],
             f["fund_name"][:35],
             f.get("product_type", ""),
-            f.get("leverage_factor", ""),
             f["aum_fmt"],
             f["flow_1w_fmt"],
+            f.get("flow_1m_fmt", ""),
         ])
-    body += _table(headers, rows, aligns, highlight_col=5)
+    body += _table(headers, rows, aligns, highlight_col=4)
 
     return _wrap_email(title, _TEAL, body, dashboard_url, date_str)
 
 
 # ---------------------------------------------------------------------------
-# Covered Call Report Email
+# Income (Covered Call) Report Email
 # ---------------------------------------------------------------------------
 def build_cc_email(dashboard_url: str = "", db=None) -> str:
-    """Build email-safe HTML for Covered Call ETFs report.
-
-    Matches the reference format with REX fund summary header,
-    segment-level top 10s, and issuer rankings.
-    """
+    """Build email for Income (Covered Call) ETFs report."""
     from webapp.services.report_data import get_cc_report
     data = get_cc_report(db)
 
     date_str = _data_date_str(data)
     date_short = _data_date_short(data)
-    title = f"Covered Call ETF Report: {date_short}"
+    title = f"Income ETF Report: {date_short}"
 
     if not data.get("available") or not data.get("kpis"):
         return _wrap_email(title, _BLUE,
@@ -376,9 +581,9 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
     kpis = data["kpis"]
     body = ""
 
-    # KPIs
+    # --- 1. KPI Banner ---
     kpi_items = [
-        ("CC Funds", str(kpis.get("count", 0)), _NAVY),
+        ("Total Funds", str(kpis.get("count", 0)), _NAVY),
         ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
         ("1W Net Flow", kpis.get("flow_1w", "$0"), _GREEN if kpis.get("flow_1w_positive", True) else _RED),
         ("Avg Yield", kpis.get("avg_yield", "0.0%"), _TEAL),
@@ -388,27 +593,25 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
         kpi_items.insert(2, ("AUM WoW", wow, _GREEN if kpis.get("aum_change_positive", True) else _RED))
     body += _kpi_row(kpi_items)
 
-    # REX CC Fund Summary (horizontal card-style row for each REX fund)
-    rex_funds = data.get("rex_funds", [])
-    if rex_funds:
-        body += _section_title("REX Covered Call Summary", _GREEN)
-        headers = ["Metric"]
-        # Sort by AUM descending, take up to 12 funds
-        sorted_rex = sorted(rex_funds, key=lambda f: f.get("aum", 0), reverse=True)[:12]
-        headers += [f["ticker"] for f in sorted_rex]
-        aligns = ["left"] + ["right"] * len(sorted_rex)
-        # AUM row
-        aum_row = ["AUM"] + [f["aum_fmt"] for f in sorted_rex]
-        # 1W Flow row
-        flow_1w_row = ["1W Flow"] + [f["flow_1w_fmt"] for f in sorted_rex]
-        # 1M Flow row
-        flow_1m_row = ["1M Flow"] + [f["flow_1m_fmt"] for f in sorted_rex]
-        # Yield row
-        yield_row = ["Yield"] + [f["yield_fmt"] for f in sorted_rex]
-        body += _table(headers, [aum_row, flow_1w_row, flow_1m_row, yield_row], aligns)
+    # --- 2. REX Spotlight ---
+    body += _rex_spotlight(data.get("rex_funds", []), _GREEN, "REX Income Spotlight")
 
-    # Segment Summary (AUM by cc_category)
+    # --- 3. Market Overview Charts ---
+    # Stacked bar: AUM by CC category
     aum_by_cat = data.get("aum_by_category", [])
+    cat_segments = []
+    for i, c in enumerate(aum_by_cat):
+        cat_segments.append((c["category"], c["aum"], _CHART_PALETTE[i % len(_CHART_PALETTE)]))
+    total_aum_val = sum(c["aum"] for c in aum_by_cat) if aum_by_cat else 0
+    stacked_html = _render_stacked_bar(cat_segments, _fmt_currency(total_aum_val)) if cat_segments else ""
+
+    # Bar chart: Top 10 issuers by AUM
+    issuers = data.get("issuers", [])
+    bar_items = [(iss["issuer"][:20], iss["aum"]) for iss in issuers[:10]]
+    bar_html = _render_bar_chart("Top Issuers by AUM", bar_items)
+    body += _chart_section(stacked_html, bar_html)
+
+    # --- 4. AUM by Category Table ---
     if aum_by_cat:
         body += _section_title("AUM by Category")
         headers = ["Category", "# Funds", "AUM", "1W Flow", "1M Flow", "Share"]
@@ -422,40 +625,7 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
             ])
         body += _table(headers, rows, aligns, highlight_col=3)
 
-    # Top 10 by 1M Inflows (segmented)
-    top_flow = data.get("top_flow_segments", {})
-    for seg_name in ["All", "Traditional", "Synthetic", "Single Stock"]:
-        seg_data = top_flow.get(seg_name, [])
-        if not seg_data:
-            continue
-        label = f"Top 10 by 1M Inflows" if seg_name == "All" else f"Top 10 by 1M Inflows ({seg_name})"
-        body += _section_title(label)
-        headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1M Flow"]
-        aligns = ["left", "left", "left", "right", "right"]
-        rows = []
-        for f in seg_data[:10]:
-            rows.append([f["ticker"], f["fund_name"][:30], f["issuer"][:25],
-                         f["aum_fmt"], f["flow_1m_fmt"]])
-        body += _table(headers, rows, aligns, highlight_col=4)
-
-    # Top 10 by Distribution Rate (segmented)
-    top_yield = data.get("top_yield_segments", {})
-    for seg_name in ["All", "Traditional", "Synthetic", "Single Stock"]:
-        seg_data = top_yield.get(seg_name, [])
-        if not seg_data:
-            continue
-        label = f"Top 10 by Distribution Rate" if seg_name == "All" else f"Top 10 by Distribution Rate ({seg_name})"
-        body += _section_title(label, _ORANGE)
-        headers = ["Ticker", "Fund Name", "Issuer", "AUM", "Yield"]
-        aligns = ["left", "left", "left", "right", "right"]
-        rows = []
-        for f in seg_data[:10]:
-            rows.append([f["ticker"], f["fund_name"][:30], f["issuer"][:25],
-                         f["aum_fmt"], f["yield_fmt"]])
-        body += _table(headers, rows, aligns)
-
     # Issuer Ranking
-    issuers = data.get("issuers", [])
     if issuers:
         body += _section_title("Issuer Ranking")
         headers = ["Rank", "Issuer", "AUM", "1W Flow", "Share"]
@@ -477,6 +647,33 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
             ])
         body += _table(headers, rows, aligns, highlight_col=3, rex_rows=rex_idxs)
 
+    # --- 5. Top Movers ---
+    # Top 10 by 1M Inflows (All segment only for email brevity)
+    top_flow = data.get("top_flow_segments", {})
+    all_flow = top_flow.get("All", [])
+    if all_flow:
+        body += _section_title("Top 10 by 1M Inflows")
+        headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1M Flow"]
+        aligns = ["left", "left", "left", "right", "right"]
+        rows = []
+        for f in all_flow[:10]:
+            rows.append([f["ticker"], f["fund_name"][:30], f["issuer"][:25],
+                         f["aum_fmt"], f["flow_1m_fmt"]])
+        body += _table(headers, rows, aligns, highlight_col=4)
+
+    # Top 10 by Yield (All segment)
+    top_yield = data.get("top_yield_segments", {})
+    all_yield = top_yield.get("All", [])
+    if all_yield:
+        body += _section_title("Top 10 by Distribution Rate", _ORANGE)
+        headers = ["Ticker", "Fund Name", "Issuer", "AUM", "Yield"]
+        aligns = ["left", "left", "left", "right", "right"]
+        rows = []
+        for f in all_yield[:10]:
+            rows.append([f["ticker"], f["fund_name"][:30], f["issuer"][:25],
+                         f["aum_fmt"], f["yield_fmt"]])
+        body += _table(headers, rows, aligns)
+
     return _wrap_email(title, _BLUE, body, dashboard_url, date_str)
 
 
@@ -484,11 +681,8 @@ def build_cc_email(dashboard_url: str = "", db=None) -> str:
 # Single-Stock Report Email
 # ---------------------------------------------------------------------------
 def build_ss_email(dashboard_url: str = "", db=None) -> str:
-    """Build email-safe HTML for Single-Stock ETF Report.
-
-    Covers both Single-Stock Leveraged and Single-Stock Covered Call ETFs.
-    """
-    from webapp.services.report_data import get_ss_report, _fmt_currency
+    """Build email for Single-Stock ETF Report."""
+    from webapp.services.report_data import get_ss_report
     data = get_ss_report(db)
 
     date_str = _data_date_str(data)
@@ -503,7 +697,7 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
     kpis = data["kpis"]
     body = ""
 
-    # KPIs — show combined + segment breakdown
+    # --- 1. KPI Banner ---
     kpi_items = [
         ("SS ETFs", str(kpis.get("count", 0)), _NAVY),
         ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
@@ -515,7 +709,61 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
         kpi_items.insert(2, ("AUM WoW", wow, _GREEN if kpis.get("aum_change_positive", True) else _RED))
     body += _kpi_row(kpi_items)
 
-    # Provider Summary
+    # --- 2. REX Spotlight ---
+    body += _rex_spotlight(data.get("rex_funds", []), _GREEN, "REX Single-Stock Spotlight")
+
+    # --- 3. Market Overview Charts ---
+    # Stacked bar: AUM split (Leveraged vs Covered Call)
+    aum_lev = 0
+    aum_cc = 0
+    try:
+        aum_lev_str = kpis.get("aum_leveraged", "$0")
+        aum_cc_str = kpis.get("aum_cc", "$0")
+        # Parse back from formatted strings
+        for s, target in [(aum_lev_str, "lev"), (aum_cc_str, "cc")]:
+            v = s.replace("$", "").replace(",", "").replace("+", "")
+            if "B" in v:
+                v = float(v.replace("B", "")) * 1000
+            elif "M" in v:
+                v = float(v.replace("M", ""))
+            else:
+                v = float(v) if v else 0
+            if target == "lev":
+                aum_lev = v
+            else:
+                aum_cc = v
+    except (ValueError, AttributeError):
+        pass
+
+    ss_segments = []
+    if aum_lev > 0:
+        ss_segments.append(("Leveraged", aum_lev, _TEAL))
+    if aum_cc > 0:
+        ss_segments.append(("Covered Call", aum_cc, _BLUE))
+    stacked_html = _render_stacked_bar(ss_segments, kpis.get("total_aum", "$0")) if ss_segments else ""
+
+    # Diverging bar: 1W Flow by underlier (top 10)
+    underlier_summary = data.get("underlier_summary", [])
+    flow_items = sorted(underlier_summary, key=lambda u: abs(u["flow_1w"]), reverse=True)[:10]
+    diverging_html = _render_diverging_bar_chart(
+        "1W Net Flow by Underlier",
+        [(u["underlier"][:15], u["flow_1w"]) for u in flow_items],
+    ) if flow_items else ""
+    body += _chart_section(stacked_html, diverging_html)
+
+    # --- 4. Underlier Summary + Provider Summary ---
+    if underlier_summary:
+        body += _section_title("Underlier Summary")
+        headers = ["Underlier", "# ETFs", "AUM", "1W Flow", "Share"]
+        aligns = ["left", "right", "right", "right", "right"]
+        rows = []
+        for u in underlier_summary:
+            rows.append([
+                u["underlier"], str(u["count"]), u["aum_fmt"],
+                u["flow_1w_fmt"], f'{u["market_share"]:.1f}%',
+            ])
+        body += _table(headers, rows, aligns, highlight_col=3)
+
     providers = data.get("providers", [])
     if providers:
         body += _section_title("Provider Summary")
@@ -534,23 +782,7 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
             ])
         body += _table(headers, rows, aligns, highlight_col=3, rex_rows=rex_idxs)
 
-    # AUM by Issuer
-    pie = data.get("aum_pie", {})
-    if pie.get("labels"):
-        body += _section_title("AUM Breakdown by Issuer")
-        headers = ["Issuer", "AUM", "Share"]
-        aligns = ["left", "right", "right"]
-        rows = []
-        total = sum(pie["values"])
-        rex_idxs = set()
-        for i, (label, val) in enumerate(zip(pie["labels"], pie["values"])):
-            pct = (val / total * 100) if total > 0 else 0
-            if "REX" in label.upper() or "T-REX" in label.upper():
-                rex_idxs.add(i)
-            rows.append([label, _fmt_currency(val), f"{pct:.1f}%"])
-        body += _table(headers, rows, aligns, rex_rows=rex_idxs)
-
-    # Top 10 Weekly Inflows
+    # --- 5. Top Movers ---
     if data.get("top10"):
         body += _section_title("Top 10 Weekly Inflows", _GREEN)
         headers = ["Ticker", "Fund Name", "Type", "AUM", "1W Flow"]
@@ -562,7 +794,6 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
                          f["aum_fmt"], f["flow_1w_fmt"]])
         body += _table(headers, rows, aligns, highlight_col=4)
 
-    # Top 10 Weekly Outflows
     if data.get("bottom10"):
         body += _section_title("Top 10 Weekly Outflows", _RED)
         headers = ["Ticker", "Fund Name", "Type", "AUM", "1W Flow"]
@@ -573,15 +804,5 @@ def build_ss_email(dashboard_url: str = "", db=None) -> str:
                          f.get("product_type", ""),
                          f["aum_fmt"], f["flow_1w_fmt"]])
         body += _table(headers, rows, aligns, highlight_col=4)
-
-    # Note about charts
-    body += (
-        '<tr><td style="padding:10px 30px;text-align:center;">'
-        f'<div style="padding:10px;background:{_LIGHT};border-radius:6px;'
-        f'font-size:12px;color:{_GRAY};">'
-        'Time-series charts (cumulative flows, AUM trends, notional volume) '
-        'are available in the interactive report.'
-        '</div></td></tr>'
-    )
 
     return _wrap_email(title, _NAVY, body, dashboard_url, date_str)

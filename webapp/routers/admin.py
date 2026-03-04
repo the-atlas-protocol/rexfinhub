@@ -387,7 +387,8 @@ def preview_li_report(request: Request, db: Session = Depends(get_db)):
     try:
         from webapp.services.report_emails import build_li_email
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_li_email(dashboard_url=dashboard_url, db=db)
+        # Use db=None locally to skip stale DB cache and read from CSV sheets
+        html = build_li_email(dashboard_url=dashboard_url)
         return HTMLResponse(content=html)
     except Exception as e:
         log.error("L&I email preview failed: %s", e, exc_info=True)
@@ -403,7 +404,7 @@ def preview_cc_report(request: Request, db: Session = Depends(get_db)):
     try:
         from webapp.services.report_emails import build_cc_email
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_cc_email(dashboard_url=dashboard_url, db=db)
+        html = build_cc_email(dashboard_url=dashboard_url)
         return HTMLResponse(content=html)
     except Exception as e:
         log.error("CC email preview failed: %s", e, exc_info=True)
@@ -419,7 +420,7 @@ def preview_ss_report(request: Request, db: Session = Depends(get_db)):
     try:
         from webapp.services.report_emails import build_ss_email
         dashboard_url = str(request.base_url).rstrip("/")
-        html = build_ss_email(dashboard_url=dashboard_url, db=db)
+        html = build_ss_email(dashboard_url=dashboard_url)
         return HTMLResponse(content=html)
     except Exception as e:
         log.error("SS email preview failed: %s", e, exc_info=True)

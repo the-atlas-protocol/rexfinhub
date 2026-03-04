@@ -744,6 +744,24 @@ def get_li_report(db: Session | None = None) -> dict:
         total_row["flow_1w_inverse"] = float(inv_all["fund_flow_1week"].sum())
         total_row["flow_1w_inverse_fmt"] = _fmt_flow(float(inv_all["fund_flow_1week"].sum()))
 
+    # REX fund detail (for spotlight section)
+    rex_li = li[li["is_rex"]].sort_values("aum", ascending=False)
+    rex_funds_list = []
+    for _, r in rex_li.iterrows():
+        aum_val = _safe_float(r.get("aum", 0))
+        rex_funds_list.append({
+            "ticker": str(r.get("ticker_clean", "")),
+            "fund_name": str(r.get("fund_name", "")),
+            "aum": aum_val,
+            "aum_fmt": _fmt_currency(aum_val),
+            "flow_1w": _safe_float(r.get("fund_flow_1week", 0)),
+            "flow_1w_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1week", 0))),
+            "flow_1m": _safe_float(r.get("fund_flow_1month", 0)),
+            "flow_1m_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1month", 0))),
+            "yield_val": _safe_float(r.get("annualized_yield", 0)),
+            "yield_fmt": _fmt_pct(_safe_float(r.get("annualized_yield", 0))),
+        })
+
     # Top 10 / Bottom 10 by 1W flow
     li_sorted = li.sort_values("fund_flow_1week", ascending=False)
     top10 = _fund_rows(li_sorted.head(10), total_aum)
@@ -767,6 +785,7 @@ def get_li_report(db: Session | None = None) -> dict:
         "kpis": kpis,
         "providers": providers,
         "total_row": total_row,
+        "rex_funds": rex_funds_list,
         "top10": top10,
         "bottom10": bottom10,
         "chart": chart,
@@ -807,6 +826,8 @@ def _fund_rows(df: pd.DataFrame, total_aum: float) -> list[dict]:
             "flow_1d_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1day", 0))),
             "flow_1w": _safe_float(r.get("fund_flow_1week", 0)),
             "flow_1w_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1week", 0))),
+            "flow_1m": _safe_float(r.get("fund_flow_1month", 0)),
+            "flow_1m_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1month", 0))),
             "market_share": (aum / total_aum * 100) if total_aum > 0 else 0.0,
             "is_rex": bool(r.get("is_rex", False)),
         })
@@ -1172,6 +1193,54 @@ def get_ss_report(db: Session | None = None) -> dict:
         })
     ss_providers.sort(key=lambda x: x["aum"], reverse=True)
 
+    # Underlier summary (top 15 by AUM)
+    underlier_summary = []
+    ss_copy = ss.copy()
+    # Merge LI and CC underlier columns
+    if underlier_col:
+        ss_copy["_underlier"] = ss_copy[underlier_col].fillna("")
+        if cc_underlier_col:
+            mask = ss_copy["_underlier"] == ""
+            ss_copy.loc[mask, "_underlier"] = ss_copy.loc[mask, cc_underlier_col].fillna("")
+    elif cc_underlier_col:
+        ss_copy["_underlier"] = ss_copy[cc_underlier_col].fillna("")
+    else:
+        ss_copy["_underlier"] = ""
+    ss_copy["_underlier"] = ss_copy["_underlier"].astype(str).str.replace(" US", "", regex=False)
+    for und, grp in ss_copy[ss_copy["_underlier"] != ""].groupby("_underlier", observed=True):
+        if not und:
+            continue
+        u_aum = float(grp["aum"].sum())
+        underlier_summary.append({
+            "underlier": str(und),
+            "count": int(grp["ticker_clean"].nunique()),
+            "aum": u_aum,
+            "aum_fmt": _fmt_currency(u_aum),
+            "flow_1w": float(grp["fund_flow_1week"].sum()),
+            "flow_1w_fmt": _fmt_flow(float(grp["fund_flow_1week"].sum())),
+            "market_share": (u_aum / total_aum * 100) if total_aum > 0 else 0.0,
+        })
+    underlier_summary.sort(key=lambda x: x["aum"], reverse=True)
+    underlier_summary = underlier_summary[:15]
+
+    # REX SS products (for spotlight section)
+    rex_ss = ss[ss["is_rex"]].sort_values("aum", ascending=False)
+    rex_ss_funds = []
+    for _, r in rex_ss.iterrows():
+        aum_val = _safe_float(r.get("aum", 0))
+        rex_ss_funds.append({
+            "ticker": str(r.get("ticker_clean", "")),
+            "fund_name": str(r.get("fund_name", "")),
+            "aum": aum_val,
+            "aum_fmt": _fmt_currency(aum_val),
+            "flow_1w": _safe_float(r.get("fund_flow_1week", 0)),
+            "flow_1w_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1week", 0))),
+            "flow_1m": _safe_float(r.get("fund_flow_1month", 0)),
+            "flow_1m_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1month", 0))),
+            "yield_val": _safe_float(r.get("annualized_yield", 0)),
+            "yield_fmt": _fmt_pct(_safe_float(r.get("annualized_yield", 0))),
+        })
+
     # Top 10 / Bottom 10 by 1W flow
     ss_sorted = ss.sort_values("fund_flow_1week", ascending=False)
     ss_top10 = _fund_rows(ss_sorted.head(10), total_aum)
@@ -1226,6 +1295,8 @@ def get_ss_report(db: Session | None = None) -> dict:
         "kpis": kpis,
         "aum_pie": aum_pie,
         "providers": ss_providers,
+        "underlier_summary": underlier_summary,
+        "rex_funds": rex_ss_funds,
         "top10": ss_top10,
         "bottom10": ss_bottom10,
         "flow_charts": flow_charts,
