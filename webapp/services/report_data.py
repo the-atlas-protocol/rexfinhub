@@ -621,8 +621,59 @@ def _compute_aum_wow(data_aum: pd.DataFrame, tickers: list[str]) -> tuple[str, b
 
 
 # ---------------------------------------------------------------------------
-# Email segment helper (shared by L&I + CC for v3 emails)
+# Email segment helpers (shared by L&I + CC for v3 emails)
 # ---------------------------------------------------------------------------
+def _compute_breakdown(df: pd.DataFrame, groupby_col: str, total_aum: float,
+                       include_yield: bool = False,
+                       include_direction: bool = False,
+                       include_type: bool = False,
+                       clean_suffix: str = "") -> list[dict]:
+    """Compute grouped breakdown rows for an attribute column.
+
+    Returns list sorted by AUM descending.  Optional enrichments:
+    - include_direction: adds num_long / num_short (L&I)
+    - include_type: adds num_traditional / num_synthetic (CC)
+    - include_yield: adds avg_yield_fmt (CC)
+    - clean_suffix: string to strip from group names (e.g. " US")
+    """
+    if df.empty or groupby_col not in df.columns:
+        return []
+    rows = []
+    for name, grp in df.groupby(groupby_col, observed=True):
+        if not name or (isinstance(name, float) and math.isnan(name)):
+            continue
+        label = str(name)
+        if clean_suffix:
+            label = label.replace(clean_suffix, "")
+        aum = float(grp["aum"].sum())
+        flow_1w = float(grp["fund_flow_1week"].sum())
+        row = {
+            "name": label,
+            "count": len(grp),
+            "aum": aum,
+            "aum_fmt": _fmt_currency(aum),
+            "flow_1w": flow_1w,
+            "flow_1w_fmt": _fmt_flow(flow_1w),
+            "market_share": (aum / total_aum * 100) if total_aum > 0 else 0.0,
+        }
+        if include_yield and "annualized_yield" in grp.columns:
+            avg_y = float(grp["annualized_yield"].replace(0, float("nan")).mean())
+            if math.isnan(avg_y):
+                avg_y = 0.0
+            row["avg_yield"] = avg_y
+            row["avg_yield_fmt"] = _fmt_pct(avg_y)
+        if include_direction and "map_li_direction" in grp.columns:
+            direction = grp["map_li_direction"].str.lower()
+            row["num_long"] = int(direction.isin(["long", "leveraged"]).sum())
+            row["num_short"] = int(direction.isin(["short", "inverse"]).sum())
+        if include_type and "cc_type" in grp.columns:
+            row["num_traditional"] = int((grp["cc_type"] == "Traditional").sum())
+            row["num_synthetic"] = int((grp["cc_type"] == "Synthetic").sum())
+        rows.append(row)
+    rows.sort(key=lambda x: x["aum"], reverse=True)
+    return rows
+
+
 def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
                            include_yield: bool = False) -> dict:
     """Compute KPIs, issuers, top10/bottom10 for one segment of funds.
@@ -908,6 +959,20 @@ def get_li_report(db: Session | None = None) -> dict:
     index_seg = _compute_email_segment(li_index_df, data_aum)
     ss_seg = _compute_email_segment(li_ss_df, data_aum)
 
+    # Attribute breakdowns for v3 emails
+    idx_total_aum = float(li_index_df["aum"].sum()) if not li_index_df.empty else 0
+    ss_total_aum = float(li_ss_df["aum"].sum()) if not li_ss_df.empty else 0
+
+    # Index: category breakdown (Equity, Crypto, FI, etc.) with Long/Short
+    index_by_category = _compute_breakdown(
+        li_index_df, "map_li_category", idx_total_aum, include_direction=True,
+    )
+    # SS: top underliers (TSLA, NVDA, etc.)
+    ss_by_underlier = _compute_breakdown(
+        li_ss_df, "map_li_underlier", ss_total_aum,
+        include_direction=True, clean_suffix=" US",
+    )
+
     return {
         "available": True,
         "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
@@ -930,6 +995,8 @@ def get_li_report(db: Session | None = None) -> dict:
         "index_bottom10": index_seg["bottom10"],
         "ss_top10": ss_seg["top10"],
         "ss_bottom10": ss_seg["bottom10"],
+        "index_by_category": index_by_category,
+        "ss_by_underlier": ss_by_underlier,
     }
 
 
@@ -1159,6 +1226,21 @@ def get_cc_report(db: Session | None = None) -> dict:
     cc_index_seg = _compute_email_segment(cc_index_df, data_aum, include_yield=True)
     cc_ss_seg = _compute_email_segment(cc_ss_df, data_aum, include_yield=True)
 
+    # Attribute breakdowns for v3 emails
+    idx_total_aum = float(cc_index_df["aum"].sum()) if not cc_index_df.empty else 0
+    ss_total_aum = float(cc_ss_df["aum"].sum()) if not cc_ss_df.empty else 0
+
+    # Index: category breakdown (Broad Beta, Tech, Crypto, etc.) with Trad/Synth + yield
+    index_by_category = _compute_breakdown(
+        cc_index_df, "cc_category", idx_total_aum,
+        include_yield=True, include_type=True,
+    )
+    # SS: top underliers with yield
+    ss_by_underlier = _compute_breakdown(
+        cc_ss_df, "map_cc_underlier", ss_total_aum,
+        include_yield=True, include_type=True, clean_suffix=" US",
+    )
+
     return {
         "available": True,
         "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
@@ -1184,6 +1266,8 @@ def get_cc_report(db: Session | None = None) -> dict:
         "index_bottom10": cc_index_seg["bottom10"],
         "ss_top10": cc_ss_seg["top10"],
         "ss_bottom10": cc_ss_seg["bottom10"],
+        "index_by_category": index_by_category,
+        "ss_by_underlier": ss_by_underlier,
     }
 
 

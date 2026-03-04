@@ -398,12 +398,72 @@ def _key_highlights(data: dict, report_type: str) -> str:
 # ---------------------------------------------------------------------------
 # Segment section builder (shared by both emails)
 # ---------------------------------------------------------------------------
+def _breakdown_table(breakdown: list[dict], breakdown_label: str,
+                     include_yield: bool = False,
+                     include_direction: bool = False,
+                     include_type: bool = False) -> str:
+    """Render a compact attribute breakdown table (category or underlier)."""
+    if not breakdown:
+        return ""
+    # Build columns dynamically: Name, [Long/Short], [Trad/Synth], # ETPs, AUM, 1W Flow, [Avg Yield], Share
+    headers, aligns, col_widths = [breakdown_label], ["left"], ["120px"]
+    if include_direction:
+        headers.append("Long / Short")
+        aligns.append("center")
+        col_widths.append("70px")
+    if include_type:
+        headers.append("Trad / Synth")
+        aligns.append("center")
+        col_widths.append("70px")
+    headers += ["# ETPs", "AUM", "1W Flow"]
+    aligns += ["right", "right", "right"]
+    col_widths += ["50px", "80px", "80px"]
+    if include_yield:
+        headers.append("Avg Yield")
+        aligns.append("right")
+        col_widths.append("65px")
+    headers.append("Share")
+    aligns.append("right")
+    col_widths.append("55px")
+
+    rows = []
+    for b in breakdown[:10]:
+        row = [b["name"][:25]]
+        if include_direction:
+            row.append(f'{b.get("num_long", 0)}L / {b.get("num_short", 0)}S')
+        if include_type:
+            row.append(f'{b.get("num_traditional", 0)}T / {b.get("num_synthetic", 0)}S')
+        row += [str(b["count"]), b["aum_fmt"], b["flow_1w_fmt"]]
+        if include_yield:
+            row.append(b.get("avg_yield_fmt", "--"))
+        row.append(f'{b.get("market_share", 0):.1f}%')
+        rows.append(row)
+
+    flow_idx = headers.index("1W Flow")
+    return _sub_heading(f"{breakdown_label} Breakdown") + _table(
+        headers, rows, aligns, highlight_col=flow_idx, col_widths=col_widths,
+    )
+
+
 def _segment_section(segment_title: str, accent: str,
                      issuers: list[dict], top10: list[dict], bottom10: list[dict],
-                     include_yield: bool = False) -> str:
-    """Build one segment section: issuer table + top 10 inflows/outflows."""
+                     include_yield: bool = False,
+                     breakdown: list[dict] | None = None,
+                     breakdown_label: str = "Category",
+                     breakdown_direction: bool = False,
+                     breakdown_type: bool = False) -> str:
+    """Build one segment section: attribute breakdown + issuer table + top 10 inflows/outflows."""
     body = ""
     body += _section_title(segment_title, accent)
+
+    # Attribute breakdown table (category or underlier)
+    if breakdown:
+        body += _breakdown_table(
+            breakdown, breakdown_label,
+            include_yield=include_yield,
+            include_direction=breakdown_direction,
+            include_type=breakdown_type,
+        )
 
     # Issuer Breakdown table
     if issuers:
@@ -552,6 +612,7 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
     body += _rex_spotlight(data.get("rex_funds", []), _GREEN)
 
     # --- 4. Index / ETF / Basket Section ---
+    is_li = report_type == "li"
     body += _segment_section(
         "Index / ETF / Basket",
         accent,
@@ -559,6 +620,10 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
         data.get("index_top10", []),
         data.get("index_bottom10", []),
         include_yield=include_yield,
+        breakdown=data.get("index_by_category", []),
+        breakdown_label="Category",
+        breakdown_direction=is_li,
+        breakdown_type=not is_li,
     )
 
     # --- 5. Single Stock Section ---
@@ -569,6 +634,10 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
         data.get("ss_top10", []),
         data.get("ss_bottom10", []),
         include_yield=include_yield,
+        breakdown=data.get("ss_by_underlier", []),
+        breakdown_label="Underlier",
+        breakdown_direction=is_li,
+        breakdown_type=not is_li,
     )
 
     return _wrap_email(title, accent, body, dashboard_url, date_str)
