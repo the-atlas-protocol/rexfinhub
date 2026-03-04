@@ -305,7 +305,13 @@ def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
 # ---------------------------------------------------------------------------
 def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
     """Render a vertical bar chart showing Total AUM (bars) + REX AUM (overlay)
-    + Product Count (dots) with dual Y-axes."""
+    + Product Count (dots) with dual Y-axes.
+
+    Each column is a single-cell table with a fixed height.  The bar is drawn as
+    a background gradient from the bottom, and the product-count dot is placed
+    via a top-margin spacer div so it works without absolute positioning (which
+    many email clients ignore).
+    """
     labels = timeline.get("labels", [])
     total_aum = timeline.get("total_aum", [])
     rex_aum = timeline.get("rex_aum", [])
@@ -319,7 +325,6 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
     max_count = max(product_count) if product_count else 1
     chart_height = 120  # pixels
 
-    # Build column cells: each column is a vertical bar
     col_width = max(int(550 / n), 20)
     cols_html = ""
     for i in range(n):
@@ -327,38 +332,49 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
         rex = rex_aum[i] if i < len(rex_aum) else 0
         count = product_count[i] if i < len(product_count) else 0
 
-        bar_h = int(aum / max_aum * chart_height)
+        bar_h = max(int(aum / max_aum * chart_height), 1)
         rex_h = int(rex / max_aum * chart_height) if aum > 0 else 0
-        non_rex_h = bar_h - rex_h
-        empty_h = chart_height - bar_h
+        non_rex_h = max(bar_h - rex_h, 0)
 
-        # Count dot position (from top)
-        count_top = int((1 - count / max_count) * chart_height) if max_count > 0 else chart_height
+        # Product count dot: position from top of chart_height
+        dot_from_top = int((1 - count / max_count) * chart_height) if max_count > 0 else chart_height
+        # How much space above the bar
+        space_above_bar = chart_height - bar_h
 
-        # Show label every 2-3 columns to avoid crowding
+        # Show label every ~2 columns to avoid crowding
         show_label = (i % max(1, n // 6) == 0) or i == n - 1
         label_text = labels[i] if show_label else ""
 
+        # The dot goes at dot_from_top px from top.  If the dot is in the
+        # space-above-bar area we put it there; otherwise inside the bar.
+        if dot_from_top <= space_above_bar:
+            # Dot sits in the empty area above the bar
+            dot_spacer = dot_from_top
+            dot_html = (
+                f'<div style="height:{dot_spacer}px;font-size:0;"></div>'
+                f'<div style="width:6px;height:6px;margin:0 auto;'
+                f'border-radius:50%;background:{_ORANGE};"></div>'
+                f'<div style="height:{space_above_bar - dot_spacer - 6}px;font-size:0;"></div>'
+            )
+        else:
+            dot_html = f'<div style="height:{space_above_bar}px;font-size:0;"></div>'
+
         cols_html += f"""<td style="vertical-align:bottom;padding:0 1px;width:{col_width}px;">
-  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-  <tr><td style="height:{empty_h}px;font-size:0;position:relative;">
-    <div style="position:absolute;bottom:{chart_height - count_top - empty_h}px;left:50%;
-      width:6px;height:6px;margin-left:-3px;border-radius:50%;background:{_ORANGE};"></div>
-  </td></tr>
-  <tr><td style="height:{non_rex_h}px;background:{accent};font-size:0;opacity:0.6;">&nbsp;</td></tr>
-  <tr><td style="height:{rex_h}px;background:{_REX_GREEN};font-size:0;">&nbsp;</td></tr>
-  </table>
+  <div style="height:{chart_height}px;font-size:0;">
+    {dot_html}
+    <div style="height:{non_rex_h}px;background:{accent};opacity:0.6;font-size:0;">&nbsp;</div>
+    <div style="height:{rex_h}px;background:{_REX_GREEN};font-size:0;">&nbsp;</div>
+  </div>
   <div style="font-size:8px;color:{_GRAY};text-align:center;margin-top:3px;
     white-space:nowrap;overflow:hidden;">{label_text}</div>
 </td>"""
 
-    # Y-axis labels (AUM left, Count right)
+    # Y-axis labels
     aum_top = _fmt_currency(max_aum)
     aum_mid = _fmt_currency(max_aum / 2)
     count_top_label = str(max_count)
     count_mid_label = str(max_count // 2)
 
-    # Legend
     legend = (
         f'<table cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">'
         f'<tr>'
@@ -462,7 +478,8 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
     Bars ordered by magnitude (largest at top). Replaces the Top 10 tables.
     """
     top_in = sorted(inflows[:n], key=lambda f: f.get("flow_1w", 0), reverse=True)
-    top_out = sorted(outflows[:n], key=lambda f: abs(f.get("flow_1w", 0)), reverse=True)
+    # Outflows: smallest magnitude at top, largest at bottom (mirrors inflows visually)
+    top_out = sorted(outflows[:n], key=lambda f: abs(f.get("flow_1w", 0)), reverse=False)
     if not top_in and not top_out:
         return ""
 
@@ -631,32 +648,13 @@ def _segment_section(segment_title: str, accent: str,
                      breakdown_label: str = "Category",
                      breakdown_direction: bool = False,
                      breakdown_type: bool = False) -> str:
-    """Build one segment: charts + breakdown table + issuer table + flow chart (replaces tables)."""
+    """Build one segment: Market Share + Issuer table at top, then charts + breakdown."""
     body = ""
     body += _section_title(segment_title, accent)
 
-    # --- Visual charts ---
-    if breakdown:
-        body += _horizontal_bar_chart(
-            breakdown, value_key="aum", label_key="name", value_fmt_key="aum_fmt",
-            title=f"AUM by {breakdown_label}", max_bars=8, accent=accent,
-        )
-
+    # --- Market Share + Issuer Breakdown at top ---
     if issuers:
         body += _issuer_share_bars(issuers, n=6)
-
-    # Flow chart replaces the Top 10 Inflows/Outflows tables
-    if top10 or bottom10:
-        body += _flow_bars(top10, bottom10, n=10)
-
-    # --- Data tables ---
-    if breakdown:
-        body += _breakdown_table(
-            breakdown, breakdown_label,
-            include_yield=include_yield,
-            include_direction=breakdown_direction,
-            include_type=breakdown_type,
-        )
 
     if issuers:
         body += _sub_heading("Issuer Breakdown")
@@ -689,6 +687,23 @@ def _segment_section(segment_title: str, accent: str,
                 ])
         body += _table(headers, rows, aligns, highlight_col=3,
                        rex_rows=rex_idxs, col_widths=col_widths)
+
+    # --- Attribute breakdown chart + table ---
+    if breakdown:
+        body += _horizontal_bar_chart(
+            breakdown, value_key="aum", label_key="name", value_fmt_key="aum_fmt",
+            title=f"AUM by {breakdown_label}", max_bars=8, accent=accent,
+        )
+        body += _breakdown_table(
+            breakdown, breakdown_label,
+            include_yield=include_yield,
+            include_direction=breakdown_direction,
+            include_type=breakdown_type,
+        )
+
+    # --- Flow chart (replaces Top 10 tables) ---
+    if top10 or bottom10:
+        body += _flow_bars(top10, bottom10, n=10)
 
     return body
 
