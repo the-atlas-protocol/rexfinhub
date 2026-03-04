@@ -301,52 +301,41 @@ def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
 
 
 # ---------------------------------------------------------------------------
-# AUM Timeline — area chart with product count line overlay
+# AUM Timeline — line/area chart with product count line overlay
 # ---------------------------------------------------------------------------
-# Lighter fill colors (no CSS opacity — many email clients ignore it)
-_TEAL_AREA = "#b2dfdb"   # light teal for total AUM fill
-_BLUE_AREA = "#bbdefb"   # light blue for CC total AUM fill
-_GREEN_AREA = "#c8e6c9"  # light green for REX AUM fill
+# Fill colors (light versions for area beneath lines)
+_TEAL_AREA = "#b2dfdb"
+_BLUE_AREA = "#bbdefb"
+_GREEN_AREA = "#c8e6c9"
+_LINE_H = 2   # line thickness in pixels
+_CNT_H = 2    # product count line thickness
 
 
-def _area_column_parts(empty_h: int, non_rex_h: int, rex_h: int,
-                       dot_top: int, dot_h: int = 3,
-                       area_color: str = _TEAL_AREA,
-                       rex_color: str = _GREEN_AREA) -> list[tuple[int, str]]:
-    """Split a column into (height, color) segments, inserting the product-count
-    line where it crosses the area/empty zones.  Total height = chart_height."""
-    chart_h = empty_h + non_rex_h + rex_h
-    dot_top = max(0, min(dot_top, chart_h - dot_h))
-    dot_bot = dot_top + dot_h
-
-    zones: list[tuple[int, int, str]] = []
-    if empty_h > 0:
-        zones.append((0, empty_h, "transparent"))
-    if non_rex_h > 0:
-        zones.append((empty_h, empty_h + non_rex_h, area_color))
-    if rex_h > 0:
-        zones.append((empty_h + non_rex_h, chart_h, rex_color))
-
-    parts: list[tuple[int, str]] = []
-    for z_start, z_end, z_color in zones:
-        ol_start = max(dot_top, z_start)
-        ol_end = min(dot_bot, z_end)
-        if ol_start < ol_end:
-            if z_start < ol_start:
-                parts.append((ol_start - z_start, z_color))
-            parts.append((ol_end - ol_start, _ORANGE))
-            if ol_end < z_end:
-                parts.append((z_end - ol_end, z_color))
-        else:
-            parts.append((z_end - z_start, z_color))
-    return parts
+def _lerp(vals: list[float], n_out: int) -> list[float]:
+    """Linear interpolation of *vals* to *n_out* evenly-spaced points."""
+    n_in = len(vals)
+    if n_in < 2 or n_out < 2:
+        return vals[:n_out]
+    out: list[float] = []
+    for i in range(n_out):
+        x = i * (n_in - 1) / (n_out - 1)
+        lo = int(x)
+        hi = min(lo + 1, n_in - 1)
+        f = x - lo
+        out.append(vals[lo] * (1 - f) + vals[hi] * f)
+    return out
 
 
 def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
-    """Area chart: Total AUM (light fill) with REX AUM nested inside, plus a
-    product-count line rendered as a thin orange stripe across each column.
+    """Line chart with area fill.
 
-    Columns are flush (no gaps) for a continuous area-chart look.
+    Interpolates 12 monthly data points to ~60 narrow sub-columns so the
+    staircase steps become invisible and it renders as smooth lines.
+
+    Three series:
+      - Total AUM: accent-colored line + light area fill beneath
+      - REX AUM: green line + lighter green fill inside the total area
+      - # Products: orange line (no fill), scaled to right Y-axis
     """
     labels = timeline.get("labels", [])
     total_aum = timeline.get("total_aum", [])
@@ -356,29 +345,74 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
     if not labels or not total_aum:
         return ""
 
-    n = len(labels)
-    max_aum = max(total_aum) or 1
-    max_count = max(product_count) if product_count else 1
+    n_data = len(labels)
+    n_cols = n_data * 5  # 60 sub-columns for smooth lines
     chart_height = 200
+
+    # Interpolate all series
+    t_aum = _lerp(total_aum, n_cols)
+    r_aum = _lerp(rex_aum, n_cols)
+    p_cnt = _lerp(product_count, n_cols)
+
+    max_aum = max(t_aum) or 1
+    max_cnt = max(p_cnt) if p_cnt else 1
 
     area_color = _BLUE_AREA if accent == _BLUE else _TEAL_AREA
 
+    # Build each sub-column as stacked divs
     cols_html = ""
-    for i in range(n):
-        aum = total_aum[i]
-        rex = rex_aum[i] if i < len(rex_aum) else 0
-        count = product_count[i] if i < len(product_count) else 0
+    for i in range(n_cols):
+        aum_h = max(int(t_aum[i] / max_aum * chart_height), 0)
+        rex_h = max(int(r_aum[i] / max_aum * chart_height), 0)
+        rex_h = min(rex_h, aum_h)
+        non_rex_h = aum_h - rex_h
+        empty_h = chart_height - aum_h
 
-        bar_h = max(int(aum / max_aum * chart_height), 1)
-        rex_h = int(rex / max_aum * chart_height) if aum > 0 else 0
-        non_rex_h = max(bar_h - rex_h, 0)
-        empty_h = chart_height - bar_h
+        cnt_h = int(p_cnt[i] / max_cnt * chart_height) if max_cnt else 0
+        cnt_top = max(0, min(chart_height - cnt_h, chart_height - _CNT_H))
 
-        dot_top = int((1 - count / max_count) * chart_height) if max_count else chart_height
+        # Build zones: empty → AUM line → non-rex fill → REX line → rex fill
+        # Then insert the product count line wherever it falls.
+        zones: list[tuple[int, int, str]] = []
+        pos = 0
+        if empty_h > 0:
+            zones.append((pos, pos + empty_h, "transparent"))
+            pos += empty_h
+        # AUM line (accent color)
+        aum_line = min(_LINE_H, non_rex_h) if non_rex_h > 0 else 0
+        if aum_line > 0:
+            zones.append((pos, pos + aum_line, accent))
+            pos += aum_line
+        # Non-REX area fill
+        fill_h = non_rex_h - aum_line
+        if fill_h > 0:
+            zones.append((pos, pos + fill_h, area_color))
+            pos += fill_h
+        # REX line (green)
+        rex_line = min(_LINE_H, rex_h) if rex_h > _LINE_H else 0
+        if rex_line > 0:
+            zones.append((pos, pos + rex_line, _REX_GREEN))
+            pos += rex_line
+        # REX area fill
+        rex_fill = rex_h - rex_line
+        if rex_fill > 0:
+            zones.append((pos, pos + rex_fill, _GREEN_AREA))
+            pos += rex_fill
 
-        parts = _area_column_parts(empty_h, non_rex_h, rex_h, dot_top,
-                                   dot_h=3, area_color=area_color,
-                                   rex_color=_GREEN_AREA)
+        # Insert product count line by splitting zones
+        cnt_bot = cnt_top + _CNT_H
+        parts: list[tuple[int, str]] = []
+        for z_start, z_end, z_color in zones:
+            ol_s = max(cnt_top, z_start)
+            ol_e = min(cnt_bot, z_end)
+            if ol_s < ol_e:
+                if z_start < ol_s:
+                    parts.append((ol_s - z_start, z_color))
+                parts.append((ol_e - ol_s, _ORANGE))
+                if ol_e < z_end:
+                    parts.append((z_end - ol_e, z_color))
+            else:
+                parts.append((z_end - z_start, z_color))
 
         divs = ""
         for h, color in parts:
@@ -390,38 +424,40 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
                 divs += (f'<div style="height:{h}px;background:{color};'
                          f'font-size:0;line-height:0;"></div>')
 
-        show_label = (i % max(1, n // 6) == 0) or i == n - 1
-        label_text = labels[i] if show_label else ""
-
-        # No padding between columns → continuous area fill
         cols_html += (
-            f'<td style="vertical-align:top;padding:0;font-size:0;">'
+            f'<td style="vertical-align:top;padding:0;font-size:0;line-height:0;">'
             f'<div style="height:{chart_height}px;font-size:0;line-height:0;">'
-            f'{divs}</div>'
-            f'<div style="font-size:8px;color:{_GRAY};text-align:center;'
-            f'margin-top:3px;white-space:nowrap;overflow:hidden;">'
-            f'{label_text}</div></td>'
+            f'{divs}</div></td>'
+        )
+
+    # X-axis label row: one label per original data point, spanning sub-columns
+    step = n_cols // n_data
+    label_cells = ""
+    for j in range(n_data):
+        label_cells += (
+            f'<td colspan="{step}" style="font-size:8px;color:{_GRAY};'
+            f'text-align:center;padding-top:4px;">{labels[j]}</td>'
         )
 
     # Y-axis labels
     aum_top = _fmt_currency(max_aum)
     aum_mid = _fmt_currency(max_aum / 2)
-    count_top_label = str(max_count)
-    count_mid_label = str(max_count // 2)
+    count_top_label = str(int(max_cnt))
+    count_mid_label = str(int(max_cnt) // 2)
     y_gap = chart_height // 2 - 12
 
     legend = (
         f'<table cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">'
         f'<tr>'
         f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
-        f'<span style="display:inline-block;width:10px;height:10px;background:{area_color};'
-        f'border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Total AUM</td>'
+        f'<span style="display:inline-block;width:12px;height:2px;background:{accent};'
+        f'vertical-align:middle;margin-right:3px;"></span>Total AUM</td>'
         f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
-        f'<span style="display:inline-block;width:10px;height:10px;background:{_GREEN_AREA};'
-        f'border-radius:2px;vertical-align:middle;margin-right:3px;"></span>REX AUM</td>'
+        f'<span style="display:inline-block;width:12px;height:2px;background:{_REX_GREEN};'
+        f'vertical-align:middle;margin-right:3px;"></span>REX AUM</td>'
         f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
-        f'<span style="display:inline-block;width:10px;height:3px;background:{_ORANGE};'
-        f'border-radius:1px;vertical-align:middle;margin-right:3px;"></span># Products</td>'
+        f'<span style="display:inline-block;width:12px;height:2px;background:{_ORANGE};'
+        f'vertical-align:middle;margin-right:3px;"></span># Products</td>'
         f'</tr></table>'
     )
 
@@ -439,10 +475,12 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
         f'{aum_mid}</div>'
         f'<div style="font-size:8px;color:{_GRAY};text-align:right;margin-top:4px;">AUM</div>'
         f'</td>'
-        # Chart columns
+        # Chart columns + label row
         f'<td><table cellpadding="0" cellspacing="0" border="0" width="100%" '
         f'style="border-collapse:collapse;border-bottom:1px solid {_BORDER};">'
-        f'<tr>{cols_html}</tr></table></td>'
+        f'<tr>{cols_html}</tr>'
+        f'<tr>{label_cells}</tr>'
+        f'</table></td>'
         # Right Y-axis (# Products)
         f'<td style="vertical-align:top;width:45px;padding-left:4px;">'
         f'<div style="font-size:9px;color:{_ORANGE};text-align:left;">{count_top_label}</div>'
