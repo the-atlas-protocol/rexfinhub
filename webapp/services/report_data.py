@@ -623,6 +623,45 @@ def _compute_aum_wow(data_aum: pd.DataFrame, tickers: list[str]) -> tuple[str, b
 # ---------------------------------------------------------------------------
 # Email segment helpers (shared by L&I + CC for v3 emails)
 # ---------------------------------------------------------------------------
+def _compute_aum_timeline(data_aum: pd.DataFrame, all_tickers: list[str],
+                          rex_tickers: set[str], months: int = 12) -> dict:
+    """Compute monthly AUM timeline for email charts.
+
+    Returns dict with labels, total_aum, rex_aum, product_count lists
+    (last N months).
+    """
+    empty = {"labels": [], "total_aum": [], "rex_aum": [], "product_count": []}
+    if data_aum.empty or not all_tickers:
+        return empty
+
+    df = data_aum.copy()
+    if "Dates" in df.columns:
+        df.index = pd.to_datetime(df["Dates"], errors="coerce")
+        df = df.drop(columns=["Dates"])
+    avail = [t for t in all_tickers if t in df.columns]
+    if not avail:
+        return empty
+
+    rex_avail = [t for t in avail if t in rex_tickers]
+    sub = df[avail].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    monthly = sub.resample("ME").last()
+    last = monthly.tail(months)
+    if last.empty:
+        return empty
+
+    labels = [d.strftime("%b %y") for d in last.index]
+    total = last.sum(axis=1).tolist()
+    rex = last[rex_avail].sum(axis=1).tolist() if rex_avail else [0.0] * len(last)
+    counts = [(last.iloc[i] > 0).sum() for i in range(len(last))]
+
+    return {
+        "labels": labels,
+        "total_aum": [round(v, 1) for v in total],
+        "rex_aum": [round(v, 1) for v in rex],
+        "product_count": [int(c) for c in counts],
+    }
+
+
 def _compute_breakdown(df: pd.DataFrame, groupby_col: str, total_aum: float,
                        include_yield: bool = False,
                        include_direction: bool = False,
@@ -973,6 +1012,9 @@ def get_li_report(db: Session | None = None) -> dict:
         include_direction=True, clean_suffix=" US",
     )
 
+    # AUM timeline for email chart (last 12 months)
+    aum_timeline = _compute_aum_timeline(data_aum, li_tickers, rex_tickers, months=12)
+
     return {
         "available": True,
         "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
@@ -997,6 +1039,7 @@ def get_li_report(db: Session | None = None) -> dict:
         "ss_bottom10": ss_seg["bottom10"],
         "index_by_category": index_by_category,
         "ss_by_underlier": ss_by_underlier,
+        "aum_timeline": aum_timeline,
     }
 
 
@@ -1241,6 +1284,9 @@ def get_cc_report(db: Session | None = None) -> dict:
         include_yield=True, include_type=True, clean_suffix=" US",
     )
 
+    # AUM timeline for email chart (last 12 months)
+    aum_timeline = _compute_aum_timeline(data_aum, cc_tickers, rex_tickers, months=12)
+
     return {
         "available": True,
         "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
@@ -1268,6 +1314,7 @@ def get_cc_report(db: Session | None = None) -> dict:
         "ss_bottom10": cc_ss_seg["bottom10"],
         "index_by_category": index_by_category,
         "ss_by_underlier": ss_by_underlier,
+        "aum_timeline": aum_timeline,
     }
 
 

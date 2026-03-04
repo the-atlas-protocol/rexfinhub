@@ -4,14 +4,14 @@ V3 Report emails: L&I and Income with unified segmented format.
 Both emails share identical layout:
   1. Header + Date
   2. KPI Banner (Index/ETF/Basket row + Single Stock row)
-  3. Key Highlights (narrative callouts)
+  3. AUM Timeline (area chart with REX overlay + product count)
   4. REX Spotlight (top 8 flagship products)
-  5. Index/ETF/Basket Section (issuer table, top 10 inflows/outflows)
-  6. Single Stock Section (issuer table, top 10 inflows/outflows)
+  5. Index/ETF/Basket Section (charts + tables)
+  6. Single Stock Section (charts + tables)
   7. Footer
 
 Income adds a Yield column in fund tables and Avg Yield in KPIs.
-No CID images or matplotlib -- pure HTML tables.
+No CID images or matplotlib -- pure HTML tables + CSS charts.
 """
 from __future__ import annotations
 
@@ -35,6 +35,11 @@ _BORDER = "#dee2e6"
 _WHITE = "#ffffff"
 _ORANGE = "#e67e22"
 _REX_ROW_BG = "#e8f5e9"
+_REX_GREEN = "#27ae60"
+_REX_GREEN_LIGHT = "rgba(39,174,96,0.25)"
+
+_CHART_COLORS = ["#0984e3", "#00897B", "#e67e22", "#8e44ad", "#e74c3c",
+                 "#2ecc71", "#f39c12", "#3498db", "#1abc9c", "#e91e63"]
 
 
 def _esc(s: str) -> str:
@@ -175,7 +180,6 @@ def _wrap_email(title: str, accent: str, body: str,
 # Shared section renderers
 # ---------------------------------------------------------------------------
 def _kpi_row(kpis: list[tuple[str, str, str]], label: str = "") -> str:
-    """Render a single KPI row with optional segment label."""
     n = len(kpis)
     width = int(100 / n) if n else 25
     cells = []
@@ -223,7 +227,8 @@ def _sub_heading(title: str) -> str:
 def _table(headers: list[str], rows: list[list[str]], align: list[str] | None = None,
            highlight_col: int | None = None, bold_last_row: bool = False,
            rex_rows: set[int] | None = None,
-           col_widths: list[str] | None = None) -> str:
+           col_widths: list[str] | None = None,
+           nowrap: bool = False) -> str:
     if not rows:
         return '<tr><td style="padding:10px 30px;color:#636e72;font-size:13px;">No data available.</td></tr>'
 
@@ -235,11 +240,14 @@ def _table(headers: list[str], rows: list[list[str]], align: list[str] | None = 
            f"text-transform:uppercase;letter-spacing:0.5px;font-weight:600;"
            f"border-bottom:2px solid {_BORDER};")
     _td = f"padding:6px 10px;font-size:12px;color:{_NAVY};border-bottom:1px solid {_BORDER};"
+    if nowrap:
+        _td += "white-space:nowrap;"
 
     header_cells = ""
     for i, h in enumerate(headers):
         w = f"width:{col_widths[i]};" if col_widths and i < len(col_widths) else ""
-        header_cells += f'<th style="{_th}text-align:{align[i]};{w}">{_esc(h)}</th>'
+        nw = "white-space:nowrap;" if nowrap else ""
+        header_cells += f'<th style="{_th}text-align:{align[i]};{w}{nw}">{_esc(h)}</th>'
 
     body_rows = []
     for ri, row in enumerate(rows):
@@ -276,7 +284,7 @@ def _table(headers: list[str], rows: list[list[str]], align: list[str] | None = 
 
 
 def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
-    """Transposed REX product table -- top 8 flagship products only."""
+    """Transposed REX product table -- top 8 flagship products, no wrapping."""
     if not rex_funds:
         return ""
     sorted_rex = sorted(rex_funds, key=lambda f: f.get("aum", 0), reverse=True)[:8]
@@ -289,127 +297,119 @@ def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
     if any(f.get("yield_fmt") and f.get("yield_val", 0) for f in sorted_rex):
         yield_row = ["Yield"] + [f.get("yield_fmt", "--") for f in sorted_rex]
         rows.append(yield_row)
-    return _section_title("REX Spotlight", accent) + _table(headers, rows, aligns)
+    return _section_title("REX Spotlight", accent) + _table(headers, rows, aligns, nowrap=True)
 
 
 # ---------------------------------------------------------------------------
-# Key Highlights (renamed from Notable Mentions)
+# AUM Timeline chart (vertical bars simulating area chart)
 # ---------------------------------------------------------------------------
-def _key_highlights(data: dict, report_type: str) -> str:
-    """Generate narrative callouts from report data."""
-    bullets = []
+def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
+    """Render a vertical bar chart showing Total AUM (bars) + REX AUM (overlay)
+    + Product Count (dots) with dual Y-axes."""
+    labels = timeline.get("labels", [])
+    total_aum = timeline.get("total_aum", [])
+    rex_aum = timeline.get("rex_aum", [])
+    product_count = timeline.get("product_count", [])
 
-    if report_type == "li":
-        providers = data.get("providers", [])
-        top10 = data.get("top10", [])
-        bottom10 = data.get("bottom10", [])
-        kpis = data.get("kpis", {})
-
-        if top10:
-            top = top10[0]
-            bullets.append(
-                f'<b>Top Weekly Inflow:</b> {_esc(top["ticker"])} '
-                f'({_esc(top["fund_name"][:40])}) attracted '
-                f'<span style="color:{_GREEN};font-weight:700;">{_esc(top["flow_1w_fmt"])}</span> this week'
-            )
-
-        if bottom10:
-            bot = bottom10[0]
-            bullets.append(
-                f'<b>Top Weekly Outflow:</b> {_esc(bot["ticker"])} '
-                f'({_esc(bot["fund_name"][:40])}) saw '
-                f'<span style="color:{_RED};font-weight:700;">{_esc(bot["flow_1w_fmt"])}</span> this week'
-            )
-
-        if providers:
-            top_issuer = max(providers, key=lambda p: p["flow_1w"])
-            if top_issuer["flow_1w"] > 0:
-                bullets.append(
-                    f'<b>Leading Issuer:</b> {_esc(top_issuer["issuer"])} led with '
-                    f'{_esc(top_issuer["flow_1w_fmt"])} in weekly net flows '
-                    f'({_fmt_pct_nosign(top_issuer["market_share"])} market share)'
-                )
-
-        rex_funds = data.get("rex_funds", [])
-        if rex_funds:
-            rex_aum = sum(f["aum"] for f in rex_funds)
-            bullets.append(
-                f'<b>REX Position:</b> {len(rex_funds)} REX L&I products with '
-                f'{_fmt_currency(rex_aum)} combined AUM'
-            )
-
-    elif report_type == "cc":
-        issuers = data.get("issuers", [])
-        top_flow = data.get("top_flow_segments", {}).get("All", [])
-        top_yield = data.get("top_yield_segments", {}).get("All", [])
-        kpis = data.get("kpis", {})
-
-        if top_flow:
-            top = top_flow[0]
-            bullets.append(
-                f'<b>Top Monthly Inflow:</b> {_esc(top["ticker"])} '
-                f'({_esc(top["issuer"][:25])}) attracted '
-                f'<span style="color:{_GREEN};font-weight:700;">{_esc(top["flow_1m_fmt"])}</span> over 1M'
-            )
-
-        if top_yield:
-            top = top_yield[0]
-            bullets.append(
-                f'<b>Highest Yield:</b> {_esc(top["ticker"])} at '
-                f'<span style="color:{_TEAL};font-weight:700;">{_esc(top["yield_fmt"])}</span> '
-                f'({_esc(top["issuer"][:25])})'
-            )
-
-        if issuers:
-            top_iss = issuers[0]
-            bullets.append(
-                f'<b>Market Leader:</b> {_esc(top_iss["issuer"])} holds '
-                f'{_fmt_pct_nosign(top_iss["market_share"])} market share '
-                f'({_esc(top_iss["aum_fmt"])} AUM, {top_iss["count"]} funds)'
-            )
-
-        rex_funds = data.get("rex_funds", [])
-        if rex_funds:
-            rex_aum = sum(f["aum"] for f in rex_funds)
-            bullets.append(
-                f'<b>REX Position:</b> {len(rex_funds)} REX income products with '
-                f'{_fmt_currency(rex_aum)} combined AUM'
-            )
-
-    if not bullets:
+    if not labels or not total_aum:
         return ""
 
-    bullet_html = "".join(
-        f'<tr><td style="padding:5px 8px;font-size:12px;color:{_NAVY};line-height:1.6;">'
-        f'<span style="color:{_TEAL};font-weight:700;margin-right:6px;">&#9679;</span>'
-        f'{b}</td></tr>'
-        for b in bullets
+    n = len(labels)
+    max_aum = max(total_aum) or 1
+    max_count = max(product_count) if product_count else 1
+    chart_height = 120  # pixels
+
+    # Build column cells: each column is a vertical bar
+    col_width = max(int(550 / n), 20)
+    cols_html = ""
+    for i in range(n):
+        aum = total_aum[i]
+        rex = rex_aum[i] if i < len(rex_aum) else 0
+        count = product_count[i] if i < len(product_count) else 0
+
+        bar_h = int(aum / max_aum * chart_height)
+        rex_h = int(rex / max_aum * chart_height) if aum > 0 else 0
+        non_rex_h = bar_h - rex_h
+        empty_h = chart_height - bar_h
+
+        # Count dot position (from top)
+        count_top = int((1 - count / max_count) * chart_height) if max_count > 0 else chart_height
+
+        # Show label every 2-3 columns to avoid crowding
+        show_label = (i % max(1, n // 6) == 0) or i == n - 1
+        label_text = labels[i] if show_label else ""
+
+        cols_html += f"""<td style="vertical-align:bottom;padding:0 1px;width:{col_width}px;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+  <tr><td style="height:{empty_h}px;font-size:0;position:relative;">
+    <div style="position:absolute;bottom:{chart_height - count_top - empty_h}px;left:50%;
+      width:6px;height:6px;margin-left:-3px;border-radius:50%;background:{_ORANGE};"></div>
+  </td></tr>
+  <tr><td style="height:{non_rex_h}px;background:{accent};font-size:0;opacity:0.6;">&nbsp;</td></tr>
+  <tr><td style="height:{rex_h}px;background:{_REX_GREEN};font-size:0;">&nbsp;</td></tr>
+  </table>
+  <div style="font-size:8px;color:{_GRAY};text-align:center;margin-top:3px;
+    white-space:nowrap;overflow:hidden;">{label_text}</div>
+</td>"""
+
+    # Y-axis labels (AUM left, Count right)
+    aum_top = _fmt_currency(max_aum)
+    aum_mid = _fmt_currency(max_aum / 2)
+    count_top_label = str(max_count)
+    count_mid_label = str(max_count // 2)
+
+    # Legend
+    legend = (
+        f'<table cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">'
+        f'<tr>'
+        f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
+        f'<span style="display:inline-block;width:10px;height:10px;background:{accent};'
+        f'opacity:0.6;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Total AUM</td>'
+        f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
+        f'<span style="display:inline-block;width:10px;height:10px;background:{_REX_GREEN};'
+        f'border-radius:2px;vertical-align:middle;margin-right:3px;"></span>REX AUM</td>'
+        f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
+        f'<span style="display:inline-block;width:6px;height:6px;background:{_ORANGE};'
+        f'border-radius:50%;vertical-align:middle;margin-right:3px;"></span>Product Count</td>'
+        f'</tr></table>'
     )
 
     return (
-        _section_title("Key Highlights", _TEAL) +
-        f'<tr><td style="padding:5px 30px 15px;">'
-        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{_LIGHT};border-radius:8px;padding:12px;">'
-        f'{bullet_html}</table></td></tr>'
+        f'<tr><td style="padding:12px 30px 8px;">'
+        f'<div style="font-size:11px;font-weight:600;color:{_GRAY};text-transform:uppercase;'
+        f'letter-spacing:0.5px;margin-bottom:8px;">AUM Timeline (12 Months)</div>'
+        f'<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
+        f'<tr>'
+        # Left Y-axis
+        f'<td style="vertical-align:top;width:50px;padding-right:4px;">'
+        f'<div style="font-size:9px;color:{_GRAY};text-align:right;">{aum_top}</div>'
+        f'<div style="font-size:9px;color:{_GRAY};text-align:right;margin-top:{chart_height // 2 - 12}px;">{aum_mid}</div>'
+        f'<div style="font-size:8px;color:{accent};text-align:right;margin-top:4px;">AUM</div>'
+        f'</td>'
+        # Chart area
+        f'<td><table cellpadding="0" cellspacing="0" border="0" width="100%" '
+        f'style="border-collapse:collapse;border-bottom:1px solid {_BORDER};">'
+        f'<tr>{cols_html}</tr></table></td>'
+        # Right Y-axis
+        f'<td style="vertical-align:top;width:40px;padding-left:4px;">'
+        f'<div style="font-size:9px;color:{_ORANGE};text-align:left;">{count_top_label}</div>'
+        f'<div style="font-size:9px;color:{_ORANGE};text-align:left;margin-top:{chart_height // 2 - 12}px;">{count_mid_label}</div>'
+        f'<div style="font-size:8px;color:{_ORANGE};text-align:left;margin-top:4px;">Count</div>'
+        f'</td>'
+        f'</tr></table>'
+        f'{legend}'
+        f'</td></tr>'
     )
 
 
 # ---------------------------------------------------------------------------
 # Inline HTML charts (email-safe, no images)
 # ---------------------------------------------------------------------------
-_CHART_COLORS = ["#0984e3", "#00897B", "#e67e22", "#8e44ad", "#e74c3c",
-                 "#2ecc71", "#f39c12", "#3498db", "#1abc9c", "#e91e63"]
-
-
 def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
                           label_key: str = "name", value_fmt_key: str = "aum_fmt",
                           title: str = "", max_bars: int = 8,
                           accent: str = _TEAL) -> str:
-    """Render a horizontal bar chart using pure HTML tables.
-
-    Each bar is a colored <td> with percentage width inside a fixed-width cell.
-    """
+    """Render a horizontal bar chart using pure HTML tables."""
     if not items:
         return ""
     items = items[:max_bars]
@@ -419,7 +419,7 @@ def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
     for i, b in enumerate(items):
         val = b.get(value_key, 0)
         pct = abs(val) / max_val * 100
-        bar_width = max(pct, 2)  # minimum visible width
+        bar_width = max(pct, 2)
         color = _CHART_COLORS[i % len(_CHART_COLORS)]
         label = _esc(str(b.get(label_key, ""))[:22])
         val_display = _esc(str(b.get(value_fmt_key, "")))
@@ -456,51 +456,69 @@ def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
     )
 
 
-def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 5) -> str:
-    """Render a bi-directional flow chart: green bars right for inflows, red bars left for outflows."""
-    top_in = inflows[:n]
-    top_out = outflows[:n]
+def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
+    """Bi-directional flow chart: inflows go RIGHT (green), outflows go LEFT (red).
+
+    Bars ordered by magnitude (largest at top). Replaces the Top 10 tables.
+    """
+    top_in = sorted(inflows[:n], key=lambda f: f.get("flow_1w", 0), reverse=True)
+    top_out = sorted(outflows[:n], key=lambda f: abs(f.get("flow_1w", 0)), reverse=True)
     if not top_in and not top_out:
         return ""
 
     all_flows = [abs(f.get("flow_1w", 0)) for f in top_in + top_out]
     max_flow = max(all_flows) if all_flows else 1
 
+    # Build rows: inflows first (green, bars go right), then outflows (red, bars go left)
     rows_html = ""
+
+    # Inflows: label | [empty][green bar] | value
+    if top_in:
+        rows_html += (f'<tr><td colspan="3" style="padding:4px 0 2px;font-size:10px;'
+                      f'font-weight:600;color:{_GREEN};text-transform:uppercase;'
+                      f'letter-spacing:0.5px;">Inflows</td></tr>')
     for f in top_in:
         flow = f.get("flow_1w", 0)
-        pct = abs(flow) / max_flow * 100
-        bar_w = max(pct, 3)
+        pct = abs(flow) / max_flow * 50  # max 50% width (half the bar area)
+        bar_w = max(pct, 2)
         rows_html += f"""<tr>
-<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;white-space:nowrap;">{_esc(f["ticker"])}</td>
+<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:70px;white-space:nowrap;">{_esc(f["ticker"])}</td>
 <td style="padding:2px 4px;width:100%;">
   <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-  <tr><td style="width:{bar_w:.0f}%;background:{_GREEN};height:14px;border-radius:3px;
+  <tr><td style="width:50%;font-size:0;">&nbsp;</td>
+  <td style="width:{bar_w:.0f}%;background:{_GREEN};height:14px;border-radius:0 3px 3px 0;
     font-size:0;">&nbsp;</td>
-  <td style="width:{100 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr>
+  <td style="width:{50 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr>
   </table>
 </td>
 <td style="padding:2px 0;font-size:11px;color:{_GREEN};text-align:right;white-space:nowrap;
-  width:70px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
+  width:75px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
 </tr>"""
 
+    # Outflows: label | [red bar][empty] | value  (bars grow LEFT from center)
+    if top_out:
+        rows_html += (f'<tr><td colspan="3" style="padding:6px 0 2px;font-size:10px;'
+                      f'font-weight:600;color:{_RED};text-transform:uppercase;'
+                      f'letter-spacing:0.5px;">Outflows</td></tr>')
     for f in top_out:
         flow = f.get("flow_1w", 0)
-        pct = abs(flow) / max_flow * 100
-        bar_w = max(pct, 3)
+        pct = abs(flow) / max_flow * 50
+        bar_w = max(pct, 2)
         rows_html += f"""<tr>
-<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;white-space:nowrap;">{_esc(f["ticker"])}</td>
+<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:70px;white-space:nowrap;">{_esc(f["ticker"])}</td>
 <td style="padding:2px 4px;width:100%;">
   <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-  <tr><td style="width:{bar_w:.0f}%;background:{_RED};height:14px;border-radius:3px;
+  <tr><td style="width:{50 - bar_w:.0f}%;font-size:0;">&nbsp;</td>
+  <td style="width:{bar_w:.0f}%;background:{_RED};height:14px;border-radius:3px 0 0 3px;
     font-size:0;">&nbsp;</td>
-  <td style="width:{100 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr>
+  <td style="width:50%;font-size:0;">&nbsp;</td></tr>
   </table>
 </td>
 <td style="padding:2px 0;font-size:11px;color:{_RED};text-align:right;white-space:nowrap;
-  width:70px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
+  width:75px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
 </tr>"""
 
+    # Center line indicator
     return (
         f'<tr><td style="padding:8px 30px 10px;">'
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
@@ -517,7 +535,6 @@ def _issuer_share_bars(issuers: list[dict], n: int = 6) -> str:
     if not issuers:
         return ""
     top = issuers[:n]
-    # Stacked horizontal bar
     segments = ""
     legend = ""
     for i, iss in enumerate(top):
@@ -568,7 +585,6 @@ def _breakdown_table(breakdown: list[dict], breakdown_label: str,
     """Render a compact attribute breakdown table (category or underlier)."""
     if not breakdown:
         return ""
-    # Build columns dynamically: Name, [Long/Short], [Trad/Synth], # ETPs, AUM, 1W Flow, [Avg Yield], Share
     headers, aligns, col_widths = [breakdown_label], ["left"], ["120px"]
     if include_direction:
         headers.append("Long / Short")
@@ -615,29 +631,25 @@ def _segment_section(segment_title: str, accent: str,
                      breakdown_label: str = "Category",
                      breakdown_direction: bool = False,
                      breakdown_type: bool = False) -> str:
-    """Build one segment section: charts + tables for a full segment."""
+    """Build one segment: charts + breakdown table + issuer table + flow chart (replaces tables)."""
     body = ""
     body += _section_title(segment_title, accent)
 
     # --- Visual charts ---
-    # 1. AUM distribution bar chart for category/underlier
     if breakdown:
-        chart_title = f"AUM by {breakdown_label}"
         body += _horizontal_bar_chart(
             breakdown, value_key="aum", label_key="name", value_fmt_key="aum_fmt",
-            title=chart_title, max_bars=8, accent=accent,
+            title=f"AUM by {breakdown_label}", max_bars=8, accent=accent,
         )
 
-    # 2. Issuer market share stacked bar
     if issuers:
         body += _issuer_share_bars(issuers, n=6)
 
-    # 3. Weekly flow direction bars
+    # Flow chart replaces the Top 10 Inflows/Outflows tables
     if top10 or bottom10:
-        body += _flow_bars(top10, bottom10, n=5)
+        body += _flow_bars(top10, bottom10, n=10)
 
     # --- Data tables ---
-    # Attribute breakdown table (category or underlier)
     if breakdown:
         body += _breakdown_table(
             breakdown, breakdown_label,
@@ -646,7 +658,6 @@ def _segment_section(segment_title: str, accent: str,
             include_type=breakdown_type,
         )
 
-    # Issuer Breakdown table
     if issuers:
         body += _sub_heading("Issuer Breakdown")
         if include_yield:
@@ -679,52 +690,6 @@ def _segment_section(segment_title: str, accent: str,
         body += _table(headers, rows, aligns, highlight_col=3,
                        rex_rows=rex_idxs, col_widths=col_widths)
 
-    # Top 10 Weekly Inflows
-    if top10:
-        body += _sub_heading("Top 10 Weekly Inflows")
-        if include_yield:
-            headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1W Flow", "Yield", "1W Ret"]
-            aligns = ["left", "left", "left", "right", "right", "right", "right"]
-            col_widths = ["55px", "155px", "100px", "70px", "70px", "55px", "55px"]
-        else:
-            headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1W Flow", "1W Ret"]
-            aligns = ["left", "left", "left", "right", "right", "right"]
-            col_widths = ["60px", "175px", "110px", "75px", "75px", "60px"]
-        rows = []
-        for f in top10:
-            row = [
-                f["ticker"], f["fund_name"][:30], f["issuer"][:22],
-                f["aum_fmt"], f["flow_1w_fmt"],
-            ]
-            if include_yield:
-                row.append(f.get("yield_fmt", "--"))
-            row.append(f.get("return_1w_fmt", ""))
-            rows.append(row)
-        body += _table(headers, rows, aligns, highlight_col=4, col_widths=col_widths)
-
-    # Top 10 Weekly Outflows
-    if bottom10:
-        body += _sub_heading("Top 10 Weekly Outflows")
-        if include_yield:
-            headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1W Flow", "Yield", "1W Ret"]
-            aligns = ["left", "left", "left", "right", "right", "right", "right"]
-            col_widths = ["55px", "155px", "100px", "70px", "70px", "55px", "55px"]
-        else:
-            headers = ["Ticker", "Fund Name", "Issuer", "AUM", "1W Flow", "1W Ret"]
-            aligns = ["left", "left", "left", "right", "right", "right"]
-            col_widths = ["60px", "175px", "110px", "75px", "75px", "60px"]
-        rows = []
-        for f in bottom10:
-            row = [
-                f["ticker"], f["fund_name"][:30], f["issuer"][:22],
-                f["aum_fmt"], f["flow_1w_fmt"],
-            ]
-            if include_yield:
-                row.append(f.get("yield_fmt", "--"))
-            row.append(f.get("return_1w_fmt", ""))
-            rows.append(row)
-        body += _table(headers, rows, aligns, highlight_col=4, col_widths=col_widths)
-
     return body
 
 
@@ -737,10 +702,10 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
 
     Layout:
       1. KPI Banner (Index/ETF/Basket row + Single Stock row)
-      2. Key Highlights
+      2. AUM Timeline chart
       3. REX Spotlight
-      4. Index/ETF/Basket Section
-      5. Single Stock Section
+      4. Index/ETF/Basket Section (charts + tables, flow chart replaces top10 tables)
+      5. Single Stock Section (charts + tables, flow chart replaces top10 tables)
       6. Footer (via _wrap_email)
     """
     date_str = _data_date_str(data)
@@ -750,13 +715,11 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
                            '<tr><td style="padding:20px 30px;">Bloomberg data not available.</td></tr>',
                            dashboard_url, date_str)
 
-    kpis = data["kpis"]
     index_kpis = data.get("index_kpis", {})
     ss_kpis = data.get("ss_kpis", {})
     body = ""
 
     # --- 1. KPI Banner: two rows ---
-    # Row 1: Index / ETF / Basket
     idx_items = [
         ("Total ETPs", str(index_kpis.get("count", 0)), _NAVY),
         ("Total AUM", index_kpis.get("total_aum", "$0"), _NAVY),
@@ -771,7 +734,6 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
                              _GREEN if index_kpis.get("aum_change_positive", True) else _RED))
     body += _kpi_row(idx_items, label="Index / ETF / Basket")
 
-    # Row 2: Single Stock
     ss_items = [
         ("SS ETPs", str(ss_kpis.get("count", 0)), _NAVY),
         ("SS AUM", ss_kpis.get("total_aum", "$0"), _NAVY),
@@ -786,8 +748,10 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
                             _GREEN if ss_kpis.get("aum_change_positive", True) else _RED))
     body += _kpi_row(ss_items, label="Single Stock")
 
-    # --- 2. Key Highlights ---
-    body += _key_highlights(data, report_type)
+    # --- 2. AUM Timeline Chart ---
+    timeline = data.get("aum_timeline", {})
+    if timeline.get("labels"):
+        body += _aum_timeline_chart(timeline, accent)
 
     # --- 3. REX Spotlight ---
     body += _rex_spotlight(data.get("rex_funds", []), _GREEN)
