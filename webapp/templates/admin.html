@@ -56,11 +56,31 @@
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
   <strong style="color:var(--green);">Test Income report sent to relasmar@rexfin.com.</strong>
 </div>
+{% elif d == 'test_flow_sent' %}
+<div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Test Flow report sent to relasmar@rexfin.com.</strong>
+</div>
+{% elif d == 'flow_sent' %}
+<div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Flow report sent to all recipients.</strong>
+</div>
+{% elif d == 'li_sent' %}
+<div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">L&I report sent to all recipients.</strong>
+</div>
+{% elif d == 'cc_sent' %}
+<div style="background:var(--green-bg); border-left:4px solid var(--green); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--green);">Income report sent to all recipients.</strong>
+</div>
+{% elif d == 'no_recipients' %}
+<div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
+  <strong style="color:var(--red);">No recipients configured.</strong> Add emails to email_recipients.txt.
+</div>
 {% elif d in ('test_fail', 'test_morning_fail', 'test_weekly_fail') %}
 <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
   <strong style="color:var(--red);">Test send failed.</strong> Check email configuration.
 </div>
-{% elif d in ('fail', 'weekly_fail', 'morning_fail') %}
+{% elif d in ('fail', 'weekly_fail', 'morning_fail', 'li_fail', 'cc_fail', 'flow_fail') %}
 <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:12px 16px; border-radius:0 8px 8px 0; margin-bottom:16px;">
   <strong style="color:var(--red);">Send failed.</strong> Check email configuration (Azure Graph or SMTP).
 </div>
@@ -206,13 +226,13 @@
   </div>
 
   <!-- Bloomberg Reports -->
-  <div style="border:1px solid #dee2e6; border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
+  <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
       <strong style="font-size:14px;">Bloomberg Reports</strong>
     </div>
     <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Leveraged & Inverse and Income reports sourced from Bloomberg data.</p>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
 
       <!-- L&I Report -->
       <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
@@ -245,6 +265,24 @@
           <a href="/admin/reports/preview-cc" target="_blank"
              class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
           <form method="post" action="/admin/reports/send-test-cc">
+            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Flow Report -->
+      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a1a2e;"></span>
+          <strong style="font-size:13px;">Flow Report</strong>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <form method="post" action="/admin/reports/send-flow" onsubmit="return confirm('Send Flow report to all recipients?');">
+            <button type="submit" class="btn btn-sm" style="background:#1a1a2e; color:#fff; border:none; font-size:11px;">Send All</button>
+          </form>
+          <a href="/admin/reports/preview-flow" target="_blank"
+             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
+          <form method="post" action="/admin/reports/send-test-flow">
             <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
           </form>
         </div>

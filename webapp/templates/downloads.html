@@ -1,161 +1,379 @@
 {% extends "base.html" %}
-{% block title %}Downloads — REX Financial Intelligence Hub{% endblock %}
+{% block title %}Data Exports — REX Financial Intelligence Hub{% endblock %}
 
 {% block content %}
-<div class="header">
-  <div class="breadcrumb">
-    <a href="/">Home</a><span class="sep">/</span>
-    <span>Data Downloads</span>
-  </div>
-  <h1>Downloads</h1>
-  <div class="date">Export data for offline analysis</div>
-</div>
+<style>
+  .export-page { max-width: 1100px; margin: 0 auto; }
+  .export-hero { margin-bottom: 32px; }
+  .export-hero h1 { font-size: var(--text-2xl); font-weight: 700; margin: 0 0 4px; }
+  .export-hero p { font-size: var(--text-base); color: var(--text-muted); margin: 0; }
 
-<!-- Section 1: Market Data Exports -->
-<div class="section-header">
-  <h2>Market Data Exports</h2>
-</div>
-<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 6px 0; font-size:16px;">Market Master Data</h3>
-    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">Full fund universe with AUM, flows, returns, expense ratios, and category attributes.</p>
-    <a href="/downloads/export/market/master" class="btn btn-primary btn-sm">Download CSV</a>
-  </div>
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 6px 0; font-size:16px;">Category Summary</h3>
-    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">AUM and flows aggregated by category (L&I, Covered Call, Crypto, etc.).</p>
-    <a href="/downloads/export/market/category-summary" class="btn btn-primary btn-sm">Download CSV</a>
-  </div>
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 6px 0; font-size:16px;">Issuer Summary</h3>
-    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">AUM and flows aggregated by issuer and category.</p>
-    <a href="/downloads/export/market/issuer-summary" class="btn btn-primary btn-sm">Download CSV</a>
-  </div>
-</div>
+  .export-section { margin-bottom: 36px; }
+  .export-section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--teal); }
+  .export-section-head h2 { font-size: var(--text-lg); font-weight: 700; margin: 0; color: var(--text-primary); }
+  .export-section-head .count { font-size: var(--text-sm); color: var(--text-muted); }
 
-<!-- Section 2: SEC Filing Exports -->
-<div class="section-header">
-  <h2>SEC Filing Exports</h2>
-</div>
-<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 6px 0; font-size:16px;">All Funds</h3>
-    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">Current fund status for all ~7,000 ETF funds across all trusts.</p>
-    <a href="/downloads/export/funds" class="btn btn-primary btn-sm">Download CSV</a>
-  </div>
-  <div style="border:1px solid var(--border); border-radius:8px; padding:20px; background:var(--light);">
-    <h3 style="margin:0 0 6px 0; font-size:16px;">All Filings</h3>
-    <p style="font-size:13px; color:var(--gray); margin:0 0 12px 0;">Complete filing history with fund extractions across all trusts.</p>
-    <a href="/downloads/export/filings" class="btn btn-primary btn-sm">Download CSV</a>
-  </div>
-</div>
+  .export-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 
-<!-- Section 2: Per-Trust Data -->
-{% if all_trusts %}
-<div class="section-header">
-  <h2>Per-Trust Data</h2>
-  <span class="badge">{{ total_trust_count }} trusts</span>
-</div>
-<div class="filter-bar" style="margin-bottom:16px;">
-  <input type="text" id="trustSearch" placeholder="Search trust name..." oninput="filterTrusts(this.value)" style="width:300px;">
-  <span id="trustMatchCount" style="font-size:13px; color:var(--gray);"></span>
-</div>
-<div id="trustAccordion">
-  {% for t in all_trusts %}
-  <details class="trust-detail" data-name="{{ t.name|lower }}" style="border:1px solid var(--border); border-radius:8px; margin-bottom:8px; background:var(--light);">
-    <summary style="padding:12px 16px; cursor:pointer; font-weight:600; font-size:14px;">
-      {{ t.name }}
-      {% if t.is_rex %}
-      <span style="background:var(--navy); color:white; font-size:10px; padding:1px 6px; border-radius:8px; margin-left:6px;">[REX]</span>
-      {% endif %}
-    </summary>
-    <div style="padding:8px 16px 16px;">
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-        <a href="/downloads/export/trust/{{ t.id }}/filings" class="btn btn-sm">Fund Status CSV</a>
-      </div>
-      {% if trust_files_map.get(t.name) %}
-      <div style="font-size:12px; color:var(--gray); margin-bottom:6px;">Pipeline files:</div>
-      <table style="margin:0;">
-        <thead>
-          <tr>
-            <th>File</th>
-            <th>Size</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for f in trust_files_map[t.name] %}
-          <tr>
-            <td style="font-size:13px;">{{ f.name }}</td>
-            <td style="color:var(--gray); font-size:13px;">{{ f.size }}</td>
-            <td><a href="/downloads/file?path={{ f.path }}" class="btn btn-sm">Download</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
+  .export-card {
+    display: flex; align-items: center; gap: 14px;
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 16px 18px; background: var(--surface-0);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .export-card:hover { border-color: var(--teal); box-shadow: var(--shadow-sm); }
+
+  .export-icon {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #fff;
+  }
+  .export-icon.blue { background: var(--blue); }
+  .export-icon.navy { background: var(--teal); }
+  .export-icon.green { background: var(--teal); }
+  .export-icon.orange { background: var(--orange); }
+  .export-icon.purple { background: var(--purple); }
+
+  .export-info { flex: 1; min-width: 0; }
+  .export-info h3 { font-size: var(--text-md); font-weight: 600; margin: 0 0 2px; color: var(--text-primary); }
+  .export-info p { font-size: var(--text-sm); color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+  .export-dl {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 14px; border-radius: var(--radius-md);
+    font-size: var(--text-sm); font-weight: 600; text-decoration: none;
+    color: var(--teal); border: 1px solid var(--teal); background: transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .export-dl:hover { background: var(--teal); color: #fff; }
+  .export-dl svg { width: 14px; height: 14px; }
+
+  /* Custom query builder */
+  .query-box {
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 20px; background: var(--surface-0); margin-top: 12px;
+  }
+  .query-box h3 { font-size: var(--text-md); font-weight: 600; margin: 0 0 12px; color: var(--text-primary); }
+  .query-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .query-field label { display: block; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .query-field select, .query-field input {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: var(--text-sm); background: var(--surface-0); color: var(--text-primary); min-width: 120px;
+  }
+  .query-go {
+    padding: 6px 18px; border-radius: var(--radius-sm);
+    font-size: var(--text-sm); font-weight: 600;
+    background: var(--teal); color: #fff; border: none; cursor: pointer;
+  }
+  .query-go:hover { opacity: 0.85; }
+
+  /* Per-trust accordion */
+  .trust-search {
+    width: 100%; max-width: 360px; padding: 8px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    font-size: var(--text-sm); margin-bottom: 12px;
+    background: var(--surface-0); color: var(--text-primary);
+  }
+  .trust-item { border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 6px; background: var(--surface-0); }
+  .trust-item summary { padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: var(--text-sm); list-style: none; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+  .trust-item summary::-webkit-details-marker { display: none; }
+  .trust-item summary::before { content: "\25B6"; font-size: 9px; color: var(--text-muted); transition: transform 0.15s; }
+  .trust-item[open] summary::before { transform: rotate(90deg); }
+  .trust-item .trust-body { padding: 4px 14px 14px 30px; }
+  .trust-tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+  .trust-tag.rex { background: var(--teal); color: #fff; }
+
+  @media (max-width: 768px) {
+    .export-grid { grid-template-columns: 1fr; }
+    .query-row { flex-direction: column; }
+    .query-field { width: 100%; }
+    .query-field select, .query-field input { width: 100%; }
+  }
+</style>
+
+<div class="export-page">
+
+  <div class="export-hero">
+    <h1>Data Exports</h1>
+    <p>Download CSVs for ad-hoc analysis, deck prep, and reporting. All data is live from the database.</p>
+  </div>
+
+  <!-- ===== Bloomberg / Market Data ===== -->
+  <div class="export-section">
+    <div class="export-section-head">
+      <h2>Bloomberg Market Data</h2>
+      <span class="count">Live from last sync</span>
     </div>
-  </details>
-  {% endfor %}
+
+    <div class="export-grid">
+      <div class="export-card">
+        <div class="export-icon blue">ALL</div>
+        <div class="export-info">
+          <h3>Full Master</h3>
+          <p>Complete fund universe — AUM, flows, returns, expense ratios, attributes</p>
+        </div>
+        <a href="/downloads/export/market/master" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon navy">REX</div>
+        <div class="export-info">
+          <h3>REX Products</h3>
+          <p>REX funds only — all metrics and classification attributes</p>
+        </div>
+        <a href="/downloads/export/market/rex-only" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon green">L&I</div>
+        <div class="export-info">
+          <h3>Leveraged & Inverse</h3>
+          <p>All L&I ETFs with leverage, direction, and underlier data</p>
+        </div>
+        <a href="/downloads/export/market/li" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon orange">CC</div>
+        <div class="export-info">
+          <h3>Income / Covered Call</h3>
+          <p>Income ETFs with yield, flow, and CC classification</p>
+        </div>
+        <a href="/downloads/export/market/cc" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Rollups / Summaries ===== -->
+  <div class="export-section">
+    <div class="export-section-head">
+      <h2>Summary Rollups</h2>
+      <span class="count">Aggregated views</span>
+    </div>
+
+    <div class="export-grid">
+      <div class="export-card">
+        <div class="export-icon purple">CAT</div>
+        <div class="export-info">
+          <h3>Category Summary</h3>
+          <p>AUM and flows by category (L&I, Covered Call, Crypto, Thematic, etc.)</p>
+        </div>
+        <a href="/downloads/export/market/category-summary" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon purple">ISS</div>
+        <div class="export-info">
+          <h3>Issuer Summary</h3>
+          <p>AUM, flows, and fund count by issuer and category</p>
+        </div>
+        <a href="/downloads/export/market/issuer-summary" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon purple">UND</div>
+        <div class="export-info">
+          <h3>Underlier Summary</h3>
+          <p>Single-stock universe — AUM and flows by underlying stock</p>
+        </div>
+        <a href="/downloads/export/market/underlier-summary" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon blue">TS</div>
+        <div class="export-info">
+          <h3>AUM Time Series</h3>
+          <p>Monthly AUM snapshots for every ticker — chart and trend analysis</p>
+        </div>
+        <a href="/downloads/export/market/timeseries" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Custom Export ===== -->
+  <div class="export-section">
+    <div class="export-section-head">
+      <h2>Custom Export</h2>
+      <span class="count">Build your own query</span>
+    </div>
+
+    <div class="query-box">
+      <h3>Filter, sort, and pick columns</h3>
+      <form id="adhocForm" action="/downloads/export/adhoc" method="get">
+        <div class="query-row">
+          <div class="query-field">
+            <label>Category</label>
+            <select name="category">
+              <option value="">All</option>
+              <option value="LI">Leveraged & Inverse</option>
+              <option value="CC">Covered Call</option>
+              <option value="Crypto">Crypto</option>
+              <option value="Thematic">Thematic</option>
+              <option value="Defined">Defined Outcome</option>
+            </select>
+          </div>
+          <div class="query-field">
+            <label>REX Only</label>
+            <select name="rex_only">
+              <option value="">All Funds</option>
+              <option value="true">REX Only</option>
+            </select>
+          </div>
+          <div class="query-field">
+            <label>Sort By</label>
+            <select name="sort">
+              <option value="-aum">AUM (high to low)</option>
+              <option value="aum">AUM (low to high)</option>
+              <option value="-fund_flow_1week">Flow 1W (high)</option>
+              <option value="fund_flow_1week">Flow 1W (low)</option>
+              <option value="-fund_flow_ytd">Flow YTD (high)</option>
+              <option value="-annualized_yield">Yield (high)</option>
+              <option value="ticker">Ticker A-Z</option>
+            </select>
+          </div>
+          <div class="query-field">
+            <label>Limit</label>
+            <input type="number" name="limit" value="" placeholder="All" min="1" max="10000" style="width:80px;">
+          </div>
+          <button type="submit" class="query-go">Download CSV</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== SEC Filing Exports ===== -->
+  <div class="export-section">
+    <div class="export-section-head">
+      <h2>SEC Filing Data</h2>
+      <span class="count">From pipeline</span>
+    </div>
+
+    <div class="export-grid">
+      <div class="export-card">
+        <div class="export-icon navy">FND</div>
+        <div class="export-info">
+          <h3>All Funds</h3>
+          <p>Current status for ~7,000 ETF funds across all trusts</p>
+        </div>
+        <a href="/downloads/export/funds" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+
+      <div class="export-card">
+        <div class="export-icon navy">FIL</div>
+        <div class="export-info">
+          <h3>All Filings</h3>
+          <p>Complete filing history with fund extractions</p>
+        </div>
+        <a href="/downloads/export/filings" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Per-Trust Filings ===== -->
+  {% if all_trusts %}
+  <div class="export-section">
+    <div class="export-section-head">
+      <h2>Per-Trust Filings</h2>
+      <span class="count">{{ total_trust_count }} trusts</span>
+    </div>
+
+    <input type="text" class="trust-search" id="trustSearch" placeholder="Search trust name..." oninput="filterTrusts(this.value)">
+    <span id="trustMatchCount" style="font-size:var(--text-sm); color:var(--gray-500); margin-left:8px;"></span>
+
+    <div id="trustAccordion">
+      {% for t in all_trusts %}
+      <details class="trust-item trust-detail" data-name="{{ t.name|lower }}">
+        <summary>
+          {{ t.name }}
+          {% if t.is_rex %}<span class="trust-tag rex">REX</span>{% endif %}
+        </summary>
+        <div class="trust-body">
+          <a href="/downloads/export/trust/{{ t.id }}/filings" class="export-dl" style="font-size:12px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Fund Status CSV
+          </a>
+          {% if trust_files_map.get(t.name) %}
+          {% for f in trust_files_map[t.name] %}
+          <a href="/downloads/file?path={{ f.path }}" class="export-dl" style="font-size:12px; margin-left:6px;">
+            {{ f.name }} ({{ f.size }})
+          </a>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== Pipeline Files ===== -->
+  {% if summary_files or digest_files %}
+  <div class="export-section">
+    <div class="export-section-head">
+      <h2>Pipeline Files</h2>
+    </div>
+    <div class="export-grid">
+      {% for f in summary_files %}
+      <div class="export-card">
+        <div class="export-icon green">XLS</div>
+        <div class="export-info">
+          <h3>{{ f.name }}</h3>
+          <p>{{ f.size }}</p>
+        </div>
+        <a href="/downloads/file?path={{ f.path }}" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          DL
+        </a>
+      </div>
+      {% endfor %}
+      {% for f in digest_files %}
+      <div class="export-card">
+        <div class="export-icon orange">HTM</div>
+        <div class="export-info">
+          <h3>{{ f.name }}</h3>
+          <p>{{ f.size }}</p>
+        </div>
+        <a href="/downloads/file?path={{ f.path }}" class="export-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          DL
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
 </div>
-{% endif %}
-
-<!-- Section 3: Other Files -->
-{% if summary_files or digest_files %}
-<div class="section-header" style="margin-top:24px;">
-  <h2>Other Files</h2>
-</div>
-
-{% if summary_files %}
-<h3 style="font-size:14px; margin-bottom:8px;">Summary Reports</h3>
-<table>
-  <thead>
-    <tr>
-      <th>File</th>
-      <th>Size</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for f in summary_files %}
-    <tr>
-      <td>{{ f.name }}</td>
-      <td style="color:var(--gray); font-size:13px;">{{ f.size }}</td>
-      <td><a href="/downloads/file?path={{ f.path }}" class="btn btn-sm">Download</a></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-
-{% if digest_files %}
-<h3 style="font-size:14px; margin-bottom:8px; margin-top:16px;">Daily Digest</h3>
-<table>
-  <thead>
-    <tr>
-      <th>File</th>
-      <th>Size</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for f in digest_files %}
-    <tr>
-      <td>{{ f.name }}</td>
-      <td style="color:var(--gray); font-size:13px;">{{ f.size }}</td>
-      <td><a href="/downloads/file?path={{ f.path }}" class="btn btn-sm">Download</a></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-{% endif %}
-
-{% if not summary_files and not digest_files and not all_trusts %}
-<div style="text-align:center; padding:40px; color:var(--gray);">
-  <p>No files available yet. Run the pipeline to generate output files.</p>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -164,7 +382,6 @@ function filterTrusts(q) {
   q = q.trim().toLowerCase();
   var details = document.querySelectorAll('.trust-detail');
   var shown = 0;
-  var total = details.length;
   details.forEach(function(el) {
     if (!q || el.getAttribute('data-name').indexOf(q) !== -1) {
       el.style.display = '';
@@ -174,11 +391,7 @@ function filterTrusts(q) {
     }
   });
   var countEl = document.getElementById('trustMatchCount');
-  if (q) {
-    countEl.textContent = shown + ' of ' + total + ' trusts';
-  } else {
-    countEl.textContent = '';
-  }
+  countEl.textContent = q ? (shown + ' of ' + details.length + ' trusts') : '';
 }
 </script>
 {% endblock %}

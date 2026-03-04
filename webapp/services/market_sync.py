@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -218,6 +219,13 @@ def sync_market_data(
     except Exception as e:
         log.warning("Global ETP sync skipped: %s", e)
 
+    # Step 6c: Export CSVs (local only)
+    if not os.environ.get("RENDER"):
+        try:
+            _export_csvs(master_df, ts_df)
+        except Exception as e:
+            log.warning("CSV export skipped: %s", e)
+
     # Step 7: Finalize pipeline run
     run.finished_at = datetime.utcnow()
     run.status = "completed"
@@ -399,6 +407,72 @@ def _insert_time_series(
 
 
 # ---------------------------------------------------------------------------
+# CSV exports (local only)
+# ---------------------------------------------------------------------------
+_EXPORT_DIR = Path("data/exports")
+
+
+def _export_csvs(master_df: pd.DataFrame, ts_df: pd.DataFrame) -> None:
+    """Write CSV exports to data/exports/ for ad-hoc analysis.
+
+    Called during sync_market_data, local only (never on Render).
+    Each file is overwritten on every run.
+    """
+    _EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Flatten column names (strip prefixes)
+    df = master_df.copy()
+    df.columns = [_strip_prefix(c) for c in df.columns]
+
+    # master_all.csv -- full universe
+    df.to_csv(_EXPORT_DIR / "master_all.csv", index=False)
+
+    # rex_only.csv
+    if "is_rex" in df.columns:
+        rex = df[df["is_rex"] == True]
+        rex.to_csv(_EXPORT_DIR / "rex_only.csv", index=False)
+
+    # li_funds.csv
+    if "etp_category" in df.columns:
+        li = df[df["etp_category"] == "LI"]
+        li.to_csv(_EXPORT_DIR / "li_funds.csv", index=False)
+
+    # cc_funds.csv
+    if "etp_category" in df.columns:
+        cc = df[df["etp_category"] == "CC"]
+        cc.to_csv(_EXPORT_DIR / "cc_funds.csv", index=False)
+
+    # issuer_rollup.csv
+    if "issuer_display" in df.columns and "aum" in df.columns:
+        issuer = df.groupby("issuer_display", observed=True).agg(
+            fund_count=("ticker", "count"),
+            total_aum=("aum", "sum"),
+            flow_1w=("fund_flow_1week", "sum") if "fund_flow_1week" in df.columns else ("aum", lambda x: 0),
+            flow_1m=("fund_flow_1month", "sum") if "fund_flow_1month" in df.columns else ("aum", lambda x: 0),
+            flow_ytd=("fund_flow_ytd", "sum") if "fund_flow_ytd" in df.columns else ("aum", lambda x: 0),
+        ).sort_values("total_aum", ascending=False)
+        total_aum = issuer["total_aum"].sum()
+        if total_aum > 0:
+            issuer["market_share_pct"] = (issuer["total_aum"] / total_aum * 100).round(2)
+        issuer.to_csv(_EXPORT_DIR / "issuer_rollup.csv")
+
+    # underlier_rollup.csv (single stock only)
+    if "map_li_underlier" in df.columns:
+        ss = df[df.get("is_singlestock", "").astype(str).str.lower().isin(["true", "1", "yes"])] if "is_singlestock" in df.columns else pd.DataFrame()
+        if not ss.empty:
+            underlier = ss.groupby("map_li_underlier", observed=True).agg(
+                fund_count=("ticker", "count"),
+                total_aum=("aum", "sum"),
+                flow_1w=("fund_flow_1week", "sum") if "fund_flow_1week" in ss.columns else ("aum", lambda x: 0),
+                flow_ytd=("fund_flow_ytd", "sum") if "fund_flow_ytd" in ss.columns else ("aum", lambda x: 0),
+            ).sort_values("total_aum", ascending=False)
+            underlier.to_csv(_EXPORT_DIR / "underlier_rollup.csv")
+
+    count = len(list(_EXPORT_DIR.glob("*.csv")))
+    log.info("Exported %d CSVs to %s", count, _EXPORT_DIR)
+
+
+# ---------------------------------------------------------------------------
 # Report pre-computation
 # ---------------------------------------------------------------------------
 def _compute_and_cache_reports(
@@ -422,10 +496,10 @@ def _compute_and_cache_reports(
     for report_key, get_fn in [
         ("li_report", rd.get_li_report),
         ("cc_report", rd.get_cc_report),
-        ("ss_report", rd.get_ss_report),
+        ("flow_report", rd.get_flow_report),
     ]:
         try:
-            data = get_fn()
+            data = get_fn(db=db)
             if data.get("available"):
                 cache_row = MktReportCache(
                     pipeline_run_id=run_id,
