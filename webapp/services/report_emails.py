@@ -649,16 +649,15 @@ def _breakdown_table(breakdown: list[dict], breakdown_label: str,
     )
 
 
-def _segment_section(segment_title: str, accent: str,
-                     issuers: list[dict], top10: list[dict], bottom10: list[dict],
-                     include_yield: bool = False,
-                     breakdown: list[dict] | None = None,
-                     breakdown_label: str = "Category",
-                     breakdown_direction: bool = False,
-                     breakdown_type: bool = False) -> str:
-    """Build one segment: Market Share + Issuer table at top, then charts + breakdown."""
+def _segment_tables(issuers: list[dict], top10: list[dict], bottom10: list[dict],
+                    include_yield: bool = False,
+                    breakdown: list[dict] | None = None,
+                    breakdown_label: str = "Category",
+                    breakdown_direction: bool = False,
+                    breakdown_type: bool = False,
+                    accent: str = _TEAL) -> str:
+    """Build segment tables: Market Share + Issuer table, then breakdown + flows."""
     body = ""
-    body += _section_title(segment_title, accent)
 
     # --- Market Share + Issuer Breakdown at top ---
     if issuers:
@@ -719,17 +718,44 @@ def _segment_section(segment_title: str, accent: str,
 # ---------------------------------------------------------------------------
 # Unified report email builder
 # ---------------------------------------------------------------------------
+def _segment_kpi_banner(kpis: dict) -> str:
+    """Render a 2-row KPI banner for one segment: market row + REX row."""
+    # Row 1: Market totals
+    market_items = [
+        ("Total ETPs", str(kpis.get("count", 0)), _NAVY),
+        ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
+        ("1W Net Flow", kpis.get("flow_1w", "$0"),
+         _GREEN if kpis.get("flow_1w_positive", True) else _RED),
+        ("1M Net Flow", kpis.get("flow_1m", "$0"),
+         _GREEN if kpis.get("flow_1m_positive", True) else _RED),
+    ]
+    body = _kpi_row(market_items)
+
+    # Row 2: REX inside (only if REX funds exist in this segment)
+    if kpis.get("rex_count", 0) > 0:
+        rex_items = [
+            ("REX ETPs", str(kpis.get("rex_count", 0)), _REX_GREEN),
+            ("REX AUM", kpis.get("rex_aum", "$0"), _REX_GREEN),
+            ("REX 1W Flow", kpis.get("rex_flow_1w", "$0"),
+             _GREEN if kpis.get("rex_flow_1w_positive", True) else _RED),
+            ("REX Share", kpis.get("rex_share", "0.0%"), _REX_GREEN),
+        ]
+        body += _kpi_row(rex_items, label="REX Shares")
+
+    return body
+
+
 def _build_report_email(data: dict, report_type: str, title: str, accent: str,
                         dashboard_url: str = "", include_yield: bool = False) -> str:
     """Unified email builder for both L&I and Income reports.
 
+    Each segment is self-contained:
+      KPI Banner (market + REX) -> AUM Timeline -> REX Spotlight ->
+      Market Share + Issuer Breakdown + Category/Underlier Breakdown + Flows
+
     Layout:
-      1. KPI Banner (Index/ETF/Basket row + Single Stock row)
-      2. AUM Timeline chart
-      3. REX Spotlight
-      4. Index/ETF/Basket Section (charts + tables, flow chart replaces top10 tables)
-      5. Single Stock Section (charts + tables, flow chart replaces top10 tables)
-      6. Footer (via _wrap_email)
+      1. Index / ETF / Basket segment (KPI, chart, spotlight, tables)
+      2. Single Stock segment (KPI, chart, spotlight, tables)
     """
     date_str = _data_date_str(data)
 
@@ -738,64 +764,29 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
                            '<tr><td style="padding:20px 30px;">Bloomberg data not available.</td></tr>',
                            dashboard_url, date_str)
 
-    index_kpis = data.get("index_kpis", {})
-    ss_kpis = data.get("ss_kpis", {})
+    is_li = report_type == "li"
     body = ""
 
-    # --- 1. KPI Banner: two rows ---
-    idx_items = [
-        ("Total ETPs", str(index_kpis.get("count", 0)), _NAVY),
-        ("Total AUM", index_kpis.get("total_aum", "$0"), _NAVY),
-        ("1W Net Flow", index_kpis.get("flow_1w", "$0"),
-         _GREEN if index_kpis.get("flow_1w_positive", True) else _RED),
-    ]
-    if include_yield:
-        idx_items.append(("Avg Yield", index_kpis.get("avg_yield", "0.0%"), _TEAL))
-    wow = index_kpis.get("aum_change_1w", "")
-    if wow:
-        idx_items.insert(2, ("AUM WoW", wow,
-                             _GREEN if index_kpis.get("aum_change_positive", True) else _RED))
-    body += _kpi_row(idx_items, label="Index / ETF / Basket")
+    # ====================================================================
+    # INDEX / ETF / BASKET SEGMENT
+    # ====================================================================
+    body += _section_title("Index / ETF / Basket", accent)
 
-    ss_items = [
-        ("SS ETPs", str(ss_kpis.get("count", 0)), _NAVY),
-        ("SS AUM", ss_kpis.get("total_aum", "$0"), _NAVY),
-        ("SS 1W Flow", ss_kpis.get("flow_1w", "$0"),
-         _GREEN if ss_kpis.get("flow_1w_positive", True) else _RED),
-    ]
-    if include_yield:
-        ss_items.append(("SS Avg Yield", ss_kpis.get("avg_yield", "0.0%"), _TEAL))
-    wow_ss = ss_kpis.get("aum_change_1w", "")
-    if wow_ss:
-        ss_items.insert(2, ("SS AUM WoW", wow_ss,
-                            _GREEN if ss_kpis.get("aum_change_positive", True) else _RED))
-    body += _kpi_row(ss_items, label="Single Stock")
+    # KPI Banner
+    body += _segment_kpi_banner(data.get("index_kpis", {}))
 
-    # --- REX KPI Row ---
-    rex_kpis = data.get("rex_kpis", {})
-    if rex_kpis.get("count", 0) > 0:
-        rex_items = [
-            ("REX ETPs", str(rex_kpis.get("count", 0)), _REX_GREEN),
-            ("REX AUM", rex_kpis.get("total_aum", "$0"), _REX_GREEN),
-            ("REX 1W Flow", rex_kpis.get("flow_1w", "$0"),
-             _GREEN if rex_kpis.get("flow_1w_positive", True) else _RED),
-            ("REX Share", rex_kpis.get("share", "0.0%"), _REX_GREEN),
-        ]
-        body += _kpi_row(rex_items, label="REX Shares")
+    # AUM Timeline Chart
+    idx_timeline = data.get("index_aum_timeline", {})
+    if idx_timeline.get("labels"):
+        body += _aum_timeline_chart(idx_timeline, accent)
 
-    # --- 2. AUM Timeline Chart ---
-    timeline = data.get("aum_timeline", {})
-    if timeline.get("labels"):
-        body += _aum_timeline_chart(timeline, accent)
+    # REX Spotlight (only if REX funds in this segment)
+    idx_rex = data.get("index_rex_funds", [])
+    if idx_rex:
+        body += _rex_spotlight(idx_rex, _GREEN)
 
-    # --- 3. REX Spotlight ---
-    body += _rex_spotlight(data.get("rex_funds", []), _GREEN)
-
-    # --- 4. Index / ETF / Basket Section ---
-    is_li = report_type == "li"
-    body += _segment_section(
-        "Index / ETF / Basket",
-        accent,
+    # Market Share + Issuer + Breakdown + Flows
+    body += _segment_tables(
         data.get("index_issuers", []),
         data.get("index_top10", []),
         data.get("index_bottom10", []),
@@ -806,10 +797,26 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
         breakdown_type=not is_li,
     )
 
-    # --- 5. Single Stock Section ---
-    body += _segment_section(
-        "Single Stock",
-        _NAVY,
+    # ====================================================================
+    # SINGLE STOCK SEGMENT
+    # ====================================================================
+    body += _section_title("Single Stock", _NAVY)
+
+    # KPI Banner
+    body += _segment_kpi_banner(data.get("ss_kpis", {}))
+
+    # AUM Timeline Chart
+    ss_timeline = data.get("ss_aum_timeline", {})
+    if ss_timeline.get("labels"):
+        body += _aum_timeline_chart(ss_timeline, _NAVY)
+
+    # REX Spotlight
+    ss_rex = data.get("ss_rex_funds", [])
+    if ss_rex:
+        body += _rex_spotlight(ss_rex, _GREEN)
+
+    # Market Share + Issuer + Breakdown + Flows
+    body += _segment_tables(
         data.get("ss_issuers", []),
         data.get("ss_top10", []),
         data.get("ss_bottom10", []),

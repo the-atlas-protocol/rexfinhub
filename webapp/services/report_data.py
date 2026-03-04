@@ -719,28 +719,33 @@ def _compute_breakdown(df: pd.DataFrame, groupby_col: str, total_aum: float,
 
 
 def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
+                           rex_tickers: set[str] | None = None,
                            include_yield: bool = False) -> dict:
-    """Compute KPIs, issuers, top10/bottom10 for one segment of funds.
+    """Compute KPIs, issuers, top10/bottom10, timeline, rex_funds for one segment.
 
     Used by both get_li_report() and get_cc_report() to split
     Index/ETF/Basket vs Single Stock data for v3 report emails.
+    Each segment is self-contained with its own timeline and REX spotlight.
     """
+    empty_kpis = {
+        "count": 0, "total_aum": "$0",
+        "flow_1w": "$0", "flow_1w_positive": True,
+        "flow_1m": "$0", "flow_1m_positive": True,
+        "rex_count": 0, "rex_aum": "$0",
+        "rex_flow_1w": "$0", "rex_flow_1w_positive": True,
+        "rex_share": "0.0%",
+    }
     if df.empty:
         return {
-            "kpis": {"count": 0, "total_aum": "$0",
-                     "flow_1w": "$0", "flow_1w_positive": True,
-                     "flow_ytd": "$0", "flow_ytd_positive": True},
-            "issuers": [],
-            "top10": [],
-            "bottom10": [],
+            "kpis": empty_kpis, "issuers": [], "top10": [], "bottom10": [],
+            "aum_timeline": {"labels": [], "total_aum": [], "rex_aum": [], "product_count": []},
+            "rex_funds": [],
         }
 
+    rex_tickers = rex_tickers or set()
     total_aum = float(df["aum"].sum())
     flow_1w = float(df["fund_flow_1week"].sum())
-    flow_ytd = float(df["fund_flow_ytd"].sum())
-    aum_change_1w, aum_change_positive = _compute_aum_wow(
-        data_aum, df["ticker_clean"].tolist()
-    )
+    flow_1m = float(df["fund_flow_1month"].sum())
 
     # REX KPIs
     rex_df = df[df["is_rex"] == True] if "is_rex" in df.columns else df.iloc[0:0]
@@ -751,12 +756,10 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
     kpis = {
         "count": len(df),
         "total_aum": _fmt_currency(total_aum),
-        "aum_change_1w": aum_change_1w,
-        "aum_change_positive": aum_change_positive,
         "flow_1w": _fmt_flow(flow_1w),
         "flow_1w_positive": flow_1w >= 0,
-        "flow_ytd": _fmt_flow(flow_ytd),
-        "flow_ytd_positive": flow_ytd >= 0,
+        "flow_1m": _fmt_flow(flow_1m),
+        "flow_1m_positive": flow_1m >= 0,
         "rex_count": len(rex_df),
         "rex_aum": _fmt_currency(rex_aum),
         "rex_flow_1w": _fmt_flow(rex_flow_1w),
@@ -771,6 +774,27 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
         if math.isnan(avg_yield):
             avg_yield = 0.0
         kpis["avg_yield"] = _fmt_pct(avg_yield)
+
+    # Per-segment AUM timeline (3 years)
+    seg_tickers = df["ticker_clean"].tolist()
+    aum_timeline = _compute_aum_timeline(data_aum, seg_tickers, rex_tickers, months=36)
+
+    # Per-segment REX funds spotlight
+    rex_funds = []
+    for _, r in rex_df.sort_values("aum", ascending=False).iterrows():
+        aum_val = _safe_float(r.get("aum", 0))
+        rex_funds.append({
+            "ticker": str(r.get("ticker_clean", "")),
+            "fund_name": str(r.get("fund_name", "")),
+            "aum": aum_val,
+            "aum_fmt": _fmt_currency(aum_val),
+            "flow_1w": _safe_float(r.get("fund_flow_1week", 0)),
+            "flow_1w_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1week", 0))),
+            "flow_1m": _safe_float(r.get("fund_flow_1month", 0)),
+            "flow_1m_fmt": _fmt_flow(_safe_float(r.get("fund_flow_1month", 0))),
+            "yield_val": _safe_float(r.get("annualized_yield", 0)),
+            "yield_fmt": _fmt_pct(_safe_float(r.get("annualized_yield", 0))),
+        })
 
     # Issuer breakdown
     issuer_col = (
@@ -817,6 +841,8 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
         "issuers": issuers,
         "top10": top10,
         "bottom10": bottom10,
+        "aum_timeline": aum_timeline,
+        "rex_funds": rex_funds,
     }
 
 
@@ -1022,8 +1048,8 @@ def get_li_report(db: Session | None = None) -> dict:
     else:
         li_index_df = li
         li_ss_df = pd.DataFrame()
-    index_seg = _compute_email_segment(li_index_df, data_aum)
-    ss_seg = _compute_email_segment(li_ss_df, data_aum)
+    index_seg = _compute_email_segment(li_index_df, data_aum, rex_tickers=rex_tickers)
+    ss_seg = _compute_email_segment(li_ss_df, data_aum, rex_tickers=rex_tickers)
 
     # Attribute breakdowns for v3 emails
     idx_total_aum = float(li_index_df["aum"].sum()) if not li_index_df.empty else 0
@@ -1068,6 +1094,10 @@ def get_li_report(db: Session | None = None) -> dict:
         "index_by_category": index_by_category,
         "ss_by_underlier": ss_by_underlier,
         "aum_timeline": aum_timeline,
+        "index_aum_timeline": index_seg["aum_timeline"],
+        "ss_aum_timeline": ss_seg["aum_timeline"],
+        "index_rex_funds": index_seg["rex_funds"],
+        "ss_rex_funds": ss_seg["rex_funds"],
     }
 
 
@@ -1304,8 +1334,8 @@ def get_cc_report(db: Session | None = None) -> dict:
     else:
         cc_index_df = cc
         cc_ss_df = pd.DataFrame()
-    cc_index_seg = _compute_email_segment(cc_index_df, data_aum, include_yield=True)
-    cc_ss_seg = _compute_email_segment(cc_ss_df, data_aum, include_yield=True)
+    cc_index_seg = _compute_email_segment(cc_index_df, data_aum, rex_tickers=rex_tickers, include_yield=True)
+    cc_ss_seg = _compute_email_segment(cc_ss_df, data_aum, rex_tickers=rex_tickers, include_yield=True)
 
     # Attribute breakdowns for v3 emails
     idx_total_aum = float(cc_index_df["aum"].sum()) if not cc_index_df.empty else 0
@@ -1354,6 +1384,10 @@ def get_cc_report(db: Session | None = None) -> dict:
         "index_by_category": index_by_category,
         "ss_by_underlier": ss_by_underlier,
         "aum_timeline": aum_timeline,
+        "index_aum_timeline": cc_index_seg["aum_timeline"],
+        "ss_aum_timeline": cc_ss_seg["aum_timeline"],
+        "index_rex_funds": cc_index_seg["rex_funds"],
+        "ss_rex_funds": cc_ss_seg["rex_funds"],
     }
 
 
