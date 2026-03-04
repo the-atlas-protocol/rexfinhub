@@ -301,16 +301,52 @@ def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
 
 
 # ---------------------------------------------------------------------------
-# AUM Timeline chart (vertical bars simulating area chart)
+# AUM Timeline — area chart with product count line overlay
 # ---------------------------------------------------------------------------
-def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
-    """Render a vertical bar chart showing Total AUM (bars) + REX AUM (overlay)
-    + Product Count (dots) with dual Y-axes.
+# Lighter fill colors (no CSS opacity — many email clients ignore it)
+_TEAL_AREA = "#b2dfdb"   # light teal for total AUM fill
+_BLUE_AREA = "#bbdefb"   # light blue for CC total AUM fill
+_GREEN_AREA = "#c8e6c9"  # light green for REX AUM fill
 
-    Each column is a single-cell table with a fixed height.  The bar is drawn as
-    a background gradient from the bottom, and the product-count dot is placed
-    via a top-margin spacer div so it works without absolute positioning (which
-    many email clients ignore).
+
+def _area_column_parts(empty_h: int, non_rex_h: int, rex_h: int,
+                       dot_top: int, dot_h: int = 3,
+                       area_color: str = _TEAL_AREA,
+                       rex_color: str = _GREEN_AREA) -> list[tuple[int, str]]:
+    """Split a column into (height, color) segments, inserting the product-count
+    line where it crosses the area/empty zones.  Total height = chart_height."""
+    chart_h = empty_h + non_rex_h + rex_h
+    dot_top = max(0, min(dot_top, chart_h - dot_h))
+    dot_bot = dot_top + dot_h
+
+    zones: list[tuple[int, int, str]] = []
+    if empty_h > 0:
+        zones.append((0, empty_h, "transparent"))
+    if non_rex_h > 0:
+        zones.append((empty_h, empty_h + non_rex_h, area_color))
+    if rex_h > 0:
+        zones.append((empty_h + non_rex_h, chart_h, rex_color))
+
+    parts: list[tuple[int, str]] = []
+    for z_start, z_end, z_color in zones:
+        ol_start = max(dot_top, z_start)
+        ol_end = min(dot_bot, z_end)
+        if ol_start < ol_end:
+            if z_start < ol_start:
+                parts.append((ol_start - z_start, z_color))
+            parts.append((ol_end - ol_start, _ORANGE))
+            if ol_end < z_end:
+                parts.append((z_end - ol_end, z_color))
+        else:
+            parts.append((z_end - z_start, z_color))
+    return parts
+
+
+def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
+    """Area chart: Total AUM (light fill) with REX AUM nested inside, plus a
+    product-count line rendered as a thin orange stripe across each column.
+
+    Columns are flush (no gaps) for a continuous area-chart look.
     """
     labels = timeline.get("labels", [])
     total_aum = timeline.get("total_aum", [])
@@ -323,9 +359,10 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
     n = len(labels)
     max_aum = max(total_aum) or 1
     max_count = max(product_count) if product_count else 1
-    chart_height = 120  # pixels
+    chart_height = 200
 
-    col_width = max(int(550 / n), 20)
+    area_color = _BLUE_AREA if accent == _BLUE else _TEAL_AREA
+
     cols_html = ""
     for i in range(n):
         aum = total_aum[i]
@@ -335,58 +372,56 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
         bar_h = max(int(aum / max_aum * chart_height), 1)
         rex_h = int(rex / max_aum * chart_height) if aum > 0 else 0
         non_rex_h = max(bar_h - rex_h, 0)
+        empty_h = chart_height - bar_h
 
-        # Product count dot: position from top of chart_height
-        dot_from_top = int((1 - count / max_count) * chart_height) if max_count > 0 else chart_height
-        # How much space above the bar
-        space_above_bar = chart_height - bar_h
+        dot_top = int((1 - count / max_count) * chart_height) if max_count else chart_height
 
-        # Show label every ~2 columns to avoid crowding
+        parts = _area_column_parts(empty_h, non_rex_h, rex_h, dot_top,
+                                   dot_h=3, area_color=area_color,
+                                   rex_color=_GREEN_AREA)
+
+        divs = ""
+        for h, color in parts:
+            if h <= 0:
+                continue
+            if color == "transparent":
+                divs += f'<div style="height:{h}px;font-size:0;line-height:0;"></div>'
+            else:
+                divs += (f'<div style="height:{h}px;background:{color};'
+                         f'font-size:0;line-height:0;"></div>')
+
         show_label = (i % max(1, n // 6) == 0) or i == n - 1
         label_text = labels[i] if show_label else ""
 
-        # The dot goes at dot_from_top px from top.  If the dot is in the
-        # space-above-bar area we put it there; otherwise inside the bar.
-        if dot_from_top <= space_above_bar:
-            # Dot sits in the empty area above the bar
-            dot_spacer = dot_from_top
-            dot_html = (
-                f'<div style="height:{dot_spacer}px;font-size:0;"></div>'
-                f'<div style="width:6px;height:6px;margin:0 auto;'
-                f'border-radius:50%;background:{_ORANGE};"></div>'
-                f'<div style="height:{space_above_bar - dot_spacer - 6}px;font-size:0;"></div>'
-            )
-        else:
-            dot_html = f'<div style="height:{space_above_bar}px;font-size:0;"></div>'
-
-        cols_html += f"""<td style="vertical-align:bottom;padding:0 1px;width:{col_width}px;">
-  <div style="height:{chart_height}px;font-size:0;">
-    {dot_html}
-    <div style="height:{non_rex_h}px;background:{accent};opacity:0.6;font-size:0;">&nbsp;</div>
-    <div style="height:{rex_h}px;background:{_REX_GREEN};font-size:0;">&nbsp;</div>
-  </div>
-  <div style="font-size:8px;color:{_GRAY};text-align:center;margin-top:3px;
-    white-space:nowrap;overflow:hidden;">{label_text}</div>
-</td>"""
+        # No padding between columns → continuous area fill
+        cols_html += (
+            f'<td style="vertical-align:top;padding:0;font-size:0;">'
+            f'<div style="height:{chart_height}px;font-size:0;line-height:0;">'
+            f'{divs}</div>'
+            f'<div style="font-size:8px;color:{_GRAY};text-align:center;'
+            f'margin-top:3px;white-space:nowrap;overflow:hidden;">'
+            f'{label_text}</div></td>'
+        )
 
     # Y-axis labels
     aum_top = _fmt_currency(max_aum)
     aum_mid = _fmt_currency(max_aum / 2)
     count_top_label = str(max_count)
     count_mid_label = str(max_count // 2)
+    y_gap = chart_height // 2 - 12
 
     legend = (
         f'<table cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">'
         f'<tr>'
         f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
-        f'<span style="display:inline-block;width:10px;height:10px;background:{accent};'
-        f'opacity:0.6;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Total AUM</td>'
+        f'<span style="display:inline-block;width:10px;height:10px;background:{area_color};'
+        f'border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Total AUM</td>'
         f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
-        f'<span style="display:inline-block;width:10px;height:10px;background:{_REX_GREEN};'
+        f'<span style="display:inline-block;width:10px;height:10px;background:{_GREEN_AREA};'
         f'border-radius:2px;vertical-align:middle;margin-right:3px;"></span>REX AUM</td>'
         f'<td style="padding:2px 8px 2px 0;font-size:10px;color:{_GRAY};">'
-        f'<span style="display:inline-block;width:6px;height:6px;background:{_ORANGE};'
-        f'border-radius:50%;vertical-align:middle;margin-right:3px;"></span>Product Count</td>'
+        f'<span style="display:inline-block;width:10px;height:3px;background:{_ORANGE};'
+        f'border-radius:1px;vertical-align:middle;margin-right:3px;"></span># Products</td>'
         f'</tr></table>'
     )
 
@@ -394,23 +429,26 @@ def _aum_timeline_chart(timeline: dict, accent: str = _TEAL) -> str:
         f'<tr><td style="padding:12px 30px 8px;">'
         f'<div style="font-size:11px;font-weight:600;color:{_GRAY};text-transform:uppercase;'
         f'letter-spacing:0.5px;margin-bottom:8px;">AUM Timeline (12 Months)</div>'
-        f'<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
+        f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+        f'style="border-collapse:collapse;">'
         f'<tr>'
-        # Left Y-axis
+        # Left Y-axis (AUM)
         f'<td style="vertical-align:top;width:50px;padding-right:4px;">'
         f'<div style="font-size:9px;color:{_GRAY};text-align:right;">{aum_top}</div>'
-        f'<div style="font-size:9px;color:{_GRAY};text-align:right;margin-top:{chart_height // 2 - 12}px;">{aum_mid}</div>'
-        f'<div style="font-size:8px;color:{accent};text-align:right;margin-top:4px;">AUM</div>'
+        f'<div style="font-size:9px;color:{_GRAY};text-align:right;margin-top:{y_gap}px;">'
+        f'{aum_mid}</div>'
+        f'<div style="font-size:8px;color:{_GRAY};text-align:right;margin-top:4px;">AUM</div>'
         f'</td>'
-        # Chart area
+        # Chart columns
         f'<td><table cellpadding="0" cellspacing="0" border="0" width="100%" '
         f'style="border-collapse:collapse;border-bottom:1px solid {_BORDER};">'
         f'<tr>{cols_html}</tr></table></td>'
-        # Right Y-axis
-        f'<td style="vertical-align:top;width:40px;padding-left:4px;">'
+        # Right Y-axis (# Products)
+        f'<td style="vertical-align:top;width:45px;padding-left:4px;">'
         f'<div style="font-size:9px;color:{_ORANGE};text-align:left;">{count_top_label}</div>'
-        f'<div style="font-size:9px;color:{_ORANGE};text-align:left;margin-top:{chart_height // 2 - 12}px;">{count_mid_label}</div>'
-        f'<div style="font-size:8px;color:{_ORANGE};text-align:left;margin-top:4px;">Count</div>'
+        f'<div style="font-size:9px;color:{_ORANGE};text-align:left;margin-top:{y_gap}px;">'
+        f'{count_mid_label}</div>'
+        f'<div style="font-size:8px;color:{_ORANGE};text-align:left;margin-top:4px;"># Products</div>'
         f'</td>'
         f'</tr></table>'
         f'{legend}'
