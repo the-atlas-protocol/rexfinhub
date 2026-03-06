@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, Query, Request
@@ -26,14 +27,32 @@ REX_ISSUERS = {"T-REX", "REX"}
 # Helpers
 # ---------------------------------------------------------------------------
 
+_ON_RENDER = bool(os.environ.get("RENDER"))
+
+
 def _get_3x_data() -> dict | None:
-    """Get cached 3x analysis or compute it. Returns None if no data."""
+    """Get cached 3x analysis. On Render, loads from DB. Locally, computes."""
     from webapp.services.screener_3x_cache import get_3x_analysis, compute_and_cache
 
     analysis = get_3x_analysis()
     if analysis is not None:
         return analysis
 
+    # On Render: try DB, never compute from Excel
+    if _ON_RENDER:
+        from webapp.database import SessionLocal
+        from webapp.services.screener_3x_cache import load_from_db, set_3x_analysis
+        db = SessionLocal()
+        try:
+            data = load_from_db(db)
+            if data:
+                set_3x_analysis(data)
+                return data
+        finally:
+            db.close()
+        return None
+
+    # Local: compute from Excel
     try:
         return compute_and_cache()
     except FileNotFoundError:
@@ -53,9 +72,8 @@ def _data_available() -> bool:
 
 
 def _cache_warming() -> bool:
-    """Check if the cache is currently being warmed up."""
-    from webapp.services.screener_3x_cache import is_warming
-    return is_warming()
+    """No longer has a warming state - cache is either populated or empty."""
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -234,62 +252,63 @@ def screener_rex_funds(
     product_groups = {"T-REX": [], "Microsectors": [], "Other REX": []}
     kpis = {"total_aum": 0, "net_flow_1m": 0, "best": None, "worst": None}
 
-    try:
-        from screener.data_loader import load_etp_data
-        etp_df = load_etp_data()
+    if not _ON_RENDER:
+        try:
+            from screener.data_loader import load_etp_data
+            etp_df = load_etp_data()
 
-        rex_all = etp_df[etp_df.get("is_rex") == True].copy()
+            rex_all = etp_df[etp_df.get("is_rex") == True].copy()
 
-        if not rex_all.empty:
-            import pandas as pd
-            rex_all["_aum"] = pd.to_numeric(rex_all.get("t_w4.aum", 0), errors="coerce").fillna(0)
-            rex_all["_flow_1m"] = pd.to_numeric(rex_all.get("t_w4.fund_flow_1month", 0), errors="coerce").fillna(0)
+            if not rex_all.empty:
+                import pandas as pd
+                rex_all["_aum"] = pd.to_numeric(rex_all.get("t_w4.aum", 0), errors="coerce").fillna(0)
+                rex_all["_flow_1m"] = pd.to_numeric(rex_all.get("t_w4.fund_flow_1month", 0), errors="coerce").fillna(0)
 
-            kpis["total_aum"] = round(rex_all["_aum"].sum(), 1)
-            kpis["net_flow_1m"] = round(rex_all["_flow_1m"].sum(), 1)
+                kpis["total_aum"] = round(rex_all["_aum"].sum(), 1)
+                kpis["net_flow_1m"] = round(rex_all["_flow_1m"].sum(), 1)
 
-            best_idx = rex_all["_flow_1m"].idxmax()
-            worst_idx = rex_all["_flow_1m"].idxmin()
-            kpis["best"] = rex_all.loc[best_idx, "ticker"] if pd.notna(best_idx) else None
-            kpis["best_flow"] = round(rex_all.loc[best_idx, "_flow_1m"], 1) if pd.notna(best_idx) else 0
-            kpis["worst"] = rex_all.loc[worst_idx, "ticker"] if pd.notna(worst_idx) else None
-            kpis["worst_flow"] = round(rex_all.loc[worst_idx, "_flow_1m"], 1) if pd.notna(worst_idx) else 0
+                best_idx = rex_all["_flow_1m"].idxmax()
+                worst_idx = rex_all["_flow_1m"].idxmin()
+                kpis["best"] = rex_all.loc[best_idx, "ticker"] if pd.notna(best_idx) else None
+                kpis["best_flow"] = round(rex_all.loc[best_idx, "_flow_1m"], 1) if pd.notna(best_idx) else 0
+                kpis["worst"] = rex_all.loc[worst_idx, "ticker"] if pd.notna(worst_idx) else None
+                kpis["worst_flow"] = round(rex_all.loc[worst_idx, "_flow_1m"], 1) if pd.notna(worst_idx) else 0
 
-            seen_tickers = set()
-            for _, row in rex_all.iterrows():
-                ticker = row.get("ticker", "")
-                if ticker in seen_tickers:
-                    continue
-                seen_tickers.add(ticker)
+                seen_tickers = set()
+                for _, row in rex_all.iterrows():
+                    ticker = row.get("ticker", "")
+                    if ticker in seen_tickers:
+                        continue
+                    seen_tickers.add(ticker)
 
-                fund_name = str(row.get("fund_name", "")).upper()
-                if fund_name.startswith("T-REX"):
-                    group_key = "T-REX"
-                elif fund_name.startswith("MICROSECTORS"):
-                    group_key = "Microsectors"
-                else:
-                    group_key = "Other REX"
+                    fund_name = str(row.get("fund_name", "")).upper()
+                    if fund_name.startswith("T-REX"):
+                        group_key = "T-REX"
+                    elif fund_name.startswith("MICROSECTORS"):
+                        group_key = "Microsectors"
+                    else:
+                        group_key = "Other REX"
 
-                product_groups[group_key].append({
-                    "ticker": ticker,
-                    "fund_name": row.get("fund_name", ""),
-                    "underlier": row.get("q_category_attributes.map_li_underlier", ""),
-                    "direction": row.get("q_category_attributes.map_li_direction", ""),
-                    "leverage": row.get("q_category_attributes.map_li_leverage_amount", ""),
-                    "aum": round(float(row.get("_aum", 0)), 1),
-                    "flow_1m": round(float(row.get("_flow_1m", 0)), 1),
-                    "flow_3m": round(float(pd.to_numeric(row.get("t_w4.fund_flow_3month", 0), errors="coerce") or 0), 1),
-                    "flow_ytd": round(float(pd.to_numeric(row.get("t_w4.fund_flow_ytd", 0), errors="coerce") or 0), 1),
-                    "return_ytd": round(float(pd.to_numeric(row.get("t_w3.total_return_ytd", 0), errors="coerce") or 0), 2),
-                    "spread": row.get("t_w2.average_bidask_spread"),
-                    "tracking_error": row.get("t_w2.nav_tracking_error"),
-                })
+                    product_groups[group_key].append({
+                        "ticker": ticker,
+                        "fund_name": row.get("fund_name", ""),
+                        "underlier": row.get("q_category_attributes.map_li_underlier", ""),
+                        "direction": row.get("q_category_attributes.map_li_direction", ""),
+                        "leverage": row.get("q_category_attributes.map_li_leverage_amount", ""),
+                        "aum": round(float(row.get("_aum", 0)), 1),
+                        "flow_1m": round(float(row.get("_flow_1m", 0)), 1),
+                        "flow_3m": round(float(pd.to_numeric(row.get("t_w4.fund_flow_3month", 0), errors="coerce") or 0), 1),
+                        "flow_ytd": round(float(pd.to_numeric(row.get("t_w4.fund_flow_ytd", 0), errors="coerce") or 0), 1),
+                        "return_ytd": round(float(pd.to_numeric(row.get("t_w3.total_return_ytd", 0), errors="coerce") or 0), 2),
+                        "spread": row.get("t_w2.average_bidask_spread"),
+                        "tracking_error": row.get("t_w2.nav_tracking_error"),
+                    })
 
-            for key in product_groups:
-                product_groups[key].sort(key=lambda x: x["aum"], reverse=True)
+                for key in product_groups:
+                    product_groups[key].sort(key=lambda x: x["aum"], reverse=True)
 
-    except Exception as e:
-        log.warning("Error loading REX fund data: %s", e)
+        except Exception as e:
+            log.warning("Error loading REX fund data: %s", e)
 
     # Get track record from 3x analysis cache
     rex_track = []
@@ -369,59 +388,60 @@ def screener_stock_detail(
     aum_series_data = []
     market_share_data = []
 
-    try:
-        from screener.data_loader import load_etp_data
-        from screener.competitive import get_products_for_underlier, compute_aum_trajectories
+    if not _ON_RENDER:
+        try:
+            from screener.data_loader import load_etp_data
+            from screener.competitive import get_products_for_underlier, compute_aum_trajectories
 
-        etp_df = load_etp_data()
-        ticker_clean = ticker.replace(" US", "")
-        underlier_bb = f"{ticker_clean} US"
+            etp_df = load_etp_data()
+            ticker_clean = ticker.replace(" US", "")
+            underlier_bb = f"{ticker_clean} US"
 
-        prods = get_products_for_underlier(etp_df, underlier_bb)
-        if not prods.empty:
-            for _, p in prods.iterrows():
-                aum_val = p.get("t_w4.aum", 0)
-                if not isinstance(aum_val, (int, float)):
-                    try:
-                        aum_val = float(aum_val) if aum_val else 0
-                    except (ValueError, TypeError):
-                        aum_val = 0
+            prods = get_products_for_underlier(etp_df, underlier_bb)
+            if not prods.empty:
+                for _, p in prods.iterrows():
+                    aum_val = p.get("t_w4.aum", 0)
+                    if not isinstance(aum_val, (int, float)):
+                        try:
+                            aum_val = float(aum_val) if aum_val else 0
+                        except (ValueError, TypeError):
+                            aum_val = 0
 
-                products.append({
-                    "ticker": p.get("ticker", ""),
-                    "fund_name": p.get("fund_name", ""),
-                    "issuer": p.get("issuer_display", p.get("issuer", "")),
-                    "leverage": p.get("q_category_attributes.map_li_leverage_amount", ""),
-                    "direction": p.get("q_category_attributes.map_li_direction", ""),
-                    "aum": round(float(aum_val), 1),
-                    "expense_ratio": p.get("t_w2.expense_ratio"),
-                    "flow_1m": p.get("t_w4.fund_flow_1month"),
-                    "flow_3m": p.get("t_w4.fund_flow_3month"),
-                    "flow_ytd": p.get("t_w4.fund_flow_ytd"),
-                    "spread": p.get("t_w2.average_bidask_spread"),
-                    "tracking_error": p.get("t_w2.nav_tracking_error"),
-                    "is_rex": p.get("is_rex", False),
-                })
-
-            trajectories = compute_aum_trajectories(etp_df)
-            underlier_trajs = trajectories[trajectories["underlier"] == underlier_bb]
-            for _, t in underlier_trajs.iterrows():
-                if t["aum_series"]:
-                    aum_series_data.append({
-                        "label": t["ticker"],
-                        "data": t["aum_series"],
+                    products.append({
+                        "ticker": p.get("ticker", ""),
+                        "fund_name": p.get("fund_name", ""),
+                        "issuer": p.get("issuer_display", p.get("issuer", "")),
+                        "leverage": p.get("q_category_attributes.map_li_leverage_amount", ""),
+                        "direction": p.get("q_category_attributes.map_li_direction", ""),
+                        "aum": round(float(aum_val), 1),
+                        "expense_ratio": p.get("t_w2.expense_ratio"),
+                        "flow_1m": p.get("t_w4.fund_flow_1month"),
+                        "flow_3m": p.get("t_w4.fund_flow_3month"),
+                        "flow_ytd": p.get("t_w4.fund_flow_ytd"),
+                        "spread": p.get("t_w2.average_bidask_spread"),
+                        "tracking_error": p.get("t_w2.nav_tracking_error"),
+                        "is_rex": p.get("is_rex", False),
                     })
 
-            for prod in products:
-                if prod["aum"] > 0:
-                    market_share_data.append({
-                        "label": prod["ticker"],
-                        "value": prod["aum"],
-                        "is_rex": prod.get("is_rex", False),
-                    })
+                trajectories = compute_aum_trajectories(etp_df)
+                underlier_trajs = trajectories[trajectories["underlier"] == underlier_bb]
+                for _, t in underlier_trajs.iterrows():
+                    if t["aum_series"]:
+                        aum_series_data.append({
+                            "label": t["ticker"],
+                            "data": t["aum_series"],
+                        })
 
-    except Exception as e:
-        log.warning("Error loading competitive data for %s: %s", ticker, e)
+                for prod in products:
+                    if prod["aum"] > 0:
+                        market_share_data.append({
+                            "label": prod["ticker"],
+                            "value": prod["aum"],
+                            "is_rex": prod.get("is_rex", False),
+                        })
+
+        except Exception as e:
+            log.warning("Error loading competitive data for %s: %s", ticker, e)
 
     return templates.TemplateResponse("screener_stock.html", {
         "request": request,
@@ -443,6 +463,12 @@ def screener_stock_detail(
 @router.get("/report")
 def screener_report_download(request: Request):
     """Generate and download the 3x/4x PDF report."""
+    if _ON_RENDER:
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(
+            "<h2>Report generation is not available on Render. Run locally.</h2>",
+            status_code=404,
+        )
     try:
         from screener.generate_report import run_3x_report
         out_path = run_3x_report()
@@ -490,6 +516,12 @@ def screener_evaluate_api(
         return JSONResponse({"error": "No tickers provided"}, status_code=400)
 
     tickers = tickers[:20]
+
+    if _ON_RENDER:
+        return JSONResponse(
+            {"error": "Evaluation requires Bloomberg data (run locally)."},
+            status_code=404,
+        )
 
     try:
         from screener.candidate_evaluator import evaluate_candidates

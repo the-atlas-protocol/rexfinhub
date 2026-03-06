@@ -4,7 +4,7 @@ Market Intelligence data service.
 Loads fund universe and time series from SQLite (mkt_master_data, mkt_time_series).
 Data is written to SQLite by market_sync.py during the local daily pipeline.
 All functions accept a SQLAlchemy Session and return dicts/DataFrames.
-Uses a thread-safe in-memory cache (1h TTL) so tab navigation is instant.
+Uses a thread-safe in-memory cache (event-driven invalidation) so tab navigation is instant.
 """
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import json
 import logging
 import math
 import threading
-import time
 from typing import Any
 
 from datetime import datetime as _dt
@@ -30,13 +29,9 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _master_lock = threading.Lock()
 _master_df: pd.DataFrame | None = None
-_master_time: float = 0.0
 
 _ts_lock = threading.Lock()
 _ts_df: pd.DataFrame | None = None
-_ts_time: float = 0.0
-
-_CACHE_TTL = 3600  # 1 hour
 
 
 
@@ -106,22 +101,18 @@ _EMPTY_MASTER_COLS = [
 def _load_master(db: Session) -> pd.DataFrame:
     """Load mkt_master_data into a DataFrame with legacy prefixed column names.
 
-    Uses an in-memory cache (1h TTL) so all callers share one DataFrame.
-    Unpacks aum_history_json into individual t_w4.aum_1..t_w4.aum_36 columns.
-    Renames flat DB columns to prefixed names for backward compatibility.
+    Double-checked locking: only one thread loads from DB.
+    Cache lives until explicitly invalidated (no TTL).
     """
-    global _master_df, _master_time
+    global _master_df
+    if _master_df is not None:
+        return _master_df
     with _master_lock:
-        if _master_df is not None and (time.time() - _master_time) < _CACHE_TTL:
+        if _master_df is not None:
             return _master_df
-
-    df = _load_master_from_db(db)
-
-    with _master_lock:
-        _master_df = df
-        _master_time = time.time()
-    log.info("Master data cached: %d rows", len(df))
-    return df
+        _master_df = _load_master_from_db(db)
+        log.info("Master data cached: %d rows", len(_master_df))
+        return _master_df
 
 
 def _load_master_from_db(db: Session) -> pd.DataFrame:
@@ -191,19 +182,20 @@ def _load_master_from_db(db: Session) -> pd.DataFrame:
 
 
 def _load_ts(db: Session) -> pd.DataFrame:
-    """Load mkt_time_series into a DataFrame (cached, 1h TTL)."""
-    global _ts_df, _ts_time
+    """Load mkt_time_series into a DataFrame.
+
+    Double-checked locking: only one thread loads from DB.
+    Cache lives until explicitly invalidated (no TTL).
+    """
+    global _ts_df
+    if _ts_df is not None:
+        return _ts_df
     with _ts_lock:
-        if _ts_df is not None and (time.time() - _ts_time) < _CACHE_TTL:
+        if _ts_df is not None:
             return _ts_df
-
-    df = _load_ts_from_db(db)
-
-    with _ts_lock:
-        _ts_df = df
-        _ts_time = time.time()
-    log.info("Time series cached: %d rows", len(df))
-    return df
+        _ts_df = _load_ts_from_db(db)
+        log.info("Time series cached: %d rows", len(_ts_df))
+        return _ts_df
 
 
 def _load_ts_from_db(db: Session) -> pd.DataFrame:
@@ -243,13 +235,11 @@ def _load_ts_from_db(db: Session) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 def invalidate_cache() -> None:
     """Clear cached DataFrames so next request reloads from DB."""
-    global _master_df, _master_time, _ts_df, _ts_time
+    global _master_df, _ts_df
     with _master_lock:
         _master_df = None
-        _master_time = 0.0
     with _ts_lock:
         _ts_df = None
-        _ts_time = 0.0
 
 
 def data_available(db: Session) -> bool:

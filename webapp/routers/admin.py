@@ -518,8 +518,11 @@ def preview_flow_report(request: Request, db: Session = Depends(get_db)):
             db.execute(MktReportCache.__table__.delete().where(
                 MktReportCache.report_key == "flow_report"))
             db.commit()
-            from webapp.services.report_data import invalidate_cache
-            invalidate_cache()
+            from webapp.services import report_data, market_data
+            from webapp.services.screener_3x_cache import invalidate_cache as inv_screener
+            report_data.invalidate_cache()
+            market_data.invalidate_cache()
+            inv_screener()
         from webapp.services.report_emails import build_flow_email
         dashboard_url = str(request.base_url).rstrip("/")
         html, _images = build_flow_email(dashboard_url=dashboard_url, db=db)

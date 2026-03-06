@@ -110,13 +110,29 @@ templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
 
 def _prewarm_screener_cache() -> None:
-    """Pre-warm screener cache in a background thread (skipped on Render)."""
-    import os
-    if os.environ.get("RENDER"):
-        log.info("Skipping screener cache warm-up on Render (memory constrained).")
-        return
-    from webapp.services.screener_3x_cache import warm_cache
+    """Pre-warm screener cache in a background thread.
+
+    On Render: loads pre-computed results from DB (fast, no Excel).
+    Locally: computes from Bloomberg data (~20s).
+    """
     import threading
+
+    if os.environ.get("RENDER"):
+        # On Render: load from DB (fast, no Excel needed)
+        def _warm_from_db():
+            from webapp.database import SessionLocal
+            from webapp.services.screener_3x_cache import warm_cache
+            db = SessionLocal()
+            try:
+                warm_cache(db=db)
+            finally:
+                db.close()
+        t = threading.Thread(target=_warm_from_db, name="screener-db-warm", daemon=True)
+        t.start()
+        log.info("Screener DB warm-up started on Render.")
+        return
+
+    from webapp.services.screener_3x_cache import warm_cache
     t = threading.Thread(target=warm_cache, name="screener-cache-warm", daemon=True)
     t.start()
     log.info("Screener cache warm-up started in background thread.")

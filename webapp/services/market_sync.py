@@ -210,6 +210,12 @@ def sync_market_data(
     log.info("Computing report caches...")
     report_keys = _compute_and_cache_reports(db, master_df, run_id)
 
+    # Step 6a: Pre-compute and cache screener results (non-fatal)
+    try:
+        _compute_and_cache_screener(db)
+    except Exception as e:
+        log.warning("Screener cache skipped: %s", e)
+
     # Step 6b: Sync global ETP supplement (non-fatal)
     global_rows = 0
     try:
@@ -487,11 +493,12 @@ def _compute_and_cache_reports(
 
     cached_keys = []
 
-    # Force report_data to use fresh data by calling its internal loader
-    # and then extracting the report dicts directly.
-    # We call the public get_*_report() functions since they handle all the
-    # logic. The cache in report_data.py will be populated by _get_cache().
+    # Invalidate all in-memory caches so they pick up fresh DB data
     rd.invalidate_cache()
+    from webapp.services import market_data as md
+    from webapp.services.screener_3x_cache import invalidate_cache as inv_screener
+    md.invalidate_cache()
+    inv_screener()
 
     for report_key, get_fn in [
         ("li_report", rd.get_li_report),
@@ -516,6 +523,21 @@ def _compute_and_cache_reports(
 
     db.flush()
     return cached_keys
+
+
+def _compute_and_cache_screener(db: Session) -> None:
+    """Pre-compute screener 3x analysis and store in DB.
+
+    Runs the full screener pipeline (loads Bloomberg data, scores stocks)
+    and saves the result to mkt_report_cache so Render can serve it
+    without touching Excel.
+    """
+    from webapp.services.screener_3x_cache import compute_and_cache, save_to_db
+
+    log.info("Computing screener cache...")
+    result = compute_and_cache()
+    save_to_db(db, result)
+    log.info("Screener cache saved to DB")
 
 
 def _json_default(obj: Any) -> Any:

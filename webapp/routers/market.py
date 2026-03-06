@@ -611,6 +611,10 @@ def api_invalidate_cache(request: Request):
         return JSONResponse({"error": "Unauthorized"}, status_code=403)
     try:
         _svc().invalidate_cache()
+        from webapp.services.report_data import invalidate_cache as inv_report
+        from webapp.services.screener_3x_cache import invalidate_cache as inv_screener
+        inv_report()
+        inv_screener()
         return JSONResponse({"status": "ok"})
     except Exception as e:
         log.error("Cache invalidation failed: %s", e, exc_info=True)
