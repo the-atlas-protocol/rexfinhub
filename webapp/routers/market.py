@@ -65,114 +65,6 @@ def _parse_ts(ts: dict) -> dict[str, Any]:
     }
 
 
-def _compute_health_scores(master_df) -> dict[str, dict]:
-    """Compute product health scores (0-100) for REX products.
-
-    5 dimensions, each scored 0-20:
-      1. AUM Level: percentile rank vs category peers
-      2. Flow Momentum: 1M flow as % of AUM, ranked
-      3. Tracking Quality: inverse of tracking error vs category (lower = better)
-      4. Liquidity: inverse of bid-ask spread (tighter = better)
-      5. AUM Trend: 3-month AUM growth rate
-    """
-    import math
-
-    rex = master_df[master_df["is_rex"] == True].copy()
-    if rex.empty or "ticker_clean" not in rex.columns:
-        return {}
-    rex = rex.drop_duplicates(subset=["ticker_clean"], keep="first")
-
-    scores = {}
-    aum_col = "t_w4.aum"
-    flow_col = "t_w4.fund_flow_1month"
-    spread_col = "t_w2.average_bidask_spread"
-    aum_3m_col = "t_w4.aum_3"
-
-    for _, row in rex.iterrows():
-        ticker = str(row.get("ticker_clean", ""))
-        if not ticker:
-            continue
-
-        aum = float(row.get(aum_col, 0) or 0)
-        flow_1m = float(row.get(flow_col, 0) or 0)
-        spread = float(row.get(spread_col, 0) or 0)
-        aum_3m = float(row.get(aum_3m_col, 0) or 0)
-        cat = str(row.get("category_display", ""))
-
-        # 1. AUM Level (0-20): log-scale, $500M+ = 20, <$1M = 0
-        if aum > 0:
-            aum_score = min(20, max(0, round(math.log10(aum + 1) / math.log10(500) * 20, 1)))
-        else:
-            aum_score = 0
-
-        # 2. Flow Momentum (0-20): flow as % of AUM
-        if aum > 0:
-            flow_pct = flow_1m / aum * 100
-            # +5% or more = 20, 0 = 10, -5% = 0
-            flow_score = min(20, max(0, round(10 + flow_pct * 2, 1)))
-        else:
-            flow_score = 0
-
-        # 3. Spread/Liquidity (0-20): tighter spread = better
-        if spread > 0:
-            # $0.01 = 20, $0.05 = 12, $0.20 = 0
-            spread_score = min(20, max(0, round(20 - (spread / 0.01), 1)))
-        else:
-            spread_score = 10  # no data = neutral
-
-        # 4. AUM Trend (0-20): 3-month growth
-        if aum_3m > 0 and aum > 0:
-            growth = (aum - aum_3m) / aum_3m * 100
-            # +20% = 20, 0 = 10, -20% = 0
-            trend_score = min(20, max(0, round(10 + growth * 0.5, 1)))
-        else:
-            trend_score = 10  # no data = neutral
-
-        # 5. Size-adjusted bonus (0-20): larger funds get a stability bonus
-        if aum >= 100:
-            size_score = 20
-        elif aum >= 10:
-            size_score = round(10 + (aum - 10) / 9, 1)
-        else:
-            size_score = round(aum, 1)
-
-        total = round(aum_score + flow_score + spread_score + trend_score + size_score)
-        total = min(100, max(0, total))
-
-        if total >= 70:
-            grade = "GREEN"
-        elif total >= 40:
-            grade = "AMBER"
-        else:
-            grade = "RED"
-
-        scores[ticker] = {
-            "score": total,
-            "grade": grade,
-            "aum_score": aum_score,
-            "flow_score": flow_score,
-            "spread_score": spread_score,
-            "trend_score": trend_score,
-            "size_score": size_score,
-        }
-
-    return scores
-
-
-def _enrich_summary_with_health(summary: dict, health_scores: dict):
-    """Inject health scores into suite product lists."""
-    for suite in summary.get("suites", []):
-        for product in suite.get("products", []):
-            ticker = product.get("ticker", "")
-            hs = health_scores.get(ticker)
-            if hs:
-                product["health_score"] = hs["score"]
-                product["health_grade"] = hs["grade"]
-            else:
-                product["health_score"] = None
-                product["health_grade"] = None
-
-
 @router.get("/rex")
 def rex_view(request: Request, db: Session = Depends(get_db), product_type: str = Query(default="All"), fund_structure: str = Query(default="ETF"), category: str = Query(default="All")):
     """REX View - executive dashboard by suite."""
@@ -190,11 +82,6 @@ def rex_view(request: Request, db: Session = Depends(get_db), product_type: str 
     try:
         cat_arg = category if category != "All" else None
         summary = svc.get_rex_summary(db, fund_structure=fund_structure, category=cat_arg)
-
-        # Compute and inject health scores
-        master = svc.get_master_data(db)
-        health_scores = _compute_health_scores(master)
-        _enrich_summary_with_health(summary, health_scores)
 
         trend = _parse_ts(svc.get_time_series(db, is_rex=True, category=cat_arg, fund_type=fund_structure))
         # If a specific category is selected, also provide "all REX" trend for overlay

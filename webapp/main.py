@@ -109,41 +109,53 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
 
-def _prewarm_screener_cache() -> None:
-    """Pre-warm screener cache in a background thread.
+def _prewarm_caches() -> None:
+    """Pre-warm all data caches in a background thread at startup.
 
-    On Render: loads pre-computed results from DB (fast, no Excel).
-    Locally: computes from Bloomberg data (~20s).
+    Loads market DataFrames + screener results so the first visitor
+    never hits a cold cache.
     """
     import threading
 
-    if os.environ.get("RENDER"):
-        # On Render: load from DB (fast, no Excel needed)
-        def _warm_from_db():
-            from webapp.database import SessionLocal
-            from webapp.services.screener_3x_cache import warm_cache
-            db = SessionLocal()
+    def _warm_all():
+        from webapp.database import SessionLocal
+        db = SessionLocal()
+        try:
+            # Market data: load master + time series DataFrames into memory
             try:
-                warm_cache(db=db)
-            finally:
-                db.close()
-        t = threading.Thread(target=_warm_from_db, name="screener-db-warm", daemon=True)
-        t.start()
-        log.info("Screener DB warm-up started on Render.")
-        return
+                from webapp.services import market_data
+                if market_data.data_available(db):
+                    market_data._load_master(db)
+                    market_data._load_ts(db)
+                    log.info("Market data cache warmed at startup.")
+            except Exception as e:
+                log.warning("Market cache warm failed (non-fatal): %s", e)
 
-    from webapp.services.screener_3x_cache import warm_cache
-    t = threading.Thread(target=warm_cache, name="screener-cache-warm", daemon=True)
+            # Screener cache
+            try:
+                if os.environ.get("RENDER"):
+                    from webapp.services.screener_3x_cache import warm_cache
+                    warm_cache(db=db)
+                else:
+                    from webapp.services.screener_3x_cache import warm_cache
+                    warm_cache()
+                log.info("Screener cache warmed at startup.")
+            except Exception as e:
+                log.warning("Screener cache warm failed (non-fatal): %s", e)
+        finally:
+            db.close()
+
+    t = threading.Thread(target=_warm_all, name="cache-warm", daemon=True)
     t.start()
-    log.info("Screener cache warm-up started in background thread.")
+    log.info("Background cache warm-up started.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: initialize database, pre-warm screener cache. Shutdown: cleanup."""
+    """Startup: initialize database, pre-warm all caches. Shutdown: cleanup."""
     init_db()
     log.info("Database initialized.")
-    _prewarm_screener_cache()
+    _prewarm_caches()
     yield
 
 
