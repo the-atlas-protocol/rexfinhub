@@ -267,18 +267,79 @@
 
 {% block market_scripts %}
 <script>
-// Sort suite table then reattach sub-rows under their parent
+// Sort suite table - treats parent+sub rows as atomic pairs
 function sortSuiteTable(colIdx) {
-  sortTable('suiteTable', colIdx);
-  var tbody = document.querySelector('#suiteTable tbody');
+  var table = document.getElementById('suiteTable');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
   if (!tbody) return;
+
+  // Collect parent+sub pairs
+  var pairs = [];
   var parents = tbody.querySelectorAll('.suite-parent-row');
   parents.forEach(function(parentRow) {
     var subId = parentRow.getAttribute('data-sub-id');
-    if (!subId) return;
-    var subRow = document.getElementById(subId);
-    if (subRow) {
-      parentRow.after(subRow);
+    var subRow = subId ? document.getElementById(subId) : null;
+    pairs.push({ parent: parentRow, sub: subRow });
+  });
+
+  // Determine sort direction
+  var currentCol = table.getAttribute('data-sort-col');
+  var currentDir = table.getAttribute('data-sort-dir');
+  var asc;
+  if (currentCol == colIdx) {
+    asc = currentDir !== 'asc';
+  } else {
+    asc = false; // first click = descending (largest first)
+  }
+  table.setAttribute('data-sort-col', colIdx);
+  table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+
+  // Get sort value from a cell
+  function getSortVal(row) {
+    var cell = row.cells[colIdx];
+    if (!cell) return '';
+    var explicit = cell.getAttribute('data-sort');
+    if (explicit !== null) {
+      var n = parseFloat(explicit);
+      return isNaN(n) ? explicit : n;
+    }
+    var text = cell.textContent.trim();
+    var cleaned = text.replace(/[$%+,BMK\s]/g, '');
+    var num = parseFloat(cleaned);
+    return (!isNaN(num) && text !== '') ? num : text;
+  }
+
+  // Sort the pairs
+  pairs.sort(function(a, b) {
+    var aVal = getSortVal(a.parent);
+    var bVal = getSortVal(b.parent);
+    var aEmpty = (aVal === '' || (typeof aVal === 'number' && isNaN(aVal)));
+    var bEmpty = (bVal === '' || (typeof bVal === 'number' && isNaN(bVal)));
+    if (aEmpty && bEmpty) return 0;
+    if (aEmpty) return 1;
+    if (bEmpty) return -1;
+    var result;
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      result = aVal - bVal;
+    } else {
+      result = String(aVal).localeCompare(String(bVal));
+    }
+    return asc ? result : -result;
+  });
+
+  // Re-append in sorted order (parent immediately followed by sub)
+  pairs.forEach(function(pair) {
+    tbody.appendChild(pair.parent);
+    if (pair.sub) tbody.appendChild(pair.sub);
+  });
+
+  // Update sort indicators on main thead only
+  var mainThs = table.querySelector('thead').querySelectorAll('th');
+  mainThs.forEach(function(th, i) {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (i === colIdx) {
+      th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
     }
   });
 }
