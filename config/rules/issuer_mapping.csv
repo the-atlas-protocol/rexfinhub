@@ -9,7 +9,7 @@ CC,AdvisorShares ETFs/USA,AdvisorShares
 Crypto,AdvisorShares ETFs/USA,AdvisorShares
 LI,AdvisorShares ETFs/USA,AdvisorShares
 Thematic,AdvisorShares ETFs/USA,AdvisorShares
-Defined,AB Active ETFs Inc,Alliance Bernstein
+Defined,AB Active ETFs Inc,AllianceBernstein
 Defined,AIM ETF Products Trust,Allianz
 Thematic,ALPS ETFs/USA,ALPS
 Thematic,Financial Investors Trust/ALPS,ALPS
@@ -114,7 +114,7 @@ Thematic,Gabelli ETFs Trust,Gabelli
 CC,Global X ETFs/USA,Global X
 Crypto,Global X ETFs/USA,Global X
 Thematic,Global X ETFs/USA,Global X
-Defined,Goldman Sachs ETF Trust,Goldman
+Defined,Goldman Sachs ETF Trust,Goldman Sachs
 CC,Goldman Sachs ETF Trust,Goldman Sachs
 Thematic,Goldman Sachs ETF Trust,Goldman Sachs
 CC,GraniteShares ETF Trust,GraniteShares
@@ -145,7 +145,7 @@ CC,Invesco Exchange-Traded Fund T,Invesco
 Crypto,Invesco Galaxy Solana ETF/Fund,Invesco
 LI,Invesco DB US Dollar Index Tru,Invesco
 Thematic,Powershares Actively Managed E,Invesco
-Thematic,iShares ETFs/USA,iShares
+Thematic,iShares ETFs/USA,BlackRock
 Thematic,Janus Detroit Street Trust,Janus Henderson
 CC,JP Morgan ETFs/USA,JP Morgan
 CC,JP Morgan Exchange-Traded Fund,JP Morgan
@@ -161,7 +161,7 @@ Thematic,KraneShares Trust,KraneShares
 CC,Kurv ETF Trust,Kurv
 Thematic,Kurv ETF Trust,Kurv
 LI,Themes ETF Trust,LeverageShares
-Crypto,Listed Funds Trust,Listed
+Crypto,Listed Funds Trust,Listed Funds
 Thematic,Listed Funds Trust,Listed Funds
 Thematic,Macquarie Etf Trust,Macquarie
 CC,Madison Funds,Madison
@@ -175,7 +175,7 @@ CC,Neos ETF Trust,Neos
 Crypto,Neos ETF Trust,Neos
 Defined,Neos ETF Trust,Neos
 CC,Tidal Trust III,NestYield
-CC,Neuberger Berman ETF Trust,Neuberger
+CC,Neuberger Berman ETF Trust,Neuberger Berman
 Thematic,Neuberger Berman ETF Trust,Neuberger Berman
 Defined,Neuberger Berman ETF Trust,Neuberger Berman
 Thematic,New York Life Investment Manag,New York Life
@@ -265,7 +265,7 @@ LI,ETF Opportunities Trust/Tuttle,Tuttle
 Crypto,ETF Opportunities Trust/Tuttle,Tuttle
 LI,ETF Opportunities Trust,Tuttle
 Thematic,Two Roads Shared Trust/Hypatia,Two Roads / Hypatia
-LI,United States Commodities ETFs,UCSF
+LI,United States Commodities ETFs,USCF
 Crypto,United States Commodities ETFs,USCF
 CC,United States Commodities ETFs,USCF
 Thematic,United States Commodities ETFs,USCF

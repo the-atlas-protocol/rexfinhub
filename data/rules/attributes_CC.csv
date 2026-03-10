@@ -49,17 +49,17 @@ TSPY US,,SPX,Traditional,Broad Beta
 QDVO US,,Basket,Traditional,Broad Beta
 ITWO US,,RUT,Synthetic,Small Caps
 RDTE US,,RUT,Synthetic,Small Caps
-BTCI US,,BTC,Synthetic,Broad Beta
+BTCI US,,BTC,Synthetic,Crypto
 TLTP US,,TLT,Traditional,Fixed Income
 BIGY US,,Basket,Synthetic,Broad Beta
 CEPI US,,BCADPS,Traditional,Crypto
-EGGS US,,Basket,Traditional,Broad Beta
-EGGY US,,Basket,Traditional,Broad Beta
+EGGS US,,Basket,Traditional,Commodity
+EGGY US,,Basket,Traditional,Commodity
 IYRI US,,Basket,Traditional,Real Estate
 BALI US,,SPX,Traditional,Broad Beta
 SDTY US,,SPX,Synthetic,Broad Beta
 PAPI US,,RLV,Traditional,Broad Beta
-QDTY US,,NDX,Synthetic,Broad Beta
+QDTY US,,NDX,Synthetic,Tech
 FTKI US,,RTY,Traditional,Small Caps
 RDTY US,,RUT,Synthetic,Small Caps
 TCAL US,,Basket,Traditional,Broad Beta
@@ -84,18 +84,18 @@ BUYW US,,Basket,Traditional,Broad Beta
 SRHR US,,Basket,Traditional,Real Estate
 BLOX US,,Basket,Synthetic,Crypto
 KGLD US,,GLD,Synthetic,Commodity
-XLBI US,,Basket,Traditional,Broad Beta
+XLBI US,,Basket,Traditional,Sector
 RBLY US,RBLX,,Synthetic,Single Stock
-XLCI US,,Basket,Traditional,Broad Beta
-XLUI US,,Basket,Traditional,Broad Beta
-XLSI US,,Basket,Traditional,Broad Beta
-XLRI US,,Basket,Traditional,Broad Beta
-XLEI US,,Basket,Traditional,Broad Beta
-XLKI US,,Basket,Traditional,Broad Beta
-XLVI US,,Basket,Traditional,Broad Beta
-XLII US,,Basket,Traditional,Broad Beta
-XLFI US,,Basket,Traditional,Broad Beta
-XLYI US,,Basket,Traditional,Broad Beta
+XLCI US,,Basket,Traditional,Sector
+XLUI US,,Basket,Traditional,Sector
+XLSI US,,Basket,Traditional,Sector
+XLRI US,,Basket,Traditional,Real Estate
+XLEI US,,Basket,Traditional,Energy
+XLKI US,,Basket,Traditional,Tech
+XLVI US,,Basket,Traditional,Sector
+XLII US,,Basket,Traditional,Sector
+XLFI US,,Basket,Traditional,Sector
+XLYI US,,Basket,Traditional,Sector
 SLTY US,,Basket,Synthetic,Broad Beta
 ETCO US,,ETH,Synthetic,Crypto
 TDAQ US,,Basket,Traditional,Broad Beta
@@ -157,7 +157,7 @@ ULTI US,,Basket,Traditional,Broad Beta
 GDXW US,,GLD,Synthetic,Commodity
 GLDW US,,GLD,Synthetic,Commodity
 SOLM US,,SOL,Synthetic,Crypto
-SEMY US,SOXL US,,Synthetic,Broad Beta
+SEMY US,SOXL US,,Synthetic,Tech
 XRPM US,,XRP,Traditional,Crypto
 TSYW US,,TSY,Synthetic,Fixed Income
 NUGY US,NUGT US,,Synthetic,Commodity
@@ -165,14 +165,14 @@ BALQ US,,NDX,Traditional,Tech
 HEMI US,,SPX,Traditional,Broad Beta
 MLPI US,,MQMNLPTU,Traditional,Energy
 SCEP US,,Basket,Traditional,Broad Beta
-YBST US,,FOF,Synthetic,Broad Beta
-YBTY US,,FOF,Synthetic,Broad Beta
-CAIE US,,Autocall,Synthetic,Broad Beta
-CAIQ US,,Autocall,Synthetic,Tech
-ACEI US,,Autocall,Synthetic,Broad Beta
-ACII US,,Autocall,Synthetic,Broad Beta
-PAYH US,,Autocall,Synthetic,Broad Beta
-PAYM US,,Autocall,Synthetic,Broad Beta
+YBST US,,FOF,Synthetic,Single Stock
+YBTY US,,FOF,Synthetic,Single Stock
+CAIE US,,Autocall,Synthetic,Autocallable
+CAIQ US,,Autocall,Synthetic,Autocallable
+ACEI US,,Autocall,Synthetic,Autocallable
+ACII US,,Autocall,Synthetic,Autocallable
+PAYH US,,Autocall,Synthetic,Autocallable
+PAYM US,,Autocall,Synthetic,Autocallable
 XOMO US,XOM US,,Synthetic,Single Stock
 WMTI US,WMT US,,Synthetic,Single Stock
 UNHW US,UNH US,,Synthetic,Single Stock
@@ -285,25 +285,25 @@ AAPY US,AAPL US,,Synthetic,Single Stock
 AAPW US,AAPL US,,Synthetic,Single Stock
 HAKY US,,HACK US,Traditional,Tech
 NDIV US,,NDIVITR,Traditional,Energy
-ANV US,NVDA US,Autocall,Synthetic,Single Stock
-TLA US,TSLA US,Autocall,Synthetic,Single Stock
+ANV US,NVDA US,Autocall,Synthetic,Autocallable
+TLA US,TSLA US,Autocall,Synthetic,Autocallable
 XSPI US,,SPX,Traditional,Broad Beta
-ATCL US,,Autocall,Synthetic,Broad Beta
+ATCL US,,Autocall,Synthetic,Autocallable
 FEPI LN,,Basket,Traditional,Tech
 FEGI LN,,Basket,Traditional,Tech
 CEGI LN,,Basket,Traditional,Crypto
 MSST US,MSTR US,,Synthetic,Single Stock
 NVIT US,NVDA US,,Synthetic,Single Stock
 TEST US,TSLA US,,Synthetic,Single Stock
-ISBG US,,Basket,Synthetic,Broad Beta
-ISSB US,,Basket,Synthetic,Broad Beta
+ISBG US,,Basket,Synthetic,Crypto
+ISSB US,,Basket,Synthetic,Crypto
 KYLD US,,Basket,Traditional,Broad Beta
-MEMY US,,Basket,Synthetic,Broad Beta
+MEMY US,,Basket,Synthetic,Single Stock
 NLSI US,,Basket,Traditional,Broad Beta
 OEI US,,Basket,Traditional,Broad Beta
 PLGI US,,Basket,Traditional,Broad Beta
 TPAY US,,SPX,Synthetic,Broad Beta
-XQQI US,,NDX,Traditional,Broad Beta
+XQQI US,,NDX,Traditional,Tech
 GLDN US,,GLD,Traditional,Commodity
 KSLV US,,SLV,Traditional,Commodity
 SLVX US,,SLV,Traditional,Commodity
@@ -315,3 +315,5 @@ SLVO US,,SLV,Synthetic,Commodity
 GLDI US,,GLD,Synthetic,Commodity
 BWVTF US,,SPX,Synthetic,Broad Beta
 GIF US,,FOF,Synthetic,Single Stock
+ACYN US,,Autocall,Synthetic,Autocallable
+MINY US,,Basket,Traditional,Single Stock

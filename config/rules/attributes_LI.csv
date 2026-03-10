@@ -430,8 +430,6 @@ SPUU US,Equity,Index/Basket/ETF Based,Long,2.0,
 SPXL US,Equity,Index/Basket/ETF Based,Long,3.0,
 SPXS US,Equity,Index/Basket/ETF Based,Short,3.0,
 SPXU US,Equity,Index/Basket/ETF Based,Short,3.0,
-SPYB US,Equity,Index/Basket/ETF Based,Long,2.0,
-SPYM US,Equity,Index/Basket/ETF Based,Long,2.0,
 SPYQ US,Equity,Index/Basket/ETF Based,Long,2.0,SPY US
 SQQQ US,Equity,Index/Basket/ETF Based,Short,3.0,
 SRPU US,Equity,Single Stock,Long,2.0,SPRT US
@@ -593,18 +591,18 @@ NRGU US,Commodity,Energy,Long,3.0,SOLUSBOT
 WTIU US,Commodity,Energy,Long,3.0,BIGOIL
 GDXU US,Commodity,Gold,Long,3.0,MINERS
 SHNY US,Commodity,Gold,Long,3.0,
-FNGD US,Equity,Tech,Short,-3.0,NYFANGT
+FNGD US,Equity,Tech,Short,3.0,NYFANGT
 SCDL US,Equity,Dividend,Long,2.0,DJUSDIVT
 JETU US,Equity,Airlines,Long,3.0,PJETSNTR
 HDLB US,Equity,Dividend,Long,2.0,SOLHDLV
 MLPR US,Equity,MLP,Long,1.5,AMZ
-BERZ US,Equity,Tech,Short,-3.0,SOLFANGT
-FLYD US,Equity,Travel,Short,-3.0,MQUSTRAV
+BERZ US,Equity,Tech,Short,3.0,SOLFANGT
+FLYD US,Equity,Travel,Short,3.0,MQUSTRAV
 IWML US,Equity,Factor,Long,2.0,RU20INTR
 IWDL US,Equity,Factor,Long,2.0,RU10VATR
 SMHB US,Equity,Dividend,Long,2.0,SOLSMHD
 PFFL US,Fixed Income,Preferred,Long,2.0,SOLPRF
-CARD US,Equity,Auto,Short,-3.0,PCARSNTR
+CARD US,Equity,Auto,Short,3.0,PCARSNTR
 QULL US,Equity,Factor,Long,2.0,M2USSNQ
 CEFD US,Equity,Closed-End,Long,1.5,CEFX
 USML US,Equity,Factor,Long,2.0,M00IMV$T
@@ -613,7 +611,7 @@ MTUL US,Equity,Factor,Long,2.0,M2US000$
 VYLD US,Volatility,VIX,Long,1.0,SPVXSTIT
 BNKU US,Equity,Financials,Long,3.0,SOLUSBBT
 SPYU US,Equity,Broad Market,Long,4.0,SPXT
-BNKD US,Equity,Financials,Short,-3.0,SOLUSBBT
+BNKD US,Equity,Financials,Short,3.0,SOLUSBBT
 BDCX US,Equity,Closed-End,Long,1.5,MVBIZD
 IWFL US,Equity,Factor,Long,2.0,RU10GRTR
 CARU US,Equity,Auto,Long,3.0,PCARSNTR
@@ -621,10 +619,13 @@ FNGO US,Equity,Tech,Long,2.0,NYFANGT
 FLYU US,Equity,Travel,Long,3.0,MQUSTRAV
 BULZ US,Equity,Tech,Long,3.0,SOLFANGT
 SZOXF US,Commodity,Energy,Long,1.0,DBODIXX
-JETD US,Equity,Airlines,Short,-3.0,PJETSNTR
+JETD US,Equity,Airlines,Short,3.0,PJETSNTR
 FNGU US,Equity,Tech,Long,3.0,NYFANGT
-WTID US,Commodity,Energy,Short,-3.0,BIGOIL
-DULL US,Commodity,Gold,Short,-3.0,
-OILD US,Commodity,Energy,Short,-3.0,SOLOILT
-NRGD US,Commodity,Energy,Short,-3.0,SOLUSBOT
-GDXD US,Commodity,Gold,Short,-3.0,MINERS
+WTID US,Commodity,Energy,Short,3.0,BIGOIL
+DULL US,Commodity,Gold,Short,3.0,
+OILD US,Commodity,Energy,Short,3.0,SOLOILT
+NRGD US,Commodity,Energy,Short,3.0,SOLUSBOT
+GDXD US,Commodity,Gold,Short,3.0,MINERS
+DRNL US,Equity,Index/Basket/ETF Based,Long,2.0,
+FNGS US,Equity,Index/Basket/ETF Based,Long,1.0,
+UPSD US,Equity,Index/Basket/ETF Based,Tactical,,

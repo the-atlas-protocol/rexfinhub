@@ -53,7 +53,6 @@ BAGY US,Derivatives-based; income,BTC only
 DFII US,Derivatives-based; income,BTC only
 BETE US,Derivatives-based; futures-based,multi-token crypto
 SATO US,Equity,multi-token crypto
-ARKD US,Derivatives-based; defined outcome,crypto + traditional asset
 DECO US,Hybrid (spot/multi + derivatives),multi-token crypto
 AETH US,Derivatives-based; futures-based,crypto + traditional asset
 CBTY US,Derivatives-based; defined outcome,BTC only
@@ -119,7 +118,6 @@ STBQ US,Equity,multi-token crypto
 TKNQ US,Equity,multi-token crypto
 WTIB US,Derivatives-based; futures-based,crypto + traditional asset
 BFJA US,Derivatives-based; defined outcome,BTC only
-DGJA US,Derivatives-based; defined outcome,crypto + traditional asset
 BFAP US,Derivatives-based; defined outcome,BTC only
 OOQB US,Hybrid (spot/multi + derivatives),crypto + traditional asset
 IBIT US,Spot Single Asset,BTC only
@@ -181,3 +179,10 @@ TDOG US,Spot Single Asset,alt-coin only (DOGE)
 XBCI US,Derivatives-based; income,BTC only
 GSUI US,Spot Single Asset,alt-coin only (SUI)
 SUIS US,Spot Single Asset,alt-coin only (SUI)
+BCOR US,Equity,BTC only
+EEE US,Derivatives-based; futures-based,crypto + traditional asset
+GLDB US,Derivatives-based; futures-based,crypto + traditional asset
+SSS US,Derivatives-based; futures-based,crypto + traditional asset
+TDOT US,Spot Single Asset,alt-coin only (DOT)
+TSUI US,Spot Single Asset,alt-coin only (SUI)
+XXX US,Derivatives-based; futures-based,crypto + traditional asset

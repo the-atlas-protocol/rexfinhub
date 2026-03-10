@@ -260,19 +260,19 @@ AOCT US,Buffer
 TOCT US,Buffer
 APOC US,Buffer
 JAJL US,Buffer
-DDTD US,Buffer
-DDTJ US,Buffer
-DDTL US,Buffer
-DDTN US,Buffer
-DDTO US,Buffer
-DDTS US,Buffer
-DDFD US,Buffer
-DDFJ US,Buffer
-DDFL US,Buffer
-DDFN US,Buffer
-DDFO US,Buffer
-DDFS US,Buffer
-DDSQ US,Buffer
+DDTD US,Dual Buffer
+DDTJ US,Dual Buffer
+DDTL US,Dual Buffer
+DDTN US,Dual Buffer
+DDTO US,Dual Buffer
+DDTS US,Dual Buffer
+DDFD US,Dual Buffer
+DDFJ US,Dual Buffer
+DDFL US,Dual Buffer
+DDFN US,Dual Buffer
+DDFO US,Dual Buffer
+DDFS US,Dual Buffer
+DDSQ US,Dual Buffer
 BFRZ US,Buffer
 SFLR US,Floor
 QTAP US,Accelerator
@@ -283,7 +283,7 @@ QTJA US,Accelerator
 QTJL US,Accelerator
 QTOC US,Accelerator
 XDQQ US,Accelerator
-DDNQ US,Buffer
+DDNQ US,Dual Buffer
 NAUG US,Buffer
 NDEC US,Buffer
 NFEB US,Buffer
@@ -474,7 +474,7 @@ QBUL US,Hedged Equity
 ONEZ US,Ladder
 AUGZ US,Outcome
 JULZ US,Outcome
-HYKE US,
+HYKE US,Defined Risk
 DVXC US,Defined Volatility
 DVXY US,Defined Volatility
 DVXP US,Defined Volatility
@@ -491,6 +491,9 @@ DVUT US,Defined Volatility
 XBAP US,Buffer
 BFJA US,Floor
 DGJA US,Buffer
-DDFF US,Buffer
-DDTF US,Buffer
+DDFF US,Dual Buffer
+DDTF US,Dual Buffer
 JANI US,Buffer
+DDFM US,Dual Buffer
+DDTM US,Dual Buffer
+DLFE US,Dual Buffer

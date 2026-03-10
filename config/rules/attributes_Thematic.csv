@@ -53,7 +53,6 @@ SPC US,IPO & SPAC
 SIXG US,5G
 QTUM US,Quantum Computing
 DMCY US,Corporate Culture
-WFH US,Environment
 XOVR US,Corporate Culture
 SPCZ US,IPO & SPAC
 RNWZ US,Clean Energy
@@ -137,7 +136,6 @@ SOCL US,Tech & Communications
 PAVE US,Infrastructure
 URA US,Nuclear
 HERO US,Sports & Esports
-GBUY US,Consumer
 GDOC US,Healthcare
 GINN US,Innovation
 DARP US,Innovation
@@ -180,7 +178,6 @@ PBW US,Clean Energy
 ETEC US,Environment
 TEMP US,Low Carbon
 JTEK US,Tech & Communications
-SSPX US,Environment
 AGIX US,Artificial Intelligence
 KWEB US,EM Tech
 KARS US,Electric Car & Battery
@@ -214,7 +211,6 @@ ONLN US,Consumer
 PAWZ US,Consumer
 ION US,Electric Car & Battery
 CTEX US,Clean Energy
-SYNB US,Innovation
 PFUT US,Environment
 HTEC US,Healthcare
 ROBO US,Robotics & Automation
@@ -277,7 +273,6 @@ CANC US,Healthcare
 GTEK US,Innovation
 CLOD US,Cloud Computing
 SPAM US,Cybersecurity
-FINE US,Consumer
 WISE US,Artificial Intelligence
 BOTT US,Robotics & Automation
 LIMI US,Electric Car & Battery
@@ -344,3 +339,21 @@ DRNZ US,Drones
 FMET US,Metaverse & Video Gaming
 MINV US,Tech & Communications
 RIFR US,Infrastructure
+AIPO US,Artificial Intelligence
+CABZ US,Robotics & Automation
+CNBS US,Cannabis and Psychedelics
+DRGN US,Artificial Intelligence
+DTRE US,Infrastructure
+EPAI US,Artificial Intelligence
+GDFN US,Defense
+IGPT US,Artificial Intelligence
+IVES US,Artificial Intelligence
+JHAI US,Artificial Intelligence
+LRND US,Innovation
+MARS US,Space
+MSOS US,Cannabis and Psychedelics
+PBOT US,Artificial Intelligence
+TCAI US,Artificial Intelligence
+TMAT US,Innovation
+XDEF US,Defense
+XT US,Innovation
