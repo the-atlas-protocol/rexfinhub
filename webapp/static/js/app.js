@@ -1,4 +1,4 @@
-// ETP Filing Tracker - REX Financial
+// REX Financial Intelligence Hub
 
 // ---------------------------------------------------------------------------
 // Theme management
@@ -17,7 +17,7 @@
     localStorage.setItem('rex-theme', theme);
     // Update meta theme-color for mobile browsers
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f1923' : '#0f1923');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f1923' : '#ffffff');
     // Dispatch event for chart updates
     window.dispatchEvent(new CustomEvent('rex-theme-change', { detail: { theme: theme } }));
   }

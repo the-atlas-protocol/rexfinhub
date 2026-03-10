@@ -12,6 +12,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
   <link rel="stylesheet" href="/static/css/style.css">
   {% block head %}{% endblock %}
 </head>
@@ -138,7 +142,6 @@
       <div class="footer-heading">Data Sources</div>
       <div class="footer-source">SEC EDGAR</div>
       <div class="footer-source">Bloomberg Terminal</div>
-      <div class="footer-pipeline" id="footerPipeline"></div>
     </div>
   </div>
   <div class="footer-bottom">
@@ -146,17 +149,6 @@
     {% block footer_extra %}{% endblock %}
   </div>
 </footer>
-<script>
-(function(){
-  fetch('/api/v1/home-kpis').then(function(r){return r.json()}).then(function(d){
-    if(d.pipeline_last_run){
-      var dt=new Date(d.pipeline_last_run);
-      var el=document.getElementById('footerPipeline');
-      if(el) el.textContent='Pipeline: '+dt.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+dt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
-    }
-  }).catch(function(){});
-})();
-</script>
 
 <script>
 (function(){
