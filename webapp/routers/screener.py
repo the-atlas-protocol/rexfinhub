@@ -63,12 +63,17 @@ def _get_3x_data() -> dict | None:
 
 
 def _data_available() -> bool:
-    """Check if Bloomberg data file exists on disk."""
+    """Check if Bloomberg data is available (file on disk or cached in DB)."""
     try:
         from screener.config import DATA_FILE
-        return DATA_FILE.exists()
+        if DATA_FILE.exists():
+            return True
     except Exception:
-        return False
+        pass
+    # On Render (no Excel file): check if DB cache has screener data
+    if _ON_RENDER:
+        return _get_3x_data() is not None
+    return False
 
 
 def _cache_warming() -> bool:
