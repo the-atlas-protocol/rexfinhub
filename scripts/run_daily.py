@@ -60,7 +60,7 @@ def upload_db_to_render() -> None:
                 f"{RENDER_API_URL}/db/upload",
                 files={"file": ("etp_tracker.db", f, "application/octet-stream")},
                 headers=headers,
-                timeout=120,
+                timeout=600,
             )
         if resp.status_code == 200:
             size_mb = db_path.stat().st_size / 1_000_000
@@ -122,15 +122,19 @@ def main():
     print("\n[3/4] Rescoring screener...")
     print("  Screener rescored (via market sync).")
 
-    # Checkpoint WAL so upload sends complete data
+    # Checkpoint WAL + VACUUM so upload sends compact data (avoid OOM on Render)
     try:
         import sqlite3
         _db_path = str(PROJECT_ROOT / "data" / "etp_tracker.db")
         _conn = sqlite3.connect(_db_path)
         _conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        _size_before = Path(_db_path).stat().st_size / 1e6
+        _conn.execute("VACUUM")
         _conn.close()
-    except Exception:
-        pass
+        _size_after = Path(_db_path).stat().st_size / 1e6
+        print(f"  DB compacted: {_size_before:.0f}MB -> {_size_after:.0f}MB")
+    except Exception as e:
+        print(f"  DB compact failed (non-fatal): {e}")
 
     # Step 4: Upload DB to Render
     print("\n[4/4] Uploading database to Render...")
