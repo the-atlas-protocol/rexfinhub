@@ -149,6 +149,8 @@ class BaseProductParser:
             return "reverse_convertible"
         if re.search(r"(?:callable|redeemable)\s+(?:contingent|barrier)", text):
             return "autocallable"
+        if "contingent coupon" in text or "contingent interest" in text:
+            return "autocallable"  # contingent coupon notes are autocallable-family
         if "range accrual" in text:
             return "range_accrual"
         if re.search(r"digital\s+(?:note|return|coupon)", text):
@@ -159,11 +161,17 @@ class BaseProductParser:
             return "principal_protected"
         if re.search(r"accelerated\s+return", text):
             return "accelerated_return"
+        if re.search(r"(?:capped\s+)?(?:gears|growth|participation)\s+(?:note|linked)", text):
+            return "growth"
         if re.search(r"(?:leveraged|enhanced)\s+(?:note|return|upside)", text):
             return "leveraged"
+        if re.search(r"market[- ]linked\s+(?:note|investment|securities)", text):
+            return "growth"
         if "fixed-to-floating" in text or "fixed to floating" in text:
             return "fixed_to_floating"
-        if re.search(r"callable\s+(?:note|fixed|step)", text):
+        if re.search(r"callable\s+(?:note|fixed|step|contingent)", text):
+            return "callable"
+        if re.search(r"(?:step[- ]?up|fixed\s+rate)\s+(?:note|callable)", text):
             return "callable"
         return "unclassified"
 
@@ -189,8 +197,9 @@ class BaseProductParser:
     # --- Maturity ---
 
     def extract_maturity_date(self) -> date | None:
+        # Skip optional footnote markers (single digits like "1" or "2") between label and date
         m = re.search(
-            r"(?:due|Maturity\s+Date)[:\s]*(\w+\s+\d{1,2},?\s+\d{4})",
+            r"(?:due|Maturity\s+Date)[:\s]*(?:\d{1,2}\s+)?(\w+\s+\d{1,2},?\s+\d{4})",
             self.clean[:10000], re.IGNORECASE,
         )
         return parse_date_text(m.group(1)) if m else None
@@ -262,16 +271,75 @@ class BaseProductParser:
         if m:
             return float(m.group(1)) / 100.0
 
-        # "$X per Note" with frequency conversion
+        # "contingent quarterly/monthly/semi-annual payment equal to X% of the stated principal"
+        # Barclays/Goldman/RBC pattern: "contingent quarterly payment equal to 2.8125%"
         m = re.search(
-            r"Contingent\s+(?:Coupon|Interest)\s+Payment[:\s]*\$([\d.]+)\s*per\s+(?:Note|\$1,?000)",
-            self.clean[:30000], re.IGNORECASE,
+            r"contingent\s+(?:quarterly|monthly|semi-?annual|annual)\s+(?:coupon\s+)?payment\s+"
+            r"(?:equal\s+to\s+|of\s+)?([\d.]+)\s*%\s*(?:of\s+(?:the\s+)?(?:stated\s+)?(?:principal|notional|face))?",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            rate = float(m.group(1))
+            # This is a periodic rate - annualize based on the frequency word
+            period_match = re.search(r"contingent\s+(quarterly|monthly|semi-?annual|annual)", m.group(0), re.IGNORECASE)
+            if period_match:
+                period = period_match.group(1).lower()
+                mult = {"quarterly": 4, "monthly": 12, "annual": 1}.get(period, 4)
+                if "semi" in period:
+                    mult = 2
+                return round(rate * mult / 100.0, 4)
+            return rate / 100.0
+
+        # "contingent coupon/interest payment... X% of the stated principal amount per annum"
+        m = re.search(
+            r"contingent\s+(?:coupon|interest)\s+payment.{0,80}?([\d.]+)\s*%\s*(?:of\s+(?:the\s+)?(?:stated\s+)?(?:principal|notional|face)\s+amount\s+)?per\s+annum",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # "contingent coupon/interest payment... X% of stated principal amount" (no period specified)
+        m = re.search(
+            r"contingent\s+(?:coupon|interest)\s+payment.{0,80}?([\d.]+)\s*%\s*of\s+(?:the\s+)?(?:stated\s+)?(?:principal|notional|face)",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # "pay a contingent coupon at a rate of X% per annum"
+        m = re.search(
+            r"(?:pay|receive)\s+a\s+contingent\s+(?:coupon|interest).{0,60}?(?:rate\s+of\s+|equal\s+to\s+)?([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # "$X per Note/$1,000/$10,000 principal amount" with frequency conversion
+        # Handles: "Contingent Coupon Payment: $X per Note"
+        #          "Contingent Coupon: If payable, $283.50 per $10,000 principal amount"
+        m = re.search(
+            r"Contingent\s+(?:Coupon|Interest)(?:\s+Payment)?[:\s]*(?:If\s+payable,?\s*)?\$([\d.]+)\s*per\s+(?:Note|\$([\d,]+)\s*(?:principal\s+amount)?)",
+            self.clean[:40000], re.IGNORECASE,
         )
         if m:
             payment = float(m.group(1))
+            denom = float(m.group(2).replace(",", "")) if m.group(2) else 1000.0
             freq = self.extract_coupon_frequency()
             mult = {"monthly": 12, "quarterly": 4, "semiannual": 2, "annual": 1}.get(freq, 4)
-            return round((payment / 1000.0) * mult, 4)
+            return round((payment / denom) * mult, 4)
+
+        # Goldman-style: "$X.XX (the number of coupon observation dates)" per $1,000
+        # This is a per-observation-date payment in a memory coupon structure
+        m = re.search(
+            r"\$([\d.]+)\s*(?:\*\s*)?(?:the\s+number\s+of|multiplied\s+by)",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            payment = float(m.group(1))
+            if 1 < payment < 200:  # sanity check - $1-$200 per period per $1,000
+                freq = self.extract_coupon_frequency()
+                mult = {"monthly": 12, "quarterly": 4, "semiannual": 2, "annual": 1}.get(freq, 4)
+                return round((payment / 1000.0) * mult, 4)
 
         return None
 
@@ -465,7 +533,55 @@ class GoldmanSachsParser(BaseProductParser):
 
     Notional: "Face amount: $X in the aggregate" or "Aggregate face amount: $X"
     Maturity: "Stated maturity date:"
+    Coupon: Goldman uses "Contingent Coupon Equity-Linked Notes" with payment descriptions
+           buried deeper in the document (often past char 20000).
     """
+
+    def extract_coupon_rate(self) -> float | None:
+        # Goldman often puts coupon info in "Key Terms" section, sometimes deep in doc
+        # "Contingent coupon rate: X% per annum" or "contingent coupon... X%"
+        m = re.search(
+            r"(?:contingent\s+)?coupon\s+rate[:\s]*(?:at\s+least\s+)?([\d.]+)\s*%\s*(?:per\s+annum)?",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # Try base parser with extended search window
+        result = super().extract_coupon_rate()
+        if result:
+            return result
+
+        # "annualized rate of X%" or "annual rate of X%"
+        m = re.search(
+            r"(?:annualized|annual)\s+(?:coupon\s+)?rate\s+(?:of\s+|equal\s+to\s+)?([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # Goldman autocallable with call premium: "Call Premium: X% of the face amount"
+        # This is the investor's yield on call — treat as coupon for analytics
+        m = re.search(
+            r"Call\s+Premium[:\s]*([\d.]+)\s*%\s*(?:of\s+(?:the\s+)?face\s+amount)?",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # Goldman autocallable with dollar call amount: "equal to $1,110" or "equal to $1,366"
+        # Premium = (amount - 1000) / 1000
+        for m in re.finditer(
+            r"equal\s+to\s+\$\s*(1,[\d]+(?:\.\d+)?)",
+            self.clean[:40000], re.IGNORECASE,
+        ):
+            amount = float(m.group(1).replace(",", ""))
+            if 1000 < amount < 3000:
+                ctx = self.clean[max(0, m.start()-300):m.end()]
+                if re.search(r"call|automatically|per\s+\$1,?000", ctx, re.IGNORECASE):
+                    return round((amount - 1000) / 1000, 4)
+
+        return None
 
     def extract_notional(self) -> float | None:
         # "Face amount: $X in the aggregate" or "Principal amount: $X in the aggregate"
@@ -518,7 +634,35 @@ class GoldmanSachsParser(BaseProductParser):
 
 
 class MorganStanleyParser(BaseProductParser):
-    """Morgan Stanley Finance LLC (CIK 1666268)."""
+    """Morgan Stanley Finance LLC (CIK 1666268).
+
+    Coupon: MS uses "Call Premium/Return: X%" or "Callable Return: X%" for autocallables.
+    Also "Contingent Return: X%" patterns.
+    """
+
+    def extract_coupon_rate(self) -> float | None:
+        # "Call Premium: X%" or "Callable Return: X%"
+        m = re.search(
+            r"(?:Call\s+Premium|Callable?\s+Return|Contingent\s+(?:Return|Payment))[:\s]*([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # Try base parser (includes new contingent payment patterns)
+        result = super().extract_coupon_rate()
+        if result:
+            return result
+
+        # "earn X% (annualized)" or "earn X% per annum"
+        m = re.search(
+            r"earn\s+([\d.]+)\s*%\s*(?:\(annualized\)|per\s+annum)",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        return None
 
     def extract_notional(self) -> float | None:
         m = re.search(
@@ -548,7 +692,36 @@ class UBSParser(BaseProductParser):
 
 
 class BarclaysParser(BaseProductParser):
-    """Barclays Bank PLC (CIK 312070)."""
+    """Barclays Bank PLC (CIK 312070).
+
+    Coupon: Barclays uses "contingent quarterly payment equal to X% of the stated
+    principal amount" pattern. The payment rate is periodic, must annualize.
+    """
+
+    def extract_coupon_rate(self) -> float | None:
+        # Try base parser first (handles most patterns including new contingent payment ones)
+        result = super().extract_coupon_rate()
+        if result:
+            return result
+
+        # Barclays-specific: "a contingent payment ... equal to X%" in description text
+        m = re.search(
+            r"contingent\s+(?:coupon\s+)?payment.{0,120}?equal\s+to\s+([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            rate = float(m.group(1))
+            # Determine frequency from nearby text
+            freq_text = self.clean_lower[:15000]
+            if "quarterly" in freq_text:
+                return round(rate * 4 / 100.0, 4)
+            elif "monthly" in freq_text:
+                return round(rate * 12 / 100.0, 4)
+            elif "semi-annual" in freq_text or "semiannual" in freq_text:
+                return round(rate * 2 / 100.0, 4)
+            return rate / 100.0  # assume annual if unclear
+
+        return None
 
     def extract_notional(self) -> float | None:
         m = re.search(
@@ -575,7 +748,32 @@ class BarclaysParser(BaseProductParser):
 
 
 class BofAParser(BaseProductParser):
-    """BofA Finance LLC (CIK 1682472)."""
+    """BofA Finance LLC (CIK 1682472).
+
+    CUSIP: Many BofA filings omit the "CUSIP" keyword entirely.
+    BofA CUSIPs start with "09709" or "09711" (BofA Finance LLC prefix).
+    """
+
+    # Known BofA CUSIP prefixes (BofA Finance LLC, Bank of America Corp)
+    BOFA_CUSIP_PREFIXES = ("09709", "09711", "06051", "06048")
+
+    def extract_cusip(self) -> str | None:
+        # Try normal extraction first
+        result = super().extract_cusip()
+        if result:
+            return result
+
+        # Strategy 4: Search for known BofA CUSIP prefixes anywhere in text
+        for prefix in self.BOFA_CUSIP_PREFIXES:
+            for m in re.finditer(
+                rf"\b({prefix}[A-Z0-9]{{4}})\b",
+                self.clean[:80000],
+            ):
+                candidate = m.group(1).upper()
+                if self._is_valid_cusip(candidate):
+                    return candidate
+
+        return None
 
     def extract_notional(self) -> float | None:
         m = re.search(
@@ -830,7 +1028,35 @@ class DeutscheBankParser(BaseProductParser):
 
 
 class RBCParser(BaseProductParser):
-    """Royal Bank of Canada (CIK 1000275)."""
+    """Royal Bank of Canada (CIK 1000275).
+
+    Coupon: RBC uses "Contingent Coupon Geared Buffer Notes" with rate info
+    in key terms section.
+    """
+
+    def extract_coupon_rate(self) -> float | None:
+        # RBC: "Contingent Coupon Rate (per annum): X%"
+        m = re.search(
+            r"Contingent\s+Coupon\s+Rate\s*\(per\s+annum\)[:\s]*([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # Try base parser (includes new contingent payment patterns)
+        result = super().extract_coupon_rate()
+        if result:
+            return result
+
+        # "contingent coupon... at a rate of X% per annum"
+        m = re.search(
+            r"contingent\s+coupon.{0,80}?(?:rate\s+of\s+|at\s+)([\d.]+)\s*%\s*(?:per\s+annum)?",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        return None
 
     def extract_notional(self) -> float | None:
         m = re.search(
