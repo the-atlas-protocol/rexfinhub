@@ -109,41 +109,45 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
 
+_caches_ready = False  # flipped True when all caches are loaded
+
+
 def _prewarm_caches() -> None:
-    """Pre-warm all data caches in a background thread at startup.
+    """Pre-warm all data caches synchronously at startup.
 
-    Loads market DataFrames + screener results so the first visitor
-    never hits a cold cache.
+    Runs BEFORE uvicorn accepts requests so no user ever hits a cold cache.
+    Keeps startup fast (~5-10s for DB reads) and avoids background-thread
+    race conditions.
     """
-    import threading
+    global _caches_ready
+    import time
+    t0 = time.time()
 
-    def _warm_all():
-        from webapp.database import SessionLocal
-        db = SessionLocal()
+    from webapp.database import SessionLocal
+    db = SessionLocal()
+    try:
+        # Market data: load master + time series DataFrames into memory
         try:
-            # Market data: load master + time series DataFrames into memory
-            try:
-                from webapp.services import market_data
-                if market_data.data_available(db):
-                    market_data._load_master(db)
-                    market_data._load_ts(db)
-                    log.info("Market data cache warmed at startup.")
-            except Exception as e:
-                log.warning("Market cache warm failed (non-fatal): %s", e)
+            from webapp.services import market_data
+            if market_data.data_available(db):
+                market_data._load_master(db)
+                market_data._load_ts(db)
+                log.info("Market data cache warmed.")
+        except Exception as e:
+            log.warning("Market cache warm failed (non-fatal): %s", e)
 
-            # Screener cache (always pass db so Render can load from DB)
-            try:
-                from webapp.services.screener_3x_cache import warm_cache
-                warm_cache(db=db)
-                log.info("Screener cache warmed at startup.")
-            except Exception as e:
-                log.warning("Screener cache warm failed (non-fatal): %s", e)
-        finally:
-            db.close()
+        # Screener cache
+        try:
+            from webapp.services.screener_3x_cache import warm_cache
+            warm_cache(db=db)
+            log.info("Screener cache warmed.")
+        except Exception as e:
+            log.warning("Screener cache warm failed (non-fatal): %s", e)
+    finally:
+        db.close()
 
-    t = threading.Thread(target=_warm_all, name="cache-warm", daemon=True)
-    t.start()
-    log.info("Background cache warm-up started.")
+    _caches_ready = True
+    log.info("All caches ready in %.1fs.", time.time() - t0)
 
 
 @asynccontextmanager
@@ -233,13 +237,17 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router)
     app.include_router(reports.router)
 
-    # Health check
+    # Health check -- Render uses this for zero-downtime deploys.
+    # Returns 503 until caches are warm so Render keeps the old instance
+    # serving traffic until the new one is fully ready.
     @app.get("/health")
     def health():
-        resp = {"status": "ok", "version": "2.0.0"}
+        resp = {"status": "ok" if _caches_ready else "warming", "version": "2.0.0"}
         commit = os.environ.get("RENDER_GIT_COMMIT", "")
         if commit:
             resp["commit"] = commit[:8]
+        if not _caches_ready:
+            return JSONResponse(resp, status_code=503)
         return resp
 
     # --- Maintenance banner (in-memory, resets on deploy) ---
@@ -260,14 +268,15 @@ def create_app() -> FastAPI:
         return token is not None and _ADMIN_PASSWORD and token == _ADMIN_PASSWORD
 
     @app.post("/api/v1/maintenance")
-    def set_maintenance(request: Request, minutes: int = Form(5), token: str = Form(None)):
+    def set_maintenance(request: Request, minutes: int = Form(5), token: str = Form(None),
+                        message: str = Form(None)):
         if not _maint_authorized(request, token):
             return JSONResponse({"error": "Unauthorized"}, status_code=403)
         from datetime import datetime, timezone, timedelta
         global _maintenance_msg
         shutdown_at = datetime.now(timezone.utc) + timedelta(minutes=minutes)
         _maintenance_msg = {
-            "message": f"Scheduled maintenance in {minutes} minutes.",
+            "message": message or f"Scheduled maintenance in {minutes} minutes.",
             "shutdown_at": shutdown_at.isoformat(),
         }
         return {"ok": True, "shutdown_at": shutdown_at.isoformat()}
