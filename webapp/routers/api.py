@@ -216,9 +216,10 @@ async def upload_db(
         total_in = 0
         total_out = 0
         if is_gzipped:
-            # Stream: read gzip chunks, decompress, write to disk
+            # Render disk is 1GB. Old DB (~455MB) + gz (~63MB) + decompressed (~455MB) = 973MB.
+            # To stay under limit: stream gz to disk, delete old DB, then decompress.
             gz_tmp = tmp_path + ".gz"
-            # First stream compressed data to disk
+            # Step 1: Stream compressed data to disk (455MB existing + 63MB gz = 518MB)
             with open(gz_tmp, "wb") as f:
                 while True:
                     chunk = await file.read(65536)
@@ -226,7 +227,13 @@ async def upload_db(
                         break
                     f.write(chunk)
                     total_in += len(chunk)
-            # Then decompress file-to-file (low memory)
+            # Step 2: Dispose engine and remove old DB to free ~455MB
+            engine.dispose()
+            try:
+                os.unlink(str(DB_PATH))
+            except OSError:
+                pass
+            # Step 3: Decompress gz -> new DB (63MB gz + 455MB out = 518MB peak)
             with _gzip.open(gz_tmp, "rb") as gz_in:
                 with open(tmp_path, "wb") as f_out:
                     while True:
@@ -248,11 +255,10 @@ async def upload_db(
                     f.write(chunk)
                     total_out += len(chunk)
             total_in = total_out
+            # Dispose existing connections so the file isn't locked
+            engine.dispose()
 
-        # Dispose existing connections so the file isn't locked
-        engine.dispose()
-
-        # Atomic replace
+        # Move new DB into place
         shutil.move(tmp_path, str(DB_PATH))
 
         in_mb = total_in / 1_000_000
