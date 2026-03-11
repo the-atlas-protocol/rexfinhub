@@ -5,7 +5,7 @@ SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik_padded}.json"
 SEC_ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
 FORM_TYPE = "424B2"  # Structured note pricing supplements
 DB_PATH = "data/structured_notes.db"
-CACHE_DIR = "http_cache"
+CACHE_DIR = "C:/Projects/rexfinhub/http_cache"
 
 # CIK -> (short_name, full_name)
 ISSUERS: dict[str, tuple[str, str]] = {
