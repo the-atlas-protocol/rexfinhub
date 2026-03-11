@@ -115,10 +115,10 @@ class BaseProductParser:
         if m and self._is_valid_cusip(m.group(1).upper().ljust(9, "0")):
             return m.group(1).upper()
 
-        # Strategy 3: 9-char alphanumeric near "CUSIP" keyword
+        # Strategy 3: 9-char alphanumeric near "CUSIP" keyword (400 char window for table layouts)
         idx = self.clean.upper().find("CUSIP")
         if idx >= 0:
-            for cm in re.finditer(r"([A-Z0-9]{9})", self.clean[idx:idx+200]):
+            for cm in re.finditer(r"([A-Z0-9]{9})", self.clean[idx:idx+400]):
                 if self._is_valid_cusip(cm.group(1).upper()):
                     return cm.group(1).upper()
 
@@ -240,6 +240,15 @@ class BaseProductParser:
 
     def extract_coupon_rate(self) -> float | None:
         """Extract annualized coupon rate as decimal (0.08 = 8%)."""
+        # "X% per quarter (approximately Y% per annum)" - prefer annualized
+        m = re.search(
+            r"([\d.]+)\s*%\s*per\s+(?:quarter|month|semi-?annual\s+period).*?"
+            r"(?:approximately|equivalent\s+to|equal\s+to)\s+([\d.]+)\s*%\s*per\s+annum",
+            self.clean[:30000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(2)) / 100.0
+
         # "Contingent Interest Rate: X%" or "Coupon Rate: X%"
         m = re.search(
             r"(?:Contingent\s+(?:Interest|Coupon)\s+Rate|(?:Fixed\s+)?Coupon\s+Rate)[:\s]*(?:at\s+least\s+)?([\d.]+)\s*%",
@@ -294,7 +303,17 @@ class BaseProductParser:
 
     def extract_barrier_level(self) -> float | None:
         """Extract knock-in/trigger barrier as decimal (0.70 = 70%)."""
-        # "Barrier/Trigger/Knock-in Level: X%"
+        # "Barrier/Trigger/Knock-in Level: X%" (skip footnote markers like "2" before $amounts)
+        m = re.search(
+            r"(?:Barrier|Trigger|Knock-?in)\s+(?:Level|Value|Price)[:\s]*(?:\d{1,2}\s+)?(?:\$[\d,. ]+,?\s*)?(?:which\s+is\s+)?([\d.]+)\s*%\s*of",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 10 < val < 100:
+                return val / 100.0
+
+        # Simple: "Barrier/Trigger/Knock-in Level: X%" (no dollar amount)
         m = re.search(
             r"(?:Barrier|Trigger|Knock-?in)\s+(?:Level|Value|Price)[:\s]*([\d.]+)\s*%",
             self.clean[:40000], re.IGNORECASE,
@@ -304,12 +323,32 @@ class BaseProductParser:
             if 10 < val < 100:
                 return val / 100.0
 
-        # "X% of (the) Initial/Starting Value/Price/Level"
+        # "Barrier/Buffer Level: $X, which is X% of the Initial Level"
         m = re.search(
-            r"([\d.]+)\s*%\s*of\s+(?:the\s+)?(?:its\s+)?(?:Initial|Starting|Hypothetical\s+Initial)",
+            r"(?:Barrier|Buffer|Trigger)\s+Level[:\s]*[\d$,. ]*(?:which\s+is|equal\s+to)\s+([\d.]+)\s*%\s*of\s+(?:the\s+)?(?:its\s+)?(?:Initial|Starting)",
             self.clean[:40000], re.IGNORECASE,
         )
         if m:
+            val = float(m.group(1))
+            if 10 < val < 100:
+                return val / 100.0
+
+        # "(equal to X% of the Initial Level)" after Barrier/Buffer Level
+        m = re.search(
+            r"(?:Barrier|Buffer)\s+Level\s*\(equal\s+to\s+([\d.]+)\s*%\s*of\s+(?:the\s+)?(?:its\s+)?(?:Initial|Starting)",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 10 < val < 100:
+                return val / 100.0
+
+        # "X% of (the) (respective) Initial/Starting Value/Price/Level"
+        # Use finditer because the first match may be 100% (Call Level) — need to find one in (10,100)
+        for m in re.finditer(
+            r"([\d.]+)\s*%\s*of\s+(?:the\s+)?(?:its\s+)?(?:respective\s+)?(?:Initial|Starting|Hypothetical\s+Initial)",
+            self.clean[:40000], re.IGNORECASE,
+        ):
             val = float(m.group(1))
             if 10 < val < 100:
                 return val / 100.0
