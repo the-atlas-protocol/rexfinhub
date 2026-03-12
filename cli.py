@@ -30,11 +30,46 @@ def discover_filings(client: SECClient, cik_filter: str | None = None, year: int
     """Find all 424B2 filings for registered issuers."""
     db = get_db()
 
+    # Pre-load all known accession numbers for fast dedup (O(1) lookup vs O(N) query)
+    existing_accs: set[str] = set(
+        row[0] for row in db.query(Filing.accession_number).all()
+    )
+    print(f"  {len(existing_accs):,} filings already indexed")
+
     issuers_to_scan = {}
     for cik, (short, full) in ISSUERS.items():
         if cik_filter and str(int(cik)) != str(int(cik_filter)):
             continue
         issuers_to_scan[cik] = (short, full)
+
+    def _process_filing_batch(forms, accessions, dates_list, docs, xbrl_flags, issuer, cik_int):
+        """Process a batch of filings from submissions JSON."""
+        count = 0
+        for i, form in enumerate(forms):
+            if form != FORM_TYPE:
+                continue
+            filing_date = dates_list[i] if i < len(dates_list) else None
+            if year and filing_date and not filing_date.startswith(str(year)):
+                continue
+            acc = accessions[i] if i < len(accessions) else None
+            if not acc or acc in existing_accs:
+                continue
+            doc = docs[i] if i < len(docs) else ""
+            acc_path = acc.replace("-", "")
+            url = f"{SEC_ARCHIVES_BASE}/{cik_int}/{acc_path}/{doc}"
+            is_xbrl = bool(xbrl_flags[i]) if i < len(xbrl_flags) else False
+            filing = Filing(
+                issuer_id=issuer.id,
+                accession_number=acc,
+                filing_date=date.fromisoformat(filing_date) if filing_date else None,
+                form_type=form,
+                primary_doc_url=url,
+                is_inline_xbrl=is_xbrl,
+            )
+            db.add(filing)
+            existing_accs.add(acc)
+            count += 1
+        return count
 
     for cik, (short, full) in issuers_to_scan.items():
         cik_padded = f"{int(cik):010d}"
@@ -49,86 +84,37 @@ def discover_filings(client: SECClient, cik_filter: str | None = None, year: int
         # Load submissions
         subs = client.load_submissions(cik)
         recent = subs.get("filings", {}).get("recent", {})
-        forms = recent.get("form", [])
-        accessions = recent.get("accessionNumber", [])
-        dates = recent.get("filingDate", [])
-        docs = recent.get("primaryDocument", [])
-        xbrl_flags = recent.get("isInlineXBRL", [])
 
-        new_count = 0
-        for i, form in enumerate(forms):
-            if form != FORM_TYPE:
-                continue
-            filing_date = dates[i] if i < len(dates) else None
-            if year and filing_date and not filing_date.startswith(str(year)):
-                continue
-
-            acc = accessions[i] if i < len(accessions) else None
-            if not acc:
-                continue
-
-            # Skip if already indexed
-            if db.query(Filing).filter_by(accession_number=acc).first():
-                continue
-
-            doc = docs[i] if i < len(docs) else ""
-            acc_path = acc.replace("-", "")
-            url = f"{SEC_ARCHIVES_BASE}/{int(cik)}/{acc_path}/{doc}"
-            is_xbrl = bool(xbrl_flags[i]) if i < len(xbrl_flags) else False
-
-            filing = Filing(
-                issuer_id=issuer.id,
-                accession_number=acc,
-                filing_date=date.fromisoformat(filing_date) if filing_date else None,
-                form_type=form,
-                primary_doc_url=url,
-                is_inline_xbrl=is_xbrl,
-            )
-            db.add(filing)
-            new_count += 1
+        new_count = _process_filing_batch(
+            recent.get("form", []),
+            recent.get("accessionNumber", []),
+            recent.get("filingDate", []),
+            recent.get("primaryDocument", []),
+            recent.get("isInlineXBRL", []),
+            issuer, int(cik),
+        )
 
         # Handle older filings (paginated)
         files_list = subs.get("filings", {}).get("files", [])
-        for file_ref in files_list:
+        for fi, file_ref in enumerate(files_list):
             file_url = f"https://data.sec.gov/submissions/{file_ref['name']}"
             old_data = client.fetch_json(file_url)
-            old_forms = old_data.get("form", [])
-            old_accs = old_data.get("accessionNumber", [])
-            old_dates = old_data.get("filingDate", [])
-            old_docs = old_data.get("primaryDocument", [])
-            old_xbrl = old_data.get("isInlineXBRL", [])
-
-            for j, form in enumerate(old_forms):
-                if form != FORM_TYPE:
-                    continue
-                filing_date = old_dates[j] if j < len(old_dates) else None
-                if year and filing_date and not filing_date.startswith(str(year)):
-                    continue
-
-                acc = old_accs[j] if j < len(old_accs) else None
-                if not acc or db.query(Filing).filter_by(accession_number=acc).first():
-                    continue
-
-                doc = old_docs[j] if j < len(old_docs) else ""
-                acc_path = acc.replace("-", "")
-                url = f"{SEC_ARCHIVES_BASE}/{int(cik)}/{acc_path}/{doc}"
-                is_xbrl = bool(old_xbrl[j]) if j < len(old_xbrl) else False
-
-                filing = Filing(
-                    issuer_id=issuer.id,
-                    accession_number=acc,
-                    filing_date=date.fromisoformat(filing_date) if filing_date else None,
-                    form_type=form,
-                    primary_doc_url=url,
-                    is_inline_xbrl=is_xbrl,
-                )
-                db.add(filing)
-                new_count += 1
+            new_count += _process_filing_batch(
+                old_data.get("form", []),
+                old_data.get("accessionNumber", []),
+                old_data.get("filingDate", []),
+                old_data.get("primaryDocument", []),
+                old_data.get("isInlineXBRL", []),
+                issuer, int(cik),
+            )
+            if (fi + 1) % 10 == 0:
+                db.commit()
+                print(f"    {short}: page {fi+1}/{len(files_list)} ({new_count:,} new so far)")
 
         issuer.total_filings = db.query(Filing).filter_by(issuer_id=issuer.id).count()
         issuer.last_updated = datetime.now()
         db.commit()
-        print(f"  {short:<20s} {new_count:>5} new filings ({issuer.total_filings:,} total)")
+        print(f"  {short:<20s} {new_count:>6,} new filings ({issuer.total_filings:,} total)")
 
     db.close()
     print("Discovery complete.")
