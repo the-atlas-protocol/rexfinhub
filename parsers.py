@@ -145,14 +145,64 @@ class BaseProductParser:
     # --- Product name & type ---
 
     def extract_product_name(self) -> str | None:
+        text = self.clean[:5000]
+
+        # Strategy 1: "Structured Investments [Product Description]..." (JPM, MS)
         m = re.search(
             r"Structured\s+Investments?\s+(.*?)(?:Fully\s+and\s+Unconditionally|"
-            r"Neither\s+the\s+Securities|The\s+notes\s+are\s+(?:designed|unsecured))",
-            self.clean, re.IGNORECASE | re.DOTALL,
+            r"Neither\s+the\s+Securities|The\s+(?:notes|securities)\s+are\s+(?:designed|unsecured)|"
+            r"Principal\s+at\s+Risk)",
+            text, re.IGNORECASE | re.DOTALL,
         )
         if m:
             name = re.sub(r"\s+", " ", m.group(1)).strip()
-            return name[:500] if name else None
+            if name and len(name) > 10:
+                return name[:500]
+
+        # Due date pattern: "due [Month Day,] Year" or "due" alone (preliminary filings)
+        DUE_PAT = r"due\s+(?:(?:\w+\s+\d{1,2},?\s+)?\d{4})"
+        DUE_PAT_PRELIM = r"due\b"
+
+        # Strategy 2: "$[amount] [Product Description] Notes/Securities due [Date]"
+        # Works for Goldman, Citi, Barclays, BMO, CIBC, BofA, HSBC, etc.
+        for dm in re.finditer(r"\$\s*[\d,.]*\s+", text):
+            after = text[dm.end():]
+            # Try with date first, then prelim fallback
+            for due in [DUE_PAT, DUE_PAT_PRELIM]:
+                m = re.search(
+                    r"^(.{5,300}?(?:Notes?|Securities)(?:\s*,\s*Series\s+\w+)?)"
+                    r"[,\s]+(?:(?:Linked|Based|Relating)\s+(?:to|on)\s+.+?\s+)?"
+                    + due,
+                    after, re.IGNORECASE | re.DOTALL,
+                )
+                if m:
+                    name = re.sub(r"\s+", " ", m.group(0)).strip()
+                    # Skip if it starts with Medium-Term Notes boilerplate without a real type
+                    if re.match(r"^(?:Senior\s+)?(?:Global\s+)?Medium-Term\s+Notes?,?\s*Series\s+\w+$",
+                                re.sub(r"\s+", " ", m.group(1)).strip(), re.IGNORECASE):
+                        break  # try next $ match
+                    if 10 < len(name) < 500:
+                        return name
+                    break  # matched but too short/long, try next $ match
+
+        # Strategy 3: Known product-type keyword + "Notes/Securities due [Date]"
+        for due in [DUE_PAT, DUE_PAT_PRELIM]:
+            m = re.search(
+                r"((?:Autocallable|Auto-?Callable|Buffered|Buffer|Digital|Leveraged|Capped|"
+                r"Trigger|Barrier|Contingent|Enhanced|Callable|Floating|Fixed|"
+                r"Dual\s+Directional|Principal[- ]at[- ]Risk|Accelerated|Review|"
+                r"Growth|Participation|Range|Geared|Absolute|Reverse\s+Convertible|"
+                r"Jump|Knock-?out|Step-?Up|Uncapped)"
+                r".{0,250}?(?:Notes?|Securities)(?:\s*,\s*Series\s+\w+)?)"
+                r"[,\s]+(?:(?:Linked|Based|Relating)\s+(?:to|on)\s+.+?\s+)?"
+                + due,
+                text, re.IGNORECASE | re.DOTALL,
+            )
+            if m:
+                name = re.sub(r"\s+", " ", m.group(0)).strip()
+                if 10 < len(name) < 500:
+                    return name
+
         return None
 
     def extract_product_type(self) -> str | None:
@@ -176,12 +226,18 @@ class BaseProductParser:
         # "Review Notes" = JPMorgan autocallable brand
         if "review note" in text:
             return "autocallable"
-        # MS "Trigger Jump Securities/Notes", "Jump Securities", "Callable Jump Notes"
+        # MS "Trigger Jump/Step Securities", "Callable Jump Notes", "Buffer Step Securities"
         if "jump" in text and ("trigger" in text or "callable" in text or "securities" in text):
+            return "autocallable"
+        # MS "Trigger Step Securities" (trigger-based step-up)
+        if "trigger" in text and "step" in text and ("securities" in text or "notes" in text):
             return "autocallable"
         # MS "Dual Directional" notes
         if "dual directional" in text:
             return "buffered"
+        # Barclays/various "Knock-Out Notes" (barrier knock-out = digital family)
+        if "knock-out" in text or "knock out" in text:
+            return "digital"
 
         # --- Branded product families ---
         # Morgan Stanley PLUS/Trigger PLUS/Buffered PLUS
@@ -200,20 +256,45 @@ class BaseProductParser:
         # --- Other structured types ---
         if "range accrual" in text:
             return "range_accrual"
-        if re.search(r"digital\s+(?:note|return|coupon)", text):
+        # Digital: "Digital ... Notes/Securities" (Goldman/UBS/BofA/BMO/CIBC/JPM "Digital Equity Notes")
+        if re.search(r"digital\s+\S+.{0,60}?(?:note|securit|return|coupon)", text):
             return "digital"
+        # Buffered: "Buffered ... Notes" with index/asset name between
         if re.search(r"(?:buffered|buffer)\s+\S+.{0,60}?(?:note|return|securit)", text):
+            return "buffered"
+        # MS "Buffer Step Securities"
+        if "buffer" in text and "step" in text and ("securities" in text or "notes" in text):
             return "buffered"
         if "principal protected" in text or "principal-protected" in text:
             return "principal_protected"
-        if re.search(r"(?:capped\s+)?(?:gears|growth|participation)\s+(?:note|linked)", text):
+        # Growth/participation: "Enhanced Participation ... Notes", "Capped ... Notes", "Growth ... Notes"
+        if re.search(r"(?:capped\s+)?(?:gears|growth|participation)\s+(?:\w+\s+)?(?:note|linked|securit)", text):
             return "growth"
+        if re.search(r"enhanced\s+participation", text):
+            return "growth"
+        # Capped notes without other keywords (Barclays/TD "Capped Notes")
+        if re.search(r"capped\s+\S+.{0,60}?(?:note|securit)", text):
+            return "growth"
+        # Leveraged: "Leveraged ... Notes" with index/asset name between
         if re.search(r"(?:leveraged|enhanced)\s+\S+.{0,60}?(?:note|return|securit)", text):
             return "leveraged"
-        if re.search(r"(?:market|index)[- ]linked\s+(?:note|investment|securit)", text):
+        # "Barrier Notes" (TD/RBC) — leveraged with downside barrier
+        if re.search(r"(?:barrier|trigger)\s+(?:\w+\s+)?notes?\b", text):
+            return "leveraged"
+        # Index/market-linked notes (generic growth)
+        if re.search(r"(?:market|index|equity)[- ]linked\s+(?:note|investment|securit)", text):
             return "growth"
-        if "fixed-to-floating" in text or "fixed to floating" in text:
+        # Fixed-to-floating / floating rate
+        if "fixed-to-floating" in text or "fixed to floating" in text or "fixed/floating" in text:
             return "fixed_to_floating"
+        if re.search(r"floating\s+rate\s+note", text):
+            return "fixed_to_floating"
+        # Principal-at-risk rate-linked (Citi CMS/SOFR rate notes)
+        if "principal-at-risk" in text or "principal at risk" in text:
+            return "leveraged"
+        # Depositary shares / preferred stock — not structured notes
+        if "depositary shares" in text and "preferred stock" in text:
+            return "preferred"
         if re.search(r"callable\s+(?:note|fixed|step|contingent)", text):
             return "callable"
         if re.search(r"(?:step[- ]?up|fixed\s+rate)\s+(?:note|callable)", text):
