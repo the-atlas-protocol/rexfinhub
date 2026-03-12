@@ -157,14 +157,47 @@ class BaseProductParser:
 
     def extract_product_type(self) -> str | None:
         text = self.clean_lower[:15000]
+
+        # --- Autocallable family (most common ~57%) ---
         if "auto callable" in text or "autocallable" in text or "auto-callable" in text:
             return "autocallable"
         if "reverse convertible" in text:
             return "reverse_convertible"
-        if re.search(r"(?:callable|redeemable)\s+(?:contingent|barrier)", text):
+        if re.search(r"(?:callable|redeemable)\s+(?:\w+\s+)?(?:contingent|barrier)", text):
             return "autocallable"
         if "contingent coupon" in text or "contingent interest" in text:
-            return "autocallable"  # contingent coupon notes are autocallable-family
+            return "autocallable"
+        # "Contingent Income Auto-Callable Securities" (various issuers)
+        if "contingent income" in text and ("callable" in text or "call" in text):
+            return "autocallable"
+        # "Trigger" + callable/redeemable pattern (JPMorgan "Trigger Notes")
+        if "trigger" in text and re.search(r"(?:callable|auto|early\s+redemption)", text):
+            return "autocallable"
+        # "Review Notes" = JPMorgan autocallable brand
+        if "review note" in text:
+            return "autocallable"
+        # MS "Trigger Jump Securities/Notes", "Jump Securities", "Callable Jump Notes"
+        if "jump" in text and ("trigger" in text or "callable" in text or "securities" in text):
+            return "autocallable"
+        # MS "Dual Directional" notes
+        if "dual directional" in text:
+            return "buffered"
+
+        # --- Branded product families ---
+        # Morgan Stanley PLUS/Trigger PLUS/Buffered PLUS
+        if re.search(r"(?:trigger\s+)?PLUS\b", self.clean[:15000]):
+            return "leveraged"
+        # Goldman STEP (Strategic Equity-Linked)
+        if re.search(r"\bSTEP\b", self.clean[:5000]):
+            return "leveraged"
+        # Barclays/Citi "Accelerated Return Notes" (ARN), JPMorgan "Accelerated Barrier Notes"
+        if re.search(r"accelerated\s+(?:return|barrier)", text):
+            return "accelerated_return"
+        # "Buffered Participation Securities" (MS)
+        if "buffered participation" in text or "buffer participation" in text:
+            return "buffered"
+
+        # --- Other structured types ---
         if "range accrual" in text:
             return "range_accrual"
         if re.search(r"digital\s+(?:note|return|coupon)", text):
@@ -173,8 +206,6 @@ class BaseProductParser:
             return "buffered"
         if "principal protected" in text or "principal-protected" in text:
             return "principal_protected"
-        if re.search(r"accelerated\s+return", text):
-            return "accelerated_return"
         if re.search(r"(?:capped\s+)?(?:gears|growth|participation)\s+(?:note|linked)", text):
             return "growth"
         if re.search(r"(?:leveraged|enhanced)\s+(?:note|return|upside)", text):
@@ -721,7 +752,82 @@ class BaseProductParser:
     # --- Call structure ---
 
     def extract_call_premium(self) -> float | None:
-        return None  # Will be split from coupon extraction
+        """Extract per-call-period premium as decimal (0.10 = 10% above par).
+
+        Call premium is the one-time premium paid above par when a note is
+        auto-called. Distinct from coupon_rate (periodic interest payment).
+        """
+        # "Call Premium: X%" or "Call Premium: X% of the face/principal amount"
+        m = re.search(
+            r"Call\s+Premium[:\s]*([\d.]+)\s*%\s*(?:of\s+(?:the\s+)?(?:face|principal|stated)\s+amount)?",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 0 < val < 100:
+                return val / 100.0
+
+        # "Callable Return: X%" or "Call Return: X%"
+        m = re.search(
+            r"(?:Callable?\s+Return|Call\s+Return)[:\s]*([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 0 < val < 100:
+                return val / 100.0
+
+        # "Early/Automatic Redemption Amount: $X per $1,000/$10,000" -> premium = (X / denom) - 1
+        m = re.search(
+            r"(?:Early|Automatic)\s+(?:Redemption|Call\s+Settlement)\s+Amount[:\s]*\$([\d,]+(?:\.\d+)?)\s*per\s+(?:\$([\d,]+)\s*(?:principal)?|Note)",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            amount = float(m.group(1).replace(",", ""))
+            denom = float(m.group(2).replace(",", "")) if m.group(2) else 1000.0
+            if amount > denom:
+                return round((amount - denom) / denom, 4)
+
+        # "equal to $1,110" or "equal to $1,366" in auto-call context
+        for m in re.finditer(
+            r"equal\s+to\s+\$\s*(1,[\d]+(?:\.\d+)?)",
+            self.clean[:40000], re.IGNORECASE,
+        ):
+            amount = float(m.group(1).replace(",", ""))
+            if 1000 < amount < 3000:
+                ctx = self.clean[max(0, m.start()-300):m.end()]
+                if re.search(r"call|automatically|per\s+\$1,?000", ctx, re.IGNORECASE):
+                    return round((amount - 1000) / 1000, 4)
+
+        # "call premium of [at least] [approximately] X% of the face/principal amount"
+        m = re.search(
+            r"call\s+premium\s+of\s+(?:at\s+least\s+)?(?:approximately\s+)?([\d.]+)\s*%\s*of\s+(?:the\s+)?(?:face|principal|stated)",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 0 < val < 200:
+                return val / 100.0
+
+        # "call premium ... based on ... return of X% per annum"
+        m = re.search(
+            r"call\s+premium.{0,250}?(?:return|rate)\s+of\s+([\d.]+)\s*%\s*per\s+annum",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1)) / 100.0
+
+        # "Call Price/Amount: X% of face/par"
+        m = re.search(
+            r"Call\s+(?:Price|Amount)[:\s]*([\d.]+)\s*%\s*(?:of\s+(?:the\s+)?(?:face|par|principal|stated))?",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 100 < val < 200:  # e.g., 110% of face = 10% premium
+                return round((val - 100) / 100, 4)
+
+        return None
 
     def extract_call_level(self) -> float | None:
         m = re.search(
@@ -899,27 +1005,6 @@ class GoldmanSachsParser(BaseProductParser):
         if m:
             return float(m.group(1)) / 100.0
 
-        # Goldman autocallable with call premium: "Call Premium: X% of the face amount"
-        # This is the investor's yield on call — treat as coupon for analytics
-        m = re.search(
-            r"Call\s+Premium[:\s]*([\d.]+)\s*%\s*(?:of\s+(?:the\s+)?face\s+amount)?",
-            self.clean[:40000], re.IGNORECASE,
-        )
-        if m:
-            return float(m.group(1)) / 100.0
-
-        # Goldman autocallable with dollar call amount: "equal to $1,110" or "equal to $1,366"
-        # Premium = (amount - 1000) / 1000
-        for m in re.finditer(
-            r"equal\s+to\s+\$\s*(1,[\d]+(?:\.\d+)?)",
-            self.clean[:40000], re.IGNORECASE,
-        ):
-            amount = float(m.group(1).replace(",", ""))
-            if 1000 < amount < 3000:
-                ctx = self.clean[max(0, m.start()-300):m.end()]
-                if re.search(r"call|automatically|per\s+\$1,?000", ctx, re.IGNORECASE):
-                    return round((amount - 1000) / 1000, 4)
-
         return None
 
     def extract_notional(self) -> float | None:
@@ -980,15 +1065,15 @@ class MorganStanleyParser(BaseProductParser):
     """
 
     def extract_coupon_rate(self) -> float | None:
-        # "Call Premium: X%" or "Callable Return: X%"
+        # "Contingent Return/Payment: X%" (periodic coupon, NOT call premium)
         m = re.search(
-            r"(?:Call\s+Premium|Callable?\s+Return|Contingent\s+(?:Return|Payment))[:\s]*([\d.]+)\s*%",
+            r"Contingent\s+(?:Return|Payment|Interest)[:\s]*([\d.]+)\s*%",
             self.clean[:40000], re.IGNORECASE,
         )
         if m:
             return float(m.group(1)) / 100.0
 
-        # Try base parser (includes new contingent payment patterns)
+        # Try base parser (includes contingent payment patterns)
         result = super().extract_coupon_rate()
         if result:
             return result
