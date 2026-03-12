@@ -202,15 +202,15 @@ class BaseProductParser:
             return "range_accrual"
         if re.search(r"digital\s+(?:note|return|coupon)", text):
             return "digital"
-        if re.search(r"(?:buffered|buffer)\s+(?:note|return|enhanced)", text):
+        if re.search(r"(?:buffered|buffer)\s+\S+.{0,60}?(?:note|return|securit)", text):
             return "buffered"
         if "principal protected" in text or "principal-protected" in text:
             return "principal_protected"
         if re.search(r"(?:capped\s+)?(?:gears|growth|participation)\s+(?:note|linked)", text):
             return "growth"
-        if re.search(r"(?:leveraged|enhanced)\s+(?:note|return|upside)", text):
+        if re.search(r"(?:leveraged|enhanced)\s+\S+.{0,60}?(?:note|return|securit)", text):
             return "leveraged"
-        if re.search(r"market[- ]linked\s+(?:note|investment|securities)", text):
+        if re.search(r"(?:market|index)[- ]linked\s+(?:note|investment|securit)", text):
             return "growth"
         if "fixed-to-floating" in text or "fixed to floating" in text:
             return "fixed_to_floating"
@@ -600,22 +600,22 @@ class BaseProductParser:
             if tickers:
                 return ", ".join(tickers)
 
-        # ---- Strategy 5: Well-known index names ----
+        # ---- Strategy 5: Well-known index names -> Bloomberg tickers ----
         known_indices = {
-            "s&p 500": "S&P 500 Index",
-            "s p 500": "S&P 500 Index",
-            "russell 2000": "Russell 2000 Index",
-            "nasdaq-100": "Nasdaq-100 Index",
-            "nasdaq 100": "Nasdaq-100 Index",
-            "dow jones industrial": "Dow Jones Industrial Average",
-            "euro stoxx 50": "EURO STOXX 50 Index",
-            "nikkei 225": "Nikkei 225 Index",
-            "msci eafe": "MSCI EAFE Index",
-            "msci emerging": "MSCI Emerging Markets Index",
-            "hang seng": "Hang Seng Index",
-            "ftse 100": "FTSE 100 Index",
-            "kospi 200": "KOSPI 200 Index",
-            "stoxx europe 600": "STOXX Europe 600 Index",
+            "s&p 500": "SPX",
+            "s p 500": "SPX",
+            "russell 2000": "RTY",
+            "nasdaq-100": "NDX",
+            "nasdaq 100": "NDX",
+            "dow jones industrial": "INDU",
+            "euro stoxx 50": "SX5E",
+            "nikkei 225": "NKY",
+            "msci eafe": "MXEA",
+            "msci emerging": "MXEF",
+            "hang seng": "HSI",
+            "ftse 100": "UKX",
+            "kospi 200": "KOSPI2",
+            "stoxx europe 600": "SXXP",
         }
         indices_found = []
         combined_lower = text_lower + " " + raw_text.lower()
@@ -653,22 +653,64 @@ class BaseProductParser:
 
         return None
 
+    # Canonical ticker mapping: normalize full index names to Bloomberg tickers
+    _INDEX_TO_TICKER = {
+        "S&P 500 Index": "SPX",
+        "S&P 500": "SPX",
+        "Russell 2000 Index": "RTY",
+        "Russell 2000": "RTY",
+        "Nasdaq-100 Index": "NDX",
+        "Nasdaq-100": "NDX",
+        "Dow Jones Industrial Average": "INDU",
+        "EURO STOXX 50 Index": "SX5E",
+        "EURO STOXX 50": "SX5E",
+        "Nikkei 225 Index": "NKY",
+        "Nikkei 225": "NKY",
+        "MSCI EAFE Index": "MXEA",
+        "MSCI Emerging Markets Index": "MXEF",
+        "Hang Seng Index": "HSI",
+        "FTSE 100 Index": "UKX",
+        "FTSE 100": "UKX",
+        "KOSPI 200 Index": "KOSPI2",
+        "STOXX Europe 600 Index": "SXXP",
+        "Nasdaq-100 Technology Sector Index": "NDXT",
+        "S&P/TSX 60 Index": "SPTSX60",
+    }
+
     @staticmethod
     def _normalize_underlier_result(result: str) -> str:
-        """Post-process underlier names: fix S P -> S&P, trim noise."""
+        """Post-process underlier names: fix S P -> S&P, normalize to tickers, trim noise."""
         result = result.replace("S P 500", "S&P 500")
         result = result.replace("S P/TSX", "S&P/TSX")
         result = re.sub(r"\s+SM\b", "", result)
         # Remove HTML entities that leaked through
         result = re.sub(r"&#x[0-9a-fA-F]+;", "", result)
         result = re.sub(r"&[a-z]+;", "", result)
-        # Trim trailing noise (dates, labels, etc.)
+        # Trim trailing noise (dates, labels, parenthetical descriptions)
         result = re.sub(r"\s*(?:Strike|Pricing|Settlement|Maturity|Initial|Current)\s+(?:date|level|value|price).*$", "", result, flags=re.IGNORECASE)
         result = re.sub(r"\s*\(the\s+underlying\s+(?:index|stock|asset)\s*\).*$", "", result, flags=re.IGNORECASE)
+        result = re.sub(r"\s*\(current\s+Bloomberg\s+symbol.*$", "", result, flags=re.IGNORECASE)
         result = re.sub(r"\s*(?:Max|Minimum|Maximum)\s.*$", "", result, flags=re.IGNORECASE)
         # Remove "Lowest/Least/Worst Performing of the" prefix
         result = re.sub(r"^(?:Lowest|Least|Worst|Best|Lesser)\s+Performing\s+of\s+(?:the\s+)?", "", result, flags=re.IGNORECASE)
-        return result.strip().rstrip(",").strip()
+
+        result = result.strip().rstrip(",").strip()
+
+        # Normalize full index names to Bloomberg tickers
+        # Split by comma, normalize each part, rejoin
+        parts = [p.strip() for p in result.split(",")]
+        normalized = []
+        for part in parts:
+            if not part:
+                continue
+            # Strip leading "the" (e.g., "the S&P 500 Index" -> "S&P 500 Index")
+            clean_part = re.sub(r"^the\s+", "", part, flags=re.IGNORECASE).strip()
+            mapped = BaseProductParser._INDEX_TO_TICKER.get(clean_part)
+            if mapped:
+                normalized.append(mapped)
+            else:
+                normalized.append(clean_part)
+        return ", ".join(normalized) if normalized else result
 
     def extract_underlier_type(self) -> str | None:
         """Classify the underlier as equity, index, etf, commodity, rate, or mixed."""
@@ -981,6 +1023,17 @@ class GoldmanSachsParser(BaseProductParser):
     Coupon: Goldman uses "Contingent Coupon Equity-Linked Notes" with payment descriptions
            buried deeper in the document (often past char 20000).
     """
+
+    def extract_product_name(self) -> str | None:
+        # Goldman: "$X [Type] Notes due YYYY" or "$ [Type] Notes due YYYY" (prelim has no amount)
+        m = re.search(
+            r"GS\s+Finance\s+Corp\.?\s*\$?\s*[\d,]*\s*(.*?Notes?\s+due\s+(?:\w+\s+)?(?:\d{1,2},?\s+)?\d{4})",
+            self.clean[:3000], re.IGNORECASE,
+        )
+        if m:
+            name = re.sub(r"\s+", " ", m.group(1)).strip()
+            return name[:500] if name else None
+        return super().extract_product_name()
 
     def extract_coupon_rate(self) -> float | None:
         # Goldman often puts coupon info in "Key Terms" section, sometimes deep in doc
