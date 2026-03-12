@@ -220,16 +220,30 @@ def extract_products(
                     isin=data.get("isin"),
                     product_name=data.get("product_name"),
                     product_type=data.get("product_type"),
+                    product_subtype=data.get("product_subtype"),
                     is_preliminary=data.get("is_preliminary", False),
                     underlier_count=data.get("underlier_count"),
+                    underlier_names=data.get("underlier_names"),
+                    underlier_tickers=data.get("underlier_tickers"),
+                    underlier_type=data.get("underlier_type"),
                     notional_amount=data.get("notional_amount"),
                     denomination=data.get("denomination"),
+                    pricing_date=data.get("pricing_date"),
+                    settlement_date=data.get("settlement_date"),
                     maturity_date=data.get("maturity_date"),
                     coupon_rate=data.get("coupon_rate"),
                     coupon_type=data.get("coupon_type"),
                     coupon_frequency=data.get("coupon_frequency"),
                     barrier_level=data.get("barrier_level"),
                     barrier_type=data.get("barrier_type"),
+                    call_premium=data.get("call_premium"),
+                    call_level=data.get("call_level"),
+                    first_call_date=data.get("first_call_date"),
+                    call_frequency=data.get("call_frequency"),
+                    is_memory_coupon=data.get("is_memory_coupon", False),
+                    participation_rate=data.get("participation_rate"),
+                    upside_cap=data.get("upside_cap"),
+                    downside_leverage=data.get("downside_leverage"),
                     confidence=data.get("confidence"),
                     extraction_date=datetime.now(),
                 )
@@ -243,7 +257,7 @@ def extract_products(
                     print(f"    [{i+1:>5}/{len(filings)}] new={issuer_new} conf={data.get('confidence', 0):.2f}")
 
             except Exception as e:
-                filing.extracted = True
+                filing.extraction_error = str(e)[:500]
                 total_skip += 1
                 if "rate limit" in str(e).lower() or "429" in str(e):
                     print(f"    Rate limited at {i+1}, pausing...")
@@ -457,7 +471,7 @@ def dedup_products():
         products = (
             db.query(Product)
             .filter_by(cusip=cusip)
-            .order_by(Product.confidence.desc().nullslast(), Product.id.desc())
+            .order_by(Product.is_preliminary.asc(), Product.extraction_date.desc().nullslast(), Product.confidence.desc().nullslast())
             .all()
         )
         # Keep the first (best), delete the rest

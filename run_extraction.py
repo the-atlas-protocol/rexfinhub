@@ -138,16 +138,30 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False):
                     isin=data.get("isin"),
                     product_name=data.get("product_name"),
                     product_type=data.get("product_type"),
+                    product_subtype=data.get("product_subtype"),
                     is_preliminary=data.get("is_preliminary", False),
                     underlier_count=data.get("underlier_count"),
+                    underlier_names=data.get("underlier_names"),
+                    underlier_tickers=data.get("underlier_tickers"),
+                    underlier_type=data.get("underlier_type"),
                     notional_amount=data.get("notional_amount"),
                     denomination=data.get("denomination"),
+                    pricing_date=data.get("pricing_date"),
+                    settlement_date=data.get("settlement_date"),
                     maturity_date=data.get("maturity_date"),
                     coupon_rate=data.get("coupon_rate"),
                     coupon_type=data.get("coupon_type"),
                     coupon_frequency=data.get("coupon_frequency"),
                     barrier_level=data.get("barrier_level"),
                     barrier_type=data.get("barrier_type"),
+                    call_premium=data.get("call_premium"),
+                    call_level=data.get("call_level"),
+                    first_call_date=data.get("first_call_date"),
+                    call_frequency=data.get("call_frequency"),
+                    is_memory_coupon=data.get("is_memory_coupon", False),
+                    participation_rate=data.get("participation_rate"),
+                    upside_cap=data.get("upside_cap"),
+                    downside_leverage=data.get("downside_leverage"),
                     confidence=data.get("confidence"),
                     extraction_date=datetime.now(),
                 )
@@ -157,7 +171,7 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False):
                 global_products += 1
 
             except Exception as e:
-                filing.extracted = True
+                filing.extraction_error = str(e)[:500]
                 issuer_errors += 1
                 global_errors += 1
                 if "429" in str(e) or "rate" in str(e).lower():

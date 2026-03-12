@@ -71,16 +71,30 @@ class BaseProductParser:
             "isin": self.extract_isin(),
             "product_name": self.extract_product_name(),
             "product_type": self.extract_product_type(),
+            "product_subtype": self.extract_product_subtype(),
             "is_preliminary": self.extract_is_preliminary(),
             "underlier_count": self.extract_underlier_count(),
+            "underlier_names": self.extract_underlier_names(),
+            "underlier_tickers": None,  # Derived from underlier_names later
+            "underlier_type": self.extract_underlier_type(),
             "notional_amount": self.extract_notional(),
             "denomination": self.extract_denomination(),
+            "pricing_date": self.extract_pricing_date(),
+            "settlement_date": self.extract_settlement_date(),
             "maturity_date": self.extract_maturity_date(),
             "coupon_rate": self.extract_coupon_rate(),
             "coupon_type": self.extract_coupon_type(),
             "coupon_frequency": self.extract_coupon_frequency(),
             "barrier_level": self.extract_barrier_level(),
             "barrier_type": self.extract_barrier_type(),
+            "call_premium": self.extract_call_premium(),
+            "call_level": self.extract_call_level(),
+            "first_call_date": self.extract_first_call_date(),
+            "call_frequency": self.extract_call_frequency(),
+            "is_memory_coupon": self.extract_is_memory_coupon(),
+            "participation_rate": self.extract_participation_rate(),
+            "upside_cap": self.extract_upside_cap(),
+            "downside_leverage": None,  # Rare, implement later
         }
         data["confidence"] = self._calc_confidence(data)
         return data
@@ -186,10 +200,13 @@ class BaseProductParser:
     def extract_underlier_count(self) -> int | None:
         text = self.clean_lower[:8000]
         if "worst of" in text or "least performing" in text:
-            # Count underlier names in key terms
-            tickers = re.findall(r"\b[A-Z]{1,5}\b", self.clean[:5000])
-            # rough heuristic
-            return None
+            # Count unique ticker-like patterns in the underlier section
+            # Look for patterns like "Common Stock of X (TICKER)" or "the TICKER"
+            underlier_section = self.clean[:8000]
+            tickers = set(re.findall(r'\(([A-Z]{1,5})\)', underlier_section))
+            if len(tickers) >= 2:
+                return len(tickers)
+            return None  # can't determine count
         if "basket" in text:
             return None  # basket = multiple but unknown
         return 1
@@ -451,6 +468,328 @@ class BaseProductParser:
             return "american"
         return None
 
+    # --- Underlier details ---
+
+    def extract_underlier_names(self) -> str | None:
+        """Extract underlier names/tickers from the filing.
+
+        Returns comma-separated string: "AAPL, MSFT, AMZN" for equities,
+        "S&P 500 Index (SPX), Russell 2000 Index (RTY)" for indices, etc.
+        """
+        result = self._extract_underlier_names_raw()
+        if result:
+            return self._normalize_underlier_result(result)
+        return None
+
+    def _extract_underlier_names_raw(self) -> str | None:
+        """Internal: extract underlier names before normalization."""
+        text = self.clean[:20000]
+        text_lower = self.clean_lower[:20000]
+        # Raw HTML preserves &amp; entities (S&P stays as S&P, not "S P")
+        raw_text = re.sub(r"<[^>]+>", " ", self.html[:25000])
+        raw_text = re.sub(r"&#\d+;", " ", raw_text)
+        raw_text = re.sub(r"\s+", " ", raw_text).strip()
+
+        # ---- Strategy 1: Bloomberg ticker labels in Key Terms ----
+        # JPMorgan: "(Bloomberg ticker: NDXT)" / Goldman: "(Ticker: AAPL)"
+        tickers = re.findall(
+            r"(?:Bloomberg\s+)?[Tt]icker(?:\s+symbol)?[:\s]+([A-Z]{2,6})",
+            text[:20000],
+        )
+        # Filter out non-ticker abbreviations
+        noise1 = {"SM", "LLC", "INC", "PLC", "USA", "THE", "SEC", "NYSE", "OTC", "CUSIP", "ISIN"}
+        tickers = [t for t in tickers if t not in noise1]
+        if tickers:
+            seen: set[str] = set()
+            unique = [t for t in tickers if t not in seen and not seen.add(t)]
+            return ", ".join(unique)
+
+        # ---- Strategy 2: Title extraction — "Linked to ... due Month DD, YYYY" ----
+        # The cover/title line ends at "due" or "Fully and Unconditionally"
+        m = re.search(
+            r"(?:Linked|Relating|Related)\s+to\s+(?:the\s+)?(?:(?:Least|Worst|Best|Lesser)\s+Performing\s+of\s+)?(?:the\s+)?"
+            r"(.+?)\s+due\s+\w+\s+\d",
+            text[:3000], re.IGNORECASE | re.DOTALL,
+        )
+        if m:
+            block = re.sub(r"\s+", " ", m.group(1)).strip()
+            # Extract tickers in parentheses
+            tickers = re.findall(r'\(([A-Z]{1,5})\)', block)
+            noise = {"LLC", "INC", "PLC", "USA", "THE", "SEC", "SM"}
+            tickers = [t for t in tickers if t not in noise]
+            if tickers:
+                return ", ".join(tickers)
+            # Clean up index/stock names from title
+            if len(block) < 300:
+                block = re.sub(r"(?:the\s+)?Common\s+Stock\s+of\s+", "", block, flags=re.IGNORECASE)
+                block = re.sub(r"(?:the\s+)?Shares\s+of\s+", "", block, flags=re.IGNORECASE)
+                block = re.sub(r"\s*,\s*(?:the\s+)?", ", ", block)
+                block = re.sub(r"\s+and\s+(?:the\s+)?", ", ", block, flags=re.IGNORECASE)
+                block = re.sub(r"\s+SM\b", "", block)  # Remove SM trademark
+                block = block.strip().rstrip(",").strip()
+                if block and len(block) > 3:
+                    return block
+
+        # ---- Strategy 3: "Underlying: X (TICKER)" in Key Terms ----
+        # Require colon to distinguish labels from running text ("the underlier return")
+        for m in re.finditer(
+            r"(?:Underlying|Underlier|Reference\s+(?:Asset|Stock|Index|Security))"
+            r"(?:s|\(s\))?\s*:\s*(.+?)(?:Contingent|Pricing|Settlement|Denomination|CUSIP|Maturity|Initial\s+(?:Value|Level|Price))",
+            text, re.IGNORECASE | re.DOTALL,
+        ):
+            block = re.sub(r"\s+", " ", m.group(1)).strip()
+            # Skip boilerplate matches
+            if re.search(r"supplement|prospectus|registration|discontinued|successor|determination|payment|underlier\s+level|underlier\s+return|cash", block, re.IGNORECASE):
+                continue
+            if len(block) < 3:
+                continue
+            tickers = re.findall(r'\(([A-Z]{2,5})\)', block)
+            noise = {"LLC", "INC", "PLC", "USA", "THE", "SEC", "SM"}
+            tickers = [t for t in tickers if t not in noise]
+            if tickers:
+                return ", ".join(tickers)
+            if 5 < len(block) < 200:
+                name = re.sub(r"(?:the\s+)?(?:common\s+stock|shares|ordinary\s+shares)\s+of\s+", "", block, flags=re.IGNORECASE)
+                name = re.sub(r"(?:the\s+)?(?:closing\s+)?(?:price|level|value)\s+of\s+", "", name, flags=re.IGNORECASE)
+                name = name.strip().rstrip(",").strip()
+                if name and 5 < len(name) < 150 and not re.search(r"supplement|prospectus|discontinued|successor|return|payment|buffer|barrier", name, re.IGNORECASE):
+                    return name
+
+        # ---- Strategy 4: "based on [the worst performing of] X (TICK), Y (TICK)" ----
+        m = re.search(
+            r"(?:based|contingent)\s+(?:on|upon)\s+(?:the\s+)?(?:least|worst|best)\s+"
+            r"performing\s+of\s+(.+?)(?:\.\s|Fully|Neither|The\s+notes|Pricing|CUSIP)",
+            text, re.IGNORECASE | re.DOTALL,
+        )
+        if m:
+            block = re.sub(r"\s+", " ", m.group(1)).strip()
+            tickers = re.findall(r'\(([A-Z]{1,5})\)', block)
+            noise = {"LLC", "INC", "PLC", "USA", "THE", "SEC", "SM"}
+            tickers = [t for t in tickers if t not in noise]
+            if tickers:
+                return ", ".join(tickers)
+
+        # ---- Strategy 5: Well-known index names ----
+        known_indices = {
+            "s&p 500": "S&P 500 Index",
+            "s p 500": "S&P 500 Index",
+            "russell 2000": "Russell 2000 Index",
+            "nasdaq-100": "Nasdaq-100 Index",
+            "nasdaq 100": "Nasdaq-100 Index",
+            "dow jones industrial": "Dow Jones Industrial Average",
+            "euro stoxx 50": "EURO STOXX 50 Index",
+            "nikkei 225": "Nikkei 225 Index",
+            "msci eafe": "MSCI EAFE Index",
+            "msci emerging": "MSCI Emerging Markets Index",
+            "hang seng": "Hang Seng Index",
+            "ftse 100": "FTSE 100 Index",
+            "kospi 200": "KOSPI 200 Index",
+            "stoxx europe 600": "STOXX Europe 600 Index",
+        }
+        indices_found = []
+        combined_lower = text_lower + " " + raw_text.lower()
+        for pattern, display in known_indices.items():
+            if pattern in combined_lower and display not in indices_found:
+                indices_found.append(display)
+        if indices_found:
+            return ", ".join(indices_found)
+
+        # ---- Strategy 6: Ticker-slash pattern "AAPL / MSFT / AMZN" ----
+        m = re.search(
+            r"(?:Notes?\s+(?:Linked|Based|Relating)\s+(?:to|on)\s+)"
+            r"([A-Z]{1,5}(?:\s*/\s*[A-Z]{1,5})+)",
+            text,
+        )
+        if m:
+            tickers = [t.strip() for t in m.group(1).split("/")]
+            return ", ".join(tickers)
+
+        # ---- Strategy 7: Broad "(TICKER)" scan in cover area ----
+        cover = text[:5000]
+        tickers = re.findall(r'\(([A-Z]{2,5})\)', cover)
+        noise = {
+            "LLC", "INC", "PLC", "USA", "THE", "SEC", "NYSE", "OTC",
+            "CUSIP", "ISIN", "USD", "EUR", "GBP", "JPY", "CAD",
+            "PDF", "HTML", "NOTE", "PLUS", "DUE", "FOR", "AND",
+            "NOT", "NOR", "PER", "ARE", "ETF", "CDN", "REG", "SM",
+        }
+        tickers = [t for t in tickers if t not in noise]
+        if tickers:
+            seen2: set[str] = set()
+            unique2 = [t for t in tickers if t not in seen2 and not seen2.add(t)]
+            if len(unique2) >= 1:
+                return ", ".join(unique2)
+
+        return None
+
+    @staticmethod
+    def _normalize_underlier_result(result: str) -> str:
+        """Post-process underlier names: fix S P -> S&P, trim noise."""
+        result = result.replace("S P 500", "S&P 500")
+        result = result.replace("S P/TSX", "S&P/TSX")
+        result = re.sub(r"\s+SM\b", "", result)
+        # Remove HTML entities that leaked through
+        result = re.sub(r"&#x[0-9a-fA-F]+;", "", result)
+        result = re.sub(r"&[a-z]+;", "", result)
+        # Trim trailing noise (dates, labels, etc.)
+        result = re.sub(r"\s*(?:Strike|Pricing|Settlement|Maturity|Initial|Current)\s+(?:date|level|value|price).*$", "", result, flags=re.IGNORECASE)
+        result = re.sub(r"\s*\(the\s+underlying\s+(?:index|stock|asset)\s*\).*$", "", result, flags=re.IGNORECASE)
+        result = re.sub(r"\s*(?:Max|Minimum|Maximum)\s.*$", "", result, flags=re.IGNORECASE)
+        # Remove "Lowest/Least/Worst Performing of the" prefix
+        result = re.sub(r"^(?:Lowest|Least|Worst|Best|Lesser)\s+Performing\s+of\s+(?:the\s+)?", "", result, flags=re.IGNORECASE)
+        return result.strip().rstrip(",").strip()
+
+    def extract_underlier_type(self) -> str | None:
+        """Classify the underlier as equity, index, etf, commodity, rate, or mixed."""
+        text = self.clean_lower[:15000]
+        # Also check raw HTML for entity-encoded terms like S&amp;P
+        raw_lower = re.sub(r"<[^>]+>", " ", self.html[:20000]).lower()
+
+        has_index = any(idx in text or idx in raw_lower for idx in [
+            "s&p 500", "s p 500", "russell 2000", "nasdaq", "dow jones",
+            "euro stoxx", "nikkei", "index",
+        ])
+        has_equity = any(kw in text for kw in [
+            "common stock", "shares of", "ordinary shares",
+        ])
+        has_etf = any(kw in text for kw in [
+            "exchange-traded fund", "exchange traded fund", "etf",
+        ])
+        has_commodity = any(kw in text for kw in [
+            "gold", "silver", "crude oil", "natural gas", "commodity", "wti",
+        ])
+        has_rate = any(kw in text for kw in [
+            "libor", "sofr", "interest rate", "cms rate", "swap rate",
+        ])
+
+        types = []
+        if has_index:
+            types.append("index")
+        if has_equity:
+            types.append("equity")
+        if has_etf:
+            types.append("etf")
+        if has_commodity:
+            types.append("commodity")
+        if has_rate:
+            types.append("rate")
+
+        if len(types) == 0:
+            return None
+        if len(types) == 1:
+            return types[0]
+        return "mixed"
+
+    # --- Dates ---
+
+    def extract_pricing_date(self) -> date | None:
+        m = re.search(
+            r"(?:Pricing|Trade)\s+Date[:\s]*(\w+\s+\d{1,2},?\s+\d{4})",
+            self.clean[:15000], re.IGNORECASE,
+        )
+        return parse_date_text(m.group(1)) if m else None
+
+    def extract_settlement_date(self) -> date | None:
+        m = re.search(
+            r"(?:Settlement|Issue)\s+Date[:\s]*(?:\d{1,2}\s+)?(\w+\s+\d{1,2},?\s+\d{4})",
+            self.clean[:15000], re.IGNORECASE,
+        )
+        return parse_date_text(m.group(1)) if m else None
+
+    # --- Product subtype ---
+
+    def extract_product_subtype(self) -> str | None:
+        text = self.clean_lower[:15000]
+        if "phoenix" in text:
+            return "phoenix"
+        if "worst of" in text or "least performing" in text:
+            return "worst-of"
+        if "best of" in text:
+            return "best-of"
+        if "rainbow" in text:
+            return "rainbow"
+        if "snowball" in text:
+            return "snowball"
+        if "memory" in text and ("coupon" in text or "interest" in text):
+            return "memory"
+        if "airbag" in text:
+            return "airbag"
+        if re.search(r"PLUS|Performance\s+Leveraged\s+Upside", text, re.IGNORECASE):
+            return "PLUS"
+        return None
+
+    # --- Call structure ---
+
+    def extract_call_premium(self) -> float | None:
+        return None  # Will be split from coupon extraction
+
+    def extract_call_level(self) -> float | None:
+        m = re.search(
+            r"(?:Call|Autocall|Automatic\s+Call)\s+(?:Level|Trigger|Price)[:\s]*(?:\$[\d,. ]+,?\s*(?:which\s+is\s+)?)?([\d.]+)\s*%",
+            self.clean[:40000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 50 <= val <= 150:
+                return val / 100.0
+        return None
+
+    def extract_first_call_date(self) -> date | None:
+        m = re.search(
+            r"(?:First|Initial|Earliest)\s+(?:Call|Review|Observation)\s+Date[:\s]*(\w+\s+\d{1,2},?\s+\d{4})",
+            self.clean[:20000], re.IGNORECASE,
+        )
+        return parse_date_text(m.group(1)) if m else None
+
+    def extract_call_frequency(self) -> str | None:
+        text = self.clean_lower[:15000]
+        if not any(kw in text for kw in ["auto", "call", "callable", "redeemable"]):
+            return None
+        if "monthly" in text and ("call" in text or "review" in text):
+            return "monthly"
+        if "quarterly" in text and ("call" in text or "review" in text):
+            return "quarterly"
+        if "semi-annual" in text or "semiannual" in text:
+            return "semiannual"
+        if "annual" in text and ("call" in text or "review" in text):
+            return "annual"
+        return None
+
+    def extract_is_memory_coupon(self) -> bool:
+        text = self.clean_lower[:20000]
+        return "memory" in text and ("coupon" in text or "interest" in text or "payment" in text)
+
+    # --- Participation structure ---
+
+    def extract_participation_rate(self) -> float | None:
+        m = re.search(
+            r"(?:Participation|Upside\s+Participation|Leverage\s+Factor)\s*(?:Rate)?[:\s]*([\d.]+)\s*%",
+            self.clean[:20000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 100 < val < 1000:
+                return val / 100.0
+        # "X times" or "Xx" leverage
+        m = re.search(
+            r"(?:Participation|Upside\s+Leverage)[:\s]*([\d.]+)\s*(?:x|times)",
+            self.clean[:20000], re.IGNORECASE,
+        )
+        if m:
+            return float(m.group(1))
+        return None
+
+    def extract_upside_cap(self) -> float | None:
+        m = re.search(
+            r"(?:Maximum|Cap|Capped)\s+(?:Return|Gain|Payment|Level)[:\s]*([\d.]+)\s*%",
+            self.clean[:20000], re.IGNORECASE,
+        )
+        if m:
+            val = float(m.group(1))
+            if 1 < val < 500:
+                return val / 100.0
+        return None
+
     # --- Helpers ---
 
     @staticmethod
@@ -466,7 +805,7 @@ class BaseProductParser:
     def _calc_confidence(data: dict) -> float:
         """Score 0-1 based on how many fields were extracted."""
         fields = ["cusip", "notional_amount", "maturity_date", "product_type",
-                   "coupon_rate", "barrier_level", "underlier_count", "denomination"]
+                   "coupon_rate", "barrier_level", "underlier_count", "underlier_names"]
         filled = sum(1 for f in fields if data.get(f) is not None)
         return round(filled / len(fields), 2)
 

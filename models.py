@@ -31,6 +31,7 @@ class Filing(Base):
     primary_doc_url: Mapped[str] = mapped_column(String(500))
     is_inline_xbrl: Mapped[bool] = mapped_column(Boolean, default=False)
     extracted: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    extraction_error: Mapped[str | None] = mapped_column(String(500))
 
     issuer: Mapped["Issuer"] = relationship(back_populates="filings")
     products: Mapped[list["Product"]] = relationship(back_populates="filing")
@@ -50,18 +51,41 @@ class Product(Base):
     # Product details
     product_name: Mapped[str | None] = mapped_column(Text)
     product_type: Mapped[str | None] = mapped_column(String(30), index=True)
+    product_subtype: Mapped[str | None] = mapped_column(String(50))  # Finer classification: "phoenix", "worst-of", "PLUS", etc.
     is_preliminary: Mapped[bool] = mapped_column(Boolean, default=False)
     underlier_count: Mapped[int | None] = mapped_column(Integer)
+
+    # Underlier details
+    underlier_names: Mapped[str | None] = mapped_column(Text)  # Comma-separated: "AAPL, MSFT, AMZN"
+    underlier_tickers: Mapped[str | None] = mapped_column(Text)  # Normalized tickers
+    underlier_type: Mapped[str | None] = mapped_column(String(30))  # equity, index, etf, commodity, rate, mixed
 
     # Financial terms
     notional_amount: Mapped[float | None] = mapped_column(Float)
     denomination: Mapped[float | None] = mapped_column(Float)
+
+    # Dates
+    pricing_date: Mapped[date | None] = mapped_column(Date)
+    settlement_date: Mapped[date | None] = mapped_column(Date)
+
     maturity_date: Mapped[date | None] = mapped_column(Date)
     coupon_rate: Mapped[float | None] = mapped_column(Float)  # Annualized decimal (0.08 = 8%)
     coupon_type: Mapped[str | None] = mapped_column(String(20))
     coupon_frequency: Mapped[str | None] = mapped_column(String(20))
     barrier_level: Mapped[float | None] = mapped_column(Float)  # Decimal (0.70 = 70% of initial)
     barrier_type: Mapped[str | None] = mapped_column(String(30))
+
+    # Call structure (autocallables)
+    call_premium: Mapped[float | None] = mapped_column(Float)  # One-time call return (decimal, 0.10 = 10%)
+    call_level: Mapped[float | None] = mapped_column(Float)  # Auto-call trigger (decimal, 1.0 = 100% of initial)
+    first_call_date: Mapped[date | None] = mapped_column(Date)
+    call_frequency: Mapped[str | None] = mapped_column(String(20))  # quarterly, monthly, etc.
+    is_memory_coupon: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Participation structure (growth/leveraged notes)
+    participation_rate: Mapped[float | None] = mapped_column(Float)  # Upside multiplier (1.5 = 150%)
+    upside_cap: Mapped[float | None] = mapped_column(Float)  # Max return (decimal, 0.20 = 20% cap)
+    downside_leverage: Mapped[float | None] = mapped_column(Float)  # Downside multiplier if applicable
 
     # Quality
     confidence: Mapped[float | None] = mapped_column(Float)
