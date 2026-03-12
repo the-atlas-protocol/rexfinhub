@@ -3,15 +3,20 @@
 Writes progress to data/extraction_progress.json so monitor.py can check status.
 Commits every N filings so partial progress is never lost.
 
+STRATEGY: Newest filings first across ALL issuers. This gives broad market
+coverage of recent years quickly, rather than deep-diving one issuer at a time.
+
 Usage:
-    python run_extraction.py                  # Extract all unextracted filings
-    python run_extraction.py --issuer JPMorgan # Single issuer
-    python run_extraction.py --reextract       # Delete all products and re-extract
+    python run_extraction.py                    # Extract all (newest first)
+    python run_extraction.py --issuer JPMorgan  # Single issuer
+    python run_extraction.py --reextract        # Delete all products and re-extract
+    python run_extraction.py --since 2020       # Only filings from 2020+
 """
 from __future__ import annotations
 
 import sys, io, json, time, argparse
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, date
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -31,22 +36,29 @@ def save_progress(progress: dict):
     PROGRESS_FILE.write_text(json.dumps(progress, indent=2, default=str))
 
 
-def run_extraction(issuer_filter: str | None = None, reextract: bool = False):
+def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
+                   since_year: int | None = None):
     init_db()
     db = get_db()
     client = SECClient(pause=0.25)
 
-    issuers = db.query(Issuer).filter_by(status="confirmed").order_by(Issuer.total_filings.desc()).all()
+    # Build issuer lookup
+    all_issuers = db.query(Issuer).filter_by(status="confirmed").all()
+    issuer_map = {iss.id: iss for iss in all_issuers}
 
     if issuer_filter:
-        issuers = [i for i in issuers if i.short_name.lower() == issuer_filter.lower()]
-        if not issuers:
+        target_ids = {iss.id for iss in all_issuers
+                      if iss.short_name.lower() == issuer_filter.lower()}
+        if not target_ids:
             print(f"No issuer found matching '{issuer_filter}'")
             return
+    else:
+        target_ids = {iss.id for iss in all_issuers}
 
     # Handle --reextract
     if reextract:
-        for iss in issuers:
+        for iss_id in target_ids:
+            iss = issuer_map[iss_id]
             filing_ids = [f.id for f in db.query(Filing).filter_by(issuer_id=iss.id).all()]
             if filing_ids:
                 deleted = db.query(Product).filter(Product.filing_id.in_(filing_ids)).delete(synchronize_session="fetch")
@@ -54,180 +66,171 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False):
                     f = db.get(Filing, fid)
                     if f:
                         f.extracted = False
+                        f.extraction_error = None
                 db.commit()
                 print(f"  Reset {iss.short_name}: deleted {deleted:,} products")
 
-    # Count total work
-    total_remaining = 0
-    issuer_work = []
-    for iss in issuers:
-        count = db.query(Filing).filter_by(issuer_id=iss.id, extracted=False).count()
-        if count > 0:
-            issuer_work.append((iss, count))
-            total_remaining += count
+    # Query ALL unextracted filings globally, newest first
+    q = (db.query(Filing)
+         .filter(Filing.extracted == False,
+                 Filing.issuer_id.in_(target_ids)))
 
-    if total_remaining == 0:
+    if since_year:
+        q = q.filter(Filing.filing_date >= date(since_year, 1, 1))
+
+    filings = q.order_by(Filing.filing_date.desc()).all()
+
+    if not filings:
         print("Nothing to extract. All filings already processed.")
         return
 
-    print(f"\nExtraction plan: {total_remaining:,} filings across {len(issuer_work)} issuers")
-    for iss, count in issuer_work:
-        print(f"  {iss.short_name:<20s} {count:>6,} filings")
+    # Show per-issuer breakdown
+    issuer_counts = defaultdict(int)
+    for f in filings:
+        issuer_counts[issuer_map[f.issuer_id].short_name] += 1
 
-    # Global progress tracking
+    year_range = f"{filings[-1].filing_date.year}-{filings[0].filing_date.year}"
+    print(f"\nExtraction plan: {len(filings):,} filings, newest first ({year_range})")
+    for name in sorted(issuer_counts, key=issuer_counts.get, reverse=True):
+        print(f"  {name:<20s} {issuer_counts[name]:>7,}")
+
+    # Progress tracking
+    issuer_progress = {name: {"total": cnt, "done": 0, "products": 0, "errors": 0}
+                       for name, cnt in issuer_counts.items()}
     progress = {
         "status": "running",
         "started": datetime.now().isoformat(),
-        "total_filings": total_remaining,
+        "total_filings": len(filings),
         "processed": 0,
         "products_created": 0,
         "errors": 0,
-        "cache_hits": 0,
-        "cache_misses": 0,
-        "current_issuer": None,
-        "issuer_progress": {},
+        "current_issuer": "all (newest first)",
+        "issuer_progress": issuer_progress,
         "last_update": datetime.now().isoformat(),
     }
     save_progress(progress)
 
-    global_processed = 0
-    global_products = 0
-    global_errors = 0
+    processed = 0
+    products_created = 0
+    errors = 0
     start_time = time.time()
+    last_year_logged = None
 
-    for iss, total_count in issuer_work:
-        filings = (
-            db.query(Filing)
-            .filter_by(issuer_id=iss.id, extracted=False)
-            .order_by(Filing.filing_date.desc())
-            .all()
-        )
+    for i, filing in enumerate(filings):
+        iss = issuer_map[filing.issuer_id]
 
-        progress["current_issuer"] = iss.short_name
-        progress["issuer_progress"][iss.short_name] = {
-            "total": len(filings), "done": 0, "products": 0, "errors": 0
-        }
-        save_progress(progress)
+        # Log year transitions
+        yr = filing.filing_date.year
+        if yr != last_year_logged:
+            elapsed = time.time() - start_time
+            print(f"\n  --- {yr} --- ({processed:,} done, {elapsed/60:.0f}m elapsed)")
+            last_year_logged = yr
 
-        print(f"\n{'='*60}")
-        print(f"  {iss.short_name} ({len(filings):,} filings)")
-        print(f"{'='*60}")
+        try:
+            html = client.fetch_text(filing.primary_doc_url)
 
-        issuer_products = 0
-        issuer_errors = 0
-
-        for i, filing in enumerate(filings):
-            try:
-                html = client.fetch_text(filing.primary_doc_url)
-
-                # Track cache hits (if fetch was instant, it was cached)
-                # We can't know for sure, but the cache check is in sec_client
-
-                if not html or len(html) < 500:
-                    filing.extracted = True
-                    global_processed += 1
-                    continue
-
-                parser = get_parser(iss.cik, html, iss.full_name)
-                data = parser.extract_all()
-
-                product = Product(
-                    filing_id=filing.id,
-                    parent_issuer=iss.short_name,
-                    cusip=data.get("cusip"),
-                    isin=data.get("isin"),
-                    product_name=data.get("product_name"),
-                    product_type=data.get("product_type"),
-                    product_subtype=data.get("product_subtype"),
-                    is_preliminary=data.get("is_preliminary", False),
-                    underlier_count=data.get("underlier_count"),
-                    underlier_names=data.get("underlier_names"),
-                    underlier_tickers=data.get("underlier_tickers"),
-                    underlier_type=data.get("underlier_type"),
-                    notional_amount=data.get("notional_amount"),
-                    denomination=data.get("denomination"),
-                    pricing_date=data.get("pricing_date"),
-                    settlement_date=data.get("settlement_date"),
-                    maturity_date=data.get("maturity_date"),
-                    coupon_rate=data.get("coupon_rate"),
-                    coupon_type=data.get("coupon_type"),
-                    coupon_frequency=data.get("coupon_frequency"),
-                    barrier_level=data.get("barrier_level"),
-                    barrier_type=data.get("barrier_type"),
-                    call_premium=data.get("call_premium"),
-                    call_level=data.get("call_level"),
-                    first_call_date=data.get("first_call_date"),
-                    call_frequency=data.get("call_frequency"),
-                    is_memory_coupon=data.get("is_memory_coupon", False),
-                    participation_rate=data.get("participation_rate"),
-                    upside_cap=data.get("upside_cap"),
-                    downside_leverage=data.get("downside_leverage"),
-                    confidence=data.get("confidence"),
-                    extraction_date=datetime.now(),
-                )
-                db.add(product)
+            if not html or len(html) < 500:
                 filing.extracted = True
-                issuer_products += 1
-                global_products += 1
+                processed += 1
+                issuer_progress[iss.short_name]["done"] += 1
+                continue
 
-            except Exception as e:
-                filing.extraction_error = str(e)[:500]
-                issuer_errors += 1
-                global_errors += 1
-                if "429" in str(e) or "rate" in str(e).lower():
-                    print(f"    Rate limited at {i+1}, waiting 10s...")
-                    time.sleep(10)
+            parser = get_parser(iss.cik, html, iss.full_name)
+            data = parser.extract_all()
 
-            global_processed += 1
+            product = Product(
+                filing_id=filing.id,
+                parent_issuer=iss.short_name,
+                cusip=data.get("cusip"),
+                isin=data.get("isin"),
+                product_name=data.get("product_name"),
+                product_type=data.get("product_type"),
+                product_subtype=data.get("product_subtype"),
+                is_preliminary=data.get("is_preliminary", False),
+                underlier_count=data.get("underlier_count"),
+                underlier_names=data.get("underlier_names"),
+                underlier_tickers=data.get("underlier_tickers"),
+                underlier_type=data.get("underlier_type"),
+                notional_amount=data.get("notional_amount"),
+                denomination=data.get("denomination"),
+                pricing_date=data.get("pricing_date"),
+                settlement_date=data.get("settlement_date"),
+                maturity_date=data.get("maturity_date"),
+                coupon_rate=data.get("coupon_rate"),
+                coupon_type=data.get("coupon_type"),
+                coupon_frequency=data.get("coupon_frequency"),
+                barrier_level=data.get("barrier_level"),
+                barrier_type=data.get("barrier_type"),
+                call_premium=data.get("call_premium"),
+                call_level=data.get("call_level"),
+                first_call_date=data.get("first_call_date"),
+                call_frequency=data.get("call_frequency"),
+                is_memory_coupon=data.get("is_memory_coupon", False),
+                participation_rate=data.get("participation_rate"),
+                upside_cap=data.get("upside_cap"),
+                downside_leverage=data.get("downside_leverage"),
+                confidence=data.get("confidence"),
+                extraction_date=datetime.now(),
+            )
+            db.add(product)
+            filing.extracted = True
+            products_created += 1
+            issuer_progress[iss.short_name]["products"] += 1
 
-            # Commit periodically
-            if (i + 1) % COMMIT_EVERY == 0:
-                db.commit()
-                elapsed = time.time() - start_time
-                rate = global_processed / elapsed if elapsed > 0 else 0
-                eta_sec = (total_remaining - global_processed) / rate if rate > 0 else 0
-                eta_min = eta_sec / 60
+        except Exception as e:
+            filing.extraction_error = str(e)[:500]
+            errors += 1
+            issuer_progress[iss.short_name]["errors"] += 1
+            if "429" in str(e) or "rate" in str(e).lower():
+                print(f"    Rate limited, waiting 10s...")
+                time.sleep(10)
 
-                progress["processed"] = global_processed
-                progress["products_created"] = global_products
-                progress["errors"] = global_errors
-                progress["last_update"] = datetime.now().isoformat()
-                progress["rate_per_sec"] = round(rate, 1)
-                progress["eta_minutes"] = round(eta_min, 1)
-                progress["issuer_progress"][iss.short_name]["done"] = i + 1
-                progress["issuer_progress"][iss.short_name]["products"] = issuer_products
-                progress["issuer_progress"][iss.short_name]["errors"] = issuer_errors
-                save_progress(progress)
+        processed += 1
+        issuer_progress[iss.short_name]["done"] += 1
 
-                print(f"    [{i+1:>6}/{len(filings)}] products={issuer_products} "
-                      f"rate={rate:.1f}/s ETA={eta_min:.0f}m")
+        # Commit periodically
+        if (i + 1) % COMMIT_EVERY == 0:
+            db.commit()
+            elapsed = time.time() - start_time
+            rate = processed / elapsed if elapsed > 0 else 0
+            remaining = len(filings) - processed
+            eta_min = (remaining / rate / 60) if rate > 0 else 0
 
-        # Final commit for this issuer
-        db.commit()
-        progress["issuer_progress"][iss.short_name]["done"] = len(filings)
-        progress["issuer_progress"][iss.short_name]["products"] = issuer_products
-        progress["issuer_progress"][iss.short_name]["errors"] = issuer_errors
-        save_progress(progress)
+            progress["processed"] = processed
+            progress["products_created"] = products_created
+            progress["errors"] = errors
+            progress["rate_per_sec"] = round(rate, 1)
+            progress["eta_minutes"] = round(eta_min, 1)
+            progress["last_update"] = datetime.now().isoformat()
+            progress["issuer_progress"] = issuer_progress
+            save_progress(progress)
 
-        print(f"    Done: {issuer_products:,} products, {issuer_errors} errors")
+            # Log every 500 filings
+            if (i + 1) % 500 == 0:
+                print(f"    [{processed:>7,}/{len(filings):,}] {iss.short_name:<15s} "
+                      f"{filing.filing_date}  prods={products_created:,}  "
+                      f"rate={rate:.1f}/s  ETA={eta_min:.0f}m")
 
-    # Final summary
+    # Final commit
+    db.commit()
+
     elapsed = time.time() - start_time
     progress["status"] = "complete"
-    progress["processed"] = global_processed
-    progress["products_created"] = global_products
-    progress["errors"] = global_errors
+    progress["processed"] = processed
+    progress["products_created"] = products_created
+    progress["errors"] = errors
     progress["elapsed_minutes"] = round(elapsed / 60, 1)
     progress["last_update"] = datetime.now().isoformat()
+    progress["issuer_progress"] = issuer_progress
     save_progress(progress)
 
     db.close()
 
     print(f"\n{'='*60}")
     print(f"  EXTRACTION COMPLETE")
-    print(f"  Filings processed: {global_processed:,}")
-    print(f"  Products created:  {global_products:,}")
-    print(f"  Errors:            {global_errors}")
+    print(f"  Filings processed: {processed:,}")
+    print(f"  Products created:  {products_created:,}")
+    print(f"  Errors:            {errors}")
     print(f"  Time:              {elapsed/60:.1f} minutes")
     print(f"{'='*60}")
 
@@ -236,5 +239,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--issuer", help="Single issuer short name")
     parser.add_argument("--reextract", action="store_true", help="Delete and re-extract all")
+    parser.add_argument("--since", type=int, help="Only extract filings from this year onward")
     args = parser.parse_args()
-    run_extraction(issuer_filter=args.issuer, reextract=args.reextract)
+    run_extraction(issuer_filter=args.issuer, reextract=args.reextract,
+                   since_year=args.since)
