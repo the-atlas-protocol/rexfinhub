@@ -61,7 +61,12 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
             iss = issuer_map[iss_id]
             filing_ids = [f.id for f in db.query(Filing).filter_by(issuer_id=iss.id).all()]
             if filing_ids:
-                deleted = db.query(Product).filter(Product.filing_id.in_(filing_ids)).delete(synchronize_session="fetch")
+                # Batch delete to avoid SQLite variable limit
+                deleted = 0
+                BATCH = 500
+                for i in range(0, len(filing_ids), BATCH):
+                    batch = filing_ids[i:i+BATCH]
+                    deleted += db.query(Product).filter(Product.filing_id.in_(batch)).delete(synchronize_session="fetch")
                 for fid in filing_ids:
                     f = db.get(Filing, fid)
                     if f:
