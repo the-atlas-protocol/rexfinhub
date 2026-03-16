@@ -41,10 +41,12 @@ templates = Jinja2Templates(directory="webapp/templates")
 # =========================================================================
 
 def _fmt_value(val: float | None) -> str:
-    """Format USD value for display (values in thousands as reported in 13F)."""
+    """Format USD value for display (full dollars — post-2023 SEC format)."""
     if val is None:
         return "--"
-    v = val * 1000  # 13F reports in thousands
+    v = abs(val)
+    if v >= 1_000_000_000_000:
+        return f"${v / 1_000_000_000_000:.1f}T"
     if v >= 1_000_000_000:
         return f"${v / 1_000_000_000:.1f}B"
     if v >= 1_000_000:
@@ -161,8 +163,8 @@ def _build_position_changes(db: Session, institution_id: int, latest: date, prio
     for cusip in all_cusips:
         curr = current_map.get(cusip)
         prev = prior_map.get(cusip)
-        curr_val = (curr.value_usd or 0) * 1000 if curr else 0
-        prev_val = (prev.value_usd or 0) * 1000 if prev else 0
+        curr_val = (curr.value_usd or 0) if curr else 0
+        prev_val = (prev.value_usd or 0) if prev else 0
         delta = curr_val - prev_val
         pct = _pct_change(curr_val, prev_val)
         issuer = (curr.issuer_name if curr else prev.issuer_name) or cusip
@@ -216,7 +218,7 @@ def holdings_list(
 
     holdings_base = select(
         Holding.institution_id,
-        func.count(Holding.id).label("holding_count"),
+        func.count(distinct(Holding.cusip)).label("holding_count"),
         func.sum(Holding.value_usd).label("total_value"),
     )
     if global_latest:
@@ -408,7 +410,7 @@ def crossover_view(
                                         Institution.name,
                                         Institution.cik,
                                         func.sum(Holding.value_usd).label("comp_value"),
-                                        func.count(Holding.id).label("comp_positions"),
+                                        func.count(distinct(Holding.cusip)).label("comp_positions"),
                                     )
                                     .join(Institution, Institution.id == Holding.institution_id)
                                     .where(Holding.cusip.in_(comp_cusip_list))
@@ -496,7 +498,7 @@ def holdings_fund_page(
         ).scalar() or 0
 
     qoq_change = total_value - prior_total
-    qoq_pct = _pct_change(total_value * 1000, prior_total * 1000)
+    qoq_pct = _pct_change(total_value, prior_total)
 
     # Trend
     trend_rows = db.execute(
@@ -535,7 +537,7 @@ def holdings_fund_page(
         "qoq_pct": qoq_pct,
         "qoq_positive": qoq_change >= 0,
         "trend_labels": [str(r.report_date) for r in trend_rows],
-        "trend_values": [round((r.total_value or 0) * 1000, 0) for r in trend_rows],
+        "trend_values": [round(r.total_value or 0, 0) for r in trend_rows],
         "fmt_value": _fmt_value,
     })
 
@@ -562,7 +564,7 @@ def institution_history_page(
         select(
             Holding.report_date,
             func.sum(Holding.value_usd).label("total_value"),
-            func.count(Holding.id).label("position_count"),
+            func.count(distinct(Holding.cusip)).label("position_count"),
         )
         .where(Holding.institution_id == institution.id)
         .group_by(Holding.report_date)
@@ -570,7 +572,7 @@ def institution_history_page(
     ).all()
 
     trend_labels = [str(r.report_date) for r in trend_rows]
-    trend_aum = [round((r.total_value or 0) * 1000, 0) for r in trend_rows]
+    trend_aum = [round(r.total_value or 0, 0) for r in trend_rows]
     trend_positions = [r.position_count for r in trend_rows]
 
     current_aum = trend_aum[-1] if trend_aum else 0
@@ -589,7 +591,7 @@ def institution_history_page(
         "latest_date": latest,
         "prior_date": prior,
         "current_aum": current_aum,
-        "current_aum_fmt": _fmt_value(current_aum / 1000) if current_aum else "--",
+        "current_aum_fmt": _fmt_value(current_aum) if current_aum else "--",
         "qoq_change": qoq_change,
         "qoq_pct": qoq_pct,
         "qoq_positive": qoq_change >= 0,
@@ -741,9 +743,9 @@ def api_holdings_by_fund(
         holders.append({
             "institution_name": row.inst_name,
             "cik": row.inst_cik,
-            "value": val * 1000,
+            "value": val,
             "shares": h.shares or 0,
-            "qoq_value_change": delta * 1000,
+            "qoq_value_change": delta,
             "qoq_value_pct": pct,
             "change_type": change_type,
         })
@@ -763,11 +765,11 @@ def api_holdings_by_fund(
         "ticker": ticker,
         "fund_name": mapping.fund_name,
         "cusip": cusip,
-        "total_value": total_value * 1000,
+        "total_value": total_value,
         "total_holders": len(holders),
         "trend": {
             "labels": [str(r.report_date) for r in trend_rows],
-            "values": [round((r.total_value or 0) * 1000, 0) for r in trend_rows],
+            "values": [round(r.total_value or 0, 0) for r in trend_rows],
         },
         "holders": holders,
     }
@@ -831,8 +833,8 @@ def api_institution_changes(
     for cusip in all_cusips:
         curr = current_map.get(cusip)
         prev = prior_map.get(cusip)
-        curr_val = (curr.value_usd or 0) * 1000 if curr else 0
-        prev_val = (prev.value_usd or 0) * 1000 if prev else 0
+        curr_val = (curr.value_usd or 0) if curr else 0
+        prev_val = (prev.value_usd or 0) if prev else 0
         delta = curr_val - prev_val
         pct = _pct_change(curr_val, prev_val)
         total_value += curr_val
@@ -862,7 +864,7 @@ def api_institution_changes(
 
     positions.sort(key=lambda p: abs(p["change_value"]), reverse=True)
 
-    prior_total = sum((h.value_usd or 0) * 1000 for h in prior_map.values()) if prior_map else 0
+    prior_total = sum(h.value_usd or 0 for h in prior_map.values()) if prior_map else 0
     qoq_change = total_value - prior_total
 
     return {
@@ -891,7 +893,7 @@ def api_institution_trend(
         select(
             Holding.report_date,
             func.sum(Holding.value_usd).label("total_value"),
-            func.count(Holding.id).label("position_count"),
+            func.count(distinct(Holding.cusip)).label("position_count"),
         )
         .where(Holding.institution_id == institution.id)
         .group_by(Holding.report_date)
@@ -904,7 +906,7 @@ def api_institution_trend(
         "quarters": [
             {
                 "date": str(r.report_date),
-                "total_value": round((r.total_value or 0) * 1000, 0),
+                "total_value": round(r.total_value or 0, 0),
                 "position_count": r.position_count,
             }
             for r in rows
@@ -949,7 +951,7 @@ def api_search_funds(
             "fund_name": m.fund_name,
             "cusip": m.cusip,
             "holder_count": (stats.holder_count or 0) if stats else 0,
-            "total_value": round(((stats.total_value or 0) * 1000), 0) if stats else 0,
+            "total_value": round(stats.total_value or 0, 0) if stats else 0,
         })
 
     results.sort(key=lambda r: r["total_value"], reverse=True)
@@ -982,7 +984,7 @@ def api_export_fund_holders(
 
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Institution", "CIK", "Value ($K)", "Shares", "QoQ Change ($K)", "QoQ %", "Status"])
+    writer.writerow(["Institution", "CIK", "Value ($)", "Shares", "QoQ Change ($K)", "QoQ %", "Status"])
     for h in holders:
         writer.writerow([
             h["institution_name"], h["cik"],
@@ -1029,7 +1031,7 @@ def api_export_institution_holdings(
 
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Issuer", "CUSIP", "Value ($K)", "Shares", "Type", "Discretion",
+    writer.writerow(["Issuer", "CUSIP", "Value ($)", "Shares", "Type", "Discretion",
                       "Voting Sole", "Voting Shared", "Voting None"])
     for h in holdings:
         writer.writerow([
@@ -1099,6 +1101,6 @@ def api_home_kpis(db: Session = Depends(get_db)):
         "weekly_flows": weekly_flows,
         "todays_filings": todays_filings,
         "institutions_count": institutions_count,
-        "total_13f_value": round(total_13f_value * 1000, 0) if total_13f_value else 0,
+        "total_13f_value": round(total_13f_value, 0) if total_13f_value else 0,
         "pipeline_last_run": pipeline_last_run,
     }

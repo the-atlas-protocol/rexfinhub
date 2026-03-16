@@ -39,6 +39,8 @@ def main():
         print("  python scripts/run_13f.py bulk 2025q4")
         print("  python scripts/run_13f.py incremental")
         print("  python scripts/run_13f.py auto")
+        print("  python scripts/run_13f.py local <path-to-tsv-dir>")
+        print("  python scripts/run_13f.py health")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -48,8 +50,10 @@ def main():
         seed_cusip_mappings,
         ingest_13f_dataset,
         ingest_13f_incremental,
+        ingest_13f_local,
         get_latest_available_quarter,
         enrich_cusip_mappings_from_holdings,
+        data_health_report,
     )
 
     init_db()
@@ -106,9 +110,27 @@ def main():
         n_enrich = enrich_cusip_mappings_from_holdings()
         print(f"[4/4] Enriched {n_enrich} CUSIPs from holdings")
 
+    elif mode == "local":
+        if len(sys.argv) < 3:
+            print("Error: provide path to directory with SUBMISSION.tsv, COVERPAGE.tsv, INFOTABLE.tsv")
+            sys.exit(1)
+        tsv_dir = sys.argv[2]
+        result = ingest_13f_local(tsv_dir)
+        print(f"Institutions: {result['institutions_upserted']}")
+        print(f"Holdings:     {result['holdings_inserted']}")
+        print(f"Skipped:      {result['holdings_skipped']}")
+        print(f"CUSIPs:       {result['cusips_matched']}")
+        if result["errors"]:
+            print(f"Errors:       {len(result['errors'])}")
+            for e in result["errors"]:
+                print(f"  - {e}")
+
+    elif mode == "health":
+        data_health_report()
+
     else:
         print(f"Unknown mode: {mode}")
-        print("Valid modes: seed, bulk, incremental, auto")
+        print("Valid modes: seed, bulk, incremental, auto, local, health")
         sys.exit(1)
 
     elapsed = time.time() - start

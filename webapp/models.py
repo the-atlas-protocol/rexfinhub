@@ -422,6 +422,7 @@ class MktMasterData(Base):
         Index("idx_mkt_master_category", "etp_category"),
         Index("idx_mkt_master_cat_display", "category_display"),
         Index("idx_mkt_master_run", "pipeline_run_id"),
+        Index("idx_mkt_master_cusip", "cusip"),
     )
 
 
@@ -596,6 +597,8 @@ class Institution(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     cik: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(300), nullable=False)
+    city: Mapped[str | None] = mapped_column(String(100))
+    state_or_country: Mapped[str | None] = mapped_column(String(10))
     manager_type: Mapped[str | None] = mapped_column(String(50))
     aum_total: Mapped[float | None] = mapped_column(Float)
     filing_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -620,7 +623,7 @@ class Holding(Base):
     filing_accession: Mapped[str | None] = mapped_column(String(30))
     issuer_name: Mapped[str | None] = mapped_column(String(300))
     cusip: Mapped[str | None] = mapped_column(String(12))
-    value_usd: Mapped[float | None] = mapped_column(Float)  # in thousands (as reported)
+    value_usd: Mapped[float | None] = mapped_column(Float)  # full dollars (post-2023 SEC format; pre-2023 was thousands — normalize at ingestion)
     shares: Mapped[float | None] = mapped_column(Float)
     share_type: Mapped[str | None] = mapped_column(String(10))  # SH | PRN
     investment_discretion: Mapped[str | None] = mapped_column(String(10))  # SOLE | DFND | OTR
@@ -635,6 +638,7 @@ class Holding(Base):
         Index("idx_holdings_institution", "institution_id"),
         Index("idx_holdings_cusip", "cusip"),
         Index("idx_holdings_report_date", "report_date"),
+        Index("idx_holdings_date_cusip", "report_date", "cusip"),
     )
 
 
