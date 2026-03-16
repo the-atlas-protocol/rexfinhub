@@ -2,13 +2,15 @@
 13F Institutional Holdings Pipeline
 
 Ingests SEC 13F-HR quarterly bulk datasets and maps holdings
-to our ETP universe via CUSIP. Supports both historical (bulk ZIP)
-and incremental (EFTS search) ingestion.
+to our ETP universe via CUSIP. Supports bulk (ZIP), incremental (EFTS),
+and local (pre-extracted TSV) ingestion.
 
 Usage:
     python -m etp_tracker.thirteen_f seed
     python -m etp_tracker.thirteen_f ingest 2025q4
     python -m etp_tracker.thirteen_f incremental
+    python -m etp_tracker.thirteen_f local /path/to/tsvs
+    python -m etp_tracker.thirteen_f health
 """
 from __future__ import annotations
 
@@ -23,7 +25,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-from sqlalchemy import select
+from sqlalchemy import select, func, distinct
 
 # ---------------------------------------------------------------------------
 # Project path setup
@@ -56,6 +58,173 @@ def _fetch(url: str, user_agent: str, timeout: int = 30) -> requests.Response:
     resp = requests.get(url, headers=headers, timeout=timeout)
     resp.raise_for_status()
     return resp
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers (used by ingest_13f_dataset + ingest_13f_local)
+# ---------------------------------------------------------------------------
+
+def _parse_sec_date(date_str: str) -> date:
+    """Parse SEC date formats: DD-MON-YYYY (e.g. 31-DEC-2025) or YYYY-MM-DD."""
+    if not date_str or not date_str.strip():
+        return date(1900, 1, 1)
+    date_str = date_str.strip()
+    for fmt in ("%d-%b-%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
+    return date(1900, 1, 1)
+
+
+def _build_accession_map(sub_df: pd.DataFrame) -> dict[str, dict]:
+    """SUBMISSION DataFrame -> {accession_number: {cik, filing_date, report_date}}."""
+    accession_map: dict[str, dict] = {}
+    for _, row in sub_df.iterrows():
+        acc = str(row.get("ACCESSION_NUMBER", "")).strip()
+        if not acc:
+            continue
+        accession_map[acc] = {
+            "cik": str(row.get("CIK", "")).strip(),
+            "filing_date": str(row.get("FILING_DATE", "")).strip(),
+            "report_date": str(row.get("PERIODOFREPORT", "")).strip(),
+        }
+    return accession_map
+
+
+def _build_cik_info(
+    cover_df: pd.DataFrame, sub_df: pd.DataFrame,
+) -> dict[str, dict]:
+    """Merge COVERPAGE + SUBMISSION -> {cik: {name, city, state_or_country}}.
+
+    COVERPAGE has FILINGMANAGER_NAME but no CIK.
+    SUBMISSION has CIK + ACCESSION_NUMBER.
+    Join on ACCESSION_NUMBER to bridge them.
+    """
+    # Build accession -> CIK lookup from SUBMISSION
+    acc_to_cik: dict[str, str] = {}
+    for _, row in sub_df.iterrows():
+        acc = str(row.get("ACCESSION_NUMBER", "")).strip()
+        cik = str(row.get("CIK", "")).strip()
+        if acc and cik:
+            acc_to_cik[acc] = cik
+
+    cik_info: dict[str, dict] = {}
+    for _, row in cover_df.iterrows():
+        acc = str(row.get("ACCESSION_NUMBER", "")).strip()
+        cik = acc_to_cik.get(acc, "")
+        if not cik:
+            continue
+
+        name = str(row.get("FILINGMANAGER_NAME", "")).strip()
+        city = str(row.get("FILINGMANAGER_CITY", "")).strip()
+        state = str(row.get("FILINGMANAGER_STATEORCOUNTRY", "")).strip()
+
+        if name:
+            cik_info[cik] = {
+                "name": name,
+                "city": city or None,
+                "state_or_country": state or None,
+            }
+
+    return cik_info
+
+
+def _upsert_institutions(
+    db, cik_info: dict[str, dict], accession_map: dict[str, dict],
+) -> dict[str, int]:
+    """Upsert Institution rows from CIK info. Returns {cik: institution_id}."""
+    cik_to_inst_id: dict[str, int] = {}
+    all_ciks = set(cik_info.keys()) | {
+        v["cik"] for v in accession_map.values() if v["cik"]
+    }
+
+    for cik in all_ciks:
+        if not cik:
+            continue
+
+        info = cik_info.get(cik, {})
+        name = info.get("name", f"CIK {cik}")
+        city = info.get("city")
+        state_or_country = info.get("state_or_country")
+
+        existing = db.execute(
+            select(Institution).where(Institution.cik == cik)
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.name = name
+            if city:
+                existing.city = city
+            if state_or_country:
+                existing.state_or_country = state_or_country
+            existing.filing_count = existing.filing_count + 1
+            existing.updated_at = datetime.utcnow()
+            cik_to_inst_id[cik] = existing.id
+        else:
+            inst = Institution(
+                cik=cik, name=name, filing_count=1,
+                city=city, state_or_country=state_or_country,
+            )
+            db.add(inst)
+            db.flush()
+            cik_to_inst_id[cik] = inst.id
+
+    db.commit()
+    return cik_to_inst_id
+
+
+def _safe_int(val):
+    """Convert value to int, returning None on failure."""
+    try:
+        return int(float(val))
+    except (ValueError, TypeError):
+        return None
+
+
+def _build_holding(
+    row, accession_map: dict, cik_to_inst_id: dict,
+) -> Holding | None:
+    """Convert a single INFOTABLE row to a Holding, or None if unmappable."""
+    acc = str(row.get("ACCESSION_NUMBER", "")).strip()
+    acc_info = accession_map.get(acc, {})
+    cik = acc_info.get("cik", "")
+    inst_id = cik_to_inst_id.get(cik)
+
+    if inst_id is None:
+        return None
+
+    report_dt = _parse_sec_date(acc_info.get("report_date", ""))
+
+    try:
+        # Post-2023 (Jan 3, 2023+): VALUE is full dollars.
+        # Pre-2023: VALUE was in thousands — multiply by 1000 at ingestion
+        # to keep value_usd always in full dollars.
+        value = float(row.get("VALUE", 0))
+    except (ValueError, TypeError):
+        value = None
+
+    try:
+        shares = float(row.get("SSHPRNAMT", 0))
+    except (ValueError, TypeError):
+        shares = None
+
+    cusip = str(row.get("CUSIP", "")).strip()
+
+    return Holding(
+        institution_id=inst_id,
+        report_date=report_dt,
+        filing_accession=acc,
+        issuer_name=str(row.get("NAMEOFISSUER", "")).strip() or None,
+        cusip=cusip or None,
+        value_usd=value,
+        shares=shares,
+        share_type=str(row.get("SSHPRNAMTTYPE", "")).strip() or None,
+        investment_discretion=str(row.get("INVESTMENTDISCRETION", "")).strip() or None,
+        voting_sole=_safe_int(row.get("VOTING_AUTH_SOLE")),
+        voting_shared=_safe_int(row.get("VOTING_AUTH_SHARED")),
+        voting_none=_safe_int(row.get("VOTING_AUTH_NONE")),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -116,12 +285,12 @@ def seed_cusip_mappings() -> int:
 
 
 # ---------------------------------------------------------------------------
-# 2. ingest_13f_dataset  (bulk historical)
+# 2. ingest_13f_dataset  (bulk historical from SEC ZIP)
 # ---------------------------------------------------------------------------
 def ingest_13f_dataset(
     quarter: str,
     user_agent: str,
-    cache_dir: str = "http_cache",
+    cache_dir: str = "D:/sec-data/cache/rexfinhub",
 ) -> dict:
     """Download and ingest a quarterly 13F bulk dataset from SEC.
 
@@ -212,54 +381,15 @@ def ingest_13f_dataset(
 
     log.info("SUBMISSION rows: %d, COVERPAGE rows: %d", len(sub_df), len(cover_df))
 
-    # Build accession -> CIK + report date from SUBMISSION
-    accession_map: dict[str, dict] = {}
-    for _, row in sub_df.iterrows():
-        acc = str(row.get("ACCESSION_NUMBER", "")).strip()
-        if not acc:
-            continue
-        accession_map[acc] = {
-            "cik": str(row.get("CIK", "")).strip(),
-            "filing_date": str(row.get("FILING_DATE", "")).strip(),
-            "report_date": str(row.get("PERIODOFREPORT", "")).strip(),
-        }
-
-    # Build CIK -> company name from COVERPAGE
-    cik_names: dict[str, str] = {}
-    for _, row in cover_df.iterrows():
-        cik = str(row.get("CIK", "")).strip()
-        name = str(row.get("COMPANYNAME", "")).strip()
-        if cik and name:
-            cik_names[cik] = name
+    # Use shared helpers
+    accession_map = _build_accession_map(sub_df)
+    cik_info = _build_cik_info(cover_df, sub_df)
 
     # Upsert institutions
     db = SessionLocal()
     try:
-        cik_to_inst_id: dict[str, int] = {}
-        unique_ciks = set(cik_names.keys()) | {v["cik"] for v in accession_map.values() if v["cik"]}
-
-        for cik in unique_ciks:
-            if not cik:
-                continue
-            existing = db.execute(
-                select(Institution).where(Institution.cik == cik)
-            ).scalar_one_or_none()
-
-            name = cik_names.get(cik, f"CIK {cik}")
-
-            if existing:
-                existing.name = name
-                existing.filing_count = existing.filing_count + 1
-                existing.updated_at = datetime.utcnow()
-                cik_to_inst_id[cik] = existing.id
-            else:
-                inst = Institution(cik=cik, name=name, filing_count=1)
-                db.add(inst)
-                db.flush()  # get the id
-                cik_to_inst_id[cik] = inst.id
-            stats["institutions_upserted"] += 1
-
-        db.commit()
+        cik_to_inst_id = _upsert_institutions(db, cik_info, accession_map)
+        stats["institutions_upserted"] = len(cik_to_inst_id)
         log.info("Upserted %d institutions", stats["institutions_upserted"])
 
         # ------------------------------------------------------------------
@@ -282,60 +412,14 @@ def ingest_13f_dataset(
 
         batch: list[Holding] = []
         for idx, row in info_df.iterrows():
-            acc = str(row.get("ACCESSION_NUMBER", "")).strip()
-            acc_info = accession_map.get(acc, {})
-            cik = acc_info.get("cik", "")
-            inst_id = cik_to_inst_id.get(cik)
-
-            if inst_id is None:
+            holding = _build_holding(row, accession_map, cik_to_inst_id)
+            if holding is None:
                 continue
 
-            # Parse report date
-            report_date_str = acc_info.get("report_date", "")
-            try:
-                report_dt = datetime.strptime(report_date_str, "%Y-%m-%d").date()
-            except (ValueError, TypeError):
-                report_dt = date(1900, 1, 1)
-
-            # Parse value (in thousands as reported by SEC)
-            try:
-                value = float(row.get("VALUE", 0))
-            except (ValueError, TypeError):
-                value = None
-
-            # Parse shares
-            try:
-                shares = float(row.get("SSHPRNAMT", 0))
-            except (ValueError, TypeError):
-                shares = None
-
-            # Parse voting authorities
-            def _safe_int(val):
-                try:
-                    return int(float(val))
-                except (ValueError, TypeError):
-                    return None
-
-            cusip = str(row.get("CUSIP", "")).strip()
-
-            holding = Holding(
-                institution_id=inst_id,
-                report_date=report_dt,
-                filing_accession=acc,
-                issuer_name=str(row.get("NAMEOFISSUER", "")).strip() or None,
-                cusip=cusip or None,
-                value_usd=value,
-                shares=shares,
-                share_type=str(row.get("SSHPRNAMTTYPE", "")).strip() or None,
-                investment_discretion=str(row.get("INVESTMENTDISCRETION", "")).strip() or None,
-                voting_sole=_safe_int(row.get("VOTINGAUTHORITY_SOLE")),
-                voting_shared=_safe_int(row.get("VOTINGAUTHORITY_SHARED")),
-                voting_none=_safe_int(row.get("VOTINGAUTHORITY_NONE")),
-            )
             batch.append(holding)
 
             # Track CUSIP matches
-            if cusip and cusip in cusip_set:
+            if holding.cusip and holding.cusip in cusip_set:
                 stats["cusips_matched"] += 1
 
             if len(batch) >= BATCH_SIZE:
@@ -376,7 +460,7 @@ def ingest_13f_dataset(
 def ingest_13f_incremental(
     user_agent: str,
     days_back: int = 7,
-    cache_dir: str = "http_cache",
+    cache_dir: str = "D:/sec-data/cache/rexfinhub",
 ) -> dict:
     """Search EDGAR EFTS for recent 13F-HR filings and parse XML infotables.
 
@@ -790,6 +874,317 @@ def enrich_cusip_mappings_from_holdings() -> int:
 
 
 # ---------------------------------------------------------------------------
+# 6. ingest_13f_local  (pre-extracted TSV directory)
+# ---------------------------------------------------------------------------
+def ingest_13f_local(tsv_dir: str) -> dict:
+    """Ingest 13F data from a directory of pre-extracted TSV files.
+
+    Reads SUBMISSION.tsv, COVERPAGE.tsv, and INFOTABLE.tsv from tsv_dir.
+    INFOTABLE is read in chunks (50K rows) to handle large files (343MB+).
+    Deduplicates by skipping accession numbers already present in holdings.
+
+    Args:
+        tsv_dir: path to directory containing the three TSV files
+
+    Returns:
+        Stats dict with counts.
+    """
+    stats = {
+        "institutions_upserted": 0,
+        "holdings_inserted": 0,
+        "holdings_skipped": 0,
+        "cusips_matched": 0,
+        "errors": [],
+    }
+
+    tsv_path = Path(tsv_dir)
+    if not tsv_path.is_dir():
+        msg = f"Not a directory: {tsv_dir}"
+        log.error(msg)
+        stats["errors"].append(msg)
+        return stats
+
+    # Find TSV files (case-insensitive)
+    def _find_tsv(name: str) -> Path | None:
+        for f in tsv_path.iterdir():
+            if f.name.upper() == name.upper():
+                return f
+        return None
+
+    sub_file = _find_tsv("SUBMISSION.tsv")
+    cover_file = _find_tsv("COVERPAGE.tsv")
+    info_file = _find_tsv("INFOTABLE.tsv")
+
+    for name, f in [
+        ("SUBMISSION.tsv", sub_file),
+        ("COVERPAGE.tsv", cover_file),
+        ("INFOTABLE.tsv", info_file),
+    ]:
+        if f is None:
+            msg = f"Missing {name} in {tsv_dir}"
+            log.error(msg)
+            stats["errors"].append(msg)
+            return stats
+
+    # ---- Read SUBMISSION + COVERPAGE (small files, full read) ----
+    log.info("Reading SUBMISSION.tsv...")
+    sub_df = pd.read_csv(
+        sub_file, sep="\t", engine="python", on_bad_lines="skip", dtype=str,
+    )
+    sub_df.columns = [c.strip().upper() for c in sub_df.columns]
+    log.info("  %d rows", len(sub_df))
+
+    log.info("Reading COVERPAGE.tsv...")
+    cover_df = pd.read_csv(
+        cover_file, sep="\t", engine="python", on_bad_lines="skip", dtype=str,
+    )
+    cover_df.columns = [c.strip().upper() for c in cover_df.columns]
+    log.info("  %d rows", len(cover_df))
+
+    # Build lookup structures
+    accession_map = _build_accession_map(sub_df)
+    cik_info = _build_cik_info(cover_df, sub_df)
+    log.info(
+        "Accession map: %d entries, CIK info: %d institutions",
+        len(accession_map), len(cik_info),
+    )
+
+    db = SessionLocal()
+    try:
+        cik_to_inst_id = _upsert_institutions(db, cik_info, accession_map)
+        stats["institutions_upserted"] = len(cik_to_inst_id)
+        log.info("Upserted %d institutions", stats["institutions_upserted"])
+
+        # Pre-load CUSIP mappings
+        cusip_set = set(
+            row[0] for row in db.execute(select(CusipMapping.cusip)).all()
+        )
+
+        # Get existing accession numbers to skip duplicates
+        existing_accessions = set(
+            row[0] for row in db.execute(
+                select(distinct(Holding.filing_accession))
+                .where(Holding.filing_accession.isnot(None))
+            ).all()
+        )
+        log.info("Existing accessions to skip: %d", len(existing_accessions))
+
+        # ---- Read INFOTABLE in chunks ----
+        log.info("Reading INFOTABLE.tsv in chunks of 50,000...")
+        batch: list[Holding] = []
+        total_rows = 0
+
+        for chunk in pd.read_csv(
+            info_file, sep="\t", engine="python", on_bad_lines="skip",
+            dtype=str, chunksize=50_000,
+        ):
+            chunk.columns = [c.strip().upper() for c in chunk.columns]
+
+            for _, row in chunk.iterrows():
+                total_rows += 1
+
+                # Skip already-loaded accessions
+                acc = str(row.get("ACCESSION_NUMBER", "")).strip()
+                if acc in existing_accessions:
+                    stats["holdings_skipped"] += 1
+                    continue
+
+                holding = _build_holding(row, accession_map, cik_to_inst_id)
+                if holding is None:
+                    continue
+
+                batch.append(holding)
+
+                if holding.cusip and holding.cusip in cusip_set:
+                    stats["cusips_matched"] += 1
+
+                if len(batch) >= BATCH_SIZE:
+                    db.add_all(batch)
+                    db.commit()
+                    stats["holdings_inserted"] += len(batch)
+                    batch = []
+
+            if total_rows % 100_000 < 50_000:
+                log.info(
+                    "  Progress: %dk rows, %d inserted, %d skipped",
+                    total_rows // 1000,
+                    stats["holdings_inserted"],
+                    stats["holdings_skipped"],
+                )
+
+        # Final batch
+        if batch:
+            db.add_all(batch)
+            db.commit()
+            stats["holdings_inserted"] += len(batch)
+
+        log.info(
+            "Local ingestion complete: %d institutions, %d holdings inserted, "
+            "%d skipped, %d CUSIP matches, %dk total rows",
+            stats["institutions_upserted"],
+            stats["holdings_inserted"],
+            stats["holdings_skipped"],
+            stats["cusips_matched"],
+            total_rows // 1000,
+        )
+
+    except Exception as exc:
+        db.rollback()
+        msg = f"Error during local ingestion: {exc}"
+        log.error(msg, exc_info=True)
+        stats["errors"].append(msg)
+    finally:
+        db.close()
+
+    return stats
+
+
+# ---------------------------------------------------------------------------
+# 7. data_health_report
+# ---------------------------------------------------------------------------
+def data_health_report():
+    """Print diagnostic report on 13F data health."""
+    db = SessionLocal()
+    try:
+        n_inst = db.execute(select(func.count(Institution.id))).scalar()
+        n_hold = db.execute(select(func.count(Holding.id))).scalar()
+        n_cusip = db.execute(select(func.count(CusipMapping.id))).scalar()
+
+        print("=" * 60)
+        print("13F DATA HEALTH REPORT")
+        print("=" * 60)
+        print(f"Institutions:    {n_inst:>12,}")
+        print(f"Holdings:        {n_hold:>12,}")
+        print(f"CUSIP mappings:  {n_cusip:>12,}")
+        print()
+
+        # Distinct report dates
+        quarters = db.execute(
+            select(distinct(Holding.report_date))
+            .where(Holding.report_date != date(1900, 1, 1))
+            .order_by(Holding.report_date)
+        ).all()
+        quarter_dates = [r[0] for r in quarters if r[0]]
+        print(f"Report dates:    {len(quarter_dates):>12,}")
+        if quarter_dates:
+            print(f"  Earliest: {quarter_dates[0]}")
+            print(f"  Latest:   {quarter_dates[-1]}")
+        print()
+
+        # Data quality checks
+        bad_dates = db.execute(
+            select(func.count(Holding.id))
+            .where(Holding.report_date == date(1900, 1, 1))
+        ).scalar()
+        null_city = db.execute(
+            select(func.count(Institution.id))
+            .where(Institution.city.is_(None))
+        ).scalar()
+        has_voting = db.execute(
+            select(func.count(Holding.id))
+            .where(Holding.voting_sole.isnot(None))
+        ).scalar()
+
+        print("Data Quality:")
+        print(f"  Holdings with date 1900-01-01: {bad_dates:>10,}  {'OK' if bad_dates == 0 else 'WARN'}")
+        print(f"  Institutions with NULL city:   {null_city:>10,}")
+        print(f"  Holdings with voting data:     {has_voting:>10,}  {'OK' if has_voting > 0 else 'WARN'}")
+        print()
+
+        # CUSIP match rate
+        distinct_cusips = db.execute(
+            select(func.count(distinct(Holding.cusip)))
+            .where(Holding.cusip.isnot(None))
+        ).scalar()
+        cusip_mapped = set(
+            row[0] for row in db.execute(select(CusipMapping.cusip)).all()
+        )
+        matched = db.execute(
+            select(func.count(distinct(Holding.cusip)))
+            .where(Holding.cusip.in_(cusip_mapped))
+        ).scalar() if cusip_mapped else 0
+
+        print("CUSIP Coverage:")
+        print(f"  Distinct CUSIPs in holdings: {distinct_cusips:>10,}")
+        print(f"  Matched to fund universe:    {matched:>10,}")
+        if distinct_cusips:
+            print(f"  Match rate:                  {matched / distinct_cusips * 100:>9.1f}%")
+        print()
+
+        # Top 10 institutions by holdings count
+        top_inst = db.execute(
+            select(
+                Institution.name,
+                func.count(Holding.id).label("cnt"),
+            )
+            .join(Holding, Holding.institution_id == Institution.id)
+            .group_by(Institution.id)
+            .order_by(func.count(Holding.id).desc())
+            .limit(10)
+        ).all()
+
+        print("Top 10 Institutions by Holdings:")
+        for name, cnt in top_inst:
+            print(f"  {cnt:>8,}  {name[:60]}")
+        print()
+
+        # Geographic distribution
+        geo = db.execute(
+            select(
+                Institution.state_or_country,
+                func.count(Institution.id),
+            )
+            .where(Institution.state_or_country.isnot(None))
+            .group_by(Institution.state_or_country)
+            .order_by(func.count(Institution.id).desc())
+            .limit(15)
+        ).all()
+
+        if geo:
+            print("Geographic Distribution (top 15):")
+            for state, cnt in geo:
+                print(f"  {state or 'NULL':<6} {cnt:>6,}")
+            print()
+
+        # REX-specific: holdings matching REX fund CUSIPs
+        rex_cusips = db.execute(
+            select(CusipMapping.cusip, CusipMapping.ticker, CusipMapping.fund_name)
+            .where(CusipMapping.source == "mkt_master")
+        ).all()
+
+        if rex_cusips:
+            rex_cusip_set = {r[0] for r in rex_cusips}
+            rex_holdings = db.execute(
+                select(func.count(Holding.id))
+                .where(Holding.cusip.in_(rex_cusip_set))
+            ).scalar()
+
+            print(f"REX Fund Holdings: {rex_holdings:,}")
+            if rex_holdings > 0:
+                per_fund = db.execute(
+                    select(
+                        CusipMapping.ticker,
+                        CusipMapping.fund_name,
+                        func.count(Holding.id),
+                    )
+                    .join(Holding, Holding.cusip == CusipMapping.cusip)
+                    .where(CusipMapping.source == "mkt_master")
+                    .group_by(CusipMapping.cusip)
+                    .order_by(func.count(Holding.id).desc())
+                ).all()
+
+                for ticker, fund_name, cnt in per_fund:
+                    short_name = (fund_name or "")[:45]
+                    print(f"  {ticker or '???':<8} {cnt:>6,}  {short_name}")
+            print()
+
+        print("=" * 60)
+
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -805,6 +1200,8 @@ if __name__ == "__main__":
         print("  python -m etp_tracker.thirteen_f seed")
         print("  python -m etp_tracker.thirteen_f ingest 2025q4")
         print("  python -m etp_tracker.thirteen_f incremental")
+        print("  python -m etp_tracker.thirteen_f local /path/to/tsvs")
+        print("  python -m etp_tracker.thirteen_f health")
         sys.exit(1)
 
     cmd = sys.argv[1]
@@ -841,6 +1238,24 @@ if __name__ == "__main__":
             for e in stats["errors"][:10]:
                 print(f"  - {e}")
 
+    elif cmd == "local":
+        if len(sys.argv) < 3:
+            print("Error: provide path to TSV directory")
+            sys.exit(1)
+        tsv_dir = sys.argv[2]
+        result = ingest_13f_local(tsv_dir)
+        print(f"Institutions: {result['institutions_upserted']}")
+        print(f"Holdings:     {result['holdings_inserted']}")
+        print(f"Skipped:      {result['holdings_skipped']}")
+        print(f"CUSIPs:       {result['cusips_matched']}")
+        if result["errors"]:
+            print(f"Errors: {len(result['errors'])}")
+            for e in result["errors"]:
+                print(f"  - {e}")
+
+    elif cmd == "health":
+        data_health_report()
+
     elif cmd == "latest-quarter":
         q = get_latest_available_quarter()
         if q:
@@ -854,5 +1269,5 @@ if __name__ == "__main__":
 
     else:
         print(f"Unknown command: {cmd}")
-        print("Valid commands: seed, ingest, incremental, latest-quarter, enrich")
+        print("Valid commands: seed, ingest, incremental, local, health, latest-quarter, enrich")
         sys.exit(1)

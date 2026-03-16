@@ -277,7 +277,7 @@ def bulk_load(
         List of dicts: [{"cik": str, "name": str, "forms": [str, ...]}]
     """
     if cache_dir is None:
-        cache_dir = Path("http_cache")
+        cache_dir = Path("D:/sec-data/cache/rexfinhub")
     else:
         cache_dir = Path(cache_dir)
 

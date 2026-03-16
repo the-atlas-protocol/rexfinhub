@@ -105,7 +105,7 @@ def _record_pipeline_run(metrics: RunMetrics, triggered_by: str = "manual") -> N
 
 
 def run_pipeline(ciks: list[str], overrides: dict | None = None, since: str | None = None, until: str | None = None,
-                 output_root: Path | str = "outputs", cache_dir: Path | str = "http_cache",
+                 output_root: Path | str = "outputs", cache_dir: Path | str = "D:/sec-data/cache/rexfinhub",
                  user_agent: str | None = None, request_timeout: int = 45, pause: float = 0.35,
                  refresh_submissions: bool = True, refresh_max_age_hours: int = 6, refresh_force_now: bool = False,
                  force_reprocess: bool = False, max_workers: int = _DEFAULT_WORKERS,
