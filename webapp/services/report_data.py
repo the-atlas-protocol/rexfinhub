@@ -64,8 +64,8 @@ def _get_cache(db: Session | None = None) -> dict[str, Any]:
 # Formatting helpers
 # ---------------------------------------------------------------------------
 def _fmt_currency(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "$0"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     if abs(val) >= 1_000:
         return f"${val / 1_000:,.1f}B"
     if abs(val) >= 1:
@@ -74,15 +74,15 @@ def _fmt_currency(val: float) -> str:
 
 
 def _fmt_flow(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "$0"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     sign = "+" if val >= 0 else ""
     return f"{sign}{_fmt_currency(val)}"
 
 
 def _fmt_pct(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "0.0%"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     return f"{val:.1f}%"
 
 
@@ -884,12 +884,12 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
     Each segment is self-contained with its own timeline and REX spotlight.
     """
     empty_kpis = {
-        "count": 0, "total_aum": "$0",
-        "flow_1w": "$0", "flow_1w_positive": True,
-        "flow_1m": "$0", "flow_1m_positive": True,
-        "rex_count": 0, "rex_aum": "$0",
-        "rex_flow_1w": "$0", "rex_flow_1w_positive": True,
-        "rex_share": "0.0%",
+        "count": 0, "total_aum": "--",
+        "flow_1w": "--", "flow_1w_positive": True,
+        "flow_1m": "--", "flow_1m_positive": True,
+        "rex_count": 0, "rex_aum": "--",
+        "rex_flow_1w": "--", "rex_flow_1w_positive": True,
+        "rex_share": "--",
     }
     if df.empty:
         return {
@@ -914,6 +914,7 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
         "total_aum": _fmt_currency(total_aum),
         "flow_1w": _fmt_flow(flow_1w),
         "flow_1w_positive": flow_1w >= 0,
+        "flow_1w_raw": flow_1w,
         "flow_1m": _fmt_flow(flow_1m),
         "flow_1m_positive": flow_1m >= 0,
         "rex_count": len(rex_df),
@@ -986,10 +987,16 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
     issuers.sort(key=lambda x: x["aum"], reverse=True)
 
     # Top 10 / Bottom 10 by 1W flow
+    # Only show actual inflows (>0) and outflows (<0), no overlap
     sorted_df = df.sort_values("fund_flow_1week", ascending=False)
-    top10 = _segment_fund_rows(sorted_df.head(10), total_aum)
+    inflow_df = sorted_df[sorted_df["fund_flow_1week"] > 0].head(10)
+    top10 = _segment_fund_rows(inflow_df, total_aum)
+    top10_tickers = set(inflow_df["ticker_clean"].tolist()) if "ticker_clean" in inflow_df.columns else set()
+    outflow_df = sorted_df[sorted_df["fund_flow_1week"] < 0]
+    if "ticker_clean" in outflow_df.columns:
+        outflow_df = outflow_df[~outflow_df["ticker_clean"].isin(top10_tickers)]
     bottom10 = _segment_fund_rows(
-        sorted_df.tail(10).sort_values("fund_flow_1week", ascending=True),
+        outflow_df.tail(10).sort_values("fund_flow_1week", ascending=True),
         total_aum,
     )
 
@@ -1192,13 +1199,17 @@ def get_li_report(db: Session | None = None) -> dict:
         "total_aum": _fmt_currency(_rex_aum),
         "flow_1w": _fmt_flow(_rex_flow),
         "flow_1w_positive": _rex_flow >= 0,
-        "share": f"{(_rex_aum / total_aum * 100):.1f}%" if total_aum > 0 else "0.0%",
+        "share": f"{(_rex_aum / total_aum * 100):.1f}%" if total_aum > 0 else "--",
     }
 
-    # Top 10 / Bottom 10 by 1W flow
+    # Top 10 / Bottom 10 by 1W flow (only actual inflows/outflows, no overlap)
     li_sorted = li.sort_values("fund_flow_1week", ascending=False)
-    top10 = _fund_rows(li_sorted.head(10), total_aum)
-    bottom10 = _fund_rows(li_sorted.tail(10).sort_values("fund_flow_1week", ascending=True), total_aum)
+    li_inflows = li_sorted[li_sorted["fund_flow_1week"] > 0].head(10)
+    top10 = _fund_rows(li_inflows, total_aum)
+    li_outflows = li_sorted[li_sorted["fund_flow_1week"] < 0]
+    bottom10 = _fund_rows(
+        li_outflows.tail(10).sort_values("fund_flow_1week", ascending=True), total_aum
+    )
 
     # Historical AUM chart (monthly, by issuer)
     li_tickers = li["ticker_clean"].tolist()
@@ -1407,7 +1418,7 @@ def get_cc_report(db: Session | None = None) -> dict:
         "total_aum": _fmt_currency(rex_total_aum),
         "flow_1w": _fmt_flow(_rex_cc_flow),
         "flow_1w_positive": _rex_cc_flow >= 0,
-        "share": f"{(rex_total_aum / total_aum * 100):.1f}%" if total_aum > 0 else "0.0%",
+        "share": f"{(rex_total_aum / total_aum * 100):.1f}%" if total_aum > 0 else "--",
     }
 
     # Segment tabs: All, Traditional, Synthetic, Single Stock
@@ -1702,8 +1713,8 @@ def get_ss_report(db: Session | None = None) -> dict:
         "num_leveraged": num_leveraged,
         "num_cc": num_cc,
         "total_aum": _fmt_currency(total_aum),
-        "aum_leveraged": _fmt_currency(float(ss_li["aum"].sum())) if not ss_li.empty else "$0",
-        "aum_cc": _fmt_currency(float(ss_cc["aum"].sum())) if not ss_cc.empty else "$0",
+        "aum_leveraged": _fmt_currency(float(ss_li["aum"].sum())) if not ss_li.empty else "--",
+        "aum_cc": _fmt_currency(float(ss_cc["aum"].sum())) if not ss_cc.empty else "--",
         "aum_change_1w": aum_change_1w,
         "aum_change_positive": aum_change_positive,
         "issuers": len(issuers_unique),
@@ -1792,10 +1803,14 @@ def get_ss_report(db: Session | None = None) -> dict:
             "yield_fmt": _fmt_pct(_safe_float(r.get("annualized_yield", 0))),
         })
 
-    # Top 10 / Bottom 10 by 1W flow
+    # Top 10 / Bottom 10 by 1W flow (only actual inflows/outflows, no overlap)
     ss_sorted = ss.sort_values("fund_flow_1week", ascending=False)
-    ss_top10 = _fund_rows(ss_sorted.head(10), total_aum)
-    ss_bottom10 = _fund_rows(ss_sorted.tail(10).sort_values("fund_flow_1week", ascending=True), total_aum)
+    ss_inflows = ss_sorted[ss_sorted["fund_flow_1week"] > 0].head(10)
+    ss_top10 = _fund_rows(ss_inflows, total_aum)
+    ss_outflows = ss_sorted[ss_sorted["fund_flow_1week"] < 0]
+    ss_bottom10 = _fund_rows(
+        ss_outflows.tail(10).sort_values("fund_flow_1week", ascending=True), total_aum
+    )
 
     # Build group maps
     ss_tickers = ss["ticker_clean"].tolist()
@@ -2060,11 +2075,15 @@ def get_flow_report(db: Session | None = None) -> dict:
             if peer_total_aum > 0 else 0.0
         )
 
+        suite_rex_flow_1m = float(suite_rex_df["fund_flow_1month"].sum()) if (not suite_rex_df.empty and "fund_flow_1month" in suite_rex_df.columns) else 0.0
+
         rex_kpis_suite = {
             "count": len(suite_rex_df),
             "total_aum": _fmt_currency(suite_rex_aum),
             "flow_1w": _fmt_flow(suite_rex_flow_1w),
             "flow_1w_positive": suite_rex_flow_1w >= 0,
+            "flow_1w_raw": suite_rex_flow_1w,
+            "flow_1m_raw": suite_rex_flow_1m,
             "market_share": _fmt_pct(suite_rex_share),
         }
 

@@ -38,6 +38,18 @@ _REX_ROW_BG = "#e8f5e9"
 _REX_GREEN = "#27ae60"
 _REX_GREEN_LIGHT = "rgba(39,174,96,0.25)"
 
+# Suite brand colors (section title underline + segment divider)
+_SUITE_COLORS = {
+    "T-REX": "#A44A3F",
+    "MicroSectors": "#00B050",
+    "Growth & Income": "#4BB3FD",
+    "Equity Premium Income": "#F3DFC1",
+    "IncomeMax": _ORANGE,
+    "Autocallable": "#F3DFC1",
+    "Crypto": "#5227CA",
+    "Thematic": "#0496FF",
+}
+
 _CHART_COLORS = ["#0984e3", "#00897B", "#e67e22", "#8e44ad", "#e74c3c",
                  "#2ecc71", "#f39c12", "#3498db", "#1abc9c", "#e91e63"]
 
@@ -53,8 +65,8 @@ def _flow_color(val: float) -> str:
 
 
 def _fmt_currency(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "$0"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     if abs(val) >= 1_000:
         return f"${val / 1_000:,.1f}B"
     if abs(val) >= 1:
@@ -63,22 +75,22 @@ def _fmt_currency(val: float) -> str:
 
 
 def _fmt_flow(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "$0"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     sign = "+" if val >= 0 else ""
     return f"{sign}{_fmt_currency(val)}"
 
 
 def _fmt_pct(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "0.0%"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     sign = "+" if val > 0 else ""
     return f"{sign}{val:.1f}%"
 
 
 def _fmt_pct_nosign(val: float) -> str:
-    if val is None or (isinstance(val, float) and math.isnan(val)):
-        return "0.0%"
+    if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
+        return "--"
     return f"{val:.1f}%"
 
 
@@ -223,6 +235,50 @@ def _kpi_row(kpis: list[tuple[str, str, str]], label: str = "") -> str:
     )
 
 
+def _flow_dual_kpi(market_row: list, rex_row: list | None = None) -> str:
+    """Compact dual-row KPI box: Market row on top, REX row below, single border.
+
+    Each item is (label, value) or (label, value, is_positive_flag).
+    """
+    def _cell(label: str, value: str, color: str = _NAVY) -> str:
+        return (
+            f'<td style="padding:6px 4px;text-align:center;">'
+            f'<div style="font-size:16px;font-weight:700;color:{color};">{_esc(value)}</div>'
+            f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;'
+            f'letter-spacing:0.4px;margin-top:1px;">{_esc(label)}</div></td>'
+        )
+
+    def _build_cells(items: list) -> str:
+        cells = []
+        for item in items:
+            if len(item) == 3:
+                label, value, is_positive = item
+                color = _GREEN if is_positive else _RED
+            else:
+                label, value = item[0], item[1]
+                color = _NAVY
+            cells.append(_cell(label, value, color))
+        return "".join(cells)
+
+    mkt_cells = _build_cells(market_row)
+    rows = f'<tr style="background:{_LIGHT};">{mkt_cells}</tr>'
+    if rex_row:
+        rex_cells = _build_cells(rex_row)
+        rows += (
+            f'<tr><td colspan="{len(market_row)}" style="padding:0;">'
+            f'<div style="border-top:1px solid {_BORDER};"></div></td></tr>'
+            f'<tr style="background:#e8f5e9;">{rex_cells}</tr>'
+        )
+
+    return (
+        f'<tr><td style="padding:10px 30px 5px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border:1px solid {_BORDER};border-radius:8px;overflow:hidden;">'
+        f'{rows}'
+        f'</table></td></tr>'
+    )
+
+
 def _section_title(title: str, accent: str = _NAVY) -> str:
     return (
         f'<tr><td style="padding:18px 30px 5px;">'
@@ -230,6 +286,11 @@ def _section_title(title: str, accent: str = _NAVY) -> str:
         f'padding-bottom:6px;border-bottom:2px solid {accent};">{_esc(title)}</div>'
         f'</td></tr>'
     )
+
+
+def _segment_block(content: str, accent: str = _NAVY) -> str:
+    """Pass-through wrapper — colored bar is on the section title itself."""
+    return content
 
 
 def _sub_heading(title: str) -> str:
@@ -322,7 +383,7 @@ def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
 def _fmt_aum_axis(val: float) -> str:
     """Y-axis label formatter matching catFmtMoney from market.js."""
     if abs(val) >= 1_000:
-        return f"${val / 1_000:.1f}B"
+        return f"${val / 1_000:,.1f}B"
     if abs(val) >= 1:
         return f"${val:.0f}M"
     return f"${val * 1_000:.0f}K"
@@ -501,9 +562,11 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
 
     Bars ordered by magnitude (largest at top). Replaces the Top 10 tables.
     """
-    top_in = sorted(inflows[:n], key=lambda f: f.get("flow_1w", 0), reverse=True)
-    # Outflows: smallest magnitude at top, largest at bottom (mirrors inflows visually)
-    top_out = sorted(outflows[:n], key=lambda f: abs(f.get("flow_1w", 0)), reverse=False)
+    top_in = [f for f in inflows[:n] if f.get("flow_1w", 0) > 0]
+    top_in.sort(key=lambda f: f.get("flow_1w", 0), reverse=True)
+    # Outflows: only negative flows, smallest magnitude at top, largest at bottom
+    top_out = [f for f in outflows[:n] if f.get("flow_1w", 0) < 0]
+    top_out.sort(key=lambda f: abs(f.get("flow_1w", 0)), reverse=False)
     if not top_in and not top_out:
         return ""
 
@@ -733,12 +796,12 @@ def _segment_tables(issuers: list[dict], top10: list[dict], bottom10: list[dict]
                     breakdown_direction: bool = False,
                     breakdown_type: bool = False,
                     accent: str = _TEAL) -> str:
-    """Build segment tables: Market Share + Issuer table, then breakdown + flows."""
-    body = ""
+    """Build segment tables: Issuer table, breakdown + flows.
 
-    # --- Market Share + Issuer Breakdown at top ---
-    if issuers:
-        body += _issuer_share_bars(issuers, n=6)
+    Market share stacked bars removed — covered by Market Position section
+    with historical charts at the top of the report.
+    """
+    body = ""
 
     if issuers:
         body += _sub_heading("Issuer Breakdown")
@@ -772,12 +835,8 @@ def _segment_tables(issuers: list[dict], top10: list[dict], bottom10: list[dict]
         body += _table(headers, rows, aligns, highlight_col=3,
                        rex_rows=rex_idxs, col_widths=col_widths)
 
-    # --- Attribute breakdown chart + table ---
+    # --- Attribute breakdown table ---
     if breakdown:
-        body += _horizontal_bar_chart(
-            breakdown, value_key="aum", label_key="name", value_fmt_key="aum_fmt",
-            title=f"AUM by {breakdown_label}", max_bars=8, accent=accent,
-        )
         body += _breakdown_table(
             breakdown, breakdown_label,
             include_yield=include_yield,
@@ -795,33 +854,6 @@ def _segment_tables(issuers: list[dict], top10: list[dict], bottom10: list[dict]
 # ---------------------------------------------------------------------------
 # Unified report email builder
 # ---------------------------------------------------------------------------
-def _segment_kpi_banner(kpis: dict) -> str:
-    """Render a 2-row KPI banner for one segment: market row + REX row."""
-    # Row 1: Market totals
-    market_items = [
-        ("Total ETPs", str(kpis.get("count", 0)), _NAVY),
-        ("Total AUM", kpis.get("total_aum", "$0"), _NAVY),
-        ("1W Net Flow", kpis.get("flow_1w", "$0"),
-         _GREEN if kpis.get("flow_1w_positive", True) else _RED),
-        ("1M Net Flow", kpis.get("flow_1m", "$0"),
-         _GREEN if kpis.get("flow_1m_positive", True) else _RED),
-    ]
-    body = _kpi_row(market_items)
-
-    # Row 2: REX inside (only if REX funds exist in this segment)
-    if kpis.get("rex_count", 0) > 0:
-        rex_items = [
-            ("REX ETPs", str(kpis.get("rex_count", 0)), _REX_GREEN),
-            ("REX AUM", kpis.get("rex_aum", "$0"), _REX_GREEN),
-            ("REX 1W Flow", kpis.get("rex_flow_1w", "$0"),
-             _GREEN if kpis.get("rex_flow_1w_positive", True) else _RED),
-            ("REX Share", kpis.get("rex_share", "0.0%"), _REX_GREEN),
-        ]
-        body += _kpi_row(rex_items, label="REX Shares")
-
-    return body
-
-
 # ---------------------------------------------------------------------------
 # Key Highlights — Executive callout boxes
 # ---------------------------------------------------------------------------
@@ -847,43 +879,12 @@ def _key_highlights_box(bullets: list[str], accent: str = _NAVY) -> str:
         f'style="background:{bg};border-left:4px solid {accent};border-radius:0 8px 8px 0;">'
         f'<tr><td style="padding:14px 18px;">'
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-        f'<tr><td style="padding:0 0 8px;font-size:10px;font-weight:700;color:{accent};'
+        f'<tr><td style="padding:0 0 8px;font-size:13px;font-weight:700;color:{accent};'
         f'text-transform:uppercase;letter-spacing:1px;">Key Highlights</td></tr>'
         f'{items}'
         f'</table></td></tr>'
         f'</table></td></tr>'
     )
-
-
-def _mini_callout(text: str, accent: str = _NAVY) -> str:
-    """Small inline callout within a section -- one-line highlight for quick scanning."""
-    if not text:
-        return ""
-    return (
-        f'<tr><td style="padding:4px 30px 8px;">'
-        f'<div style="padding:8px 14px;background:#f8f9fa;border-left:3px solid {accent};'
-        f'border-radius:0 4px 4px 0;font-size:12px;color:{_NAVY};">'
-        f'{_esc(text)}</div>'
-        f'</td></tr>'
-    )
-
-
-def _segment_callout(top10: list[dict], bottom10: list[dict],
-                     rex_funds: list[dict] | None = None) -> str:
-    """Auto-generate a one-line mini callout for a segment based on its movers."""
-    parts = []
-    # Top mover
-    if top10:
-        t = top10[0]
-        parts.append(f"{t['ticker']}: {t.get('flow_1w_fmt', '$0')} 1W (top inflow)")
-    # REX note if present
-    if rex_funds:
-        best_rex = max(rex_funds, key=lambda f: abs(f.get("flow_1w", 0)))
-        if abs(best_rex.get("flow_1w", 0)) > 0 and (not top10 or best_rex["ticker"] != top10[0]["ticker"]):
-            parts.append(f"REX {best_rex['ticker']}: {best_rex['flow_1w_fmt']}")
-    if not parts:
-        return ""
-    return _mini_callout(" | ".join(parts))
 
 
 def _li_highlights(data: dict) -> list[str]:
@@ -894,10 +895,10 @@ def _li_highlights(data: dict) -> list[str]:
         return bullets
 
     # 1. Market direction
-    total_aum = kpis.get("total_aum", "$0")
-    flow_1w = kpis.get("flow_1w", "$0")
+    total_aum = kpis.get("total_aum", "--")
+    flow_1w = kpis.get("flow_1w", "--")
     count = kpis.get("count", 0)
-    bullets.append(f"L&I market: {total_aum} AUM across {count} ETPs ({flow_1w} 1W net flow)")
+    bullets.append(f"L&I market: {total_aum} AUM across {count:,} ETPs ({flow_1w} 1W net flow)")
 
     # 2. REX position
     rex = data.get("rex_kpis", {})
@@ -931,8 +932,8 @@ def _li_highlights(data: dict) -> list[str]:
     ss_kpis = data.get("ss_kpis", {})
     idx_kpis = data.get("index_kpis", {})
     if ss_kpis.get("count", 0) > 0 and idx_kpis.get("count", 0) > 0:
-        ss_flow = ss_kpis.get("flow_1w", "$0")
-        idx_flow = idx_kpis.get("flow_1w", "$0")
+        ss_flow = ss_kpis.get("flow_1w", "--")
+        idx_flow = idx_kpis.get("flow_1w", "--")
         bullets.append(f"Single stock: {ss_flow} 1W vs index/ETF: {idx_flow} 1W")
 
     return bullets[:5]
@@ -946,11 +947,11 @@ def _cc_highlights(data: dict) -> list[str]:
         return bullets
 
     # 1. Market direction
-    total_aum = kpis.get("total_aum", "$0")
-    flow_1w = kpis.get("flow_1w", "$0")
+    total_aum = kpis.get("total_aum", "--")
+    flow_1w = kpis.get("flow_1w", "--")
     count = kpis.get("count", 0)
-    avg_yield = kpis.get("avg_yield", "0.0%")
-    bullets.append(f"Income market: {total_aum} AUM, {count} ETPs, {avg_yield} avg yield ({flow_1w} 1W)")
+    avg_yield = kpis.get("avg_yield", "--")
+    bullets.append(f"Income market: {total_aum} AUM, {count:,} ETPs, {avg_yield} avg yield ({flow_1w} 1W)")
 
     # 2. REX position
     rex = data.get("rex_kpis", {})
@@ -1026,7 +1027,7 @@ def _flow_highlights(data: dict) -> list[str]:
         best = max(suites, key=lambda s: abs(
             sum(f.get("flow_1w", 0) for f in s.get("top10", []) + s.get("bottom10", []))
         ))
-        best_flow = best["kpis"].get("flow_1w", "$0")
+        best_flow = best["kpis"].get("flow_1w", "--")
         bullets.append(
             f"{best['label']} category: {best_flow} 1W flow, "
             f"{best['kpis'].get('count', 0)} ETPs"
@@ -1051,38 +1052,103 @@ def _flow_highlights(data: dict) -> list[str]:
 
 
 
-# (removed: _rex_scorecard and _competitive_movers -- replaced by per-suite layout in build_flow_email)
-
-
 # ---------------------------------------------------------------------------
-# Market Position section (market share charts + summary table)
+# Flow-specific metrics (differentiate from L&I/Income reports)
 # ---------------------------------------------------------------------------
-def _market_position_section(cat_ss: str, cat_idx: str,
-                             label_ss: str, label_idx: str,
-                             accent: str) -> str:
-    """Generate Market Position section with summary table + 4 charts.
+def _flow_metrics_row(cat_kpis: dict, rex_kpis: dict, issuers: list[dict]) -> str:
+    """Compact flow metrics row: capture rate + flow rank + flow momentum.
 
-    Args:
-        cat_ss:  category_display value for single stock segment
-        cat_idx: category_display value for index/ETF segment
-        label_ss / label_idx: human-readable labels
-        accent: color for section header
+    These are flow-specific insights not found in L&I/Income reports.
     """
+    metrics = []
+
+    # 1. Flow capture rate: REX 1W flow / category 1W flow
+    cat_flow_raw = cat_kpis.get("flow_1w_raw", 0)
+    rex_flow_raw = rex_kpis.get("flow_1w_raw", 0)
+    if cat_flow_raw and abs(cat_flow_raw) > 0 and rex_kpis.get("count", 0) > 0:
+        capture = rex_flow_raw / cat_flow_raw * 100 if cat_flow_raw > 0 else 0
+        if capture != 0:
+            sign = "+" if capture >= 0 else ""
+            cap_color = _GREEN if capture >= 0 else _RED
+            metrics.append(
+                f'<td style="padding:6px 10px;text-align:center;">'
+                f'<div style="font-size:14px;font-weight:700;color:{cap_color};">{sign}{capture:.1f}%</div>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Flow Capture</div></td>'
+            )
+
+    # 2. REX flow rank among issuers (by 1W flow magnitude)
+    if issuers and rex_kpis.get("count", 0) > 0:
+        sorted_by_flow = sorted(issuers, key=lambda i: i.get("flow_1w", 0), reverse=True)
+        rex_rank = None
+        for i, iss in enumerate(sorted_by_flow):
+            if iss.get("is_rex", False):
+                rex_rank = i + 1
+                break
+        if rex_rank is not None:
+            rank_color = _GREEN if rex_rank <= 3 else _NAVY
+            metrics.append(
+                f'<td style="padding:6px 10px;text-align:center;">'
+                f'<div style="font-size:14px;font-weight:700;color:{rank_color};">#{rex_rank}</div>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Flow Rank</div></td>'
+            )
+
+    # 3. Flow momentum: 1W vs 1M direction
+    rex_1w = rex_kpis.get("flow_1w_raw", 0)
+    rex_1m = rex_kpis.get("flow_1m_raw", 0)
+    if rex_kpis.get("count", 0) > 0 and (rex_1w or rex_1m):
+        if rex_1w > 0 and rex_1m > 0:
+            momentum = "Sustained"
+            mom_color = _GREEN
+        elif rex_1w > 0 and rex_1m <= 0:
+            momentum = "Turning"
+            mom_color = _GREEN
+        elif rex_1w <= 0 and rex_1m > 0:
+            momentum = "Fading"
+            mom_color = _ORANGE
+        else:
+            momentum = "Weak"
+            mom_color = _RED
+        metrics.append(
+            f'<td style="padding:6px 10px;text-align:center;">'
+            f'<div style="font-size:14px;font-weight:700;color:{mom_color};">{momentum}</div>'
+            f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Momentum</div></td>'
+        )
+
+    if not metrics:
+        return ""
+
+    return (
+        f'<tr><td style="padding:6px 30px 4px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{_LIGHT};border-radius:6px;border:1px solid {_BORDER};">'
+        f'<tr>{"".join(metrics)}</tr>'
+        f'</table></td></tr>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Market Position: summary table + per-segment charts
+# ---------------------------------------------------------------------------
+def _market_position_summary(cat_ss: str, cat_idx: str,
+                              label_ss: str, label_idx: str,
+                              accent: str,
+                              ss_kpis: dict | None = None,
+                              idx_kpis: dict | None = None) -> str:
+    """Summary table at top of report (no charts — those go in each segment)."""
     try:
         from scripts.generate_market_share_charts import generate_category_charts
     except Exception as e:
         log.warning("Market share charts unavailable: %s", e)
         return ""
 
-    cats = [
-        (cat_ss, label_ss),
-        (cat_idx, label_idx),
-    ]
+    kpis_list = [ss_kpis or {}, idx_kpis or {}]
+    cats = [(cat_ss, label_ss), (cat_idx, label_idx)]
     results = []
-    for cat_db, label in cats:
+    for i, (cat_db, label) in enumerate(cats):
         try:
             r = generate_category_charts(cat_db, label)
             if r:
+                r["_kpis"] = kpis_list[i]
                 results.append(r)
         except Exception as e:
             log.warning("Chart generation failed for %s: %s", label, e)
@@ -1090,7 +1156,6 @@ def _market_position_section(cat_ss: str, cat_idx: str,
     if not results:
         return ""
 
-    # Build summary table rows
     tbl_rows = ""
     for d in results:
         cur = d["cur"]
@@ -1098,26 +1163,21 @@ def _market_position_section(cat_ss: str, cat_idx: str,
         yr1_aum = _fmt_currency(yr1["rex_aum"]) if yr1 else "--"
         yr1_share = f"{yr1['rex_share']:.1f}%" if yr1 else "--"
         peak = d.get("peak_share", 0)
+        kpi = d.get("_kpis", {})
+        rex_flow = kpi.get("rex_flow_1w", "--")
+        flow_color = _GREEN if kpi.get("rex_flow_1w_positive", True) else _RED
 
         tbl_rows += f"""<tr>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;font-weight:600;font-size:11px;">{_esc(d['label'])}</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-size:11px;">{_fmt_currency(cur['total_aum'])}</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-weight:700;color:{_BLUE};font-size:11px;">{_fmt_currency(cur['rex_aum'])}</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:center;font-size:11px;">{cur['rex_products']}</td>
+  <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-weight:700;color:{flow_color};font-size:11px;">{rex_flow}</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-weight:700;color:{_RED};font-size:11px;">{cur['rex_share']:.1f}%</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-size:10px;color:#888;">{yr1_aum}</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-size:10px;color:#888;">{yr1_share}</td>
   <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;text-align:right;font-size:10px;color:#888;">{peak:.1f}%</td>
 </tr>"""
-
-    # Chart images
-    chart_html = ""
-    for d in results:
-        chart_html += f"""<tr><td style="padding:10px 30px 2px;">
-  <div style="font-size:12px;font-weight:700;color:{_NAVY};border-left:3px solid {_BLUE};padding-left:8px;margin-bottom:4px;">{_esc(d['label'])}</div>
-</td></tr>
-<tr><td style="padding:2px 30px;"><img src="data:image/png;base64,{d['rex_b64']}" style="width:100%;max-width:620px;" alt="REX Position"></td></tr>
-<tr><td style="padding:2px 30px 8px;"><img src="data:image/png;base64,{d['comp_b64']}" style="width:100%;max-width:620px;" alt="Competitive Landscape"></td></tr>"""
 
     hdr_style = "padding:4px 8px;font-size:8px;font-weight:700;color:#636e72;text-transform:uppercase;border-bottom:2px solid {navy};".format(navy=_NAVY)
 
@@ -1129,6 +1189,7 @@ def _market_position_section(cat_ss: str, cat_idx: str,
       <td style="{hdr_style}text-align:right;">Market</td>
       <td style="{hdr_style}text-align:right;color:{_BLUE};">REX AUM</td>
       <td style="{hdr_style}text-align:center;">#</td>
+      <td style="{hdr_style}text-align:right;">1W Flow</td>
       <td style="{hdr_style}text-align:right;color:{_RED};">Share</td>
       <td style="{hdr_style}text-align:right;">1Y Ago</td>
       <td style="{hdr_style}text-align:right;">1Y Share</td>
@@ -1136,8 +1197,28 @@ def _market_position_section(cat_ss: str, cat_idx: str,
     </tr>
     {tbl_rows}
   </table>
-</td></tr>
-{chart_html}"""
+</td></tr>"""
+
+
+def _segment_charts(cat_db: str, label: str) -> str:
+    """Generate REX position + competitive landscape charts for one segment."""
+    try:
+        from scripts.generate_market_share_charts import generate_category_charts
+    except Exception as e:
+        log.warning("Market share charts unavailable: %s", e)
+        return ""
+
+    try:
+        r = generate_category_charts(cat_db, label)
+    except Exception as e:
+        log.warning("Chart generation failed for %s: %s", label, e)
+        return ""
+
+    if not r:
+        return ""
+
+    return f"""<tr><td style="padding:2px 30px;"><img src="data:image/png;base64,{r['rex_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="REX Position"></td></tr>
+<tr><td style="padding:2px 30px 8px;"><img src="data:image/png;base64,{r['comp_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="Competitive Landscape"></td></tr>"""
 
 
 def _build_report_email(data: dict, report_type: str, title: str, accent: str,
@@ -1145,13 +1226,11 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
                         highlights: list[str] | None = None) -> str:
     """Unified email builder for both L&I and Income reports.
 
-    Each segment is self-contained:
-      KPI Banner (market + REX) -> AUM Timeline -> REX Spotlight ->
-      Market Share + Issuer Breakdown + Category/Underlier Breakdown + Flows
-
     Layout:
-      1. Single Stock segment (KPI, chart, spotlight, tables)
-      2. Index / ETF / Basket segment (KPI, chart, spotlight, tables)
+      1. Key Highlights
+      2. Market Position summary table
+      3. Per segment (Single Stock, then Index/ETF/Basket):
+         Charts -> REX Spotlight -> Issuer table -> Breakdown table -> Flows
     """
     date_str = _data_date_str(data)
 
@@ -1163,50 +1242,36 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
     is_li = report_type == "li"
     body = ""
 
+    # Category DB names for chart generation
+    if is_li:
+        ss_cat = "Leverage & Inverse - Single Stock"
+        idx_cat = "Leverage & Inverse - Index/Basket/ETF Based"
+        ss_label, idx_label = "L&I Single Stock", "L&I Index/ETF"
+    else:
+        ss_cat = "Income - Single Stock"
+        idx_cat = "Income - Index/Basket/ETF Based"
+        ss_label, idx_label = "Income Single Stock", "Income Index/ETF"
+
     # Key Highlights box (right after header, before any sections)
     if highlights:
         body += _key_highlights_box(highlights, accent)
 
-    # Market Position section (summary table + market share charts)
-    if is_li:
-        body += _market_position_section(
-            "Leverage & Inverse - Single Stock",
-            "Leverage & Inverse - Index/Basket/ETF Based",
-            "L&I Single Stock", "L&I Index/ETF", accent,
-        )
-    else:
-        body += _market_position_section(
-            "Income - Single Stock",
-            "Income - Index/Basket/ETF Based",
-            "Income Single Stock", "Income Index/ETF", accent,
-        )
-
-    # ====================================================================
-    # SINGLE STOCK SEGMENT (first)
-    # ====================================================================
-    body += _section_title("Single Stock", accent)
-
-    # Mini callout for this segment
-    body += _segment_callout(
-        data.get("ss_top10", []), data.get("ss_bottom10", []),
-        data.get("ss_rex_funds", []),
+    # Market Position summary table (overview at top — charts go in each segment)
+    body += _market_position_summary(
+        ss_cat, idx_cat, ss_label, idx_label, accent,
+        ss_kpis=data.get("ss_kpis"),
+        idx_kpis=data.get("index_kpis"),
     )
 
-    # KPI Banner
-    body += _segment_kpi_banner(data.get("ss_kpis", {}))
-
-    # AUM Timeline Chart
-    ss_timeline = data.get("ss_aum_timeline", {})
-    if ss_timeline.get("labels"):
-        body += _aum_timeline_chart(ss_timeline, accent)
-
-    # REX Spotlight
+    # ====================================================================
+    # SINGLE STOCK SEGMENT
+    # ====================================================================
+    ss_seg = _section_title("Single Stock", accent)
+    ss_seg += _segment_charts(ss_cat, ss_label)
     ss_rex = data.get("ss_rex_funds", [])
     if ss_rex:
-        body += _rex_spotlight(ss_rex, _GREEN)
-
-    # Market Share + Issuer + Breakdown + Flows
-    body += _segment_tables(
+        ss_seg += _rex_spotlight(ss_rex, _GREEN)
+    ss_seg += _segment_tables(
         data.get("ss_issuers", []),
         data.get("ss_top10", []),
         data.get("ss_bottom10", []),
@@ -1216,33 +1281,17 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
         breakdown_direction=is_li,
         breakdown_type=not is_li,
     )
+    body += _segment_block(ss_seg, accent)
 
     # ====================================================================
-    # INDEX / ETF / BASKET SEGMENT (second)
+    # INDEX / ETF / BASKET SEGMENT
     # ====================================================================
-    body += _section_title("Index / ETF / Basket", accent)
-
-    # Mini callout for this segment
-    body += _segment_callout(
-        data.get("index_top10", []), data.get("index_bottom10", []),
-        data.get("index_rex_funds", []),
-    )
-
-    # KPI Banner
-    body += _segment_kpi_banner(data.get("index_kpis", {}))
-
-    # AUM Timeline Chart
-    idx_timeline = data.get("index_aum_timeline", {})
-    if idx_timeline.get("labels"):
-        body += _aum_timeline_chart(idx_timeline, accent)
-
-    # REX Spotlight (only if REX funds in this segment)
+    idx_seg = _section_title("Index / ETF / Basket", accent)
+    idx_seg += _segment_charts(idx_cat, idx_label)
     idx_rex = data.get("index_rex_funds", [])
     if idx_rex:
-        body += _rex_spotlight(idx_rex, _GREEN)
-
-    # Market Share + Issuer + Breakdown + Flows
-    body += _segment_tables(
+        idx_seg += _rex_spotlight(idx_rex, _GREEN)
+    idx_seg += _segment_tables(
         data.get("index_issuers", []),
         data.get("index_top10", []),
         data.get("index_bottom10", []),
@@ -1252,6 +1301,7 @@ def _build_report_email(data: dict, report_type: str, title: str, accent: str,
         breakdown_direction=is_li,
         breakdown_type=not is_li,
     )
+    body += _segment_block(idx_seg, accent)
 
     return _wrap_email(title, accent, body, dashboard_url, date_str)
 
@@ -1273,7 +1323,7 @@ def build_li_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
     highlights = _li_highlights(data)
     html = _build_report_email(
-        data, "li", title, _NAVY,
+        data, "li", title, "#A44A3F",
         dashboard_url=dashboard_url, include_yield=False,
         highlights=highlights,
     )
@@ -1297,7 +1347,7 @@ def build_cc_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
     highlights = _cc_highlights(data)
     html = _build_report_email(
-        data, "cc", title, _NAVY,
+        data, "cc", title, "#F3DFC1",
         dashboard_url=dashboard_url, include_yield=True,
         highlights=highlights,
     )
@@ -1350,28 +1400,26 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     highlights = _flow_highlights(data)
     body += _key_highlights_box(highlights)
 
-    # --- 2. Grand KPIs (ALL Active ETPs) ---
+    # --- 2. Market + REX snapshot (compact dual-row) ---
     body += _section_title("ETP Market Overview")
-    grand_kpi_items = [
-        ("Active ETPs", f'{grand_kpis.get("count", 0):,}', _NAVY),
-        ("Total AUM", grand_kpis.get("total_aum", "$0"), _NAVY),
-        ("1W Flow", grand_kpis.get("flow_1w", "$0"),
-         _GREEN if grand_kpis.get("flow_1w_positive", True) else _RED),
-        ("1M Flow", grand_kpis.get("flow_1m", "$0"),
-         _GREEN if grand_kpis.get("flow_1m_positive", True) else _RED),
-    ]
-    body += _kpi_row(grand_kpi_items)
-
-    # --- 3. REX Financial KPIs ---
-    body += _section_title("REX Financial")
-    rex_kpi_items = [
-        ("Funds", str(rex_kpis.get("count", 0)), _NAVY),
-        ("AUM", rex_kpis.get("total_aum", "$0"), _NAVY),
-        ("1W Flow", rex_kpis.get("flow_1w", "$0"),
-         _GREEN if rex_kpis.get("flow_1w_positive", True) else _RED),
-        ("Market Share", rex_kpis.get("market_share", "0.0%"), _NAVY),
-    ]
-    body += _kpi_row(rex_kpi_items)
+    body += _flow_dual_kpi(
+        market_row=[
+            ("Active ETPs", f'{grand_kpis.get("count", 0):,}'),
+            ("Market AUM", grand_kpis.get("total_aum", "--")),
+            ("1W Flow", grand_kpis.get("flow_1w", "--"),
+             grand_kpis.get("flow_1w_positive", True)),
+            ("1M Flow", grand_kpis.get("flow_1m", "--"),
+             grand_kpis.get("flow_1m_positive", True)),
+        ],
+        rex_row=[
+            ("REX Funds", str(rex_kpis.get("count", 0))),
+            ("REX AUM", rex_kpis.get("total_aum", "--")),
+            ("REX 1W Flow", rex_kpis.get("flow_1w", "--"),
+             rex_kpis.get("flow_1w_positive", True)),
+            ("REX 1M Flow", rex_kpis.get("flow_1m", "--"),
+             rex_kpis.get("flow_1m_positive", True)),
+        ],
+    )
 
     # --- 4. Per-Suite Deep Dives ---
     for suite in suites:
@@ -1382,44 +1430,49 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         if kpis.get("count", 0) == 0:
             continue
 
-        body += _section_title(
-            f'{suite["label"]}',
-        )
+        suite_label = suite["label"]
+        suite_color = _SUITE_COLORS.get(suite_label, _NAVY)
+
+        seg = _section_title(suite_label, suite_color)
 
         # Peer label
-        body += (
+        seg += (
             f'<tr><td style="padding:0 30px 8px;">'
             f'<div style="font-size:11px;color:{_GRAY};font-style:italic;">'
             f'Peer group: {_esc(suite.get("peer_label", ""))}'
             f'</div></td></tr>'
         )
 
-        # Category KPIs row
-        cat_kpi_items = [
-            ("ETPs", str(kpis.get("count", 0)), _NAVY),
-            ("AUM", kpis.get("total_aum", "$0"), _NAVY),
-            ("1W Flow", kpis.get("flow_1w", "$0"),
-             _GREEN if kpis.get("flow_1w_positive", True) else _RED),
-            ("1M Flow", kpis.get("flow_1m", "$0"),
-             _GREEN if kpis.get("flow_1m_positive", True) else _RED),
-        ]
-        body += _kpi_row(cat_kpi_items, label="Category")
-
-        # REX KPIs row (within this suite)
+        # Category + REX KPIs (compact dual-row)
+        rex_row = None
         if rex_s.get("count", 0) > 0:
-            rex_suite_items = [
-                ("REX Funds", str(rex_s.get("count", 0)), _REX_GREEN),
-                ("REX AUM", rex_s.get("total_aum", "$0"), _REX_GREEN),
-                ("REX 1W Flow", rex_s.get("flow_1w", "$0"),
-                 _GREEN if rex_s.get("flow_1w_positive", True) else _RED),
-                ("Market Share", rex_s.get("market_share", "0.0%"), _REX_GREEN),
+            rex_row = [
+                ("REX Funds", str(rex_s.get("count", 0))),
+                ("REX AUM", rex_s.get("total_aum", "--")),
+                ("REX 1W Flow", rex_s.get("flow_1w", "--"),
+                 rex_s.get("flow_1w_positive", True)),
+                ("REX 1M Flow", rex_s.get("flow_1m", "--"),
+                 rex_s.get("flow_1m_positive", True)),
             ]
-            body += _kpi_row(rex_suite_items, label="REX Financial")
+        seg += _flow_dual_kpi(
+            market_row=[
+                ("ETPs", str(kpis.get("count", 0))),
+                ("AUM", kpis.get("total_aum", "--")),
+                ("1W Flow", kpis.get("flow_1w", "--"),
+                 kpis.get("flow_1w_positive", True)),
+                ("1M Flow", kpis.get("flow_1m", "--"),
+                 kpis.get("flow_1m_positive", True)),
+            ],
+            rex_row=rex_row,
+        )
+
+        # Flow-specific metrics (capture rate + flow rank)
+        issuers = suite.get("issuers", [])[:8]
+        seg += _flow_metrics_row(kpis, rex_s, issuers)
 
         # Market share bar (REX highlighted in green via is_rex flag)
-        issuers = suite.get("issuers", [])[:8]
         if issuers:
-            body += _flow_share_bar(issuers, n=6)
+            seg += _flow_share_bar(issuers, n=6)
 
         # Issuer comparison table (REX rows highlighted)
         if issuers:
@@ -1436,14 +1489,16 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                     iss["flow_1w_fmt"], iss["flow_1m_fmt"],
                     f'{iss["market_share"]:.1f}%',
                 ])
-            body += _table(headers, iss_rows, aligns, highlight_col=3,
-                           rex_rows=rex_idxs, col_widths=widths)
+            seg += _table(headers, iss_rows, aligns, highlight_col=3,
+                          rex_rows=rex_idxs, col_widths=widths)
 
         # Flow bars (top 10 inflows / bottom 10 outflows)
         top10 = suite.get("top10", [])[:10]
         bot10 = suite.get("bottom10", [])[:10]
         if top10 or bot10:
-            body += _flow_bars(top10, bot10, n=10)
+            seg += _flow_bars(top10, bot10, n=10)
+
+        body += _segment_block(seg, suite_color)
 
     html = _wrap_email(title, _NAVY, body, dashboard_url, date_str)
     return html, []

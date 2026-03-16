@@ -70,6 +70,22 @@
         <a href="/screener/evaluate">Candidate Evaluator</a>
       </div>
     </div>
+    <div class="nav-dropdown">
+      <a href="/intel/" class="nav-dropdown-trigger {% if '/intel' in request.url.path %}active{% endif %}">13F Intel <span class="nav-caret">&#9662;</span></a>
+      <div class="nav-dropdown-menu">
+        <a href="/intel/">Hub Home</a>
+        <a href="/intel/rex">REX Quarter Report</a>
+        <a href="/intel/rex/filers">REX Filers</a>
+        <a href="/intel/rex/performance">REX Performance</a>
+        <a href="/intel/rex/sales">Sales Intelligence</a>
+        <a href="/intel/competitors">Competitors</a>
+        <a href="/intel/competitors/new-filers">New Filers</a>
+        <a href="/intel/products">Products</a>
+        <a href="/intel/country">Country Intel</a>
+        <a href="/intel/asia">Asia Intel</a>
+        <a href="/intel/trends">Trends</a>
+      </div>
+    </div>
     <a href="/downloads/" {% if '/downloads' in request.url.path %}class="active"{% endif %}>Exports</a>
     {% if request.session.get("is_admin") %}<a href="/admin/" {% if '/admin' in request.url.path %}class="active"{% endif %}>Admin</a>{% endif %}
     {% block nav_extra %}{% endblock %}

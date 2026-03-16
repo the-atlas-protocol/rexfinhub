@@ -184,6 +184,49 @@ def _classify_fund(series_name: str) -> str:
     return "other"
 
 
+def _dual_kpi_box(market_row: list, rex_row: list | None = None) -> str:
+    """Compact dual-row KPI box: Market row on top, REX row below, single border.
+
+    Each item is (label, value) or (label, value, is_positive_bool).
+    """
+    def _cell(label: str, value: str, color: str = _NAVY) -> str:
+        return (
+            f'<td style="padding:6px 4px;text-align:center;">'
+            f'<div style="font-size:16px;font-weight:700;color:{color};">{_esc(value)}</div>'
+            f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;'
+            f'letter-spacing:0.4px;margin-top:1px;">{_esc(label)}</div></td>'
+        )
+
+    def _build(items):
+        cells = []
+        for item in items:
+            if len(item) == 3:
+                lbl, val, pos = item
+                c = _GREEN if pos else _RED
+            else:
+                lbl, val = item[0], item[1]
+                c = _NAVY
+            cells.append(_cell(lbl, val, c))
+        return "".join(cells)
+
+    mkt = _build(market_row)
+    rows = f'<tr style="background:{_LIGHT};">{mkt}</tr>'
+    if rex_row:
+        rex = _build(rex_row)
+        rows += (
+            f'<tr><td colspan="{len(market_row)}" style="padding:0;">'
+            f'<div style="border-top:1px solid {_BORDER};"></div></td></tr>'
+            f'<tr style="background:#e8f5e9;">{rex}</tr>'
+        )
+    return (
+        f'<tr><td style="padding:10px 30px 5px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border:1px solid {_BORDER};border-radius:8px;overflow:hidden;">'
+        f'{rows}'
+        f'</table></td></tr>'
+    )
+
+
 def _gather_market_snapshot(db=None) -> dict | None:
     """Pull Bloomberg data for the daily brief market sections.
 
@@ -201,10 +244,13 @@ def _gather_market_snapshot(db=None) -> dict | None:
         rex = get_rex_summary(db, fund_structure="ETF,ETN", etn_overrides=True)
         master = get_master_data(db, etn_overrides=True)
 
-        # Filter to ETPs (ETFs + ETNs)
+        # Filter to active ETPs (ETFs + ETNs)
         ft_col = next((c for c in master.columns if c.lower().strip() == "fund_type"), None)
         if ft_col:
             master = master[master[ft_col].isin(["ETF", "ETN"])]
+        mkt_col = next((c for c in master.columns if c.lower().strip() == "market_status"), None)
+        if mkt_col:
+            master = master[master[mkt_col] == "ACTV"]
 
         # 1D flow (sum across all REX ETPs)
         rex_df = master[master["is_rex"] == True].copy()
@@ -216,7 +262,7 @@ def _gather_market_snapshot(db=None) -> dict | None:
             sign = "+" if val >= 0 else "-"
             av = abs(val)
             if av >= 1000:
-                return f"{sign}${av/1000:.1f}B"
+                return f"{sign}${av/1000:,.1f}B"
             if av >= 1:
                 return f"{sign}${av:.1f}M"
             return f"{sign}${av:.2f}M"
@@ -308,7 +354,7 @@ def _gather_market_snapshot(db=None) -> dict | None:
                 landscape.append({
                     "category": cat,
                     "aum": cat_aum,
-                    "aum_fmt": f"${cat_aum/1000:.1f}B" if cat_aum >= 1000 else f"${cat_aum:.0f}M",
+                    "aum_fmt": f"${cat_aum/1000:,.1f}B" if cat_aum >= 1000 else f"${cat_aum:,.0f}M",
                     "flow_1w": cat_flow_1w,
                     "flow_1w_fmt": _fmt_flow_val(cat_flow_1w),
                     "flow_1w_positive": cat_flow_1w >= 0,
@@ -318,23 +364,31 @@ def _gather_market_snapshot(db=None) -> dict | None:
             except Exception:
                 continue
 
-        # Market pulse: index proxies + industry totals
+        # Market pulse: index proxies (1D total returns)
         market_pulse = {}
         try:
-            _PULSE_TICKERS = {"SPY US": "S&P 500", "QQQ US": "NASDAQ", "IBIT US": "Bitcoin"}
-            for _ptk, _plbl in _PULSE_TICKERS.items():
+            _PULSE_TICKERS = [
+                ("SPY US", "S&P 500"), ("QQQ US", "NASDAQ"), ("DIA US", "Dow"),
+                ("IWM US", "Russell 2000"), ("IBIT US", "Bitcoin"), ("GLD US", "Gold"),
+            ]
+            for _ptk, _plbl in _PULSE_TICKERS:
                 _prow = master[master["ticker"] == _ptk]
                 if not _prow.empty:
                     _pret = float(_prow.iloc[0].get("t_w3.total_return_1day", 0))
                     market_pulse[_plbl] = {"return_1d": _pret, "return_1d_fmt": f"{_pret:+.2f}%"}
-            # Industry totals (all ETFs + ETNs)
+            # Industry totals (for ETP Market Overview, not Market Pulse)
             _all_dedup = master.drop_duplicates(subset=["ticker"], keep="first") if "ticker" in master.columns else master
             _ind_aum = float(_all_dedup["t_w4.aum"].sum()) if "t_w4.aum" in _all_dedup.columns else 0
             _ind_flow_1d = float(_all_dedup["t_w4.fund_flow_1day"].sum()) if "t_w4.fund_flow_1day" in _all_dedup.columns else 0
+            _ind_flow_1w = float(_all_dedup["t_w4.fund_flow_1week"].sum()) if "t_w4.fund_flow_1week" in _all_dedup.columns else 0
+            _ind_count = len(_all_dedup)
             market_pulse["_industry"] = {
-                "aum": _ind_aum, "aum_fmt": f"${_ind_aum/1000:.1f}B" if _ind_aum >= 1000 else f"${_ind_aum:.0f}M",
+                "aum": _ind_aum, "aum_fmt": f"${_ind_aum/1000:,.1f}B" if _ind_aum >= 1000 else f"${_ind_aum:,.0f}M",
                 "flow_1d": _ind_flow_1d, "flow_1d_fmt": _fmt_flow_val(_ind_flow_1d),
                 "flow_1d_positive": _ind_flow_1d >= 0,
+                "flow_1w": _ind_flow_1w, "flow_1w_fmt": _fmt_flow_val(_ind_flow_1w),
+                "flow_1w_positive": _ind_flow_1w >= 0,
+                "count": _ind_count,
             }
         except Exception:
             pass
@@ -348,6 +402,7 @@ def _gather_market_snapshot(db=None) -> dict | None:
                 _aum = float(row.get("t_w4.aum", 0))
                 daily_movers["inflows"].append({
                     "ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                    "fund_name": str(row.get("fund_name", ""))[:55],
                     "aum_fmt": _fmt_aum(_aum),
                     "flow_1d": _f1d, "flow_1d_fmt": _fmt_flow_val(_f1d),
                 })
@@ -358,6 +413,7 @@ def _gather_market_snapshot(db=None) -> dict | None:
                 _aum = float(row.get("t_w4.aum", 0))
                 daily_movers["outflows"].append({
                     "ticker": str(row.get("ticker_clean", row.get("ticker", ""))),
+                    "fund_name": str(row.get("fund_name", ""))[:55],
                     "aum_fmt": _fmt_aum(_aum),
                     "flow_1d": _f1d, "flow_1d_fmt": _fmt_flow_val(_f1d),
                 })
@@ -426,46 +482,48 @@ def _render_market_scorecard(snapshot: dict) -> str:
 
 
 def _render_market_pulse(pulse: dict) -> str:
-    """Render market pulse: index proxies + industry totals (email-safe HTML)."""
+    """Render market pulse: 1D total returns for major index proxies."""
     if not pulse:
         return ""
 
-    _cell = f"padding:10px 6px;background:{_LIGHT};border-radius:8px;text-align:center;"
-    _val = f"font-size:18px;font-weight:700;"
-    _lbl = f"font-size:9px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;"
+    _cell = f"padding:8px 4px;background:{_LIGHT};border-radius:8px;text-align:center;"
+    _val = f"font-size:16px;font-weight:700;"
+    _lbl = f"font-size:8px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.4px;"
 
-    # Index proxy cards (SPY, QQQ, BTC)
-    index_cells = []
-    for label in ["S&P 500", "NASDAQ", "Bitcoin"]:
+    _LABELS = ["S&P 500", "NASDAQ", "Dow", "Russell 2000", "Bitcoin", "Gold"]
+    cells = []
+    for label in _LABELS:
         info = pulse.get(label)
-        if info:
-            ret = info["return_1d"]
-            color = _GREEN if ret >= 0 else _RED
-            index_cells.append(
-                f'<td width="23%" style="{_cell}">'
-                f'<div style="{_val}color:{color};">{info["return_1d_fmt"]}</div>'
-                f'<div style="{_lbl}">{label}</div></td>'
-                f'<td width="2%"></td>'
-            )
-    if not index_cells:
+        if not info:
+            continue
+        ret = info["return_1d"]
+        color = _GREEN if ret >= 0 else _RED
+        cells.append(
+            f'<td width="16%" style="{_cell}">'
+            f'<div style="{_val}color:{color};">{info["return_1d_fmt"]}</div>'
+            f'<div style="{_lbl}">{label}</div></td>'
+            f'<td width="0.5%"></td>'
+        )
+    if not cells:
         return ""
 
-    # Industry flow card
-    ind = pulse.get("_industry", {})
-    ind_flow_color = _GREEN if ind.get("flow_1d_positive", True) else _RED
-    index_cells.append(
-        f'<td width="23%" style="{_cell}">'
-        f'<div style="{_val}color:{ind_flow_color};">{ind.get("flow_1d_fmt", "$0")}</div>'
-        f'<div style="{_lbl}">ETP 1D Net Flow</div></td>'
+    # Split into two rows of 3 for readability
+    mid = len(cells) // 2
+    row1 = "".join(cells[:mid])
+    row2 = "".join(cells[mid:])
+
+    _title = (
+        f"font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;"
+        f"padding-bottom:6px;border-bottom:2px solid {_BLUE};"
     )
 
     return f"""
-<tr><td style="padding:10px 30px 5px;">
-  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
-    Market Pulse
-  </div>
+<tr><td style="padding:15px 30px 5px;">
+  <div style="{_title}">Market Pulse</div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr>{''.join(index_cells)}</tr>
+    <tr>{row1}</tr>
+    <tr><td colspan="{mid * 2}" style="padding:4px 0;"></td></tr>
+    <tr>{row2}</tr>
   </table>
 </td></tr>"""
 
@@ -530,21 +588,24 @@ def _render_daily_movers(movers: dict) -> str:
         f"padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
         f"border-bottom:1px solid {_BORDER};"
     )
+    _cell = f"padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;"
     rows = []
     for f in inflows:
         rows.append(
             f'<tr>'
-            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;font-weight:600;">{_esc(f["ticker"])}</td>'
-            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(f["aum_fmt"])}</td>'
-            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{_GREEN};font-weight:600;">{_esc(f["flow_1d_fmt"])}</td>'
+            f'<td style="{_cell}font-weight:600;">{_esc(f["ticker"])}</td>'
+            f'<td style="{_cell}color:{_GRAY};">{_esc(f.get("fund_name", ""))}</td>'
+            f'<td style="{_cell}text-align:right;">{_esc(f["aum_fmt"])}</td>'
+            f'<td style="{_cell}text-align:right;color:{_GREEN};font-weight:600;">{_esc(f["flow_1d_fmt"])}</td>'
             f'</tr>'
         )
     for f in outflows:
         rows.append(
             f'<tr>'
-            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;font-weight:600;">{_esc(f["ticker"])}</td>'
-            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;">{_esc(f["aum_fmt"])}</td>'
-            f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;text-align:right;color:{_RED};font-weight:600;">{_esc(f["flow_1d_fmt"])}</td>'
+            f'<td style="{_cell}font-weight:600;">{_esc(f["ticker"])}</td>'
+            f'<td style="{_cell}color:{_GRAY};">{_esc(f.get("fund_name", ""))}</td>'
+            f'<td style="{_cell}text-align:right;">{_esc(f["aum_fmt"])}</td>'
+            f'<td style="{_cell}text-align:right;color:{_RED};font-weight:600;">{_esc(f["flow_1d_fmt"])}</td>'
             f'</tr>'
         )
 
@@ -556,6 +617,7 @@ def _render_daily_movers(movers: dict) -> str:
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr>
       <td style="{_col}">Ticker</td>
+      <td style="{_col}">Fund</td>
       <td style="{_col}text-align:right;">AUM</td>
       <td style="{_col}text-align:right;">1D Flow</td>
     </tr>
@@ -598,7 +660,8 @@ def _render_landscape_compact(landscape: list) -> str:
 
     return f"""
 <tr><td style="padding:10px 30px 10px;">
-  <div style="font-size:14px;font-weight:600;color:{_NAVY};margin:0 0 6px 0;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_NAVY};">
     Market Landscape
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
@@ -704,7 +767,7 @@ def _daily_highlights_box(bullets: list[str]) -> str:
         f'style="background:{bg};border-left:4px solid {_NAVY};border-radius:0 8px 8px 0;">'
         f'<tr><td style="padding:14px 18px;">'
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-        f'<tr><td style="padding:0 0 8px;font-size:10px;font-weight:700;color:{_NAVY};'
+        f'<tr><td style="padding:0 0 8px;font-size:13px;font-weight:700;color:{_NAVY};'
         f'text-transform:uppercase;letter-spacing:1px;">Key Highlights</td></tr>'
         f'{items}'
         f'</table></td></tr>'
@@ -1065,17 +1128,38 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 </td></tr>"""
 
     # --- Bloomberg-backed sections (graceful skip if unavailable) ---
-    rex_snapshot_section = ""
+    etp_overview_section = ""
     market_pulse_section = ""
     daily_movers_section = ""
     landscape_section = ""
     if snapshot:
-        # REX Snapshot (4 KPI cards)
-        rex_snapshot_section = _render_market_scorecard(snapshot)
         # Market Pulse (SPY, QQQ, BTC, industry flow)
         pulse = snapshot.get("market_pulse", {})
         if pulse:
             market_pulse_section = _render_market_pulse(pulse)
+        # ETP Market Overview (dual KPI: market + REX)
+        ind = pulse.get("_industry", {}) if pulse else {}
+        kpis = snapshot["kpis"]
+        etp_overview_section = (
+            f'<tr><td style="padding:15px 30px 5px;">'
+            f'<div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
+            f'padding-bottom:6px;border-bottom:2px solid {_NAVY};">ETP Market Overview</div>'
+            f'</td></tr>'
+            + _dual_kpi_box(
+                market_row=[
+                    ("Active ETPs", f'{ind.get("count", 0):,}'),
+                    ("Market AUM", ind.get("aum_fmt", "--")),
+                    ("1D Flow", ind.get("flow_1d_fmt", "--"), ind.get("flow_1d_positive", True)),
+                    ("1W Flow", ind.get("flow_1w_fmt", "--"), ind.get("flow_1w_positive", True)),
+                ],
+                rex_row=[
+                    ("REX Funds", str(kpis.get("products", 0))),
+                    ("REX AUM", kpis.get("aum", "--")),
+                    ("REX 1D Flow", kpis.get("flow_1d_fmt", "--"), kpis.get("flow_1d_positive", True)),
+                    ("REX 1W Flow", kpis.get("flow_1w_fmt", "--"), kpis.get("flow_1w_positive", True)),
+                ],
+            )
+        )
         # Daily REX Movers (by 1D flow)
         dm = snapshot.get("daily_movers", {})
         if dm and (dm.get("inflows") or dm.get("outflows")):
@@ -1106,16 +1190,17 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     highlights_html = _daily_highlights_box(_daily_highlights(data))
 
     # --- Assemble (executive order) ---
-    # 1. Market Pulse (what happened in the market today)
-    # 2. REX Snapshot  (how are we doing)
-    # 3. REX Daily Movers (which products are moving money)
-    # 4. Competitive Intel (filings, launches, effectiveness)
-    # 5. Market Landscape (category-level context)
+    # 1. Market Pulse (SPY, QQQ, BTC, ETP 1D Flow)
+    # 2. ETP Market Overview (dual-row KPI: market + REX)
+    # 3. Filing Activity (new 485 filings)
+    # 4. REX Daily Movers (which products are moving money)
+    # 5. Launches, Pending, Landscape, CTA, Footer
     body = (
         header + msg_html + highlights_html
-        + market_pulse_section + rex_snapshot_section
+        + market_pulse_section + etp_overview_section
+        + filings_section
         + daily_movers_section
-        + filings_section + launches_section + pending_section
+        + launches_section + pending_section
         + landscape_section
         + cta_section + footer
     )

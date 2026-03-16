@@ -199,7 +199,7 @@ def _summary(df, as_of):
 
 
 # -----------------------------------------------------------------------
-# Chart A: REX AUM + Market Share (clean, minimal)
+# Chart A: REX AUM + Market Share
 # -----------------------------------------------------------------------
 def _chart_rex(df, as_of, label):
     m = _summary(df, as_of)
@@ -208,70 +208,79 @@ def _chart_rex(df, as_of, label):
     fig, ax = plt.subplots(figsize=(9, 3.8))
     _style(ax, fig)
 
-    # AUM area
-    ax.fill_between(m["date"], 0, m["rex_aum"] / 1e3, color=_BLUE, alpha=0.12, zorder=2)
-    ax.plot(m["date"], m["rex_aum"] / 1e3, color=_BLUE, linewidth=2.2, zorder=3)
+    # AUM area — stronger fill
+    ax.fill_between(m["date"], 0, m["rex_aum"] / 1e3, color=_BLUE, alpha=0.20, zorder=2)
+    ax.plot(m["date"], m["rex_aum"] / 1e3, color=_BLUE, linewidth=2.4, zorder=3)
     ax.set_ylabel("REX AUM", fontsize=9, fontweight="bold")
-    y_max = m["rex_aum"].max() / 1e3 * 1.3
+    y_max = m["rex_aum"].max() / 1e3 * 1.35
     ax.set_ylim(0, y_max)
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: _fb(x, escape=True)))
     ax.grid(axis="y", color=_LIGHT, linewidth=0.6, zorder=0)
     ax.set_axisbelow(True)
 
-    # Share on right axis
+    # Share on right axis — solid line, no spine
     ax2 = ax.twinx()
     ax2.spines["top"].set_visible(False)
     ax2.spines["left"].set_visible(False)
     ax2.spines["right"].set_color(_RED)
-    ax2.spines["right"].set_linewidth(1.2)
-    ax2.plot(m["date"], m["rex_share"], color=_RED, linewidth=1.8, linestyle="--", zorder=4)
-    ax2.set_ylabel("Share", fontsize=9, fontweight="bold", color=_RED)
-    ax2.tick_params(axis="y", colors=_RED, labelsize=8)
-    ax2.yaxis.set_major_formatter(mticker.PercentFormatter(decimals=0))
-    ax2.set_ylim(0, max(m["rex_share"].max() * 1.35, 1))
+    ax2.spines["right"].set_linewidth(0.5)
+    ax2.plot(m["date"], m["rex_share"], color=_RED, linewidth=1.5, zorder=4)
+    ax2.tick_params(axis="y", labelsize=8, colors=_RED, length=3)
+    ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.1f}%"))
+    ax2.set_ylim(0, max(m["rex_share"].max() * 1.4, 1))
 
-    # End-point labels — detect overlap and push apart vertically
+    # End-point labels in right margin (outside axes, inside figure)
     aum_val = cur.rex_aum / 1e3
     share_val = cur.rex_share
-    # Normalize both to figure fraction (0-1) to compare positions
-    aum_ylim = ax.get_ylim()
-    share_ylim = ax2.get_ylim()
-    aum_frac = (aum_val - aum_ylim[0]) / (aum_ylim[1] - aum_ylim[0])
-    share_frac = (share_val - share_ylim[0]) / (share_ylim[1] - share_ylim[0])
-    min_gap = 0.06  # minimum separation in figure fraction
-    if abs(aum_frac - share_frac) < min_gap:
-        # Push apart: AUM goes up, share goes down (or vice versa)
-        mid = (aum_frac + share_frac) / 2
-        aum_frac_adj = mid + min_gap / 2
-        share_frac_adj = mid - min_gap / 2
-        # Convert back to data coords
-        aum_y = aum_frac_adj * (aum_ylim[1] - aum_ylim[0]) + aum_ylim[0]
-        share_y = share_frac_adj * (share_ylim[1] - share_ylim[0]) + share_ylim[0]
-    else:
-        aum_y = aum_val
-        share_y = share_val
-    ax.text(cur.date, aum_y, f"  {_fb(aum_val, escape=True)}",
-            fontsize=11, fontweight="bold", color=_BLUE, va="center", zorder=10)
-    ax2.text(cur.date, share_y, f"  {share_val:.1f}%",
-             fontsize=10, fontweight="bold", color=_RED, va="center", zorder=10)
+
+    # Inline legend
+    legend_elements = [
+        Line2D([0], [0], color=_BLUE, linewidth=2.4, label="REX AUM"),
+        Line2D([0], [0], color=_RED, linewidth=1.5, label="Market Share"),
+    ]
+    ax.legend(handles=legend_elements, loc="upper left", fontsize=8,
+              frameon=True, fancybox=False, edgecolor=_LIGHT, framealpha=0.9)
 
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
 
     # Title line
-    fig.text(0.06, 0.95, f"{label}", fontsize=12, fontweight="bold", color=_NAVY, ha="left")
+    fig.text(0.06, 0.95, f"{label}  |  REX Position", fontsize=12, fontweight="bold", color=_NAVY, ha="left")
     fig.text(0.06, 0.89,
              f"REX: {_fb(cur.rex_aum / 1e3, escape=True)}  |  {int(cur.rex_products)} products  |  "
              f"{cur.rex_share:.1f}% share  |  Total market: {_fb(cur.total_aum / 1e3, escape=True)}",
-             fontsize=8, color="#636e72", ha="left")
+             fontsize=9, color="#636e72", ha="left")
 
-    fig.subplots_adjust(top=0.84, bottom=0.12, left=0.09, right=0.88)
+    fig.subplots_adjust(top=0.84, bottom=0.12, left=0.08, right=0.76)
+
+    # Place endpoint labels in the right margin using figure coordinates
+    ax_pos = ax.get_position()
+    aum_ylim = ax.get_ylim()
+    share_ylim = ax2.get_ylim()
+    aum_frac = (aum_val - aum_ylim[0]) / (aum_ylim[1] - aum_ylim[0])
+    share_frac = (share_val - share_ylim[0]) / (share_ylim[1] - share_ylim[0])
+    # Nudge apart if too close
+    min_gap = 0.10
+    if abs(aum_frac - share_frac) < min_gap:
+        mid = (aum_frac + share_frac) / 2
+        aum_frac = mid + min_gap / 2
+        share_frac = mid - min_gap / 2
+    aum_fig_y = ax_pos.y0 + aum_frac * ax_pos.height
+    share_fig_y = ax_pos.y0 + share_frac * ax_pos.height
+    label_x = 0.80
+    fig.text(label_x, aum_fig_y, f"{_fb(aum_val, escape=True)}",
+             fontsize=11, fontweight="bold", color=_BLUE, va="center")
+    fig.text(label_x, share_fig_y, f"{share_val:.1f}%",
+             fontsize=10, fontweight="bold", color=_RED, va="center")
+
     return fig
 
 
 # -----------------------------------------------------------------------
-# Chart B: Competitive landscape (stacked area, no share overlay)
+# Chart B: Competitive landscape — stacked area, REX on top
 # -----------------------------------------------------------------------
+_COMP_PAL_BRIGHT = ["#3d7ec7", "#e8913a", "#5ea66b", "#9b6dc4", "#d15555", "#4db8a8", "#c47a5a"]
+
 def _chart_comp(df, as_of, label):
     a = df[df.aum > 0].copy()
 
@@ -286,24 +295,44 @@ def _chart_comp(df, as_of, label):
     a["g"] = a.apply(grp, axis=1)
     piv = a.groupby(["months_ago", "g"])["aum"].sum().unstack(fill_value=0)
 
-    ordered = ["REX"]
+    # Stack order: Others at bottom, then competitors small->large, REX on top
+    ordered = []
     if "Others" in piv.columns:
         ordered.append("Others")
     ordered.extend([c for c in reversed(top) if c in piv.columns])
+    if "REX" in piv.columns:
+        ordered.append("REX")
     piv = piv[[c for c in ordered if c in piv.columns]]
     piv = piv.sort_index(ascending=False)
     piv.index = [_d(m, as_of) for m in piv.index]
     piv_b = piv / 1e3
 
-    colors = _cc(list(piv_b.columns))
+    # Colors — brighter palette, Others gray, REX blue
+    colors = []
+    ci = 0
+    for col in piv_b.columns:
+        if col == "Others":
+            colors.append("#d5dbe0")
+        elif col == "REX":
+            colors.append(_BLUE)
+        else:
+            colors.append(_COMP_PAL_BRIGHT[ci % len(_COMP_PAL_BRIGHT)])
+            ci += 1
 
     fig, ax = plt.subplots(figsize=(9, 3.8))
     _style(ax, fig)
 
-    ax.stackplot(piv_b.index, *[piv_b[c] for c in piv_b.columns],
-                 colors=colors, alpha=0.85, zorder=2)
+    sp = ax.stackplot(piv_b.index, *[piv_b[c] for c in piv_b.columns],
+                      colors=colors, alpha=0.85, zorder=2)
+
+    # Bold top-edge line on REX band so it pops
+    if "REX" in piv_b.columns:
+        total = piv_b.sum(axis=1)
+        ax.plot(piv_b.index, total, color=_BLUE, linewidth=2.2, zorder=5)
+
     ax.set_ylabel("AUM ($B)", fontsize=9, fontweight="bold")
-    ax.set_ylim(0, piv_b.sum(axis=1).max() * 1.12)
+    total_max = piv_b.sum(axis=1).max()
+    ax.set_ylim(0, total_max * 1.12)
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"\\${x:.0f}B"))
     ax.grid(axis="y", color=_LIGHT, linewidth=0.6, zorder=0)
     ax.set_axisbelow(True)
@@ -311,10 +340,10 @@ def _chart_comp(df, as_of, label):
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
 
-    # Right-side labels only (no legend box)
+    # Right-side labels
     col_c = dict(zip(piv_b.columns, colors))
     y_max = ax.get_ylim()[1]
-    gap = y_max * 0.058
+    gap = y_max * 0.055
 
     labels = []
     cum = 0
@@ -333,19 +362,22 @@ def _chart_comp(df, as_of, label):
 
     xr = piv_b.index[-1] + relativedelta(days=8)
     for lb in labels:
+        weight = "900" if lb["col"] == "REX" else "bold"
+        size = 9.5 if lb["col"] == "REX" else 8.5
         ax.text(xr, lb["y"], f"{lb['col']}  {_fb(lb['v'], escape=True)}",
-                fontsize=7.5, fontweight="bold", color=lb["c"], va="center", clip_on=False, zorder=10)
+                fontsize=size, fontweight=weight, color=lb["c"], va="center",
+                clip_on=False, zorder=10)
 
     top_y = (max(l["y"] for l in labels) + gap) if labels else cum
     total_now = piv_b.sum(axis=1).iloc[-1]
     ax.text(xr, top_y, f"Total: {_fb(total_now, escape=True)}",
-            fontsize=8, fontweight="bold", color=_NAVY, va="bottom", clip_on=False, zorder=10)
+            fontsize=9, fontweight="bold", color=_NAVY, va="bottom", clip_on=False, zorder=10)
 
     # Title line
     fig.text(0.06, 0.95, f"{label}  |  Competitive Landscape",
              fontsize=12, fontweight="bold", color=_NAVY, ha="left")
     fig.text(0.06, 0.89, "AUM by Issuer  |  3-Year History  |  Source: Bloomberg",
-             fontsize=8, color="#636e72", ha="left")
+             fontsize=9, color="#636e72", ha="left")
 
     fig.subplots_adjust(top=0.84, bottom=0.12, left=0.08, right=0.76)
     return fig
@@ -356,7 +388,7 @@ def _chart_comp(df, as_of, label):
 # -----------------------------------------------------------------------
 def _fig_to_b64(fig):
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=160, bbox_inches="tight", facecolor=_BG)
+    fig.savefig(buf, format="png", dpi=250, bbox_inches="tight", facecolor=_BG)
     buf.seek(0)
     b64 = base64.b64encode(buf.read()).decode("ascii")
     plt.close(fig)

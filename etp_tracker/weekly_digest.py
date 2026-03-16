@@ -6,15 +6,16 @@ Bloomberg market data (ETFs + ETNs) + SEC filing activity.
 
 Sections:
   1. Header
-  2. Filing Activity (KPI cards)
-  3. REX Scorecard (AUM, Products, 1W Flows, 1M Flows)
-  4. AUM by Suite (donut chart + legend)
-  5. 1W Flows by Suite (diverging bar chart)
-  6. Winners, Losers & Yielders (vertical, with 1W Flow)
-  7. ETF Universe (market KPIs, no chart)
-  8. Market Landscape (5 categories: 4 KPIs + issuer table)
-  9. Dashboard CTA
-  10. Footer
+  2. Key Highlights
+  3. Market Pulse (1W index returns + ETP 1W flow)
+  4. ETP Market Overview (dual KPI: market + REX)
+  5. Filing Activity (KPI cards)
+  6. AUM by Suite (stacked bar + legend)
+  7. 1W Flows by Suite (diverging bar chart)
+  8. Winners, Losers & Yielders (vertical, with 1W Flow)
+  9. Market Landscape (5 categories: 4 KPIs + issuer table)
+  10. Dashboard CTA
+  11. Footer
 """
 from __future__ import annotations
 
@@ -37,18 +38,18 @@ log = logging.getLogger(__name__)
 # Suites to exclude from the digest (London products not in US reports)
 _EXCLUDED_SUITES = {"London"}
 
-# Suite colors (v3 palette -- matches rex_suite names from rex_suite_mapping.csv)
+# Suite colors (brand palette)
 _SUITE_COLORS = {
-    "T-REX": "#e74c3c",
-    "MicroSectors": "#2d3436",
-    "Equity Premium Income": "#0984e3",
-    "Growth & Income": "#f39c12",
-    "IncomeMax": "#6c5ce7",
-    "Autocallable": "#00cec9",
-    "Crypto": "#8e44ad",
-    "Osprey": "#fdcb6e",
+    "T-REX": "#A44A3F",
+    "MicroSectors": "#00B050",
+    "Equity Premium Income": "#F3DFC1",
+    "Growth & Income": "#4BB3FD",
+    "IncomeMax": "#e67e22",
+    "Autocallable": "#F3DFC1",
+    "Crypto": "#5227CA",
+    "Osprey": _NAVY,
     "T-Bill": "#636e72",
-    "Thematic": "#27ae60",
+    "Thematic": "#0496FF",
 }
 
 _SUITE_ABBREVS = {
@@ -69,12 +70,12 @@ _INCOME_CATEGORIES = {"Income - Single Stock", "Income - Index/Basket/ETF Based"
 
 # Category landscape: (internal_name, display_name, border_color)
 _LANDSCAPE_CATS = [
-    ("Leverage & Inverse - Single Stock", "Leveraged Single Stock", "#e74c3c"),
-    ("Leverage & Inverse - Index/Basket/ETF Based", "Leveraged Index/ETF", "#d63031"),
-    ("Income - Single Stock", "Income (Single Stock)", "#f39c12"),
-    ("Income - Index/Basket/ETF Based", "Income (Index/ETF)", "#0984e3"),
-    ("Crypto", "Crypto", "#8e44ad"),
-    ("Thematic", "Thematic", "#27ae60"),
+    ("Leverage & Inverse - Single Stock", "Leveraged Single Stock", "#A44A3F"),
+    ("Leverage & Inverse - Index/Basket/ETF Based", "Leveraged Index/ETF", "#A44A3F"),
+    ("Income - Single Stock", "Income (Single Stock)", "#F3DFC1"),
+    ("Income - Index/Basket/ETF Based", "Income (Index/ETF)", "#F3DFC1"),
+    ("Crypto", "Crypto", "#5227CA"),
+    ("Thematic", "Thematic", "#0496FF"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -257,6 +258,11 @@ def _render_filing_activity(filing_data: dict) -> str:
     effective = filing_data.get("newly_effective", 0)
     pending = filing_data.get("pending_funds", 0)
     trust_count = filing_data.get("trust_count", 0)
+    # Format with commas for display
+    filings = f"{filings:,}" if isinstance(filings, int) else filings
+    effective = f"{effective:,}" if isinstance(effective, int) else effective
+    pending = f"{pending:,}" if isinstance(pending, int) else pending
+    trust_count = f"{trust_count:,}" if isinstance(trust_count, int) else trust_count
 
     return f"""
 <tr><td style="padding:20px 30px 10px;">
@@ -352,7 +358,7 @@ def _render_scorecard(kpis: dict, rex_df: pd.DataFrame = None) -> str:
 def _render_scorecard_unavailable() -> str:
     return f"""
 <tr><td style="padding:20px 30px 10px;">
-  <div style="{_SECTION_TITLE}">REX Scorecard</div>
+  <div style="{_SECTION_TITLE}">ETP Market Overview</div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr><td style="{_KPI_BOX}padding:24px;">
       <div style="font-size:14px;color:{_GRAY};text-align:center;">
@@ -835,7 +841,7 @@ def _render_category_card(
                 f'<td style="{_TABLE_CELL_RIGHT}color:{_GRAY};">{i_share:.1f}%</td>'
                 f'<td style="{_TABLE_CELL_RIGHT}color:{_flow_color(i_flow)};">'
                 f'{_fmt_flow_safe(i_flow)}</td>'
-                f'<td style="{_TABLE_CELL_RIGHT}">{i_count}{launch_badge}</td>'
+                f'<td style="{_TABLE_CELL_RIGHT}">{i_count:,}{launch_badge}</td>'
                 f'</tr>'
             )
 
@@ -884,6 +890,153 @@ def _render_landscape(landscape: dict, master: pd.DataFrame = None) -> str:
         return ""
 
     return _render_landscape_header() + "\n".join(cards)
+
+
+def _render_market_pulse_weekly(master: pd.DataFrame) -> str:
+    """Market Pulse: 1W total returns for major index proxies."""
+    if master is None or master.empty:
+        return ""
+
+    _cell = f"padding:8px 4px;background:{_LIGHT};border-radius:8px;text-align:center;"
+    _val = f"font-size:16px;font-weight:700;"
+    _lbl = f"font-size:8px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.4px;"
+
+    ret_col = "t_w3.total_return_1week" if "t_w3.total_return_1week" in master.columns else None
+    if not ret_col:
+        return ""
+
+    _PROXIES = [
+        ("SPY US", "S&P 500"), ("QQQ US", "NASDAQ"), ("DIA US", "Dow"),
+        ("IWM US", "Russell 2000"), ("IBIT US", "Bitcoin"), ("GLD US", "Gold"),
+    ]
+    cells = []
+    for ticker, label in _PROXIES:
+        row = master[master["ticker"] == ticker]
+        if row.empty:
+            continue
+        ret = float(row.iloc[0].get(ret_col, 0))
+        color = _GREEN if ret >= 0 else _RED
+        cells.append(
+            f'<td width="16%" style="{_cell}">'
+            f'<div style="{_val}color:{color};">{ret:+.2f}%</div>'
+            f'<div style="{_lbl}">{label}</div></td>'
+            f'<td width="0.5%"></td>'
+        )
+
+    if not cells:
+        return ""
+
+    # Split into two rows of 3
+    mid = len(cells) // 2
+    row1 = "".join(cells[:mid])
+    row2 = "".join(cells[mid:])
+
+    return f"""
+<tr><td style="padding:15px 30px 5px;">
+  <div style="{_SECTION_TITLE}">Market Pulse</div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>{row1}</tr>
+    <tr><td colspan="{mid * 2}" style="padding:4px 0;"></td></tr>
+    <tr>{row2}</tr>
+  </table>
+</td></tr>"""
+
+
+def _dual_kpi_box(market_row: list, rex_row: list | None = None) -> str:
+    """Compact dual-row KPI box: Market row on top, REX row below."""
+    def _cell(label: str, value: str, color: str = _NAVY) -> str:
+        return (
+            f'<td style="padding:6px 4px;text-align:center;">'
+            f'<div style="font-size:16px;font-weight:700;color:{color};">{_esc(value)}</div>'
+            f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;'
+            f'letter-spacing:0.4px;margin-top:1px;">{_esc(label)}</div></td>'
+        )
+    def _build(items):
+        cells = []
+        for item in items:
+            if len(item) == 3:
+                lbl, val, pos = item
+                c = _GREEN if pos else _RED
+            else:
+                lbl, val = item[0], item[1]
+                c = _NAVY
+            cells.append(_cell(lbl, val, c))
+        return "".join(cells)
+    mkt = _build(market_row)
+    rows = f'<tr style="background:{_LIGHT};">{mkt}</tr>'
+    if rex_row:
+        rex = _build(rex_row)
+        rows += (
+            f'<tr><td colspan="{len(market_row)}" style="padding:0;">'
+            f'<div style="border-top:1px solid {_BORDER};"></div></td></tr>'
+            f'<tr style="background:#e8f5e9;">{rex}</tr>'
+        )
+    return (
+        f'<tr><td style="padding:10px 30px 5px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border:1px solid {_BORDER};border-radius:8px;overflow:hidden;">'
+        f'{rows}'
+        f'</table></td></tr>'
+    )
+
+
+def _render_etp_overview(kpis: dict, rex_df: pd.DataFrame, master: pd.DataFrame) -> str:
+    """ETP Market Overview: dual KPI box with market row + REX row."""
+    # Market-wide stats
+    ft_col = next((c for c in master.columns if c.lower().strip() == "fund_type"), None)
+    filtered = master.copy()
+    mkt_col = next((c for c in filtered.columns if c.lower().strip() == "market_status"), None)
+    if mkt_col:
+        filtered = filtered[filtered[mkt_col] == "ACTV"]
+    if ft_col:
+        filtered = filtered[filtered[ft_col].isin(["ETF", "ETN"])]
+    if "ticker_clean" in filtered.columns:
+        deduped = filtered.drop_duplicates(subset=["ticker_clean"], keep="first")
+    else:
+        deduped = filtered
+
+    total_aum = float(deduped["t_w4.aum"].sum()) if "t_w4.aum" in deduped.columns else 0
+    total_count = len(deduped)
+    total_flow_1w = float(deduped["t_w4.fund_flow_1week"].sum()) if "t_w4.fund_flow_1week" in deduped.columns else 0
+    total_flow_1m = float(deduped["t_w4.fund_flow_1month"].sum()) if "t_w4.fund_flow_1month" in deduped.columns else 0
+
+    def _fmta(v):
+        if abs(v) >= 1000: return f"${v/1000:,.1f}B"
+        if abs(v) >= 1: return f"${v:.1f}M"
+        return f"${v:.2f}M"
+    def _fmtf(v):
+        s = "+" if v >= 0 else ""
+        return f"{s}{_fmta(v)}"
+
+    # REX stats
+    total_aum_fmt = kpis.get("total_aum_fmt", _fmta(0))
+    flow_1w_fmt = kpis.get("flow_1w_fmt", "$0")
+    flow_1w_val = kpis.get("flow_1w", 0)
+    flow_1m_fmt = kpis.get("flow_1m_fmt", "$0")
+    flow_1m_val = kpis.get("flow_1m", 0)
+    num_products = kpis.get("num_products", kpis.get("count", 0))
+
+    title_html = (
+        f'<tr><td style="padding:15px 30px 5px;">'
+        f'<div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
+        f'padding-bottom:6px;border-bottom:2px solid {_NAVY};">ETP Market Overview</div>'
+        f'</td></tr>'
+    )
+
+    return title_html + _dual_kpi_box(
+        market_row=[
+            ("Active ETPs", f'{total_count:,}'),
+            ("Market AUM", _fmta(total_aum)),
+            ("1W Flow", _fmtf(total_flow_1w), total_flow_1w >= 0),
+            ("1M Flow", _fmtf(total_flow_1m), total_flow_1m >= 0),
+        ],
+        rex_row=[
+            ("REX Funds", str(num_products)),
+            ("REX AUM", total_aum_fmt),
+            ("REX 1W Flow", flow_1w_fmt, flow_1w_val >= 0),
+            ("REX 1M Flow", flow_1m_fmt, flow_1m_val >= 0),
+        ],
+    )
 
 
 def _render_etf_universe(master: pd.DataFrame) -> str:
@@ -1040,7 +1193,7 @@ def _weekly_highlights_box(bullets: list[str]) -> str:
         f'style="background:{bg};border-left:4px solid {_NAVY};border-radius:0 8px 8px 0;">'
         f'<tr><td style="padding:14px 18px;">'
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-        f'<tr><td style="padding:0 0 8px;font-size:10px;font-weight:700;color:{_NAVY};'
+        f'<tr><td style="padding:0 0 8px;font-size:13px;font-weight:700;color:{_NAVY};'
         f'text-transform:uppercase;letter-spacing:1px;">Key Highlights</td></tr>'
         f'{items}'
         f'</table></td></tr>'
@@ -1139,38 +1292,41 @@ def build_weekly_digest_html(
     # Key Highlights (right after header, before filing activity)
     sections.append(_weekly_highlights_box(_weekly_highlights(market, filing)))
 
-    # 2. Filing Activity (top of email)
+    if market:
+        rex_df = market.get("rex_df", pd.DataFrame())
+        master_df = market.get("master", pd.DataFrame())
+
+        # --- PART 2: Market Pulse (index proxies + ETP 1W flow) ---
+        pulse = _render_market_pulse_weekly(master_df)
+        if pulse:
+            sections.append(pulse)
+
+        # --- PART 3: ETP Market Overview (dual KPI: market + REX) ---
+        sections.append(_render_etp_overview(market["kpis"], rex_df, master_df))
+
+    # Filing Activity (always shown)
     sections.append(_render_filing_activity(filing))
 
     if market:
         rex_df = market.get("rex_df", pd.DataFrame())
+        master_df = market.get("master", pd.DataFrame())
 
-        # --- PART 2: REX Products ---
-        # 3. Scorecard (with growth sub-labels)
-        sections.append(_render_scorecard(market["kpis"], rex_df))
-
-        # 4. AUM by Suite (donut chart)
+        # AUM by Suite (stacked bar)
         aum_chart = _render_aum_stacked_bar(market["suites"], rex_df)
         if aum_chart:
             sections.append(aum_chart)
 
-        # 5. 1W Flows by Suite
+        # 1W Flows by Suite
         flow_chart = _render_flow_chart(market["suites"], market["flow_chart"])
         if flow_chart:
             sections.append(flow_chart)
 
-        # 6. Winners, Losers & Yielders (combined)
+        # Winners, Losers & Yielders (combined)
         wly = _render_winners_losers_yielders(market["perf_metrics"], rex_df)
         if wly:
             sections.append(wly)
 
-        # --- PART 3: ETF Universe (above categories) ---
-        master_df = market.get("master", pd.DataFrame())
-        etf_universe = _render_etf_universe(master_df)
-        if etf_universe:
-            sections.append(etf_universe)
-
-        # --- PART 4: Category Landscape ---
+        # Category Landscape
         landscape = market.get("landscape", {})
         landscape_html = _render_landscape(landscape, master_df)
         if landscape_html:
