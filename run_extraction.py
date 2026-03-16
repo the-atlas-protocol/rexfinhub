@@ -1,6 +1,6 @@
 """Run full extraction with progress tracking.
 
-Writes progress to data/extraction_progress.json so monitor.py can check status.
+Writes progress to extraction_progress.json so monitor.py can check status.
 Commits every N filings so partial progress is never lost.
 
 STRATEGY: Newest filings first across ALL issuers. This gives broad market
@@ -11,6 +11,7 @@ Usage:
     python run_extraction.py --issuer JPMorgan  # Single issuer
     python run_extraction.py --reextract        # Delete all products and re-extract
     python run_extraction.py --since 2020       # Only filings from 2020+
+    python run_extraction.py --since 2018 --group 1/2  # Parallel worker 1 of 2
 """
 from __future__ import annotations
 
@@ -27,8 +28,18 @@ from models import Issuer, Filing, Product
 from sec_client import SECClient
 from parsers import get_parser
 
-PROGRESS_FILE = Path("data/extraction_progress.json")
+from config import PROGRESS_FILE as _PF
+PROGRESS_FILE = Path(_PF)
 COMMIT_EVERY = 25  # commit to DB every N filings
+
+# Balanced issuer split for 2-worker parallel mode
+_GROUPS = {
+    1: {"UBS", "Goldman Sachs", "Morgan Stanley",
+        "HSBC", "Bank of America", "CIBC", "Scotiabank",
+        "Deutsche Bank", "Jefferies", "Nomura Intl"},
+    2: {"JPMorgan", "Barclays", "Citigroup", "Credit Suisse",
+        "TD Bank", "RBC", "Wells Fargo", "BMO", "Nomura"},
+}
 
 
 def save_progress(progress: dict):
@@ -36,10 +47,33 @@ def save_progress(progress: dict):
     PROGRESS_FILE.write_text(json.dumps(progress, indent=2, default=str))
 
 
+def safe_commit(db, retries=10, base_wait=0.5):
+    """Commit with retry for SQLite write contention in parallel mode."""
+    for attempt in range(retries):
+        try:
+            db.commit()
+            return
+        except Exception as e:
+            if "locked" in str(e).lower() and attempt < retries - 1:
+                db.rollback()
+                wait = base_wait * (1.5 ** attempt) + (time.time() % 1) * 0.5
+                time.sleep(wait)
+                continue
+            raise
+
+
 def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
-                   since_year: int | None = None):
+                   since_year: int | None = None, group: str | None = None):
     init_db()
     db = get_db()
+
+    # Parallel mode config
+    n_workers = 1
+    group_num = None
+    if group:
+        parts = group.split("/")
+        group_num, n_workers = int(parts[0]), int(parts[1])
+
     client = SECClient(pause=0.25)
 
     # Build issuer lookup
@@ -52,6 +86,12 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
         if not target_ids:
             print(f"No issuer found matching '{issuer_filter}'")
             return
+    elif group_num:
+        group_names = _GROUPS.get(group_num, set())
+        target_ids = {iss.id for iss in all_issuers
+                      if iss.short_name in group_names}
+        names = sorted(issuer_map[i].short_name for i in target_ids)
+        print(f"Worker {group_num}/{n_workers} -- issuers: {', '.join(names)}")
     else:
         target_ids = {iss.id for iss in all_issuers}
 
@@ -61,7 +101,6 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
             iss = issuer_map[iss_id]
             filing_ids = [f.id for f in db.query(Filing).filter_by(issuer_id=iss.id).all()]
             if filing_ids:
-                # Batch delete to avoid SQLite variable limit
                 deleted = 0
                 BATCH = 500
                 for i in range(0, len(filing_ids), BATCH):
@@ -72,7 +111,7 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
                     if f:
                         f.extracted = False
                         f.extraction_error = None
-                db.commit()
+                safe_commit(db)
                 print(f"  Reset {iss.short_name}: deleted {deleted:,} products")
 
     # Query ALL unextracted filings globally, newest first
@@ -100,6 +139,8 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
         print(f"  {name:<20s} {issuer_counts[name]:>7,}")
 
     # Progress tracking
+    suffix = f"_g{group_num}" if group_num else ""
+    progress_file = PROGRESS_FILE.parent / f"extraction_progress{suffix}.json"
     issuer_progress = {name: {"total": cnt, "done": 0, "products": 0, "errors": 0}
                        for name, cnt in issuer_counts.items()}
     progress = {
@@ -113,7 +154,8 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
         "issuer_progress": issuer_progress,
         "last_update": datetime.now().isoformat(),
     }
-    save_progress(progress)
+    progress_file.parent.mkdir(parents=True, exist_ok=True)
+    progress_file.write_text(json.dumps(progress, indent=2, default=str))
 
     processed = 0
     products_created = 0
@@ -195,7 +237,7 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
 
         # Commit periodically
         if (i + 1) % COMMIT_EVERY == 0:
-            db.commit()
+            safe_commit(db)
             elapsed = time.time() - start_time
             rate = processed / elapsed if elapsed > 0 else 0
             remaining = len(filings) - processed
@@ -208,16 +250,20 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
             progress["eta_minutes"] = round(eta_min, 1)
             progress["last_update"] = datetime.now().isoformat()
             progress["issuer_progress"] = issuer_progress
-            save_progress(progress)
+            progress_file.write_text(json.dumps(progress, indent=2, default=str))
 
             # Log every 500 filings
             if (i + 1) % 500 == 0:
                 print(f"    [{processed:>7,}/{len(filings):,}] {iss.short_name:<15s} "
                       f"{filing.filing_date}  prods={products_created:,}  "
-                      f"rate={rate:.1f}/s  ETA={eta_min:.0f}m")
+                      f"rate={rate:.1f}/s  ETA={eta_min:.0f}m  "
+                      f"({client.pacer.status_line()})")
+
+            # Log adaptive rate every 2 minutes
+            client.pacer.maybe_log(every=120)
 
     # Final commit
-    db.commit()
+    safe_commit(db)
 
     elapsed = time.time() - start_time
     progress["status"] = "complete"
@@ -227,7 +273,7 @@ def run_extraction(issuer_filter: str | None = None, reextract: bool = False,
     progress["elapsed_minutes"] = round(elapsed / 60, 1)
     progress["last_update"] = datetime.now().isoformat()
     progress["issuer_progress"] = issuer_progress
-    save_progress(progress)
+    progress_file.write_text(json.dumps(progress, indent=2, default=str))
 
     db.close()
 
@@ -245,6 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--issuer", help="Single issuer short name")
     parser.add_argument("--reextract", action="store_true", help="Delete and re-extract all")
     parser.add_argument("--since", type=int, help="Only extract filings from this year onward")
+    parser.add_argument("--group", help="Worker group for parallel runs: '1/2' or '2/2'")
     args = parser.parse_args()
     run_extraction(issuer_filter=args.issuer, reextract=args.reextract,
-                   since_year=args.since)
+                   since_year=args.since, group=args.group)

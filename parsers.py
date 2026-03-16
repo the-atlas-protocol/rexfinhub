@@ -775,6 +775,24 @@ class BaseProductParser:
         # Remove "Lowest/Least/Worst Performing of the" prefix
         result = re.sub(r"^(?:Lowest|Least|Worst|Best|Lesser)\s+Performing\s+of\s+(?:the\s+)?", "", result, flags=re.IGNORECASE)
 
+        # Truncate at product-name boundaries (title text leaking into underlier field)
+        # BofA pattern: "NDX, RTY, S&P 500 Index The Contingent Income..."
+        result = re.sub(
+            r"\s+The\s+(?:Contingent|Auto-?Callable|Enhanced|Fixed|Capped|Buffered|Dual|Callable|Income|Digital|Leveraged|Accelerated|Barrier)[\s\w-]*(?:Notes?|Securities)\b.*$",
+            "", result, flags=re.IGNORECASE)
+        # Terms table leak: "Aggregate/Stated principal amount: $..."
+        result = re.sub(r"\s*(?:Aggregate|Stated)\s+principal\s+amount.*$", "", result, flags=re.IGNORECASE)
+        # Table description trailer: "as set forth in..."
+        result = re.sub(r"\s*,?\s*as\s+set\s+forth\s+in.*$", "", result, flags=re.IGNORECASE)
+        # Table header leak: "Underlying Initial underlying value..."
+        result = re.sub(r"\s*(?:Initial|Final)\s+underlying\s+(?:value|level|price).*$", "", result, flags=re.IGNORECASE)
+        # Generic product-description leak: "underlying with the largest/larger..."
+        result = re.sub(r"\s*underlying\s+with\s+the\s+.*$", "", result, flags=re.IGNORECASE)
+        # Stray "If the Final..." or "Neither the Securities..."
+        result = re.sub(r"\s*(?:If\s+the\s+Final|Neither\s+the).*$", "", result, flags=re.IGNORECASE)
+        # "(Bloomberg symbol: XXX)" cleanup — already captured, remove descriptor
+        result = re.sub(r"\s*\(Bloomberg\s+symbol:\s*[A-Z]+\s*\)", "", result, flags=re.IGNORECASE)
+
         result = result.strip().rstrip(",").strip()
 
         # Normalize full index names to Bloomberg tickers
@@ -786,6 +804,12 @@ class BaseProductParser:
                 continue
             # Strip leading "the" (e.g., "the S&P 500 Index" -> "S&P 500 Index")
             clean_part = re.sub(r"^the\s+", "", part, flags=re.IGNORECASE).strip()
+            # Skip parts that are clearly not underlier names
+            if re.match(r"^(?:Fully|Neither|Pricing|CUSIP|Maturity|Payment|for\s+each|per\s+security)\b", clean_part, re.IGNORECASE):
+                continue
+            # Skip very short fragments left after truncation
+            if len(clean_part) < 2:
+                continue
             mapped = BaseProductParser._INDEX_TO_TICKER.get(clean_part)
             if mapped:
                 normalized.append(mapped)

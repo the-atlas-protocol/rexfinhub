@@ -87,8 +87,19 @@ class Product(Base):
     upside_cap: Mapped[float | None] = mapped_column(Float)  # Max return (decimal, 0.20 = 20% cap)
     downside_leverage: Mapped[float | None] = mapped_column(Float)  # Downside multiplier if applicable
 
+    # Classification
+    asset_class: Mapped[str | None] = mapped_column(String(20), index=True)  # structured_note, etn, mtn, shelf, other
+
+    # Prelim/final linkage
+    linked_final_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("products.id"), index=True
+    )  # For preliminary products: points to the corresponding final product
+
     # Quality
     confidence: Mapped[float | None] = mapped_column(Float)
     extraction_date: Mapped[datetime | None] = mapped_column(DateTime)
 
     filing: Mapped["Filing"] = relationship(back_populates="products")
+    linked_final: Mapped["Product | None"] = relationship(
+        remote_side="Product.id", foreign_keys="Product.linked_final_id"
+    )

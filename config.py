@@ -4,8 +4,8 @@ USER_AGENT = "REX-StructuredNotes/1.0 (relasmar@rexfin.com)"
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik_padded}.json"
 SEC_ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
 FORM_TYPE = "424B2"  # Structured note pricing supplements
-DB_PATH = "data/structured_notes.db"
-CACHE_DIR = "C:/Projects/rexfinhub/http_cache"
+DB_PATH = "D:/sec-data/databases/structured_notes.db"
+PROGRESS_FILE = "data/extraction_progress.json"
 
 # CIK -> (short_name, full_name)
 ISSUERS: dict[str, tuple[str, str]] = {
