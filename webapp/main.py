@@ -155,6 +155,10 @@ async def lifespan(app: FastAPI):
     """Startup: initialize database, pre-warm all caches. Shutdown: cleanup."""
     init_db()
     log.info("Database initialized.")
+    if os.environ.get("ENABLE_13F"):
+        from webapp.database import init_holdings_db
+        init_holdings_db()
+        log.info("13F holdings database initialized (data/13f_holdings.db).")
     _prewarm_caches()
     yield
 
@@ -233,14 +237,11 @@ def create_app() -> FastAPI:
     app.include_router(filings.router, prefix="/filings")
     app.include_router(universe.router)
 
-    # 13F Holdings: full router locally, placeholder on Render (pending upgrade)
-    if os.environ.get("RENDER"):
-        from webapp.routers.holdings_placeholder import router as holdings_placeholder_router
-        app.include_router(holdings_placeholder_router)
-    else:
+    # 13F Holdings: only enabled with ENABLE_13F=1 (local dev, separate DB)
+    if os.environ.get("ENABLE_13F"):
         from webapp.routers import holdings
         app.include_router(holdings.router)
-        # 13F Intelligence Hub (local only — requires holdings data)
+        # 13F Intelligence Hub (requires holdings data)
         from webapp.routers import intel, intel_competitors, intel_insights
         app.include_router(intel.router)
         app.include_router(intel_competitors.router)

@@ -7,12 +7,21 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse
 
 from webapp.auth import is_auth_configured
-from webapp.database import SessionLocal
+from webapp.database import SessionLocal, HoldingsSessionLocal
 
 
 def get_db():
     """Yields a DB session, auto-closes on completion."""
     db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_holdings_db():
+    """Yields a 13F holdings DB session, auto-closes."""
+    db = HoldingsSessionLocal()
     try:
         yield db
     finally:

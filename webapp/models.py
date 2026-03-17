@@ -13,7 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from webapp.database import Base
+from webapp.database import Base, HoldingsBase
 
 
 class Trust(Base):
@@ -590,7 +590,7 @@ class MktMarketStatus(Base):
 
 # --- 13F Institutional Holdings Models ---
 
-class Institution(Base):
+class Institution(HoldingsBase):
     """13F filing institutions (hedge funds, asset managers)."""
     __tablename__ = "institutions"
 
@@ -613,7 +613,7 @@ class Institution(Base):
     )
 
 
-class Holding(Base):
+class Holding(HoldingsBase):
     """Individual position from 13F-HR infotable."""
     __tablename__ = "holdings"
 
@@ -645,7 +645,7 @@ class Holding(Base):
     )
 
 
-class CusipMapping(Base):
+class CusipMapping(HoldingsBase):
     """Links CUSIP to our fund universe."""
     __tablename__ = "cusip_mappings"
 
@@ -653,11 +653,9 @@ class CusipMapping(Base):
     cusip: Mapped[str] = mapped_column(String(12), unique=True, nullable=False)
     ticker: Mapped[str | None] = mapped_column(String(20))
     fund_name: Mapped[str | None] = mapped_column(String(300))
-    trust_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("trusts.id"))
+    trust_id: Mapped[int | None] = mapped_column(Integer)
     source: Mapped[str | None] = mapped_column(String(30))  # mkt_master | manual
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
-    trust: Mapped[Trust | None] = relationship()
 
     __table_args__ = (
         Index("idx_cusip_mappings_ticker", "ticker"),

@@ -37,6 +37,51 @@ class Base(DeclarativeBase):
     pass
 
 
+# --- 13F Holdings: separate database (local dev only) ---
+HOLDINGS_DB_PATH = PROJECT_ROOT / "data" / "13f_holdings.db"
+
+holdings_engine = create_engine(
+    f"sqlite:///{HOLDINGS_DB_PATH}",
+    connect_args={"check_same_thread": False},
+    echo=False,
+)
+
+
+@event.listens_for(holdings_engine, "connect")
+def _set_holdings_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA foreign_keys=ON")
+    # Attach main site DB read-only so cross-DB joins work
+    # (e.g. Holding JOIN MktMasterData, Trust, FundStatus)
+    main_path = str(DB_PATH).replace("\\", "/")
+    cursor.execute(f"ATTACH DATABASE '{main_path}' AS main_site")
+    cursor.close()
+
+
+HoldingsSessionLocal = sessionmaker(bind=holdings_engine)
+
+
+class HoldingsBase(DeclarativeBase):
+    pass
+
+
+def init_holdings_db():
+    """Create all 13F tables in the separate holdings database."""
+    HOLDINGS_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    from webapp.models import Institution, Holding, CusipMapping  # noqa: F401
+    HoldingsBase.metadata.create_all(bind=holdings_engine)
+
+
+def get_holdings_db():
+    """FastAPI dependency: yields a 13F holdings DB session, auto-closes."""
+    db = HoldingsSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def init_db():
     """Create all tables if they don't exist, and migrate missing columns."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -47,7 +92,6 @@ def init_db():
         MktCategoryAttributes, MktExclusion, MktRexFund,
         MktMasterData, MktTimeSeries, MktReportCache, MktStockData,
         MktFundClassification, MktMarketStatus, MktGlobalEtp,
-        Institution, Holding, CusipMapping,
         TrustRequest, DigestSubscriber,
         FilingAlert, TrustCandidate,
     )
