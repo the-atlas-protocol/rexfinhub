@@ -909,7 +909,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 }
 
 /* ========================================================
-   MEGA MENU — 3-column anchored dropdown
+   MEGA MENU — A3: 3-column with professional line icons
    ======================================================== */
 .mega-trigger-wrap {
   position: relative;
@@ -923,37 +923,42 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   display: flex;
   align-items: center;
   height: var(--nav-height);
-  padding: 0 var(--sp-4);
+  padding: 0 var(--sp-3);
   color: rgba(255,255,255,0.7);
   font-size: var(--text-base);
   font-weight: 500;
+  border: none;
   border-bottom: 2px solid transparent;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  border-radius: 0;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
   background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
   font-family: var(--font-sans);
 }
-.mega-trigger:hover,
-.mega-trigger.active { color: rgba(255,255,255,0.95); }
-.mega-trigger.active { border-bottom-color: var(--blue); font-weight: 600; }
+.mega-trigger:hover {
+  color: rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.06);
+}
+.mega-trigger.active {
+  color: rgba(255,255,255,0.95);
+  border-bottom-color: var(--blue);
+  font-weight: 600;
+}
 
 .mega-panel {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  width: 720px;
+  width: 760px;
   max-width: calc(100vw - 32px);
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0,0,0,0.06);
   border-radius: 12px;
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 4px 6px -1px rgba(0, 0, 0, 0.07),
-    0 10px 15px -3px rgba(0, 0, 0, 0.10),
-    0 20px 25px -5px rgba(0, 0, 0, 0.06);
-  padding: 20px 24px 24px;
+    0 0 0 1px rgba(0,0,0,0.03),
+    0 2px 4px rgba(0,0,0,0.04),
+    0 8px 16px rgba(0,0,0,0.06),
+    0 24px 48px rgba(0,0,0,0.08);
+  padding: 24px 28px 28px;
   z-index: 1000;
   visibility: hidden;
   opacity: 0;
@@ -970,7 +975,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 .mega-columns {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px 32px;
+  gap: 0 32px;
 }
 .mega-column {
   display: flex;
@@ -978,42 +983,74 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   gap: 2px;
 }
 .mega-section-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #94a3b8;
-  margin-bottom: 8px;
+  margin-bottom: 14px;
   padding-bottom: 8px;
   border-bottom: 1px solid #f1f5f9;
 }
 .mega-link {
-  display: block;
-  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
   border-left: 2px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
   color: inherit;
-  transition: background-color 150ms ease;
+  transition: background 0.15s ease;
   margin-bottom: 2px;
 }
 .mega-link:hover {
   background: #f8fafc;
 }
 .mega-link:hover .mega-link-title {
-  color: var(--blue);
+  color: #2563eb;
+}
+.mega-link:hover .mega-link-icon {
+  color: #2563eb;
 }
 .mega-link.active {
   background: #eff6ff;
-  border-left-color: var(--blue);
+  border-left-color: #2563eb;
 }
 .mega-link.active .mega-link-title {
   color: #1d4ed8;
   font-weight: 600;
 }
+.mega-link.active .mega-link-icon {
+  color: #1d4ed8;
+}
 .mega-link.coming-soon {
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.5;
+}
+.mega-link.coming-soon .mega-link-icon {
+  opacity: 0.4;
+}
+
+/* Icon container */
+.mega-link-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+.mega-link-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* Text container */
+.mega-link-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .mega-link-title {
@@ -1021,21 +1058,20 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   font-weight: 500;
   color: #0f172a;
   line-height: 1.3;
-  letter-spacing: -0.01em;
+  margin-bottom: 2px;
 }
 .mega-link-desc {
   font-size: 12px;
   font-weight: 400;
   color: #64748b;
   line-height: 1.4;
-  margin-top: 2px;
 }
 
 .coming-soon-badge {
   display: inline-block;
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #7c3aed;
   background: #ede9fe;
@@ -1054,10 +1090,13 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 [data-theme="dark"] .mega-section-label { color: #475569; border-bottom-color: #334155; }
 [data-theme="dark"] .mega-link-title { color: #f1f5f9; }
 [data-theme="dark"] .mega-link-desc { color: #94a3b8; }
+[data-theme="dark"] .mega-link-icon { color: #475569; }
 [data-theme="dark"] .mega-link:hover { background: #334155; }
 [data-theme="dark"] .mega-link:hover .mega-link-title { color: #60a5fa; }
+[data-theme="dark"] .mega-link:hover .mega-link-icon { color: #60a5fa; }
 [data-theme="dark"] .mega-link.active { background: rgba(37,99,235,0.15); border-left-color: #60a5fa; }
 [data-theme="dark"] .mega-link.active .mega-link-title { color: #93c5fd; }
+[data-theme="dark"] .mega-link.active .mega-link-icon { color: #93c5fd; }
 [data-theme="dark"] .coming-soon-badge { background: rgba(124,58,237,0.2); color: #a78bfa; }
 
 /* Mobile mega-menu fallback */
@@ -1084,10 +1123,10 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   .mega-link {
     min-height: 44px;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center;
     padding-left: calc(var(--sp-6) + 16px);
   }
+  .mega-link-icon { display: none; }
   .mega-section-label {
     padding-left: calc(var(--sp-6) + 16px);
     color: rgba(255,255,255,0.35);
@@ -1486,8 +1525,7 @@ body, .sticky-nav, table, th, td, .kpi, .trust-card, .trust-block,
 .nav-links { display: flex; align-items: center; gap: 0; flex: 1; }
 .nav-right { display: flex; align-items: center; margin-left: auto; }
 
-/* Nav caret for mega-menu triggers */
-.nav-caret { font-size: 0.6em; margin-left: 2px; opacity: 0.6; }
+/* Nav caret removed — A3 design uses plain text triggers with no chevrons */
 
 /* =========================================================================
    STANDARDIZED TABLE SYSTEM (rt-*)
