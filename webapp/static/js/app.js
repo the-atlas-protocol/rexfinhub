@@ -50,21 +50,16 @@
 })();
 
 // ---------------------------------------------------------------------------
-// Mega-menu controller (hover-triggered, 150ms grace close, click fallback)
+// Mega-menu controller (hover-triggered, 300ms grace close, click fallback)
 // ---------------------------------------------------------------------------
 (function() {
   var wraps = document.querySelectorAll('.mega-trigger-wrap');
   if (!wraps.length) return;
-
   var closeTimer = null;
 
   function closeAll() {
-    document.querySelectorAll('.mega-panel').forEach(function(p) {
-      p.classList.remove('open');
-    });
-    document.querySelectorAll('.mega-trigger').forEach(function(t) {
-      t.setAttribute('aria-expanded', 'false');
-    });
+    document.querySelectorAll('.mega-panel').forEach(function(p) { p.classList.remove('open'); });
+    document.querySelectorAll('.mega-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
   }
 
   wraps.forEach(function(wrap) {
@@ -72,43 +67,24 @@
     var panel = wrap.querySelector('.mega-panel');
     if (!trigger || !panel) return;
 
-    // Hover open -- immediate, no delay
     wrap.addEventListener('mouseenter', function() {
       clearTimeout(closeTimer);
       closeAll();
       panel.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
     });
-
-    // Hover leave -- 150ms grace period for diagonal mouse movement
     wrap.addEventListener('mouseleave', function() {
-      closeTimer = setTimeout(closeAll, 150);
+      closeTimer = setTimeout(closeAll, 300);
     });
-
-    // Click also works (touch devices)
     trigger.addEventListener('click', function(e) {
       e.preventDefault();
-      e.stopPropagation();
       var isOpen = panel.classList.contains('open');
       closeAll();
-      if (!isOpen) {
-        panel.classList.add('open');
-        trigger.setAttribute('aria-expanded', 'true');
-      }
+      if (!isOpen) { panel.classList.add('open'); trigger.setAttribute('aria-expanded', 'true'); }
     });
   });
 
-  // Close on outside click
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.mega-trigger-wrap')) {
-      closeAll();
-    }
-  });
-
-  // Escape closes
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeAll();
-  });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAll(); });
 })();
 
 // ---------------------------------------------------------------------------

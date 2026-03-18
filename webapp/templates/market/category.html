@@ -170,6 +170,7 @@
   <div class="section-header" onclick="toggleSection('allSection')" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md) var(--radius-md) 0 0;">
     <span class="expand-icon" id="allSectionIcon">&#9660;</span>
     <span style="font-weight:600; font-size:0.85rem;">All Products ({{ summary.total_funds }})</span>
+    {% if summary.top_products %}<span style="font-size:0.75rem; color:var(--gray-500); margin-left:auto;">Showing {{ summary.top_products|length }} of {{ summary.total_funds }}</span>{% endif %}
   </div>
   <div id="allSection" class="section-body">
     <div class="table-responsive">

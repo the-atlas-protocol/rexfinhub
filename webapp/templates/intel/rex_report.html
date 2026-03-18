@@ -53,7 +53,7 @@
       <tbody>
       {% for f in new_filers[:10] %}
       <tr>
-        <td>{{ f.filingmanager_name or f.institution_name or '\u2014' }}</td>
+        <td>{% if f.cik %}<a href="/holdings/{{ f.cik }}" title="View all holdings for this institution" style="color: var(--blue); text-decoration: none; font-weight: 500;">{{ f.filingmanager_name or f.institution_name or '\u2014' }}</a>{% else %}{{ f.filingmanager_name or f.institution_name or '\u2014' }}{% endif %}</td>
         <td>{{ f.filingmanager_stateorcountry or f.state or '\u2014' }}</td>
         <td class="num-col" data-sort="{{ f.total_value }}">{{ f.total_value_fmt }}</td>
         <td class="num-col" data-sort="{{ f.product_count }}">{{ f.product_count }}</td>

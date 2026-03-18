@@ -8,6 +8,17 @@
 <div class="intel-page-title">13F Report</div>
 <div class="intel-page-sub">All mapped products &middot; {{ q_display }}</div>
 
+<!-- Verdict Block -->
+{% if kpis %}
+<div class="verdict">
+  <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px;">Ownership Summary</div>
+  Institutional holders reported <strong>{{ kpis.total_aum_fmt or '$--' }}</strong> in ETP holdings
+  across <strong>{{ kpis.total_products|default(0) }}</strong> products from <strong>{{ kpis.total_issuers|default(0) }}</strong> issuers.
+  <strong>{{ '{:,}'.format(kpis.total_filers|default(0)) }}</strong> unique filers on record.
+  {% if kpis.new_filers %}<strong>{{ '{:,}'.format(kpis.new_filers) }}</strong> new filers this quarter.{% endif %}
+</div>
+{% endif %}
+
 <!-- KPIs -->
 <div class="intel-kpi-row" style="grid-template-columns:repeat(5,1fr);">
   <div class="intel-kpi">
@@ -65,7 +76,7 @@
     <tbody>
     {% for p in products %}
     <tr class="{{ 'rex-highlight' if p.is_rex }}">
-      <td><span class="intel-ticker {{ '' if p.is_rex else 'comp' }}">{{ p.ticker }}</span></td>
+      <td><a href="/market/rex" title="View market data for {{ p.ticker }}" style="text-decoration: none;"><span class="intel-ticker {{ '' if p.is_rex else 'comp' }}">{{ p.ticker }}</span></a></td>
       <td>{{ p.security_name or '\u2014' }}</td>
       <td>{{ p.issuer or '\u2014' }}</td>
       <td>

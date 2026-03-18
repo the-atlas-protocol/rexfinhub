@@ -105,6 +105,14 @@
   {% endif %}
 </ul>
 
+{# -- Score Legend -- #}
+<div style="display:flex; gap:16px; align-items:center; margin-bottom:16px; padding:10px 16px; background:var(--card-bg, #fff); border:1px solid var(--border); border-radius:8px; font-size:0.8rem;">
+  <span style="font-weight:600; color:var(--navy, #1E3A5F);">Score Legend:</span>
+  <span><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:var(--green); margin-right:4px; vertical-align:middle;"></span> 70+ File Immediately</span>
+  <span><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:var(--orange); margin-right:4px; vertical-align:middle;"></span> 40-69 File Soon</span>
+  <span><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:var(--gray); margin-right:4px; vertical-align:middle;"></span> &lt;40 Monitor</span>
+</div>
+
 <!-- ==================== TIER 1: FILE IMMEDIATELY ==================== -->
 {% if tiers.tier_1 %}
 <div class="section-header" style="border-color:var(--green);">

@@ -10,6 +10,15 @@
   </div>
 
   {% if stats.available %}
+  <!-- Verdict Block -->
+  <div class="verdict">
+    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px;">Structured Notes Summary</div>
+    <strong>{{ '{:,}'.format(stats.total_products or 0) }}</strong> structured products extracted from
+    <strong>{{ stats.issuers or 0 }}</strong> issuers.
+    {% if stats.total_filings %}Sourced from {{ '{:,}'.format(stats.total_filings) }} SEC filings.{% endif %}
+    {% if stats.date_min and stats.date_max and stats.date_min != '--' %}Data spans {{ stats.date_min[:4] }} to {{ stats.date_max[:4] }}.{% endif %}
+  </div>
+
   <div class="kpi-row">
     <div class="kpi"><div class="num">{{ "{:,}".format(stats.total_products) }}</div><div class="label">Products Extracted</div></div>
     <div class="kpi"><div class="num">{{ stats.issuers }}</div><div class="label">Issuers</div></div>
@@ -97,7 +106,7 @@
         <td style="white-space:nowrap">{{ p.date }}</td>
         <td><strong>{{ p.issuer }}</strong></td>
         <td>{{ p.type }}</td>
-        <td style="font-family: var(--font-mono); font-size: 11px;">{{ p.underliers }}</td>
+        <td style="font-family: var(--font-mono); font-size: 11px;">{% if p.underliers %}<a href="/notes/search?underlier={{ p.underliers|urlencode }}" title="Search products with this underlier" style="color: var(--blue); text-decoration: none;">{{ p.underliers }}</a>{% else %}&mdash;{% endif %}</td>
         <td style="font-family: var(--font-mono);">{{ p.coupon }}</td>
         <td style="font-family: var(--font-mono);">{{ p.barrier }}</td>
         <td>{% if p.filing_url %}<a href="{{ p.filing_url }}" target="_blank" style="font-size: 11px;">View</a>{% else %}--{% endif %}</td>

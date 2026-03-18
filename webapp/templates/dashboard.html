@@ -18,6 +18,17 @@
 </div>
 {% endif %}
 
+<!-- Verdict Block -->
+<div class="verdict">
+  <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px;">Today's Filing Activity</div>
+  {{ total_filings or 0 }} filings recorded across {{ total_trust_count or 0 }} trusts.
+  {{ total_funds or 0 }} funds tracked ({{ total_effective or 0 }} effective, {{ total_pending or 0 }} pending).
+  {% if new_filings_7d %}<strong>{{ new_filings_7d }}</strong> new filings this week.{% endif %}
+  {% if recent_filings %}
+    Most recent: {{ recent_filings[0].trust_name or '' }} filed {{ recent_filings[0].Filing.form or '' }}.
+  {% endif %}
+</div>
+
 <!-- KPIs -->
 <div class="kpi-row">
   <div class="kpi">
@@ -205,10 +216,10 @@
     {% else %}
     <div class="trust-card-stats">
       <span class="trust-stat"><strong>{{ t.total }}</strong> funds</span>
-      <span class="trust-stat trust-stat-green"><strong>{{ t.effective }}</strong> eff</span>
-      <span class="trust-stat trust-stat-orange"><strong>{{ t.pending }}</strong> pend</span>
+      <span class="trust-stat trust-stat-green"><strong>{{ t.effective }}</strong> Effective</span>
+      <span class="trust-stat trust-stat-orange"><strong>{{ t.pending }}</strong> Pending</span>
       {% if t.delayed > 0 %}
-      <span class="trust-stat trust-stat-red"><strong>{{ t.delayed }}</strong> del</span>
+      <span class="trust-stat trust-stat-red"><strong>{{ t.delayed }}</strong> Delayed</span>
       {% endif %}
     </div>
     {% endif %}

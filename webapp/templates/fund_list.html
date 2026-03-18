@@ -69,13 +69,13 @@
         {{ f.fund_name }}
         {% endif %}
       </td>
-      <td class="ticker-col">{{ f.ticker or '' }}</td>
+      <td class="ticker-col">{{ f.ticker or '—' }}</td>
       <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
         <a href="/trusts/{{ row.trust_slug }}">{{ row.trust_name }}</a>
       </td>
       <td><span class="status-{{ f.status|lower }}">{{ f.status }}</span></td>
-      <td>{{ f.latest_form or '' }}</td>
-      <td>{{ f.latest_filing_date or '' }}</td>
+      <td>{{ f.latest_form or '—' }}</td>
+      <td>{{ f.latest_filing_date or '—' }}</td>
     </tr>
     {% endfor %}
     {% if not funds %}
