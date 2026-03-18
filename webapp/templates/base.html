@@ -11,7 +11,8 @@
   <title>{% block title %}REX Financial Intelligence Hub{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=optional">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=optional" rel="stylesheet">
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
@@ -42,32 +43,32 @@
     <div class="nav-dropdown">
       <a href="/market/rex" class="nav-dropdown-trigger {% if '/market' in request.url.path %}active{% endif %}">Market <span class="nav-caret">&#9662;</span></a>
       <div class="nav-dropdown-menu">
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Dashboards</div>
-        <a href="/market/rex">REX View</a>
-        <a href="/market/category">Category</a>
-        <a href="/market/issuer">Issuer Analysis</a>
-        <a href="/market/underlier">Underlier</a>
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Tools</div>
-        <a href="/market/compare">Compare</a>
-        <a href="/market/calendar">Calendar</a>
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 12px;"></div>
-        <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** Market Monitor</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Dashboards</div>
+        <a href="/market/rex" {% if request.url.path.startswith('/market/rex') %}class="active"{% endif %}>REX View</a>
+        <a href="/market/category" {% if request.url.path.startswith('/market/category') %}class="active"{% endif %}>Category</a>
+        <a href="/market/issuer" {% if request.url.path.startswith('/market/issuer') %}class="active"{% endif %}>Issuer Analysis</a>
+        <a href="/market/underlier" {% if request.url.path.startswith('/market/underlier') %}class="active"{% endif %}>Underlier</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Tools</div>
+        <a href="/market/compare" {% if request.url.path.startswith('/market/compare') %}class="active"{% endif %}>Compare</a>
+        <a href="/market/calendar" {% if request.url.path.startswith('/market/calendar') %}class="active"{% endif %}>Calendar</a>
+        <a href="/market/share" {% if request.url.path.startswith('/market/share') %}class="active"{% endif %}>Market Share</a>
+        <a href="/market/monitor" {% if request.url.path.startswith('/market/monitor') %}class="active"{% endif %}>Market Monitor</a>
       </div>
     </div>
     <!-- PILLAR 2: Filing Intelligence -->
     <div class="nav-dropdown">
       <a href="/dashboard" class="nav-dropdown-trigger {% if '/dashboard' in request.url.path or '/funds' in request.url.path or '/filings' in request.url.path or '/universe' in request.url.path or '/screener' in request.url.path or '/analytics' in request.url.path %}active{% endif %}">Filings <span class="nav-caret">&#9662;</span></a>
       <div class="nav-dropdown-menu">
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Overview</div>
-        <a href="/dashboard">Daily Activity &amp; Filings</a>
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Search</div>
-        <a href="/funds/">Search by Fund / Ticker</a>
-        <a href="/filings/">Search by Filing / Date</a>
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Competitive Analysis</div>
-        <a href="/screener/">Who Filed What (3x/4x/5x Matrix)</a>
-        <a href="/screener/3x-analysis">Bloomberg Scoring &amp; Recommendations</a>
-        <a href="/screener/evaluate">Evaluate a Specific Ticker</a>
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 12px;"></div>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Overview</div>
+        <a href="/dashboard" {% if request.url.path.startswith('/dashboard') %}class="active"{% endif %}>Daily Activity &amp; Filings</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Search</div>
+        <a href="/funds/" {% if request.url.path.startswith('/funds') %}class="active"{% endif %}>Search by Fund / Ticker</a>
+        <a href="/filings/" {% if request.url.path.startswith('/filings') %}class="active"{% endif %}>Search by Filing / Date</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Competitive Analysis</div>
+        <a href="/screener/" {% if request.url.path == '/screener/' %}class="active"{% endif %}>Who Filed What (3x/4x/5x Matrix)</a>
+        <a href="/screener/3x-analysis" {% if request.url.path.startswith('/screener/3x') %}class="active"{% endif %}>Bloomberg Scoring &amp; Recommendations</a>
+        <a href="/screener/evaluate" {% if request.url.path.startswith('/screener/evaluate') %}class="active"{% endif %}>Evaluate a Specific Ticker</a>
+        <div style="border-top: 1px solid rgba(0,0,0,0.06); margin: 4px 12px;"></div>
         <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** Fund Withdrawals</a>
         <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** Analytics</a>
       </div>
@@ -76,13 +77,14 @@
     <div class="nav-dropdown">
       <a href="/holdings/" class="nav-dropdown-trigger {% if '/holdings' in request.url.path or '/intel' in request.url.path %}active{% endif %}">Ownership <span class="nav-caret">&#9662;</span></a>
       <div class="nav-dropdown-menu">
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Overview</div>
-        <a href="/intel/">Who Owns the ETP Market ($289B)</a>
-        <a href="/holdings/">Browse All 10,535 Institutions</a>
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">REX-Specific</div>
-        <a href="/intel/rex">Who Holds REX Products ($452M)</a>
-        <a href="/intel/rex/sales">Top Movers &amp; Sales Targets</a>
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 12px;"></div>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Overview</div>
+        <a href="/intel/" {% if request.url.path == '/intel/' %}class="active"{% endif %}>Who Owns the ETP Market ($289B)</a>
+        <a href="/holdings/" {% if request.url.path.startswith('/holdings') %}class="active"{% endif %}>Browse All 10,535 Institutions</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">REX-Specific</div>
+        <a href="/intel/rex" {% if request.url.path == '/intel/rex' %}class="active"{% endif %}>Who Holds REX Products ($452M)</a>
+        <a href="/intel/rex/sales" {% if request.url.path.startswith('/intel/rex/sales') %}class="active"{% endif %}>Top Movers &amp; Sales Targets</a>
+        <a href="/intel/rex/performance" {% if request.url.path.startswith('/intel/rex/performance') %}class="active"{% endif %}>REX Performance</a>
+        <div style="border-top: 1px solid rgba(0,0,0,0.06); margin: 4px 12px;"></div>
         <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** Competitor Analysis</a>
         <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** REX Filers</a>
         <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** New Filers</a>
@@ -94,13 +96,14 @@
     <div class="nav-dropdown">
       <a href="/notes/" class="nav-dropdown-trigger {% if '/notes' in request.url.path %}active{% endif %}">Structured Notes <span class="nav-caret">&#9662;</span></a>
       <div class="nav-dropdown-menu">
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Overview</div>
-        <a href="/notes/">594K Products — Market Overview</a>
-        <a href="/notes/issuers">19 Issuers — Market Share</a>
-        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); pointer-events: none;">Search</div>
-        <a href="/notes/search">Find Products by Issuer / Underlier</a>
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 12px;"></div>
-        <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** Underlier Trends</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Overview</div>
+        <a href="/notes/" {% if request.url.path == '/notes/' %}class="active"{% endif %}>594K Products -- Market Overview</a>
+        <a href="/notes/issuers" {% if request.url.path.startswith('/notes/issuers') %}class="active"{% endif %}>19 Issuers -- Market Share</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Search</div>
+        <a href="/notes/search" {% if request.url.path.startswith('/notes/search') %}class="active"{% endif %}>Find Products by Issuer / Underlier</a>
+        <div style="padding: 4px 16px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); pointer-events: none;">Analysis</div>
+        <a href="/notes/underliers" {% if request.url.path.startswith('/notes/underliers') %}class="active"{% endif %}>Underlier Analysis</a>
+        <div style="border-top: 1px solid rgba(0,0,0,0.06); margin: 4px 12px;"></div>
         <a href="#" style="color: var(--red); opacity: 0.7; pointer-events: none;">** Pricing Analysis</a>
       </div>
     </div>
