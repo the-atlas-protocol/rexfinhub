@@ -1,15 +1,213 @@
 {% extends "base.html" %}
 {% block title %}REX Financial Intelligence Hub{% endblock %}
 {% block content %}
+
+<style>
+/* ===== HOME PAGE — INTELLIGENCE HUB LAYOUT ===== */
+
+/* Widen the home container beyond default */
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--sp-6);
+}
+
+/* Hero KPI boxes — solid, no blur */
+.home-hero .hero-kpi-box {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 20px 24px;
+  min-width: 200px;
+  text-align: left;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* KPI delta indicator */
+.kpi-delta {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.kpi-delta.up { color: #4ade80; }
+.kpi-delta.down { color: #f87171; }
+
+/* Morning brief verdict block */
+.home-verdict {
+  background: var(--surface-2);
+  border-left: 4px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  padding: var(--sp-4) var(--sp-6);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  margin: var(--sp-6) 0;
+  color: var(--text-primary);
+}
+.home-verdict-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+}
+.home-verdict-fallback {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Section header — title + badge inline */
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--surface-3);
+}
+.home-section-heading {
+  font-family: var(--font-condensed);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  margin: 0;
+  padding-left: 14px;
+}
+.home-section-heading--market  { border-left: 4px solid var(--cat-li); }
+.home-section-heading--filing  { border-left: 4px solid var(--emerald); }
+.home-section-heading--ownership { border-left: 4px solid var(--purple); }
+.home-section-heading--notes   { border-left: 4px solid var(--amber); }
+
+.home-section-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Card grid — 4 col desktop, 2 tablet, 1 mobile */
+.home-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.home-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* Card overrides for uniform height + hover lift */
+.home-section .home-card {
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+}
+.home-section .home-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Ownership pillar accent (not in global CSS) */
+.home-card--ownership { border-top-color: var(--purple); }
+.home-card--ownership:hover { border-color: var(--purple); }
+.home-card--ownership .home-card-tag { color: var(--purple); }
+
+/* Notes pillar accent (maps to --amber, extends --product) */
+.home-card--notes { border-top-color: var(--amber); }
+.home-card--notes:hover { border-color: var(--amber); }
+.home-card--notes .home-card-tag { color: var(--amber); }
+
+/* Data freshness — subtle footer strip */
+.home-freshness {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-8);
+  padding: var(--sp-4) 0;
+  margin-top: var(--sp-4);
+  border-top: 1px solid var(--surface-3);
+  flex-wrap: wrap;
+  opacity: 0.7;
+}
+.home-freshness-item { text-align: center; }
+.home-freshness-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 1px;
+}
+.home-freshness-value {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Footer links */
+.home-footer-links {
+  text-align: center;
+  margin: var(--sp-6) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.home-footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  margin: 0 var(--sp-4);
+}
+.home-footer-links a:hover { color: var(--text-secondary); }
+
+/* Section entrance animation */
+.section-animate {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: sectionFadeIn 0.4s ease-out forwards;
+}
+.section-animate:nth-child(2) { animation-delay: 0.06s; }
+.section-animate:nth-child(3) { animation-delay: 0.12s; }
+.section-animate:nth-child(4) { animation-delay: 0.18s; }
+.section-animate:nth-child(5) { animation-delay: 0.24s; }
+.section-animate:nth-child(6) { animation-delay: 0.30s; }
+.section-animate:nth-child(7) { animation-delay: 0.36s; }
+@keyframes sectionFadeIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .home-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .home-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .home-grid-4, .home-grid-3 { grid-template-columns: 1fr; }
+  .home-section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .home-freshness { gap: var(--sp-4); }
+  .home-hero .hero-kpi-box { min-width: 140px; padding: 14px 16px; }
+}
+</style>
+
+<div class="home-container">
+
+<!-- ===== HERO — gradient, solid KPI boxes ===== -->
 <div class="home-hero">
-  <h1 class="home-title" style="font-size: 3rem; font-weight: 800;">REX Financial Intelligence Hub</h1>
+  <h1 class="home-title" style="font-size: 2.5rem; font-weight: 800; font-family: var(--font-condensed);">
+    REX Financial Intelligence Hub
+  </h1>
   <p class="home-tagline">
     Market positioning, SEC filing intelligence, institutional ownership, and structured product analytics — one platform, updated daily.
   </p>
   <div class="hero-kpi-strip">
     <div class="hero-kpi-box" id="kpi-aum">
       <div class="hero-kpi-value" data-kpi="rex_aum">--</div>
-      <div class="hero-kpi-change" id="kpi-aum-change"></div>
+      <div class="kpi-delta" id="kpi-aum-change"></div>
       <div class="hero-kpi-label">REX AUM</div>
     </div>
     <div class="hero-kpi-box" id="kpi-flows">
@@ -27,136 +225,172 @@
   </div>
 </div>
 
-<!-- MARKET -->
-<div class="home-section">
-  <div class="home-section-title">Market</div>
-  <div class="home-grid">
+<!-- ===== MORNING BRIEF — always visible, fallback if empty ===== -->
+<div class="home-verdict section-animate">
+  <div class="home-verdict-label">Today's Brief</div>
+  {% if brief_text %}
+    {{ brief_text }}
+  {% else %}
+    <span class="home-verdict-fallback">SEC filing monitor active across 2,475 trusts. Market data updated daily.</span>
+  {% endif %}
+</div>
+
+<!-- ===== MARKET INTELLIGENCE ===== -->
+<div class="home-section section-animate">
+  <div class="home-section-header">
+    <h2 class="home-section-heading home-section-heading--market">Market Intelligence</h2>
+    <span class="home-section-badge">64 products &middot; $3.8B AUM</span>
+  </div>
+  <div class="home-grid-4">
     <a href="/market/rex" class="home-card home-card--market">
-      <div class="home-card-tag">Dashboard</div>
       <div class="home-card-title">REX View</div>
       <div class="home-card-desc">Suite AUM, flows, and competitive positioning vs Direxion, ProShares, GraniteShares.</div>
     </a>
     <a href="/market/category" class="home-card home-card--market">
-      <div class="home-card-tag">Dashboard</div>
       <div class="home-card-title">Category View</div>
-      <div class="home-card-desc">AUM, flows, and treemap across 8 ETP categories.</div>
+      <div class="home-card-desc">Competitive landscape across 8 ETP categories with AUM and flow trends.</div>
     </a>
     <a href="/market/issuer" class="home-card home-card--market">
-      <div class="home-card-tag">Dashboard</div>
       <div class="home-card-title">Issuer Analysis</div>
-      <div class="home-card-desc">Rank issuers by AUM, flows, market share, and 12-month trends.</div>
+      <div class="home-card-desc">Rank issuers by AUM, flows, market share, and 12-month performance.</div>
     </a>
     <a href="/market/compare" class="home-card home-card--market">
-      <div class="home-card-tag">Tool</div>
       <div class="home-card-title">Compare Products</div>
-      <div class="home-card-desc">Side-by-side comparison across AUM, flows, and returns.</div>
+      <div class="home-card-desc">Side-by-side comparison of AUM, flows, and returns across tickers.</div>
     </a>
   </div>
 </div>
 
-<!-- FILINGS -->
-<div class="home-section">
-  <div class="home-section-title">Filings</div>
-  <div class="home-grid">
+<!-- ===== SEC FILINGS ===== -->
+<div class="home-section section-animate">
+  <div class="home-section-header">
+    <h2 class="home-section-heading home-section-heading--filing">SEC Filings</h2>
+    <span class="home-section-badge">2,475 trusts &middot; 72,934 funds</span>
+  </div>
+  <div class="home-grid-4">
     <a href="/dashboard" class="home-card home-card--filing">
-      <div class="home-card-tag">Dashboard</div>
       <div class="home-card-title">Filing Activity</div>
-      <div class="home-card-desc">Today's SEC filings across 2,475 trusts. Filter by form type, trust, and date.</div>
+      <div class="home-card-desc">Real-time SEC filing monitor with trust-level filtering and form breakdowns.</div>
     </a>
     <a href="/screener/" class="home-card home-card--filing">
-      <div class="home-card-tag">Analysis</div>
       <div class="home-card-title">Competitive Landscape</div>
       <div class="home-card-desc">3x/4x/5x filing matrix. Who filed what, REX exclusives, and gaps.</div>
     </a>
     <a href="/screener/3x-analysis" class="home-card home-card--filing">
-      <div class="home-card-tag">Analysis</div>
       <div class="home-card-title">Bloomberg Scoring</div>
-      <div class="home-card-desc">Demand-tiered recommendations for leveraged product launches.</div>
+      <div class="home-card-desc">4-pillar scoring engine: market timing, competitive density, AUM potential, risk.</div>
     </a>
     <a href="/screener/evaluate" class="home-card home-card--filing">
-      <div class="home-card-tag">Tool</div>
       <div class="home-card-title">Candidate Evaluator</div>
-      <div class="home-card-desc">Score a specific ticker for product launch viability.</div>
+      <div class="home-card-desc">Deep-dive evaluation of any ticker against Bloomberg data and filing history.</div>
     </a>
   </div>
 </div>
 
-<!-- OWNERSHIP -->
-<div class="home-section">
-  <div class="home-section-title">Ownership</div>
-  <div class="home-grid">
-    <a href="/intel/" class="home-card home-card--filing">
-      <div class="home-card-tag">Dashboard</div>
-      <div class="home-card-title">ETP Market Overview</div>
-      <div class="home-card-desc">$289B market AUM. Ownership by vertical, top issuers, product breakdown.</div>
-    </a>
-    <a href="/intel/rex" class="home-card home-card--filing">
-      <div class="home-card-tag">Analysis</div>
-      <div class="home-card-title">REX Quarter Report</div>
-      <div class="home-card-desc">$452M REX AUM, 120 institutions. Who's buying, who's new this quarter.</div>
-    </a>
-    <a href="/intel/rex/sales" class="home-card home-card--filing">
-      <div class="home-card-tag">Tool</div>
-      <div class="home-card-title">Sales Intelligence</div>
-      <div class="home-card-desc">Product momentum, top gainers, concentration risk by state.</div>
-    </a>
-    <a href="/holdings/" class="home-card home-card--filing">
-      <div class="home-card-tag">Search</div>
-      <div class="home-card-title">Browse Institutions</div>
-      <div class="home-card-desc">10,535 institutions sorted by AUM. Search by name, click for details.</div>
-    </a>
+<!-- ===== INSTITUTIONAL OWNERSHIP ===== -->
+<div class="home-section section-animate">
+  <div class="home-section-header">
+    <h2 class="home-section-heading home-section-heading--ownership">Institutional Ownership</h2>
+    <span class="home-section-badge">10,535 institutions &middot; $289B tracked</span>
   </div>
-</div>
-
-<!-- STRUCTURED NOTES -->
-<div class="home-section">
-  <div class="home-section-title">Structured Notes</div>
-  <div class="home-grid">
-    <a href="/notes/" class="home-card home-card--product">
-      <div class="home-card-tag">Dashboard</div>
+  <div class="home-grid-4">
+    <a href="/intel/" class="home-card home-card--ownership">
       <div class="home-card-title">Market Overview</div>
-      <div class="home-card-desc">594,171 products from 19 issuers. Volume trends, market share since 1994.</div>
+      <div class="home-card-desc">13F aggregate view: top holders, sector allocation, quarter-over-quarter changes.</div>
     </a>
-    <a href="/notes/issuers" class="home-card home-card--product">
-      <div class="home-card-tag">Dashboard</div>
-      <div class="home-card-title">Issuer Dashboard</div>
-      <div class="home-card-desc">JPMorgan 107K, UBS 98K, Goldman 60K — product counts and market share.</div>
+    <a href="/intel/rex" class="home-card home-card--ownership">
+      <div class="home-card-title">REX Quarter Report</div>
+      <div class="home-card-desc">Institutional ownership of REX products with position sizing and flow direction.</div>
     </a>
-    <a href="/notes/search" class="home-card home-card--product">
-      <div class="home-card-tag">Tool</div>
-      <div class="home-card-title">Product Search</div>
-      <div class="home-card-desc">Filter by issuer, type, underlier. View coupon, barrier, maturity, CUSIP.</div>
+    <a href="/holdings/" class="home-card home-card--ownership">
+      <div class="home-card-title">Browse Institutions</div>
+      <div class="home-card-desc">Search 10,535 institutional filers by name, AUM, or holding concentration.</div>
+    </a>
+    <a href="/intel/rex/sales" class="home-card home-card--ownership">
+      <div class="home-card-title">Sales Intelligence</div>
+      <div class="home-card-desc">Identify institutions increasing or initiating positions in REX products.</div>
     </a>
   </div>
 </div>
 
-<div style="text-align: center; margin: 2rem 0 0; font-size: 0.8125rem; color: var(--text-muted);">
-  <a href="/downloads/" style="color: var(--text-muted); text-decoration: none; margin: 0 1rem;">Data Exports</a>
-  <a href="/digest/subscribe" style="color: var(--text-muted); text-decoration: none; margin: 0 1rem;">Email Digest</a>
+<!-- ===== STRUCTURED NOTES ===== -->
+<div class="home-section section-animate">
+  <div class="home-section-header">
+    <h2 class="home-section-heading home-section-heading--notes">Structured Notes</h2>
+    <span class="home-section-badge">594K products &middot; 19 issuers</span>
+  </div>
+  <div class="home-grid-3">
+    <a href="/notes/" class="home-card home-card--notes">
+      <div class="home-card-title">Market Overview</div>
+      <div class="home-card-desc">Aggregate structured note issuance: volume, underlier trends, and maturity profiles.</div>
+    </a>
+    <a href="/notes/issuers" class="home-card home-card--notes">
+      <div class="home-card-title">Issuer Dashboard</div>
+      <div class="home-card-desc">Compare 19 issuers by product count, notional volume, and market share.</div>
+    </a>
+    <a href="/notes/search" class="home-card home-card--notes">
+      <div class="home-card-title">Product Search</div>
+      <div class="home-card-desc">Search 594K structured products by issuer, underlier, coupon, or CUSIP.</div>
+    </a>
+  </div>
 </div>
 
+<!-- ===== DATA FRESHNESS — subtle footer strip ===== -->
+<div class="home-freshness section-animate">
+  <div class="home-freshness-item">
+    <span class="home-freshness-label">Market data</span>
+    <span class="home-freshness-value as-of">{{ market_date or 'N/A' }}</span>
+  </div>
+  <div class="home-freshness-item">
+    <span class="home-freshness-label">SEC filings</span>
+    <span class="home-freshness-value as-of">{{ filing_date or 'N/A' }}</span>
+  </div>
+  <div class="home-freshness-item">
+    <span class="home-freshness-label">13F data</span>
+    <span class="home-freshness-value as-of">{{ ownership_date or 'Q4 2025' }}</span>
+  </div>
+  <div class="home-freshness-item">
+    <span class="home-freshness-label">Structured notes</span>
+    <span class="home-freshness-value as-of">{{ notes_date or 'N/A' }}</span>
+  </div>
+</div>
+
+<!-- Footer links -->
+<div class="home-footer-links section-animate">
+  <a href="/downloads/">Data Exports</a>
+  <a href="/digest/subscribe">Email Digest</a>
+</div>
+
+</div><!-- /.home-container -->
+
+<!-- KPI Animation Script -->
 <script>
 (function() {
   fetch('/api/v1/home-kpis')
     .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(d) {
+      // AUM
       var aumEl = document.querySelector('[data-kpi="rex_aum"]');
       if (aumEl && d.rex_aum) aumEl.textContent = d.rex_aum;
 
+      // AUM change delta
       var changeEl = document.getElementById('kpi-aum-change');
       if (changeEl && d.rex_aum_change_pct != null && d.rex_aum_change_pct !== 0) {
         var pct = d.rex_aum_change_pct;
         var sign = pct > 0 ? '+' : '';
         changeEl.textContent = sign + pct.toFixed(1) + '% MoM';
-        changeEl.classList.add(pct >= 0 ? 'hero-kpi-change--up' : 'hero-kpi-change--down');
+        changeEl.classList.add(pct >= 0 ? 'up' : 'down');
       }
 
+      // Flows
       var flowsEl = document.querySelector('[data-kpi="weekly_flows"]');
       if (flowsEl && d.weekly_flows) flowsEl.textContent = d.weekly_flows;
 
+      // Filings
       var filingsEl = document.querySelector('[data-kpi="todays_filings"]');
       if (filingsEl && d.todays_filings != null) filingsEl.textContent = d.todays_filings;
 
+      // Institutions
       var instEl = document.querySelector('[data-kpi="institutions_count"]');
       if (instEl && d.institutions_count != null) {
         instEl.textContent = d.institutions_count.toLocaleString();
