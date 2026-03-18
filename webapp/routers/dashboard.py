@@ -3,9 +3,12 @@ Dashboard router - Main page with KPIs, trust list, recent activity.
 """
 from __future__ import annotations
 
+import logging
 import math
+import time
 import urllib.parse
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.templating import Jinja2Templates
@@ -16,6 +19,8 @@ from webapp.dependencies import get_db
 from webapp.models import Filing
 from webapp.fund_filters import MUTUAL_FUND_EXCLUSIONS
 from webapp.models import Trust, FundStatus, Filing, FundExtraction
+
+log = logging.getLogger(__name__)
 
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
@@ -150,6 +155,130 @@ _STATUS_LABELS = {
 }
 
 TRUST_PAGE_SIZE = 60
+
+
+# ---------------------------------------------------------------------------
+# Home page — morning brief
+# ---------------------------------------------------------------------------
+
+def _generate_morning_brief(db: Session) -> str:
+    """Generate a rule-based intelligence brief for the home page."""
+    parts = []
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    # Count today's filings
+    try:
+        recent_count = db.execute(
+            select(func.count(Filing.id)).where(Filing.filing_date == today)
+        ).scalar() or 0
+
+        if recent_count > 0:
+            parts.append(
+                f"{recent_count} filing{'s' if recent_count != 1 else ''} recorded today."
+            )
+        else:
+            # Check yesterday if today is empty
+            yest_count = db.execute(
+                select(func.count(Filing.id)).where(Filing.filing_date == yesterday)
+            ).scalar() or 0
+            if yest_count > 0:
+                parts.append(
+                    f"{yest_count} filing{'s' if yest_count != 1 else ''} recorded yesterday."
+                )
+    except Exception:
+        pass
+
+    # Count active trusts
+    try:
+        trust_count = db.execute(
+            select(func.count(Trust.id)).where(Trust.is_active == True)
+        ).scalar() or 0
+        if trust_count > 0 and not parts:
+            parts.append(f"SEC filing monitor active across {trust_count:,} trusts.")
+    except Exception:
+        pass
+
+    # Fallback
+    if not parts:
+        parts.append("SEC filing monitor active.")
+
+    return " ".join(parts)
+
+
+def _get_notes_date() -> str | None:
+    """Get the latest filing date from the structured notes DB on D: drive."""
+    try:
+        import sqlite3
+        notes_db = Path("D:/sec-data/databases/structured_notes.db")
+        if not notes_db.exists():
+            return None
+        conn = sqlite3.connect(str(notes_db))
+        row = conn.execute(
+            "SELECT MAX(filing_date) FROM filings WHERE extracted = 1"
+        ).fetchone()
+        conn.close()
+        return row[0] if row and row[0] else None
+    except Exception:
+        return None
+
+
+@router.get("/")
+def home_page(request: Request, db: Session = Depends(get_db)):
+    """Home page — morning brief with KPI strip and pillar quick links."""
+    brief_text = _generate_morning_brief(db)
+
+    # Data freshness: latest filing date
+    filing_date = None
+    try:
+        filing_date = db.execute(
+            select(func.max(Filing.filing_date))
+        ).scalar()
+    except Exception:
+        pass
+
+    # Data freshness: latest market data
+    market_date = None
+    try:
+        from webapp.models import MktTimeSeries
+        market_date = db.execute(
+            select(func.max(MktTimeSeries.as_of_date))
+        ).scalar()
+    except Exception:
+        pass
+    if not market_date:
+        try:
+            from webapp.models import MktPipelineRun
+            latest_run = db.execute(
+                select(MktPipelineRun.finished_at)
+                .where(MktPipelineRun.status == "completed")
+                .order_by(MktPipelineRun.finished_at.desc())
+                .limit(1)
+            ).scalar()
+            if latest_run:
+                market_date = (
+                    latest_run.strftime("%Y-%m-%d")
+                    if isinstance(latest_run, datetime)
+                    else str(latest_run)
+                )
+        except Exception:
+            pass
+
+    # Data freshness: structured notes
+    notes_date = _get_notes_date()
+
+    # last_sync_date for footer
+    last_sync_date = str(filing_date) if filing_date else str(date.today())
+
+    return templates.TemplateResponse("home.html", {
+        "request": request,
+        "brief_text": brief_text,
+        "market_date": market_date,
+        "filing_date": filing_date,
+        "ownership_date": "Q4 2025",
+        "notes_date": notes_date,
+        "last_sync_date": last_sync_date,
+    })
 
 
 @router.get("/dashboard")
@@ -401,9 +530,58 @@ def api_home_kpis(db: Session = Depends(get_db)):
     }
 
 
+_ticker_cache: dict = {"data": None, "ts": 0}
+_TICKER_CACHE_TTL = 300  # 5 minutes
+
+
+def _fetch_market_indices() -> list[dict]:
+    """Fetch major market indices via yfinance. Returns empty list on failure."""
+    indices = []
+    try:
+        import yfinance as yf
+    except ImportError:
+        return indices
+
+    symbols = {
+        "^GSPC": "S&P 500",
+        "^IXIC": "NASDAQ",
+        "^VIX": "VIX",
+        "GC=F": "Gold",
+        "BTC-USD": "BTC",
+    }
+    for sym, name in symbols.items():
+        try:
+            ticker = yf.Ticker(sym)
+            info = ticker.fast_info
+            price = getattr(info, "last_price", 0) or 0
+            prev = getattr(info, "previous_close", price) or price
+            change_pct = ((price - prev) / prev * 100) if prev else 0
+
+            if price > 10000:
+                val_str = f"{price:,.0f}"
+            elif price > 100:
+                val_str = f"{price:,.1f}"
+            else:
+                val_str = f"{price:,.2f}"
+
+            indices.append({
+                "name": name,
+                "value": val_str,
+                "change_pct": round(change_pct, 2),
+            })
+        except Exception:
+            pass
+
+    return indices
+
+
 @router.get("/api/v1/ticker-strip")
 def api_ticker_strip(db: Session = Depends(get_db)):
-    """Ticker strip data — top REX products with AUM and weekly return."""
+    """Ticker strip data — market indices + top REX products."""
+    now = time.time()
+    if _ticker_cache["data"] and (now - _ticker_cache["ts"]) < _TICKER_CACHE_TTL:
+        return _ticker_cache["data"]
+
     from webapp.models import MktMasterData
     products = []
     try:
@@ -443,4 +621,10 @@ def api_ticker_strip(db: Session = Depends(get_db)):
             {"ticker": "NVDX", "value": "$516M", "change_pct": 0.2, "suite": "T-REX"},
         ]
 
-    return {"products": products}
+    # Market indices (yfinance) — slow call, cached
+    indices = _fetch_market_indices()
+
+    result = {"indices": indices, "products": products}
+    _ticker_cache["data"] = result
+    _ticker_cache["ts"] = now
+    return result
