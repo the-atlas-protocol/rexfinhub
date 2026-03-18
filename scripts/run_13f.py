@@ -45,7 +45,7 @@ def main():
 
     mode = sys.argv[1]
 
-    from webapp.database import init_db
+    from webapp.database import init_holdings_db as init_db
     from etp_tracker.thirteen_f import (
         seed_cusip_mappings,
         ingest_13f_dataset,

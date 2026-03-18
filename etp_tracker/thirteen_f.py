@@ -32,7 +32,11 @@ from sqlalchemy import select, func, distinct
 # ---------------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from webapp.database import SessionLocal, init_db
+from webapp.database import (
+    HoldingsSessionLocal as SessionLocal,
+    SessionLocal as MainSessionLocal,
+    init_holdings_db as init_db,
+)
 from webapp.models import CusipMapping, Holding, Institution, MktMasterData
 
 log = logging.getLogger(__name__)
@@ -51,26 +55,48 @@ SEC_EFTS_URL = (
 def _build_bulk_urls(quarter: str) -> list[str]:
     """Build possible SEC bulk download URLs for a quarter.
 
-    SEC changed from '13f2025q4.zip' naming to date-range naming
-    like '01oct2025-31dec2025_form13f.zip' around late 2025.
-    Returns both formats to try (new first, then old).
+    SEC uses two naming schemes:
+    - Pre-2024: '{year}q{n}_form13f.zip' (e.g. 2023q4_form13f.zip)
+    - 2024+: Rolling 3-month filing windows (e.g. 01dec2024-28feb2025_form13f.zip)
+
+    The 2024+ windows are NOT calendar quarters. They group by filing date,
+    not report period. We accept either a quarter label like '2025q1' or a
+    raw SEC filename slug like '01dec2024-28feb2025'.
     """
+    # If user passed a raw SEC slug (e.g. '01dec2024-28feb2025'), use directly
+    if quarter[0].isdigit() and "-" in quarter and len(quarter) > 10:
+        return [f"{SEC_BULK_BASE}/{quarter}_form13f.zip"]
+
     urls = []
     try:
         year = int(quarter[:4])
         q = int(quarter[-1])
-        month_ranges = {
-            1: ("01jan", "31mar"),
-            2: ("01apr", "30jun"),
-            3: ("01jul", "30sep"),
-            4: ("01oct", "31dec"),
-        }
-        start_str, end_str = month_ranges[q]
-        urls.append(f"{SEC_BULK_BASE}/{start_str}{year}-{end_str}{year}_form13f.zip")
-    except (ValueError, KeyError):
-        pass
-    # Old format as fallback
-    urls.append(f"{SEC_BULK_BASE}/13f{quarter}.zip")
+    except (ValueError, IndexError):
+        urls.append(f"{SEC_BULK_BASE}/{quarter}_form13f.zip")
+        return urls
+
+    # 2024+ new format: rolling 3-month filing windows
+    # These are the actual SEC filenames scraped from their data page
+    _FILING_WINDOWS_2024 = {
+        (2024, 1): ["01jan2024-29feb2024"],
+        (2024, 2): ["01mar2024-31may2024"],
+        (2024, 3): ["01jun2024-31aug2024"],
+        (2024, 4): ["01sep2024-30nov2024", "01dec2024-28feb2025"],
+        (2025, 1): ["01mar2025-31may2025"],
+        (2025, 2): ["01jun2025-31aug2025"],
+        (2025, 3): ["01sep2025-30nov2025"],
+        (2025, 4): ["01dec2025-28feb2026"],
+    }
+
+    if (year, q) in _FILING_WINDOWS_2024:
+        for slug in _FILING_WINDOWS_2024[(year, q)]:
+            urls.append(f"{SEC_BULK_BASE}/{slug}_form13f.zip")
+    else:
+        # Pre-2024 old format
+        urls.append(f"{SEC_BULK_BASE}/{year}q{q}_form13f.zip")
+        # Legacy format as fallback
+        urls.append(f"{SEC_BULK_BASE}/13f{quarter}.zip")
+
     return urls
 
 
@@ -266,10 +292,12 @@ def seed_cusip_mappings() -> int:
     Returns:
         Count of CUSIPs seeded or updated.
     """
+    # Read MktMasterData from main DB, write CusipMapping to holdings DB
+    main_db = MainSessionLocal()
     db = SessionLocal()
     try:
         # Pull all mkt_master_data rows that have a non-empty CUSIP
-        master_rows = db.execute(
+        master_rows = main_db.execute(
             select(MktMasterData.cusip, MktMasterData.ticker, MktMasterData.fund_name)
             .where(MktMasterData.cusip.isnot(None))
             .where(MktMasterData.cusip != "")
@@ -309,6 +337,7 @@ def seed_cusip_mappings() -> int:
         return count
     finally:
         db.close()
+        main_db.close()
 
 
 # ---------------------------------------------------------------------------
@@ -369,15 +398,26 @@ def ingest_13f_dataset(
     # ------------------------------------------------------------------
     # Step 2: Extract TSVs from ZIP
     # ------------------------------------------------------------------
+    import tempfile as _tmpmod
+
+    infotable_tmpfile = None
     try:
         with zipfile.ZipFile(zip_file, "r") as zf:
             names = zf.namelist()
             log.info("ZIP contents: %s", names)
 
+            def _find_in_zip(target_name: str) -> str | None:
+                """Match by filename only (strip dir prefixes, case-insensitive)."""
+                return next(
+                    (n for n in names
+                     if n.upper().rstrip("/").rsplit("/", 1)[-1] == target_name.upper()),
+                    None,
+                )
+
             tsv_data = {}
-            for target in ("INFOTABLE.tsv", "SUBMISSION.tsv", "COVERPAGE.tsv"):
-                # Case-insensitive match (SEC varies casing across quarters)
-                match = next((n for n in names if n.upper() == target.upper()), None)
+            # SUBMISSION and COVERPAGE are small (~10K rows) — load into memory
+            for target in ("SUBMISSION.tsv", "COVERPAGE.tsv"):
+                match = _find_in_zip(target)
                 if match is None:
                     msg = f"Missing {target} in ZIP"
                     log.error(msg)
@@ -385,6 +425,21 @@ def ingest_13f_dataset(
                     return stats
                 raw = zf.read(match)
                 tsv_data[target.upper()] = raw.decode("utf-8", errors="replace")
+
+            # INFOTABLE is huge (~3.5M rows, 500MB+) — extract to temp file
+            match = _find_in_zip("INFOTABLE.tsv")
+            if match is None:
+                msg = "Missing INFOTABLE.tsv in ZIP"
+                log.error(msg)
+                stats["errors"].append(msg)
+                return stats
+            infotable_tmpfile = _tmpmod.NamedTemporaryFile(
+                mode="wb", suffix=".tsv", delete=False,
+            )
+            infotable_tmpfile.write(zf.read(match))
+            infotable_tmpfile.close()
+            log.info("Extracted INFOTABLE to temp file: %s", infotable_tmpfile.name)
+
     except zipfile.BadZipFile as exc:
         msg = f"Corrupt ZIP file: {exc}"
         log.error(msg)
@@ -427,42 +482,45 @@ def ingest_13f_dataset(
         log.info("Upserted %d institutions", stats["institutions_upserted"])
 
         # ------------------------------------------------------------------
-        # Step 4: Parse INFOTABLE -> insert Holdings
+        # Step 4: Parse INFOTABLE -> insert Holdings (chunked to avoid OOM)
         # ------------------------------------------------------------------
-        info_df = pd.read_csv(
-            io.StringIO(tsv_data["INFOTABLE.TSV"]),
-            sep="\t",
-            engine="python",
-            on_bad_lines="skip",
-            dtype=str,
-        )
-        info_df.columns = [c.strip().upper() for c in info_df.columns]
-        log.info("INFOTABLE rows: %d", len(info_df))
-
         # Pre-load CUSIP mappings for matching
         cusip_set = set(
             row[0] for row in db.execute(select(CusipMapping.cusip)).all()
         )
 
+        # Read from temp file in chunks (50K rows) to stay within memory
+        chunk_iter = pd.read_csv(
+            infotable_tmpfile.name,
+            sep="\t",
+            engine="python",
+            on_bad_lines="skip",
+            dtype=str,
+            chunksize=50_000,
+        )
+
         batch: list[Holding] = []
-        for idx, row in info_df.iterrows():
-            holding = _build_holding(row, accession_map, cik_to_inst_id, cusip_set)
-            if holding is None:
-                continue
+        for chunk_df in chunk_iter:
+            chunk_df.columns = [c.strip().upper() for c in chunk_df.columns]
 
-            batch.append(holding)
+            for idx, row in chunk_df.iterrows():
+                holding = _build_holding(row, accession_map, cik_to_inst_id, cusip_set)
+                if holding is None:
+                    continue
 
-            # Track CUSIP matches
-            if holding.cusip and holding.cusip in cusip_set:
-                stats["cusips_matched"] += 1
+                batch.append(holding)
 
-            if len(batch) >= BATCH_SIZE:
-                db.add_all(batch)
-                db.commit()
-                stats["holdings_inserted"] += len(batch)
-                if stats["holdings_inserted"] % 10000 == 0:
-                    log.info("  Inserted %d holdings...", stats["holdings_inserted"])
-                batch = []
+                # Track CUSIP matches
+                if holding.cusip and holding.cusip in cusip_set:
+                    stats["cusips_matched"] += 1
+
+                if len(batch) >= BATCH_SIZE:
+                    db.add_all(batch)
+                    db.commit()
+                    stats["holdings_inserted"] += len(batch)
+                    if stats["holdings_inserted"] % 50000 == 0:
+                        log.info("  Inserted %d holdings...", stats["holdings_inserted"])
+                    batch = []
 
         # Final batch
         if batch:
@@ -484,6 +542,12 @@ def ingest_13f_dataset(
         stats["errors"].append(msg)
     finally:
         db.close()
+        # Clean up temp file
+        if infotable_tmpfile:
+            try:
+                os.unlink(infotable_tmpfile.name)
+            except OSError:
+                pass
 
     return stats
 
@@ -858,6 +922,8 @@ def enrich_cusip_mappings_from_holdings() -> int:
     Returns:
         Count of new CUSIP mappings created.
     """
+    # Read MktMasterData from main DB, read/write holdings data in holdings DB
+    main_db = MainSessionLocal()
     db = SessionLocal()
     try:
         # Get CUSIPs from holdings that aren't in cusip_mappings yet
@@ -872,8 +938,8 @@ def enrich_cusip_mappings_from_holdings() -> int:
             .distinct()
         ).all()
 
-        # Load master data for matching
-        master_rows = db.execute(
+        # Load master data for matching (from main DB)
+        master_rows = main_db.execute(
             select(MktMasterData.cusip, MktMasterData.ticker, MktMasterData.fund_name)
             .where(MktMasterData.cusip.isnot(None))
             .where(MktMasterData.cusip != "")
@@ -906,6 +972,7 @@ def enrich_cusip_mappings_from_holdings() -> int:
         return count
     finally:
         db.close()
+        main_db.close()
 
 
 # ---------------------------------------------------------------------------
@@ -1286,9 +1353,9 @@ def export_tracked_db(output_path: str) -> dict:
     """
     import shutil
     import sqlite3
-    from webapp.database import DB_PATH
+    from webapp.database import HOLDINGS_DB_PATH
 
-    src_db = str(DB_PATH)
+    src_db = str(HOLDINGS_DB_PATH)
     dst_db = output_path
 
     log.info("Exporting tracked DB: %s -> %s", src_db, dst_db)
