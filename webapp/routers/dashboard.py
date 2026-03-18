@@ -12,7 +12,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
@@ -519,6 +519,36 @@ def api_home_kpis(db: Session = Depends(get_db)):
     except Exception:
         pass
 
+    # Data freshness dates
+    market_date = None
+    try:
+        result = db.execute(text("SELECT MAX(as_of_date) FROM mkt_master_data")).scalar()
+        if result:
+            market_date = str(result)
+    except Exception:
+        pass
+
+    filing_date = None
+    try:
+        result = db.execute(text("SELECT MAX(filed_date) FROM filing")).scalar()
+        if result:
+            filing_date = str(result)
+    except Exception:
+        pass
+
+    notes_date = None
+    try:
+        import sqlite3
+        notes_db = Path("D:/sec-data/databases/structured_notes.db")
+        if notes_db.exists():
+            conn = sqlite3.connect(str(notes_db))
+            row = conn.execute("SELECT MAX(filing_date) FROM filings WHERE extracted = 1").fetchone()
+            conn.close()
+            if row and row[0]:
+                notes_date = str(row[0])
+    except Exception:
+        pass
+
     return {
         "rex_aum": rex_aum,
         "rex_aum_change_pct": rex_aum_change_pct,
@@ -527,6 +557,9 @@ def api_home_kpis(db: Session = Depends(get_db)):
         "institutions_count": institutions_count,
         "total_13f_value": round(total_13f_value, 0) if total_13f_value else 0,
         "pipeline_last_run": pipeline_last_run,
+        "market_date": market_date,
+        "filing_date": filing_date,
+        "notes_date": notes_date,
     }
 
 
