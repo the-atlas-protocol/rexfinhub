@@ -34,3 +34,4 @@ aiolimiter>=1.1.0
 
 # Deployment
 gunicorn>=22.0.0
+yfinance
