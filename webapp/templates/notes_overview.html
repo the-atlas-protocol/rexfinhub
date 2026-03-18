@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Structured Notes — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="header">
+    <div class="breadcrumb"><a href="/">Home</a> <span class="sep">/</span> Structured Notes</div>
+    <h1>Structured Notes — Market Overview</h1>
+    <div class="date">Every SEC-registered structured note pricing supplement (424B2) since 1994</div>
+  </div>
+
+  {% if stats.available %}
+  <div class="kpi-row">
+    <div class="kpi"><div class="num">{{ "{:,}".format(stats.total_products) }}</div><div class="label">Products Extracted</div></div>
+    <div class="kpi"><div class="num">{{ stats.issuers }}</div><div class="label">Issuers</div></div>
+    <div class="kpi"><div class="num">{{ "{:,}".format(stats.total_filings) }}</div><div class="label">Filings Processed</div></div>
+    <div class="kpi"><div class="num">{{ stats.date_min[:4] }}–{{ stats.date_max[:4] }}</div><div class="label">Date Range</div></div>
+  </div>
+
+  <div class="section-header">
+    <h2>Products by Issuer</h2>
+    <span class="badge">{{ stats.by_issuer|length }}</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Issuer</th><th style="text-align:right">Products</th><th style="text-align:right">Market Share</th></tr>
+    </thead>
+    <tbody>
+      {% for row in stats.by_issuer %}
+      <tr>
+        <td><strong>{{ row.name }}</strong></td>
+        <td style="text-align:right; font-family: var(--font-mono);">{{ "{:,}".format(row.count) }}</td>
+        <td style="text-align:right; font-family: var(--font-mono);">{{ "%.1f"|format(row.count / stats.total_products * 100) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px;">
+    <div>
+      <div class="section-header">
+        <h2>Top Product Types</h2>
+      </div>
+      <table>
+        <thead><tr><th>Type</th><th style="text-align:right">Count</th></tr></thead>
+        <tbody>
+          {% for row in stats.by_type %}
+          <tr>
+            <td>{{ row.type }}</td>
+            <td style="text-align:right; font-family: var(--font-mono);">{{ "{:,}".format(row.count) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="section-header">
+        <h2>Issuance by Year</h2>
+      </div>
+      <table>
+        <thead><tr><th>Year</th><th style="text-align:right">Products</th></tr></thead>
+        <tbody>
+          {% for row in stats.by_year %}
+          <tr>
+            <td>{{ row.year }}</td>
+            <td style="text-align:right; font-family: var(--font-mono);">{{ "{:,}".format(row.count) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-header" style="margin-top: 32px;">
+    <h2>Most Recent Products</h2>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Issuer</th><th>Type</th><th>Underliers</th><th>Coupon</th><th>Barrier</th><th>Product Name</th></tr>
+    </thead>
+    <tbody>
+      {% for p in stats.recent_products %}
+      <tr>
+        <td style="white-space:nowrap">{{ p.date }}</td>
+        <td><strong>{{ p.issuer }}</strong></td>
+        <td>{{ p.type }}</td>
+        <td style="font-family: var(--font-mono); font-size: 11px;">{{ p.underliers }}</td>
+        <td style="font-family: var(--font-mono);">{{ p.coupon }}</td>
+        <td style="font-family: var(--font-mono);">{{ p.barrier }}</td>
+        <td style="font-size: 11px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="what-changed" style="margin-top: 32px;">
+    <h2>Database Not Available</h2>
+    <p>The structured notes database is on an external drive. Connect the D: drive to view data.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

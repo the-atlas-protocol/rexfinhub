@@ -82,13 +82,13 @@
         <a href="/intel/trends">Trends</a>
       </div>
     </div>
-    <!-- PILLAR 4: Structured Notes (coming soon) -->
+    <!-- PILLAR 4: Structured Notes -->
     <div class="nav-dropdown">
-      <a href="#" class="nav-dropdown-trigger {% if '/notes' in request.url.path %}active{% endif %}">Structured Notes <span class="nav-caret">&#9662;</span></a>
+      <a href="/notes/" class="nav-dropdown-trigger {% if '/notes' in request.url.path %}active{% endif %}">Structured Notes <span class="nav-caret">&#9662;</span></a>
       <div class="nav-dropdown-menu">
-        <a href="#" style="color: var(--gray-400); pointer-events: none;">Market Overview</a>
-        <a href="#" style="color: var(--gray-400); pointer-events: none;">Issuer Dashboard</a>
-        <a href="#" style="color: var(--gray-400); pointer-events: none;">Product Search</a>
+        <a href="/notes/">Market Overview</a>
+        <a href="/notes/issuers">Issuer Dashboard</a>
+        <a href="/notes/search">Product Search</a>
         <a href="#" style="color: var(--gray-400); pointer-events: none;">Underlier Trends</a>
         <a href="#" style="color: var(--gray-400); pointer-events: none;">Pricing Analysis</a>
       </div>

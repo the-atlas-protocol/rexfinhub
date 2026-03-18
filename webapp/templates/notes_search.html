@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Product Search — Structured Notes{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="header">
+    <div class="breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <a href="/notes/">Structured Notes</a> <span class="sep">/</span> Search</div>
+    <h1>Product Search</h1>
+    <div class="date">Search 594,000+ structured note products by issuer, type, or underlier</div>
+  </div>
+
+  <form method="get" action="/notes/search" class="filter-bar" style="margin: 24px 0;">
+    <span style="font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Issuer</span>
+    <select name="issuer">
+      <option value="">All Issuers</option>
+      {% for iss in issuers %}
+      <option value="{{ iss }}" {% if iss == filter_issuer %}selected{% endif %}>{{ iss }}</option>
+      {% endfor %}
+    </select>
+    <span style="font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Type</span>
+    <select name="type">
+      <option value="">All Types</option>
+      {% for t in types %}
+      <option value="{{ t }}" {% if t == filter_type %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <span style="font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Underlier</span>
+    <input type="text" name="underlier" value="{{ filter_underlier }}" placeholder="e.g. SPX, NVDA, RTY..." style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 160px;">
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  {% if results %}
+  <div class="section-header">
+    <h2>Results</h2>
+    <span class="badge">{{ results|length }}{% if results|length == 100 %}+{% endif %}</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Filed</th>
+        <th>Issuer</th>
+        <th>Type</th>
+        <th>Underliers</th>
+        <th>Coupon</th>
+        <th>Barrier</th>
+        <th>Maturity</th>
+        <th>CUSIP</th>
+        <th>Product Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in results %}
+      <tr>
+        <td style="white-space:nowrap">{{ p.filed }}</td>
+        <td><strong>{{ p.issuer }}</strong></td>
+        <td>{{ p.type }}</td>
+        <td style="font-family: var(--font-mono); font-size: 11px;">{{ p.underliers }}</td>
+        <td style="font-family: var(--font-mono);">{{ p.coupon }}</td>
+        <td style="font-family: var(--font-mono);">{{ p.barrier }}</td>
+        <td style="white-space:nowrap">{{ p.maturity }}</td>
+        <td style="font-family: var(--font-mono); font-size: 11px;">{{ p.cusip }}</td>
+        <td style="font-size: 11px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% elif filter_issuer or filter_type or filter_underlier %}
+  <div class="what-changed" style="margin-top: 24px;">
+    <h2>No Results</h2>
+    <p>No products matched your filters. Try broadening your search.</p>
+  </div>
+  {% else %}
+  <div class="what-changed" style="margin-top: 24px;">
+    <h2>Select Filters</h2>
+    <p>Choose an issuer, product type, or underlier to search the database.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

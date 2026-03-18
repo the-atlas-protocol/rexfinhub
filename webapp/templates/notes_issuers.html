@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Structured Notes — Issuer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="header">
+    <div class="breadcrumb"><a href="/">Home</a> <span class="sep">/</span> <a href="/notes/">Structured Notes</a> <span class="sep">/</span> Issuers</div>
+    <h1>Issuer Dashboard</h1>
+    <div class="date">Product volume and market share across {{ stats.issuers }} issuers</div>
+  </div>
+
+  {% if stats.available %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 24px;">
+    {% for row in stats.by_issuer %}
+    <div class="kpi" style="text-align: left; padding: 16px 20px;">
+      <div style="font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.04em;">{{ row.name }}</div>
+      <div style="font-size: 22px; font-weight: 700; margin-top: 6px; font-family: var(--font-mono);">{{ "{:,}".format(row.count) }}</div>
+      <div style="font-size: 12px; color: var(--gray-400); margin-top: 4px;">{{ "%.1f"|format(row.count / stats.total_products * 100) }}% market share</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="what-changed" style="margin-top: 32px;">
+    <h2>Database Not Available</h2>
+    <p>Connect the D: drive to view structured notes data.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
