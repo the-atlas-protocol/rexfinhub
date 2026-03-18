@@ -1,0 +1,132 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}Country Intelligence — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">Country Intelligence</div>
+<div class="intel-page-sub">International institutions filing 13F-HR &middot; {{ q_display }}</div>
+
+<!-- Vertical filter pills -->
+<div class="intel-pills">
+  <a href="?vertical=All&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == 'All' }}">All Verticals</a>
+  {% for v in (country_data|map(attribute='vertical')|unique|list if country_data else []) %}
+  {% if v %}
+  <a href="?vertical={{ v|urlencode }}&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == v }}">{{ v }}</a>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<!-- Two-column: Chart + Table -->
+<div class="intel-grid-2">
+  <!-- AUM by Country chart -->
+  <div class="intel-card">
+    <div class="intel-card-title">AUM by Country</div>
+    <div class="intel-card-sub">International 13F filers &middot; {{ q_display }}</div>
+    <div class="intel-chart"><canvas id="countryAumChart"></canvas></div>
+  </div>
+
+  <!-- Prospect table -->
+  <div class="intel-card">
+    <div class="intel-card-title">International Prospect Table</div>
+    <div class="intel-card-sub">Top international markets by total AUM filed</div>
+    {% if country_breakdown %}
+    <table class="data-table" id="countryTable">
+      <thead><tr>
+        <th class="sortable" onclick="sortTable('countryTable',0)">Country</th>
+        <th class="sortable num-col" onclick="sortTable('countryTable',1)">Institutions</th>
+        <th class="sortable num-col" onclick="sortTable('countryTable',2)">Total AUM</th>
+      </tr></thead>
+      <tbody>
+      {% for c in country_breakdown %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td class="num-col" data-sort="{{ c.filer_count }}">{{ '{:,}'.format(c.filer_count) }}</td>
+        <td class="num-col" data-sort="{{ c.total_value }}"><strong style="color:var(--teal)">{{ c.total_value_fmt }}</strong></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="intel-empty">No international data available for this quarter.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Full detail table -->
+{% if country_data %}
+<div class="intel-card">
+  <div class="intel-card-title">International Institution Detail</div>
+  <div class="intel-card-sub">All international 13F filers &middot; {{ q_display }}</div>
+  <table class="data-table" id="countryDetailTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('countryDetailTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('countryDetailTable',1)">Country</th>
+      <th class="sortable" onclick="sortTable('countryDetailTable',2)">City</th>
+      <th class="sortable" onclick="sortTable('countryDetailTable',3)">Ticker</th>
+      <th class="sortable" onclick="sortTable('countryDetailTable',4)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('countryDetailTable',5)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('countryDetailTable',6)">Shares</th>
+    </tr></thead>
+    <tbody>
+    {% for c in country_data[:200] %}
+    <tr>
+      <td>{{ c.filingmanager_name or '\u2014' }}</td>
+      <td>{{ c.country_name or c.country_code or '\u2014' }}</td>
+      <td>{{ c.city or '\u2014' }}</td>
+      <td><span class="intel-ticker comp">{{ c.ticker or '\u2014' }}</span></td>
+      <td>
+        {% if c.vertical %}
+        <span class="intel-vchip">{{ c.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ c.total_value or 0 }}">{{ c.total_value_fmt }}</td>
+      <td class="num-col" data-sort="{{ c.total_shares or 0 }}">{{ '{:,}'.format((c.total_shares or 0)|int) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block intel_scripts %}
+<script>
+window._initIntelCharts = function() {
+  var colors = getChartColors();
+  var cbData = {{ country_breakdown|tojson }};
+
+  if (cbData && cbData.length) {
+    var top10 = cbData.slice(0, 10);
+    var c1 = initIntelChart('countryAumChart', {
+      type: 'bar',
+      data: {
+        labels: top10.map(function(c){ return c.name; }),
+        datasets: [{
+          data: top10.map(function(c){ return c.total_value; }),
+          backgroundColor: ['#0d9488','#2563eb','#7c3aed','#d97706','#dc2626','#059669','#0891b2','#9333ea','#c2410c','#0369a1'],
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx){ return fmtValue(ctx.raw); } } }
+        },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text, callback: function(v){ return fmtValue(v); } } },
+          y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11 } } }
+        }
+      }
+    });
+    if (c1) window._intelCharts.push(c1);
+  }
+};
+window._initIntelCharts();
+</script>
+{% endblock %}

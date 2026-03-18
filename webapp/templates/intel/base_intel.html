@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/intel.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Quarter selector bar -->
+<div class="intel-quarter-bar">
+  <label style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Quarter</label>
+  <select class="intel-quarter-select" onchange="window.location.href=updateQueryParam('quarter', this.value)">
+    {% for q in quarters %}
+    {% set qm = q[5:7]|int %}
+    <option value="{{ q }}" {% if q == quarter %}selected{% endif %}>Q{{ ((qm - 1) // 3) + 1 }} {{ q[:4] }}</option>
+    {% endfor %}
+  </select>
+  {% set m = quarter[5:7]|int %}
+  <span style="font-size:0.75rem;color:var(--text-muted);">Showing data for <strong>Q{{ ((m - 1) // 3) + 1 }} {{ quarter[:4] }}</strong></span>
+  {% if is_latest %}<span class="intel-latest-badge">LATEST</span>{% endif %}
+</div>
+
+{% block intel_content %}{% endblock %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/intel.js"></script>
+<script>
+function updateQueryParam(key, value) {
+  var url = new URL(window.location.href);
+  url.searchParams.set(key, value);
+  return url.toString();
+}
+</script>
+{% block intel_scripts %}{% endblock %}
+{% endblock %}

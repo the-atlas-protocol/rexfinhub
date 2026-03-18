@@ -1,0 +1,346 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}REX Sales Intel — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">REX Sales Intelligence</div>
+<div class="intel-page-sub">Product momentum, concentration, and geographic analysis &middot; {{ q_display }}</div>
+
+<!-- Tabs -->
+<div class="intel-tabs">
+  <a href="?tab=momentum&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'momentum' }}">Product Momentum</a>
+  <a href="?tab=concentration&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'concentration' }}">Concentration Risk</a>
+  <a href="?tab=single_stock&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'single_stock' }}">Single Stock</a>
+  <a href="?tab=states&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'states' }}">US State Rankings</a>
+</div>
+
+<!-- TAB: Product Momentum -->
+{% if tab == 'momentum' %}
+<!-- KPIs -->
+<div class="intel-kpi-row" style="grid-template-columns:repeat(3,1fr);">
+  <div class="intel-kpi green">
+    <div class="num">{{ kpis.aum_up|default(0) }}</div>
+    <div class="label">AUM Up QoQ</div>
+  </div>
+  <div class="intel-kpi red">
+    <div class="num">{{ kpis.aum_down|default(0) }}</div>
+    <div class="label">AUM Down QoQ</div>
+  </div>
+  <div class="intel-kpi">
+    <div class="num">{{ kpis.aum_flat|default(0) }}</div>
+    <div class="label">Flat / New</div>
+  </div>
+</div>
+
+<!-- Top Gainers / Decliners -->
+<div class="intel-grid-2">
+  <div class="intel-card">
+    <div class="intel-card-title">Top Gainers</div>
+    <div class="intel-card-sub">Largest AUM increase QoQ</div>
+    {% if qoq_data %}
+    <table class="data-table" id="gainersTable">
+      <thead><tr>
+        <th class="sortable" onclick="sortTable('gainersTable',0)">Ticker</th>
+        <th class="sortable" onclick="sortTable('gainersTable',1)">Name</th>
+        <th class="sortable num-col" onclick="sortTable('gainersTable',2)">Change ($)</th>
+        <th class="sortable num-col" onclick="sortTable('gainersTable',3)">Change (%)</th>
+      </tr></thead>
+      <tbody>
+      {% for q in qoq_data if q.qoq_dollar is defined and q.qoq_dollar is not none and q.qoq_dollar > 0 %}
+      <tr class="rex-highlight">
+        <td><span class="intel-ticker">{{ q.ticker }}</span></td>
+        <td>{{ q.security_name or '\u2014' }}</td>
+        <td class="num-col" data-sort="{{ q.qoq_dollar }}">
+          <span class="intel-delta up">&#9650; {{ q.qoq_dollar_fmt }}</span>
+        </td>
+        <td class="num-col">
+          <span class="intel-delta up">{{ q.qoq_pct_fmt|default('\u2014') }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="intel-empty">No data available.</div>
+    {% endif %}
+  </div>
+  <div class="intel-card">
+    <div class="intel-card-title">Top Decliners</div>
+    <div class="intel-card-sub">Largest AUM decrease QoQ</div>
+    {% if qoq_data %}
+    <table class="data-table" id="declinersTable">
+      <thead><tr>
+        <th class="sortable" onclick="sortTable('declinersTable',0)">Ticker</th>
+        <th class="sortable" onclick="sortTable('declinersTable',1)">Name</th>
+        <th class="sortable num-col" onclick="sortTable('declinersTable',2)">Change ($)</th>
+        <th class="sortable num-col" onclick="sortTable('declinersTable',3)">Change (%)</th>
+      </tr></thead>
+      <tbody>
+      {% for q in qoq_data if q.qoq_dollar is defined and q.qoq_dollar is not none and q.qoq_dollar < 0 %}
+      <tr class="rex-highlight">
+        <td><span class="intel-ticker">{{ q.ticker }}</span></td>
+        <td>{{ q.security_name or '\u2014' }}</td>
+        <td class="num-col" data-sort="{{ q.qoq_dollar }}">
+          <span class="intel-delta down">&#9660; {{ q.qoq_dollar_fmt }}</span>
+        </td>
+        <td class="num-col">
+          <span class="intel-delta down">{{ q.qoq_pct_fmt|default('\u2014') }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="intel-empty">No data available.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Full ranking table -->
+<div class="intel-card">
+  <div class="intel-card-title">Full Product Ranking</div>
+  <div class="intel-card-sub">All REX products sorted by QoQ AUM change</div>
+  {% if qoq_data %}
+  <table class="data-table" id="fullRankingTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('fullRankingTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('fullRankingTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('fullRankingTable',2)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('fullRankingTable',3)">Current AUM</th>
+      <th class="sortable num-col" onclick="sortTable('fullRankingTable',4)">Prior AUM</th>
+      <th class="sortable num-col" onclick="sortTable('fullRankingTable',5)">Change ($)</th>
+      <th class="sortable num-col" onclick="sortTable('fullRankingTable',6)">Change (%)</th>
+    </tr></thead>
+    <tbody>
+    {% for q in qoq_data %}
+    <tr class="rex-highlight">
+      <td><span class="intel-ticker">{{ q.ticker }}</span></td>
+      <td>{{ q.security_name or '\u2014' }}</td>
+      <td>
+        {% if q.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (q.vertical or '') %}cat-li{% elif 'Income' in (q.vertical or '') %}cat-income{% elif 'Crypto' in (q.vertical or '') %}cat-crypto{% elif 'Defined' in (q.vertical or '') %}cat-defined{% elif 'Thematic' in (q.vertical or '') %}cat-thematic{% endif %}">{{ q.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ q.current_aum }}">{{ q.current_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ q.prior_aum }}">{{ q.prior_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ q.qoq_dollar|default(0) }}">
+        <span class="intel-delta {{ 'up' if (q.qoq_dollar|default(0)) > 0 else 'down' if (q.qoq_dollar|default(0)) < 0 else '' }}">
+          {% if (q.qoq_dollar|default(0)) > 0 %}&#9650;{% elif (q.qoq_dollar|default(0)) < 0 %}&#9660;{% else %}&#8212;{% endif %} {{ q.qoq_dollar_fmt|default('\u2014') }}
+        </span>
+      </td>
+      <td class="num-col" data-sort="{{ q.qoq_pct|default(0) }}">
+        <span class="intel-delta {{ 'up' if (q.qoq_pct|default(0)) > 0 else 'down' if (q.qoq_pct|default(0)) < 0 else '' }}">
+          {{ q.qoq_pct_fmt|default('\u2014') }}
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No QoQ comparison data available.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Concentration Risk -->
+{% elif tab == 'concentration' %}
+<div class="intel-card">
+  <div class="intel-card-title">Concentration Risk</div>
+  <div class="intel-card-sub">Top holders as a share of total REX AUM &middot; {{ q_display }}</div>
+  {% if qoq_data %}
+  <table class="data-table" id="concentrationTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('concentrationTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('concentrationTable',1)">State</th>
+      <th class="sortable num-col" onclick="sortTable('concentrationTable',2)">REX AUM</th>
+      <th class="sortable num-col" onclick="sortTable('concentrationTable',3)">% of Total</th>
+      <th class="sortable num-col" onclick="sortTable('concentrationTable',4)">Products</th>
+    </tr></thead>
+    <tbody>
+    {% for c in qoq_data %}
+    <tr>
+      <td>{{ c.filingmanager_name or c.institution_name or '\u2014' }}</td>
+      <td>{{ c.filingmanager_stateorcountry or c.state or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ c.total_value }}"><strong style="color:var(--teal)">{{ c.total_value_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ c.pct_of_total|default(0) }}">{{ '%.1f'|format(c.pct_of_total|default(0)) }}%</td>
+      <td class="num-col" data-sort="{{ c.product_count }}">{{ c.product_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Single Stock -->
+{% elif tab == 'single_stock' %}
+<div class="intel-card">
+  <div class="intel-card-title">Single Stock Products</div>
+  <div class="intel-card-sub">REX single-stock ETF performance &middot; {{ q_display }}</div>
+  {% if qoq_data %}
+  <table class="data-table" id="singleStockTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('singleStockTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('singleStockTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('singleStockTable',2)">Underlying</th>
+      <th class="sortable num-col" onclick="sortTable('singleStockTable',3)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('singleStockTable',4)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('singleStockTable',5)">QoQ Change</th>
+    </tr></thead>
+    <tbody>
+    {% for s in qoq_data %}
+    <tr class="rex-highlight">
+      <td><span class="intel-ticker">{{ s.ticker }}</span></td>
+      <td>{{ s.security_name or '\u2014' }}</td>
+      <td>{{ s.vertical or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ s.current_aum }}"><strong style="color:var(--teal)">{{ s.current_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ s.current_filers }}">{{ '{:,}'.format(s.current_filers) }}</td>
+      <td class="num-col" data-sort="{{ s.qoq_pct|default(0) }}">
+        {% if s.qoq_pct is defined and s.qoq_pct is not none %}
+        <span class="intel-delta {{ 'up' if s.qoq_pct > 0 else 'down' if s.qoq_pct < 0 else 'flat' }}">
+          {{ '&#9650;' if s.qoq_pct > 0 else '&#9660;' if s.qoq_pct < 0 else '&#8212;' }}
+          {{ '+' if s.qoq_pct > 0 else '' }}{{ '%.1f'|format(s.qoq_pct) }}%
+        </span>
+        {% else %}&mdash;{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: US State Rankings -->
+{% elif tab == 'states' %}
+<!-- KPIs -->
+<div class="intel-kpi-row" style="grid-template-columns:repeat(3,1fr);">
+  <div class="intel-kpi blue">
+    <div class="num">{{ kpis.states_with_holders|default(0) }}</div>
+    <div class="label">States with REX Holders</div>
+  </div>
+  <div class="intel-kpi">
+    <div class="num">{{ '{:,}'.format(kpis.us_filers|default(0)) }}</div>
+    <div class="label">US Filers</div>
+  </div>
+  <div class="intel-kpi green">
+    <div class="num">{{ kpis.us_rex_aum_fmt|default('\u2014') }}</div>
+    <div class="label">US REX AUM</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="intel-grid-2">
+  <div class="intel-card">
+    <div class="intel-card-title">Top States by AUM</div>
+    <div class="intel-card-sub">{{ q_display }}</div>
+    <div class="intel-chart"><canvas id="stateAumChart"></canvas></div>
+  </div>
+  <div class="intel-card">
+    <div class="intel-card-title">Top States by Filer Count</div>
+    <div class="intel-card-sub">{{ q_display }}</div>
+    <div class="intel-chart"><canvas id="stateFilerChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Full state table -->
+<div class="intel-card">
+  <div class="intel-card-title">State Rankings</div>
+  <div class="intel-card-sub">All states with REX holders &middot; {{ q_display }}</div>
+  {% if state_data %}
+  <table class="data-table" id="stateTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('stateTable',0)">Rank</th>
+      <th class="sortable" onclick="sortTable('stateTable',1)">State</th>
+      <th class="sortable num-col" onclick="sortTable('stateTable',2)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('stateTable',3)">REX AUM</th>
+      <th class="sortable num-col" onclick="sortTable('stateTable',4)">Products</th>
+    </tr></thead>
+    <tbody>
+    {% for s in state_data %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ s.state_name or s.state or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ s.filers }}">{{ '{:,}'.format(s.filers) }}</td>
+      <td class="num-col" data-sort="{{ s.rex_aum }}"><strong style="color:var(--teal)">{{ s.rex_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ s.products }}">{{ s.products }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No state data available for this quarter.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block intel_scripts %}
+<script>
+window._initIntelCharts = function() {
+  var colors = getChartColors();
+
+  {% if tab == 'states' %}
+  var stateData = {{ state_data|tojson }};
+  if (stateData && stateData.length) {
+    var top10 = stateData.slice(0, 10);
+
+    // By AUM
+    var c1 = initIntelChart('stateAumChart', {
+      type: 'bar',
+      data: {
+        labels: top10.map(function(s){ return s.state_name || s.state; }),
+        datasets: [{
+          data: top10.map(function(s){ return s.rex_aum; }),
+          backgroundColor: '#0d9488',
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx){ return fmtValue(ctx.raw); } } } },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text, callback: function(v){ return fmtValue(v); } } },
+          y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11 } } }
+        }
+      }
+    });
+    if (c1) window._intelCharts.push(c1);
+
+    // By Filer count
+    var c2 = initIntelChart('stateFilerChart', {
+      type: 'bar',
+      data: {
+        labels: stateData.sort(function(a,b){ return b.filer_count - a.filer_count; }).slice(0,10).map(function(s){ return s.state_name || s.state; }),
+        datasets: [{
+          data: stateData.sort(function(a,b){ return b.filer_count - a.filer_count; }).slice(0,10).map(function(s){ return s.filers; }),
+          backgroundColor: '#2563eb',
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx){ return fmtNum(ctx.raw) + ' filers'; } } } },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11 } } }
+        }
+      }
+    });
+    if (c2) window._intelCharts.push(c2);
+  }
+  {% endif %}
+};
+window._initIntelCharts();
+</script>
+{% endblock %}

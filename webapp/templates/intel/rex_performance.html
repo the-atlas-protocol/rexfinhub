@@ -1,0 +1,306 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}REX Performance — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">REX Performance</div>
+<div class="intel-page-sub">AUM trends and quarter-over-quarter analysis &middot; {{ q_display }}</div>
+
+<!-- Tabs -->
+<div class="intel-tabs">
+  <a href="?tab=aum_trend&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'aum_trend' }}">AUM Trend</a>
+  <a href="?tab=by_ticker&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'by_ticker' }}">By Ticker</a>
+  <a href="?tab=by_vertical&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'by_vertical' }}">By Vertical</a>
+  <a href="?tab=filer_count&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'filer_count' }}">Filer Count</a>
+  <a href="?tab=qoq&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'qoq' }}">QoQ Change</a>
+  <a href="?tab=market_share&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'market_share' }}">Market Share</a>
+</div>
+
+<!-- TAB: AUM Trend -->
+{% if tab == 'aum_trend' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX AUM Over Time</div>
+  <div class="intel-card-sub">Total 13F-reported AUM across all REX products</div>
+  <div class="intel-chart" style="height:360px;"><canvas id="aumTrendChart"></canvas></div>
+</div>
+
+<!-- TAB: By Ticker -->
+{% elif tab == 'by_ticker' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Products &mdash; Performance by Ticker</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if products %}
+  <table class="data-table" id="perfTickerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('perfTickerTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('perfTickerTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('perfTickerTable',2)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('perfTickerTable',3)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('perfTickerTable',4)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('perfTickerTable',5)">QoQ Change</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="rex-highlight">
+      <td><span class="intel-ticker">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>
+        {% if p.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (p.vertical or '') %}cat-li{% elif 'Income' in (p.vertical or '') %}cat-income{% elif 'Crypto' in (p.vertical or '') %}cat-crypto{% elif 'Defined' in (p.vertical or '') %}cat-defined{% elif 'Thematic' in (p.vertical or '') %}cat-thematic{% endif %}">{{ p.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ p.total_aum }}"><strong style="color:var(--teal)">{{ p.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ p.holder_count }}">{{ '{:,}'.format(p.holder_count) }}</td>
+      <td class="num-col" data-sort="{{ p.qoq_change|default(0) }}">
+        {% if p.qoq_change is defined and p.qoq_change is not none %}
+        <span class="intel-delta {{ 'up' if p.qoq_change > 0 else 'down' if p.qoq_change < 0 else 'flat' }}">
+          {{ '&#9650;' if p.qoq_change > 0 else '&#9660;' if p.qoq_change < 0 else '&#8212;' }}
+          {{ '+' if p.qoq_change > 0 else '' }}{{ '%.1f'|format(p.qoq_change) }}%
+        </span>
+        {% else %}&mdash;{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Vertical -->
+{% elif tab == 'by_vertical' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Performance by Vertical</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if vertical_breakdown %}
+  <table class="data-table" id="perfVertTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('perfVertTable',0)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('perfVertTable',1)">Products</th>
+      <th class="sortable num-col" onclick="sortTable('perfVertTable',2)">Total AUM</th>
+      <th class="sortable num-col" onclick="sortTable('perfVertTable',3)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('perfVertTable',4)">QoQ Change</th>
+    </tr></thead>
+    <tbody>
+    {% for v in vertical_breakdown %}
+    <tr>
+      <td>
+        <span class="intel-vchip {% if 'Leverage' in (v.vertical or '') %}cat-li{% elif 'Income' in (v.vertical or '') %}cat-income{% elif 'Crypto' in (v.vertical or '') %}cat-crypto{% elif 'Defined' in (v.vertical or '') %}cat-defined{% elif 'Thematic' in (v.vertical or '') %}cat-thematic{% endif %}">{{ v.vertical }}</span>
+      </td>
+      <td class="num-col" data-sort="{{ v.product_count|default(0) }}">{{ v.product_count|default(0) }}</td>
+      <td class="num-col" data-sort="{{ v.total_aum }}"><strong style="color:var(--teal)">{{ v.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ v.holder_count|default(0) }}">{{ '{:,}'.format(v.holder_count|default(0)) }}</td>
+      <td class="num-col" data-sort="{{ v.qoq_change|default(0) }}">
+        {% if v.qoq_change is defined and v.qoq_change is not none %}
+        <span class="intel-delta {{ 'up' if v.qoq_change > 0 else 'down' if v.qoq_change < 0 else 'flat' }}">
+          {{ '&#9650;' if v.qoq_change > 0 else '&#9660;' if v.qoq_change < 0 else '&#8212;' }}
+          {{ '+' if v.qoq_change > 0 else '' }}{{ '%.1f'|format(v.qoq_change) }}%
+        </span>
+        {% else %}&mdash;{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Filer Count -->
+{% elif tab == 'filer_count' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Filer Count Over Time</div>
+  <div class="intel-card-sub">Unique institutions holding REX products per quarter</div>
+  <div class="intel-chart" style="height:360px;"><canvas id="filerCountChart"></canvas></div>
+</div>
+
+<!-- TAB: QoQ Change -->
+{% elif tab == 'qoq' %}
+<div class="intel-card">
+  <div class="intel-card-title">Quarter-over-Quarter Changes</div>
+  <div class="intel-card-sub">REX product AUM changes &middot; {{ q_display }}</div>
+  {% if qoq_data %}
+  <table class="data-table" id="qoqTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('qoqTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('qoqTable',1)">Name</th>
+      <th class="sortable num-col" onclick="sortTable('qoqTable',2)">Current AUM</th>
+      <th class="sortable num-col" onclick="sortTable('qoqTable',3)">Prior AUM</th>
+      <th class="sortable num-col" onclick="sortTable('qoqTable',4)">Change ($)</th>
+      <th class="sortable num-col" onclick="sortTable('qoqTable',5)">Change (%)</th>
+    </tr></thead>
+    <tbody>
+    {% for q in qoq_data %}
+    <tr class="rex-highlight">
+      <td><span class="intel-ticker">{{ q.ticker }}</span></td>
+      <td>{{ q.security_name or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ q.current_aum }}">{{ q.current_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ q.prior_aum }}">{{ q.prior_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ q.change_value }}">
+        <span class="intel-delta {{ 'up' if q.change_value > 0 else 'down' if q.change_value < 0 else 'flat' }}">
+          {{ '&#9650;' if q.change_value > 0 else '&#9660;' if q.change_value < 0 else '&#8212;' }} {{ q.change_value_fmt }}
+        </span>
+      </td>
+      <td class="num-col" data-sort="{{ q.change_pct|default(0) }}">
+        <span class="intel-delta {{ 'up' if (q.change_pct|default(0)) > 0 else 'down' if (q.change_pct|default(0)) < 0 else 'flat' }}">
+          {{ '+' if (q.change_pct|default(0)) > 0 else '' }}{{ '%.1f'|format(q.change_pct|default(0)) }}%
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No QoQ comparison data available.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Market Share -->
+{% elif tab == 'market_share' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Market Share</div>
+  <div class="intel-card-sub">REX vs total market AUM &middot; {{ q_display }}</div>
+  {% if kpis %}
+  <div class="intel-kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem;">
+    <div class="intel-kpi">
+      <div class="num">{{ kpis.rex_aum_fmt|default('\u2014') }}</div>
+      <div class="label">REX AUM</div>
+    </div>
+    <div class="intel-kpi blue">
+      <div class="num">{{ kpis.total_aum_fmt|default('\u2014') }}</div>
+      <div class="label">Total Market AUM</div>
+    </div>
+    <div class="intel-kpi green">
+      <div class="num">{{ kpis.market_share_pct|default('\u2014') }}</div>
+      <div class="label">Market Share</div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="intel-chart" style="height:300px;"><canvas id="marketShareChart"></canvas></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block intel_scripts %}
+<script>
+window._initIntelCharts = function() {
+  var colors = getChartColors();
+
+  {% if tab == 'aum_trend' %}
+  var trendData = {{ trend_data|tojson }};
+  if (trendData && trendData.length) {
+    var c1 = initIntelChart('aumTrendChart', {
+      type: 'line',
+      data: {
+        labels: trendData.map(function(d){ return fmtQuarter(d.quarter); }),
+        datasets: [{
+          label: 'REX AUM',
+          data: trendData.map(function(d){ return d.total_aum; }),
+          borderColor: '#0d9488',
+          backgroundColor: 'rgba(13,148,136,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#0d9488'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx){ return 'REX AUM: ' + fmtValue(ctx.raw); } } }
+        },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { color: colors.grid }, ticks: { color: colors.text, callback: function(v){ return fmtValue(v); } } }
+        }
+      }
+    });
+    if (c1) window._intelCharts.push(c1);
+  }
+  {% endif %}
+
+  {% if tab == 'filer_count' %}
+  var trendData = {{ trend_data|tojson }};
+  if (trendData && trendData.length) {
+    var c2 = initIntelChart('filerCountChart', {
+      type: 'line',
+      data: {
+        labels: trendData.map(function(d){ return fmtQuarter(d.quarter); }),
+        datasets: [{
+          label: 'REX Filers',
+          data: trendData.map(function(d){ return d.filer_count; }),
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#2563eb'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx){ return 'Filers: ' + fmtNum(ctx.raw); } } }
+        },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { color: colors.grid }, ticks: { color: colors.text } }
+        }
+      }
+    });
+    if (c2) window._intelCharts.push(c2);
+  }
+  {% endif %}
+
+  {% if tab == 'market_share' %}
+  var trendData = {{ trend_data|tojson }};
+  if (trendData && trendData.length) {
+    var c3 = initIntelChart('marketShareChart', {
+      type: 'bar',
+      data: {
+        labels: trendData.map(function(d){ return fmtQuarter(d.quarter); }),
+        datasets: [
+          {
+            label: 'REX AUM',
+            data: trendData.map(function(d){ return d.rex_aum; }),
+            backgroundColor: '#0d9488',
+            borderRadius: 4,
+            order: 2
+          },
+          {
+            label: 'Market AUM',
+            data: trendData.map(function(d){ return d.total_aum; }),
+            backgroundColor: 'rgba(100,116,139,0.2)',
+            borderRadius: 4,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: colors.text } },
+          tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ': ' + fmtValue(ctx.raw); } } }
+        },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { color: colors.grid }, ticks: { color: colors.text, callback: function(v){ return fmtValue(v); } } }
+        }
+      }
+    });
+    if (c3) window._intelCharts.push(c3);
+  }
+  {% endif %}
+};
+window._initIntelCharts();
+</script>
+{% endblock %}

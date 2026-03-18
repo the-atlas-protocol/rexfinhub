@@ -1,0 +1,251 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}Competitor New Filers — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">Competitor New Filers</div>
+<div class="intel-page-sub">New institutional holders of competitor products &middot; {{ q_display }}</div>
+
+<!-- Tabs -->
+<div class="intel-tabs">
+  <a href="?tab=all&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'all' }}">All</a>
+  <a href="?tab=by_issuer&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'by_issuer' }}">By Issuer</a>
+  <a href="?tab=by_vertical&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'by_vertical' }}">By Vertical</a>
+  <a href="?tab=full_list&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'full_list' }}">Full List</a>
+</div>
+
+<!-- KPIs -->
+<div class="intel-kpi-row" style="grid-template-columns:repeat(4,1fr);">
+  <div class="intel-kpi green">
+    <div class="num">{{ '{:,}'.format(kpis.new_filer_count|default(0)) }}</div>
+    <div class="label">New Competitor Filers</div>
+  </div>
+  <div class="intel-kpi amber">
+    <div class="num">{{ kpis.new_filer_aum_fmt|default('\u2014') }}</div>
+    <div class="label">New Filer AUM</div>
+  </div>
+  <div class="intel-kpi purple">
+    <div class="num">{{ '{:,}'.format(kpis.comp_products|default(0)) }}</div>
+    <div class="label">Competitor Products</div>
+  </div>
+  <div class="intel-kpi blue">
+    <div class="num">{{ '{:,}'.format(kpis.comp_issuers|default(0)) }}</div>
+    <div class="label">Competitor Issuers</div>
+  </div>
+</div>
+
+<!-- TAB: All (overview with charts) -->
+{% if tab == 'all' %}
+<div class="intel-grid-2">
+  <div class="intel-card">
+    <div class="intel-card-title">New Filers by Issuer</div>
+    <div class="intel-card-sub">Number of new filers per competitor issuer</div>
+    <div class="intel-chart"><canvas id="newFilersByIssuerChart"></canvas></div>
+  </div>
+  <div class="intel-card">
+    <div class="intel-card-title">New Filer AUM by Issuer</div>
+    <div class="intel-card-sub">Total AUM from new filers per issuer</div>
+    <div class="intel-chart"><canvas id="newFilerAumChart"></canvas></div>
+  </div>
+</div>
+
+<div class="intel-card">
+  <div class="intel-card-title">New Filers by Vertical</div>
+  <div class="intel-card-sub">Distribution of new filers across product verticals</div>
+  <div class="intel-chart-half"><canvas id="newFilersByVerticalChart"></canvas></div>
+</div>
+
+<!-- TAB: By Issuer -->
+{% elif tab == 'by_issuer' %}
+<div class="intel-card">
+  <div class="intel-card-title">New Filers by Issuer</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if issuer_breakdown %}
+  <table class="data-table" id="newFilerIssuerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('newFilerIssuerTable',0)">Issuer</th>
+      <th class="sortable num-col" onclick="sortTable('newFilerIssuerTable',1)">New Filers</th>
+      <th class="sortable num-col" onclick="sortTable('newFilerIssuerTable',2)">New Filer AUM</th>
+      <th class="sortable num-col" onclick="sortTable('newFilerIssuerTable',3)">Products</th>
+    </tr></thead>
+    <tbody>
+    {% for iss in issuer_breakdown %}
+    <tr>
+      <td>{{ iss.issuer }}</td>
+      <td class="num-col" data-sort="{{ iss.filer_count }}">{{ '{:,}'.format(iss.filer_count) }}</td>
+      <td class="num-col" data-sort="{{ iss.total_aum }}">{{ iss.total_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ iss.product_count }}">{{ iss.product_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Vertical -->
+{% elif tab == 'by_vertical' %}
+<div class="intel-card">
+  <div class="intel-card-title">New Filers by Vertical</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if vertical_breakdown %}
+  <table class="data-table" id="newFilerVerticalTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('newFilerVerticalTable',0)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('newFilerVerticalTable',1)">New Filers</th>
+      <th class="sortable num-col" onclick="sortTable('newFilerVerticalTable',2)">New Filer AUM</th>
+      <th class="sortable num-col" onclick="sortTable('newFilerVerticalTable',3)">Products</th>
+    </tr></thead>
+    <tbody>
+    {% for v in vertical_breakdown %}
+    <tr>
+      <td>
+        <span class="intel-vchip {% if 'Leverage' in (v.vertical or '') %}cat-li{% elif 'Income' in (v.vertical or '') %}cat-income{% elif 'Crypto' in (v.vertical or '') %}cat-crypto{% elif 'Defined' in (v.vertical or '') %}cat-defined{% elif 'Thematic' in (v.vertical or '') %}cat-thematic{% endif %}">{{ v.vertical }}</span>
+      </td>
+      <td class="num-col" data-sort="{{ v.filer_count }}">{{ '{:,}'.format(v.filer_count) }}</td>
+      <td class="num-col" data-sort="{{ v.total_aum }}">{{ v.total_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ v.product_count }}">{{ v.product_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Full List -->
+{% elif tab == 'full_list' %}
+<div class="intel-card">
+  <div class="intel-card-title">All New Competitor Filers</div>
+  <div class="intel-card-sub">Complete list &middot; {{ q_display }}</div>
+  {% if new_filers %}
+  <table class="data-table" id="fullNewFilerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('fullNewFilerTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('fullNewFilerTable',1)">State</th>
+      <th class="sortable" onclick="sortTable('fullNewFilerTable',2)">Product</th>
+      <th class="sortable" onclick="sortTable('fullNewFilerTable',3)">Issuer</th>
+      <th class="sortable" onclick="sortTable('fullNewFilerTable',4)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('fullNewFilerTable',5)">AUM</th>
+    </tr></thead>
+    <tbody>
+    {% for f in new_filers %}
+    <tr>
+      <td>{{ f.filingmanager_name or f.institution_name or '\u2014' }}</td>
+      <td>{{ f.filingmanager_stateorcountry or f.state or '\u2014' }}</td>
+      <td><span class="intel-ticker comp">{{ f.ticker or '\u2014' }}</span></td>
+      <td>{{ f.issuer or '\u2014' }}</td>
+      <td>
+        {% if f.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (f.vertical or '') %}cat-li{% elif 'Income' in (f.vertical or '') %}cat-income{% elif 'Crypto' in (f.vertical or '') %}cat-crypto{% elif 'Defined' in (f.vertical or '') %}cat-defined{% elif 'Thematic' in (f.vertical or '') %}cat-thematic{% endif %}">{{ f.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ f.total_value }}">{{ f.total_value_fmt }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No new competitor filers this quarter.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block intel_scripts %}
+<script>
+window._initIntelCharts = function() {
+  var colors = getChartColors();
+
+  {% if tab == 'all' %}
+  var issData = {{ issuer_breakdown|tojson }};
+  var vertData = {{ vertical_breakdown|tojson }};
+
+  // New Filers by Issuer
+  if (issData && issData.length) {
+    var top10 = issData.slice(0, 10);
+    var c1 = initIntelChart('newFilersByIssuerChart', {
+      type: 'bar',
+      data: {
+        labels: top10.map(function(d){ return d.issuer; }),
+        datasets: [{
+          data: top10.map(function(d){ return d.filer_count; }),
+          backgroundColor: '#dc2626',
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11 } } }
+        }
+      }
+    });
+    if (c1) window._intelCharts.push(c1);
+
+    // New Filer AUM by Issuer
+    var c2 = initIntelChart('newFilerAumChart', {
+      type: 'bar',
+      data: {
+        labels: top10.map(function(d){ return d.issuer; }),
+        datasets: [{
+          data: top10.map(function(d){ return d.total_aum; }),
+          backgroundColor: '#d97706',
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx){ return fmtValue(ctx.raw); } } } },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text, callback: function(v){ return fmtValue(v); } } },
+          y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11 } } }
+        }
+      }
+    });
+    if (c2) window._intelCharts.push(c2);
+  }
+
+  // New Filers by Vertical
+  if (vertData && vertData.length) {
+    var c3 = initIntelChart('newFilersByVerticalChart', {
+      type: 'bar',
+      data: {
+        labels: vertData.map(function(d){ return d.vertical; }),
+        datasets: [{
+          data: vertData.map(function(d){ return d.filer_count; }),
+          backgroundColor: vertData.map(function(d){ return getCategoryColor(d.vertical); }),
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11 } } }
+        }
+      }
+    });
+    if (c3) window._intelCharts.push(c3);
+  }
+  {% endif %}
+};
+window._initIntelCharts();
+</script>
+{% endblock %}

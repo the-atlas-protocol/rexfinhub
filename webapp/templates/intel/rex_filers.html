@@ -1,0 +1,233 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}REX Filers — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">REX Filers</div>
+<div class="intel-page-sub">Institutional holders of REX products &middot; {{ q_display }}</div>
+
+<!-- Sub-tabs -->
+<div class="intel-tabs">
+  <a href="?tab=ticker&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'ticker' }}">By Ticker</a>
+  <a href="?tab=vertical&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'vertical' }}">By Vertical</a>
+  <a href="?tab=issuer&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'issuer' }}">By Issuer</a>
+  <a href="?tab=top_filers&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'top_filers' }}">Top Filers</a>
+  <a href="?tab=new_filers&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'new_filers' }}">New Filers</a>
+  <a href="?tab=growing&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'growing' }}">Growing Holders</a>
+</div>
+
+<!-- Vertical filter (shown on relevant tabs) -->
+{% if tab in ('ticker', 'vertical', 'issuer') %}
+<div class="intel-filter-bar">
+  <div class="intel-pills">
+    <a href="?tab={{ tab }}&vertical=All&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == 'All' }}">All</a>
+    {% for v in verticals %}
+    <a href="?tab={{ tab }}&vertical={{ v|urlencode }}&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == v }}">{{ v }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- TAB: By Ticker -->
+{% if tab == 'ticker' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Products &mdash; By Ticker</div>
+  <div class="intel-card-sub">{{ q_display }}{% if vertical and vertical != 'All' %} &middot; {{ vertical }}{% endif %}</div>
+  {% if products %}
+  <table class="data-table" id="tickerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('tickerTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('tickerTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('tickerTable',2)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('tickerTable',3)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('tickerTable',4)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('tickerTable',5)">Shares</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="rex-highlight">
+      <td><span class="intel-ticker">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>
+        {% if p.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (p.vertical or '') %}cat-li{% elif 'Income' in (p.vertical or '') %}cat-income{% elif 'Crypto' in (p.vertical or '') %}cat-crypto{% elif 'Defined' in (p.vertical or '') %}cat-defined{% elif 'Thematic' in (p.vertical or '') %}cat-thematic{% endif %}">{{ p.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ p.total_aum }}"><strong style="color:var(--teal)">{{ p.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ p.holder_count }}">{{ '{:,}'.format(p.holder_count) }}</td>
+      <td class="num-col" data-sort="{{ p.total_shares|default(0) }}">{{ '{:,}'.format(p.total_shares|default(0)) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Vertical -->
+{% elif tab == 'vertical' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Products &mdash; By Vertical</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if products %}
+  <table class="data-table" id="verticalTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('verticalTable',0)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('verticalTable',1)">Products</th>
+      <th class="sortable num-col" onclick="sortTable('verticalTable',2)">Total AUM</th>
+      <th class="sortable num-col" onclick="sortTable('verticalTable',3)">Total Filers</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr>
+      <td>
+        <span class="intel-vchip {% if 'Leverage' in (p.vertical or '') %}cat-li{% elif 'Income' in (p.vertical or '') %}cat-income{% elif 'Crypto' in (p.vertical or '') %}cat-crypto{% elif 'Defined' in (p.vertical or '') %}cat-defined{% elif 'Thematic' in (p.vertical or '') %}cat-thematic{% endif %}">{{ p.vertical }}</span>
+      </td>
+      <td class="num-col" data-sort="{{ p.product_count }}">{{ p.product_count }}</td>
+      <td class="num-col" data-sort="{{ p.total_aum }}"><strong style="color:var(--teal)">{{ p.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ p.holder_count }}">{{ '{:,}'.format(p.holder_count) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Issuer -->
+{% elif tab == 'issuer' %}
+<div class="intel-card">
+  <div class="intel-card-title">REX Products &mdash; By Issuer</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if issuers %}
+  <table class="data-table" id="issuerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('issuerTable',0)">Issuer</th>
+      <th class="sortable num-col" onclick="sortTable('issuerTable',1)">Products</th>
+      <th class="sortable num-col" onclick="sortTable('issuerTable',2)">Total AUM</th>
+      <th class="sortable num-col" onclick="sortTable('issuerTable',3)">Total Filers</th>
+    </tr></thead>
+    <tbody>
+    {% for iss in issuers %}
+    <tr>
+      <td>{{ iss.issuer }}</td>
+      <td class="num-col" data-sort="{{ iss.product_count }}">{{ iss.product_count }}</td>
+      <td class="num-col" data-sort="{{ iss.total_aum }}"><strong style="color:var(--teal)">{{ iss.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ iss.holder_count }}">{{ '{:,}'.format(iss.holder_count) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Top Filers -->
+{% elif tab == 'top_filers' %}
+<div class="intel-card">
+  <div class="intel-card-title">Top REX Filers</div>
+  <div class="intel-card-sub">Institutions with largest REX holdings &middot; {{ q_display }}</div>
+  {% if top_filers %}
+  <table class="data-table" id="topFilersTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('topFilersTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('topFilersTable',1)">State</th>
+      <th class="sortable num-col" onclick="sortTable('topFilersTable',2)">REX AUM</th>
+      <th class="sortable num-col" onclick="sortTable('topFilersTable',3)">Products</th>
+      <th class="sortable num-col" onclick="sortTable('topFilersTable',4)">Total Shares</th>
+    </tr></thead>
+    <tbody>
+    {% for f in top_filers %}
+    <tr>
+      <td>{{ f.filingmanager_name or f.institution_name or '\u2014' }}</td>
+      <td>{{ f.filingmanager_stateorcountry or f.state or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ f.total_value }}"><strong style="color:var(--teal)">{{ f.total_value_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ f.product_count }}">{{ f.product_count }}</td>
+      <td class="num-col" data-sort="{{ f.total_shares|default(0) }}">{{ '{:,}'.format(f.total_shares|default(0)) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: New Filers -->
+{% elif tab == 'new_filers' %}
+<div class="intel-card">
+  <div class="intel-card-title">New REX Filers</div>
+  <div class="intel-card-sub">First-time holders of any REX product &middot; {{ q_display }}</div>
+  {% if new_filers %}
+  <table class="data-table" id="newFilersTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('newFilersTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('newFilersTable',1)">State</th>
+      <th class="sortable" onclick="sortTable('newFilersTable',2)">City</th>
+      <th class="sortable num-col" onclick="sortTable('newFilersTable',3)">REX AUM</th>
+      <th class="sortable num-col" onclick="sortTable('newFilersTable',4)">Products</th>
+    </tr></thead>
+    <tbody>
+    {% for f in new_filers %}
+    <tr>
+      <td>{{ f.filingmanager_name or f.institution_name or '\u2014' }}</td>
+      <td>{{ f.filingmanager_stateorcountry or f.state or '\u2014' }}</td>
+      <td>{{ f.city or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ f.total_value }}"><strong style="color:var(--teal)">{{ f.total_value_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ f.product_count }}">{{ f.product_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No new REX filers this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Growing Holders -->
+{% elif tab == 'growing' %}
+<div class="intel-card">
+  <div class="intel-card-title">Growing REX Holders</div>
+  <div class="intel-card-sub">Institutions increasing their REX positions QoQ &middot; {{ q_display }}</div>
+  {% if qoq_data %}
+  <table class="data-table" id="growingTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('growingTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('growingTable',1)">State</th>
+      <th class="sortable num-col" onclick="sortTable('growingTable',2)">Current AUM</th>
+      <th class="sortable num-col" onclick="sortTable('growingTable',3)">Prior AUM</th>
+      <th class="sortable num-col" onclick="sortTable('growingTable',4)">Change</th>
+      <th class="sortable num-col" onclick="sortTable('growingTable',5)">Change %</th>
+    </tr></thead>
+    <tbody>
+    {% for g in qoq_data %}
+    <tr>
+      <td>{{ g.filingmanager_name or g.institution_name or '\u2014' }}</td>
+      <td>{{ g.filingmanager_stateorcountry or g.state or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ g.current_value }}">{{ g.current_value_fmt }}</td>
+      <td class="num-col" data-sort="{{ g.prior_value }}">{{ g.prior_value_fmt }}</td>
+      <td class="num-col" data-sort="{{ g.change_value }}">
+        <span class="intel-delta {{ 'up' if g.change_value > 0 else 'down' if g.change_value < 0 else 'flat' }}">
+          {{ '&#9650;' if g.change_value > 0 else '&#9660;' if g.change_value < 0 else '&#8212;' }} {{ g.change_value_fmt }}
+        </span>
+      </td>
+      <td class="num-col" data-sort="{{ g.change_pct|default(0) }}">
+        <span class="intel-delta {{ 'up' if (g.change_pct|default(0)) > 0 else 'down' if (g.change_pct|default(0)) < 0 else 'flat' }}">
+          {{ '+' if (g.change_pct|default(0)) > 0 else '' }}{{ '%.1f'|format(g.change_pct|default(0)) }}%
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No QoQ comparison data available.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

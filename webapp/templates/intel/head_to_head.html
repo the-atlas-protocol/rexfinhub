@@ -1,0 +1,191 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}Head to Head — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">Head to Head</div>
+<div class="intel-page-sub">Compare competing products on the same underlying &middot; {{ q_display }}</div>
+
+<!-- Underlying selector -->
+<div class="intel-filter-bar">
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <label style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Underlying</label>
+    <select class="intel-vertical-select" onchange="window.location.href=updateQueryParam('underlying', this.value)">
+      <option value="">All Underlyings</option>
+      {% for u in underlyings_list %}
+      <option value="{{ u }}" {% if u == underlying %}selected{% endif %}>{{ u }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="intel-tabs">
+  <a href="?tab=aum&underlying={{ underlying|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'aum' }}">AUM</a>
+  <a href="?tab=filer_count&underlying={{ underlying|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'filer_count' }}">Filer Count</a>
+  <a href="?tab=direction&underlying={{ underlying|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'direction' }}">Direction Split</a>
+  <a href="?tab=all&underlying={{ underlying|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'all' }}">All Products</a>
+</div>
+
+{% if underlying %}
+<div class="intel-benchmark">
+  <span style="font-weight:700;">Underlying:</span>
+  <span>{{ underlying }}</span>
+</div>
+{% endif %}
+
+<!-- TAB: AUM -->
+{% if tab == 'aum' %}
+<div class="intel-card">
+  <div class="intel-card-title">AUM Comparison</div>
+  <div class="intel-card-sub">Products competing on {{ underlying or 'all underlyings' }} &middot; {{ q_display }}</div>
+  {% if products %}
+  <table class="data-table" id="h2hAumTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('h2hAumTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('h2hAumTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('h2hAumTable',2)">Issuer</th>
+      <th class="sortable" onclick="sortTable('h2hAumTable',3)">Underlying</th>
+      <th class="sortable" onclick="sortTable('h2hAumTable',4)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('h2hAumTable',5)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('h2hAumTable',6)">Mkt Share</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="{{ 'rex-highlight' if p.is_rex }}">
+      <td><span class="intel-ticker {{ '' if p.is_rex else 'comp' }}">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>{{ p.issuer or '\u2014' }}</td>
+      <td>{{ p.underlying or '\u2014' }}</td>
+      <td>
+        {% if p.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (p.vertical or '') %}cat-li{% elif 'Income' in (p.vertical or '') %}cat-income{% elif 'Crypto' in (p.vertical or '') %}cat-crypto{% elif 'Defined' in (p.vertical or '') %}cat-defined{% elif 'Thematic' in (p.vertical or '') %}cat-thematic{% endif %}">{{ p.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ p.total_aum }}"><strong style="color:var(--teal)">{{ p.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ p.market_share_pct|default(0) }}">{{ '%.1f'|format(p.market_share_pct|default(0)) }}%</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No products found{% if underlying %} for underlying "{{ underlying }}"{% endif %}.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Filer Count -->
+{% elif tab == 'filer_count' %}
+<div class="intel-card">
+  <div class="intel-card-title">Filer Count Comparison</div>
+  <div class="intel-card-sub">{{ underlying or 'All underlyings' }} &middot; {{ q_display }}</div>
+  {% if products %}
+  <table class="data-table" id="h2hFilerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('h2hFilerTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('h2hFilerTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('h2hFilerTable',2)">Issuer</th>
+      <th class="sortable" onclick="sortTable('h2hFilerTable',3)">Underlying</th>
+      <th class="sortable num-col" onclick="sortTable('h2hFilerTable',4)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('h2hFilerTable',5)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('h2hFilerTable',6)">Avg per Filer</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="{{ 'rex-highlight' if p.is_rex }}">
+      <td><span class="intel-ticker {{ '' if p.is_rex else 'comp' }}">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>{{ p.issuer or '\u2014' }}</td>
+      <td>{{ p.underlying or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ p.holder_count }}"><strong>{{ '{:,}'.format(p.holder_count) }}</strong></td>
+      <td class="num-col" data-sort="{{ p.total_aum }}">{{ p.total_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ p.avg_per_filer|default(0) }}">{{ p.avg_per_filer_fmt|default('\u2014') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No products found{% if underlying %} for underlying "{{ underlying }}"{% endif %}.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: Direction Split -->
+{% elif tab == 'direction' %}
+<div class="intel-card">
+  <div class="intel-card-title">Direction Split</div>
+  <div class="intel-card-sub">Bull vs Bear products &middot; {{ underlying or 'All underlyings' }} &middot; {{ q_display }}</div>
+  {% if products %}
+  <table class="data-table" id="h2hDirectionTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('h2hDirectionTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('h2hDirectionTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('h2hDirectionTable',2)">Issuer</th>
+      <th class="sortable" onclick="sortTable('h2hDirectionTable',3)">Direction</th>
+      <th class="sortable" onclick="sortTable('h2hDirectionTable',4)">Underlying</th>
+      <th class="sortable num-col" onclick="sortTable('h2hDirectionTable',5)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('h2hDirectionTable',6)">Filers</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="{{ 'rex-highlight' if p.is_rex }}">
+      <td><span class="intel-ticker {{ '' if p.is_rex else 'comp' }}">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>{{ p.issuer or '\u2014' }}</td>
+      <td>{{ p.direction or '\u2014' }}</td>
+      <td>{{ p.underlying or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ p.total_aum }}"><strong style="color:var(--teal)">{{ p.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ p.holder_count }}">{{ '{:,}'.format(p.holder_count) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No products found{% if underlying %} for underlying "{{ underlying }}"{% endif %}.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: All Products -->
+{% elif tab == 'all' %}
+<div class="intel-card">
+  <div class="intel-card-title">All Competing Products</div>
+  <div class="intel-card-sub">{{ underlying or 'All underlyings' }} &middot; {{ q_display }}</div>
+  {% if products %}
+  <table class="data-table" id="h2hAllTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('h2hAllTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('h2hAllTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('h2hAllTable',2)">Issuer</th>
+      <th class="sortable" onclick="sortTable('h2hAllTable',3)">Underlying</th>
+      <th class="sortable" onclick="sortTable('h2hAllTable',4)">Vertical</th>
+      <th class="sortable" onclick="sortTable('h2hAllTable',5)">Direction</th>
+      <th class="sortable num-col" onclick="sortTable('h2hAllTable',6)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('h2hAllTable',7)">Filers</th>
+      <th class="sortable num-col" onclick="sortTable('h2hAllTable',8)">Shares</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="{{ 'rex-highlight' if p.is_rex }}">
+      <td><span class="intel-ticker {{ '' if p.is_rex else 'comp' }}">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>{{ p.issuer or '\u2014' }}</td>
+      <td>{{ p.underlying or '\u2014' }}</td>
+      <td>
+        {% if p.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (p.vertical or '') %}cat-li{% elif 'Income' in (p.vertical or '') %}cat-income{% elif 'Crypto' in (p.vertical or '') %}cat-crypto{% elif 'Defined' in (p.vertical or '') %}cat-defined{% elif 'Thematic' in (p.vertical or '') %}cat-thematic{% endif %}">{{ p.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td>{{ p.direction or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ p.total_aum }}"><strong style="color:var(--teal)">{{ p.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ p.holder_count }}">{{ '{:,}'.format(p.holder_count) }}</td>
+      <td class="num-col" data-sort="{{ p.total_shares|default(0) }}">{{ '{:,}'.format(p.total_shares|default(0)) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No products found{% if underlying %} for underlying "{{ underlying }}"{% endif %}.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

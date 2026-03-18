@@ -1,0 +1,255 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}Market Trends — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">Market Trends</div>
+<div class="intel-page-sub">Historical AUM and filer trends across all mapped products</div>
+
+<!-- Sidebar + main chart layout -->
+<div class="intel-sidebar-layout">
+  <!-- Sidebar tabs -->
+  <div class="intel-sidebar">
+    <a href="?tab=aum_trend&quarter={{ quarter }}" class="intel-sidebar-btn {{ 'active' if tab == 'aum_trend' }}">AUM Trend</a>
+    <a href="?tab=filer_count&quarter={{ quarter }}" class="intel-sidebar-btn {{ 'active' if tab == 'filer_count' }}">Filer Count</a>
+    <a href="?tab=combined&quarter={{ quarter }}" class="intel-sidebar-btn {{ 'active' if tab == 'combined' }}">Combined</a>
+  </div>
+
+  <!-- Main chart area -->
+  <div>
+    <!-- TAB: AUM Trend -->
+    {% if tab == 'aum_trend' %}
+    <div class="intel-card">
+      <div class="intel-card-header">
+        <div>
+          <div class="intel-card-title">Total Market AUM</div>
+          <div class="intel-card-sub">All mapped products &middot; area chart with optional REX overlay</div>
+        </div>
+        <label style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:0.375rem;cursor:pointer;">
+          <input type="checkbox" id="overlayRex" onchange="toggleRexOverlay()" style="cursor:pointer;">
+          Overlay REX
+        </label>
+      </div>
+      <div class="intel-chart" style="height:400px;"><canvas id="aumTrendChart"></canvas></div>
+    </div>
+
+    <!-- TAB: Filer Count -->
+    {% elif tab == 'filer_count' %}
+    <div class="intel-card">
+      <div class="intel-card-title">Filer Count Over Time</div>
+      <div class="intel-card-sub">Total unique filers + new filers per quarter</div>
+      <div class="intel-chart" style="height:400px;"><canvas id="filerTrendChart"></canvas></div>
+    </div>
+
+    <!-- TAB: Combined -->
+    {% elif tab == 'combined' %}
+    <div class="intel-card">
+      <div class="intel-card-title">AUM &amp; Filer Count</div>
+      <div class="intel-card-sub">Dual-axis: AUM (bars) and filer count (line)</div>
+      <div class="intel-chart" style="height:400px;"><canvas id="combinedChart"></canvas></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block intel_scripts %}
+<script>
+var _trendData = {{ trend_data|tojson }};
+var _trendDataRex = {{ trend_data_rex|tojson }};
+
+window._initIntelCharts = function() {
+  var colors = getChartColors();
+
+  {% if tab == 'aum_trend' %}
+  if (_trendData && _trendData.length) {
+    var datasets = [{
+      label: 'Total Market AUM',
+      data: _trendData.map(function(d){ return d.total_aum; }),
+      borderColor: '#0d9488',
+      backgroundColor: 'rgba(13,148,136,0.12)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: '#0d9488'
+    }];
+
+    // If REX overlay checkbox is checked, add the REX dataset
+    var overlayEl = document.getElementById('overlayRex');
+    if (overlayEl && overlayEl.checked && _trendDataRex && _trendDataRex.length) {
+      datasets.push({
+        label: 'REX AUM',
+        data: _trendDataRex.map(function(d){ return d.total_aum; }),
+        borderColor: '#7c3aed',
+        backgroundColor: 'rgba(124,58,237,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#7c3aed',
+        yAxisID: 'y1'
+      });
+    }
+
+    var scalesConfig = {
+      x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+      y: { grid: { color: colors.grid }, ticks: { color: colors.text, callback: function(v){ return fmtValue(v); } }, position: 'left' }
+    };
+
+    if (overlayEl && overlayEl.checked) {
+      scalesConfig.y1 = {
+        grid: { display: false },
+        ticks: { color: '#7c3aed', callback: function(v){ return fmtValue(v); } },
+        position: 'right'
+      };
+    }
+
+    var c1 = initIntelChart('aumTrendChart', {
+      type: 'line',
+      data: {
+        labels: _trendData.map(function(d){ return fmtQuarter(d.quarter); }),
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: colors.text } },
+          tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ': ' + fmtValue(ctx.raw); } } }
+        },
+        scales: scalesConfig
+      }
+    });
+    if (c1) window._intelCharts.push(c1);
+  }
+  {% endif %}
+
+  {% if tab == 'filer_count' %}
+  if (_trendData && _trendData.length) {
+    var c2 = initIntelChart('filerTrendChart', {
+      type: 'line',
+      data: {
+        labels: _trendData.map(function(d){ return fmtQuarter(d.quarter); }),
+        datasets: [
+          {
+            label: 'Total Filers',
+            data: _trendData.map(function(d){ return d.filer_count; }),
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#2563eb'
+          },
+          {
+            label: 'New Filers',
+            data: _trendData.map(function(d){ return d.new_filer_count || 0; }),
+            borderColor: '#059669',
+            backgroundColor: 'rgba(5,150,105,0.08)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#059669',
+            borderDash: [5, 3]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: colors.text } },
+          tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ': ' + fmtNum(ctx.raw); } } }
+        },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: { grid: { color: colors.grid }, ticks: { color: colors.text } }
+        }
+      }
+    });
+    if (c2) window._intelCharts.push(c2);
+  }
+  {% endif %}
+
+  {% if tab == 'combined' %}
+  if (_trendData && _trendData.length) {
+    var c3 = initIntelChart('combinedChart', {
+      type: 'bar',
+      data: {
+        labels: _trendData.map(function(d){ return fmtQuarter(d.quarter); }),
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Total AUM',
+            data: _trendData.map(function(d){ return d.total_aum; }),
+            backgroundColor: 'rgba(13,148,136,0.3)',
+            borderColor: '#0d9488',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'y',
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Filer Count',
+            data: _trendData.map(function(d){ return d.filer_count; }),
+            borderColor: '#2563eb',
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#2563eb',
+            yAxisID: 'y1',
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: colors.text } },
+          tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ': ' + (ctx.datasetIndex === 0 ? fmtValue(ctx.raw) : fmtNum(ctx.raw)); } } }
+        },
+        scales: {
+          x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+          y: {
+            type: 'linear',
+            position: 'left',
+            grid: { color: colors.grid },
+            ticks: { color: '#0d9488', callback: function(v){ return fmtValue(v); } },
+            title: { display: true, text: 'AUM', color: '#0d9488' }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            grid: { display: false },
+            ticks: { color: '#2563eb' },
+            title: { display: true, text: 'Filers', color: '#2563eb' }
+          }
+        }
+      }
+    });
+    if (c3) window._intelCharts.push(c3);
+  }
+  {% endif %}
+};
+window._initIntelCharts();
+
+{% if tab == 'aum_trend' %}
+function toggleRexOverlay() {
+  // Destroy existing charts and rebuild
+  if (window._intelCharts) {
+    for (var i = 0; i < window._intelCharts.length; i++) {
+      window._intelCharts[i].destroy();
+    }
+    window._intelCharts = [];
+  }
+  window._initIntelCharts();
+}
+{% endif %}
+</script>
+{% endblock %}

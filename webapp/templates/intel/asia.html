@@ -1,0 +1,155 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}Asia Intelligence — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">Asia Intelligence</div>
+<div class="intel-page-sub">Asian institutional holders of mapped products &middot; {{ q_display }}</div>
+
+<!-- KPIs -->
+<div class="intel-kpi-row" style="grid-template-columns:repeat(4,1fr);">
+  <div class="intel-kpi">
+    <div class="num">{{ kpis.asia_aum_fmt|default('\u2014') }}</div>
+    <div class="label">Total REX AUM (Asia)</div>
+  </div>
+  <div class="intel-kpi blue">
+    <div class="num">{{ '{:,}'.format(kpis.asia_institutions|default(0)) }}</div>
+    <div class="label">Asian Institutions</div>
+  </div>
+  <div class="intel-kpi purple">
+    <div class="num">{{ kpis.asia_countries|default(0) }}</div>
+    <div class="label">Countries</div>
+  </div>
+  <div class="intel-kpi green">
+    <div class="num">{{ kpis.asia_products|default(0) }}</div>
+    <div class="label">REX Products Held</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="intel-tabs">
+  <a href="?tab=institution&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'institution' }}">By Institution</a>
+  <a href="?tab=country&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'country' }}">By Country</a>
+  <a href="?tab=ticker&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'ticker' }}">By Ticker</a>
+</div>
+
+<!-- Vertical filter -->
+<div class="intel-pills">
+  <a href="?tab={{ tab }}&vertical=All&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == 'All' }}">All Verticals</a>
+  {% for v in (asia_data|map(attribute='vertical')|unique|list if asia_data else []) %}
+  {% if v %}
+  <a href="?tab={{ tab }}&vertical={{ v|urlencode }}&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == v }}">{{ v }}</a>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<!-- TAB: By Institution -->
+{% if tab == 'institution' %}
+<div class="intel-card">
+  <div class="intel-card-title">Asian Institutions</div>
+  <div class="intel-card-sub">{{ q_display }}{% if vertical and vertical != 'All' %} &middot; {{ vertical }}{% endif %}</div>
+  {% if asia_data %}
+  <table class="data-table" id="asiaInstTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('asiaInstTable',0)">Institution</th>
+      <th class="sortable" onclick="sortTable('asiaInstTable',1)">City</th>
+      <th class="sortable" onclick="sortTable('asiaInstTable',2)">Country</th>
+      <th class="sortable" onclick="sortTable('asiaInstTable',3)">Ticker</th>
+      <th class="sortable" onclick="sortTable('asiaInstTable',4)">Vertical</th>
+      <th class="sortable" onclick="sortTable('asiaInstTable',5)">Issuer</th>
+      <th class="sortable num-col" onclick="sortTable('asiaInstTable',6)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('asiaInstTable',7)">Shares</th>
+    </tr></thead>
+    <tbody>
+    {% for a in asia_data %}
+    <tr class="{{ 'rex-highlight' if a.is_rex }}">
+      <td>{{ a.filingmanager_name or a.institution_name or '\u2014' }}</td>
+      <td>{{ a.city or '\u2014' }}</td>
+      <td>{{ a.flag or '' }} {{ a.country_name or '\u2014' }}</td>
+      <td><span class="intel-ticker {{ '' if a.is_rex else 'comp' }}">{{ a.ticker }}</span></td>
+      <td>
+        {% if a.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (a.vertical or '') %}cat-li{% elif 'Income' in (a.vertical or '') %}cat-income{% elif 'Crypto' in (a.vertical or '') %}cat-crypto{% elif 'Defined' in (a.vertical or '') %}cat-defined{% elif 'Thematic' in (a.vertical or '') %}cat-thematic{% endif %}">{{ a.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td>{{ a.issuer or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ a.total_value }}"><strong style="color:var(--teal)">{{ a.total_value_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ a.shares|default(0) }}">{{ '{:,}'.format(a.shares|default(0)) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No Asian institutional data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Country -->
+{% elif tab == 'country' %}
+<div class="intel-card">
+  <div class="intel-card-title">Asian Markets by Country</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if asia_data %}
+  <table class="data-table" id="asiaCountryTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('asiaCountryTable',0)">Country</th>
+      <th class="sortable num-col" onclick="sortTable('asiaCountryTable',1)">Institutions</th>
+      <th class="sortable num-col" onclick="sortTable('asiaCountryTable',2)">Total AUM</th>
+      <th class="sortable num-col" onclick="sortTable('asiaCountryTable',3)">Products</th>
+    </tr></thead>
+    <tbody>
+    {% for a in asia_data %}
+    <tr>
+      <td>{{ a.flag or '' }} {{ a.country_name or a.country_code or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ a.institution_count }}">{{ '{:,}'.format(a.institution_count) }}</td>
+      <td class="num-col" data-sort="{{ a.total_aum }}"><strong style="color:var(--teal)">{{ a.total_aum_fmt }}</strong></td>
+      <td class="num-col" data-sort="{{ a.product_count }}">{{ a.product_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No Asian market data available for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Ticker -->
+{% elif tab == 'ticker' %}
+<div class="intel-card">
+  <div class="intel-card-title">Products Held by Asian Institutions</div>
+  <div class="intel-card-sub">{{ q_display }}</div>
+  {% if asia_data %}
+  <table class="data-table" id="asiaTickerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('asiaTickerTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('asiaTickerTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('asiaTickerTable',2)">Vertical</th>
+      <th class="sortable" onclick="sortTable('asiaTickerTable',3)">Issuer</th>
+      <th class="sortable num-col" onclick="sortTable('asiaTickerTable',4)">Asian Holders</th>
+      <th class="sortable num-col" onclick="sortTable('asiaTickerTable',5)">Asian AUM</th>
+    </tr></thead>
+    <tbody>
+    {% for a in asia_data %}
+    <tr class="{{ 'rex-highlight' if a.is_rex }}">
+      <td><span class="intel-ticker {{ '' if a.is_rex else 'comp' }}">{{ a.ticker }}</span></td>
+      <td>{{ a.security_name or '\u2014' }}</td>
+      <td>
+        {% if a.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (a.vertical or '') %}cat-li{% elif 'Income' in (a.vertical or '') %}cat-income{% elif 'Crypto' in (a.vertical or '') %}cat-crypto{% elif 'Defined' in (a.vertical or '') %}cat-defined{% elif 'Thematic' in (a.vertical or '') %}cat-thematic{% endif %}">{{ a.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td>{{ a.issuer or '\u2014' }}</td>
+      <td class="num-col" data-sort="{{ a.holder_count }}">{{ '{:,}'.format(a.holder_count) }}</td>
+      <td class="num-col" data-sort="{{ a.total_aum }}"><strong style="color:var(--teal)">{{ a.total_aum_fmt }}</strong></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No data available for this quarter.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

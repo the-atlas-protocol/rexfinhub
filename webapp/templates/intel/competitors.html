@@ -1,0 +1,145 @@
+{% extends "intel/base_intel.html" %}
+{% block title %}Competitor Intel — 13F Intelligence Hub{% endblock %}
+
+{% block intel_content %}
+{% set m = quarter[5:7]|int %}
+{% set q_display = 'Q' ~ ((m - 1) // 3 + 1) ~ ' ' ~ quarter[:4] %}
+
+<div class="intel-page-title">Competitor Intelligence</div>
+<div class="intel-page-sub">Non-REX products in 13F filings &middot; {{ q_display }}</div>
+
+<!-- Vertical filter pills -->
+<div class="intel-filter-bar">
+  <div class="intel-pills">
+    <a href="?tab={{ tab }}&vertical=All&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == 'All' }}">All Verticals</a>
+    {% for v in verticals %}
+    <a href="?tab={{ tab }}&vertical={{ v|urlencode }}&quarter={{ quarter }}" class="intel-pill {{ 'active' if vertical == v }}">{{ v }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="intel-tabs">
+  <a href="?tab=product&vertical={{ vertical|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'product' }}">By Product</a>
+  <a href="?tab=issuer&vertical={{ vertical|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'issuer' }}">By Issuer</a>
+  <a href="?tab=vertical&vertical={{ vertical|urlencode }}&quarter={{ quarter }}" class="intel-tab {{ 'active' if tab == 'vertical' }}">By Vertical</a>
+</div>
+
+<!-- KPIs -->
+<div class="intel-kpi-row" style="grid-template-columns:repeat(3,1fr);">
+  <div class="intel-kpi red">
+    <div class="num">{{ '{:,}'.format(kpis.comp_products|default(0)) }}</div>
+    <div class="label">Competitor Products</div>
+  </div>
+  <div class="intel-kpi amber">
+    <div class="num">{{ kpis.comp_aum_fmt|default('\u2014') }}</div>
+    <div class="label">Total AUM Filed</div>
+  </div>
+  <div class="intel-kpi blue">
+    <div class="num">{{ '{:,}'.format(kpis.comp_issuers|default(0)) }}</div>
+    <div class="label">Issuers</div>
+  </div>
+</div>
+
+<!-- TAB: By Product -->
+{% if tab == 'product' %}
+<div class="intel-card">
+  <div class="intel-card-title">Competitor Products</div>
+  <div class="intel-card-sub">Sorted by AUM &middot; {{ q_display }}{% if vertical and vertical != 'All' %} &middot; {{ vertical }}{% endif %}</div>
+  {% if products %}
+  <table class="data-table" id="compProductTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('compProductTable',0)">Ticker</th>
+      <th class="sortable" onclick="sortTable('compProductTable',1)">Name</th>
+      <th class="sortable" onclick="sortTable('compProductTable',2)">Issuer</th>
+      <th class="sortable" onclick="sortTable('compProductTable',3)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('compProductTable',4)">AUM</th>
+      <th class="sortable num-col" onclick="sortTable('compProductTable',5)">Filers</th>
+    </tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr>
+      <td><span class="intel-ticker comp">{{ p.ticker }}</span></td>
+      <td>{{ p.security_name or '\u2014' }}</td>
+      <td>{{ p.issuer or '\u2014' }}</td>
+      <td>
+        {% if p.vertical %}
+        <span class="intel-vchip {% if 'Leverage' in (p.vertical or '') %}cat-li{% elif 'Income' in (p.vertical or '') %}cat-income{% elif 'Crypto' in (p.vertical or '') %}cat-crypto{% elif 'Defined' in (p.vertical or '') %}cat-defined{% elif 'Thematic' in (p.vertical or '') %}cat-thematic{% endif %}">{{ p.vertical }}</span>
+        {% else %}&mdash;{% endif %}
+      </td>
+      <td class="num-col" data-sort="{{ p.total_aum }}">{{ p.total_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ p.holder_count }}">{{ '{:,}'.format(p.holder_count) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No competitor products found for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Issuer -->
+{% elif tab == 'issuer' %}
+<div class="intel-card">
+  <div class="intel-card-title">Competitor Issuers</div>
+  <div class="intel-card-sub">Sorted by AUM &middot; {{ q_display }}{% if vertical and vertical != 'All' %} &middot; {{ vertical }}{% endif %}</div>
+  {% if issuers %}
+  <table class="data-table" id="compIssuerTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('compIssuerTable',0)">Issuer</th>
+      <th class="sortable num-col" onclick="sortTable('compIssuerTable',1)">Products</th>
+      <th class="sortable num-col" onclick="sortTable('compIssuerTable',2)">Total AUM</th>
+      <th class="sortable num-col" onclick="sortTable('compIssuerTable',3)">Total Filers</th>
+    </tr></thead>
+    <tbody>
+    {% for iss in issuers %}
+    <tr>
+      <td>{{ iss.issuer }}</td>
+      <td class="num-col" data-sort="{{ iss.product_count }}">{{ iss.product_count }}</td>
+      <td class="num-col" data-sort="{{ iss.total_aum }}">{{ iss.total_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ iss.holder_count }}">{{ '{:,}'.format(iss.holder_count) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No competitor issuers found for this quarter.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: By Vertical -->
+{% elif tab == 'vertical' %}
+<div class="intel-card">
+  <div class="intel-card-title">Competitor Verticals</div>
+  <div class="intel-card-sub">Market breakdown by product category &middot; {{ q_display }}</div>
+  {% if verticals %}
+  <table class="data-table" id="compVerticalTable">
+    <thead><tr>
+      <th class="sortable" onclick="sortTable('compVerticalTable',0)">Vertical</th>
+      <th class="sortable num-col" onclick="sortTable('compVerticalTable',1)">Products</th>
+      <th class="sortable num-col" onclick="sortTable('compVerticalTable',2)">Issuers</th>
+      <th class="sortable num-col" onclick="sortTable('compVerticalTable',3)">Total AUM</th>
+      <th class="sortable num-col" onclick="sortTable('compVerticalTable',4)">Total Filers</th>
+    </tr></thead>
+    <tbody>
+    {% for v in verticals %}
+    {% if v is mapping %}
+    <tr>
+      <td>
+        <span class="intel-vchip {% if 'Leverage' in (v.vertical or '') %}cat-li{% elif 'Income' in (v.vertical or '') %}cat-income{% elif 'Crypto' in (v.vertical or '') %}cat-crypto{% elif 'Defined' in (v.vertical or '') %}cat-defined{% elif 'Thematic' in (v.vertical or '') %}cat-thematic{% endif %}">{{ v.vertical }}</span>
+      </td>
+      <td class="num-col" data-sort="{{ v.product_count|default(0) }}">{{ v.product_count|default(0) }}</td>
+      <td class="num-col" data-sort="{{ v.issuer_count|default(0) }}">{{ v.issuer_count|default(0) }}</td>
+      <td class="num-col" data-sort="{{ v.total_aum }}">{{ v.total_aum_fmt }}</td>
+      <td class="num-col" data-sort="{{ v.holder_count|default(0) }}">{{ '{:,}'.format(v.holder_count|default(0)) }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="intel-empty">No competitor vertical data available.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
