@@ -64,11 +64,12 @@ def _load_stats() -> dict:
 
         # By year
         rows = db.execute("""
-            SELECT SUBSTR(p.extraction_date, 1, 4) as yr, COUNT(*) as cnt
+            SELECT SUBSTR(f.filing_date, 1, 4) as yr, COUNT(*) as cnt
             FROM products p
             JOIN filings f ON p.filing_id = f.id
+            WHERE f.filing_date IS NOT NULL
             GROUP BY SUBSTR(f.filing_date, 1, 4)
-            ORDER BY SUBSTR(f.filing_date, 1, 4) DESC
+            ORDER BY yr DESC
             LIMIT 20
         """).fetchall()
         stats["by_year"] = [{"year": r[0], "count": r[1]} for r in rows if r[0]]
