@@ -27,6 +27,17 @@
   </div>
 </div>
 
+<!-- REX Product Quick Access -->
+<div style="background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;">
+  <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">REX Product Holders — Quick Access</div>
+  <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 10px;">Click a ticker to see which institutions hold that product</div>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    {% for t in ['SOXL','FNGS','FNGU','FEPI','AIPI','NVDX','TSLT','MSTU','OBTC','NUGT','NAIL','DFEN','ERX'] %}
+    <a href="/holdings/fund/{{ t }}" class="btn btn-sm" style="font-size: 12px; padding: 4px 12px;">{{ t }}</a>
+    {% endfor %}
+  </div>
+</div>
+
 <!-- Mode toggle: Institutions | Funds -->
 <div style="display:flex; gap:6px; margin-bottom:12px;">
   <span class="form-pill active" id="pillInst" onclick="showMode('institutions')">Institutions</span>
