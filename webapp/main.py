@@ -213,10 +213,7 @@ def create_app() -> FastAPI:
         request.session.clear()
         return RedirectResponse("/login", status_code=302)
 
-    # --- Home page ---
-    @app.get("/")
-    def home_page(request: Request):
-        return templates.TemplateResponse("home.html", {"request": request})
+    # --- Home page moved to dashboard.py router (redesign 2026-03-18) ---
 
     # --- Routers ---
     from webapp.routers import auth_routes, dashboard, trusts, funds, search, analysis, digest, downloads, api, admin, screener, market, filings, universe, global_search, analytics, reports

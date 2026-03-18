@@ -50,55 +50,51 @@
 })();
 
 // ---------------------------------------------------------------------------
-// Mega-menu controller (click-to-open, hover delay, Escape close)
+// Mega-menu controller (hover-triggered, 150ms grace close, click fallback)
 // ---------------------------------------------------------------------------
 (function() {
-  var triggers = document.querySelectorAll('.mega-trigger');
-  if (!triggers.length) return;
+  var wraps = document.querySelectorAll('.mega-trigger-wrap');
+  if (!wraps.length) return;
+
+  var closeTimer = null;
 
   function closeAll() {
-    triggers.forEach(function(t) {
-      t.setAttribute('aria-expanded', 'false');
-      t.classList.remove('active-menu');
-    });
     document.querySelectorAll('.mega-panel').forEach(function(p) {
       p.classList.remove('open');
     });
+    document.querySelectorAll('.mega-trigger').forEach(function(t) {
+      t.setAttribute('aria-expanded', 'false');
+    });
   }
 
-  triggers.forEach(function(trigger) {
-    trigger.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var panelId = 'panel-' + trigger.getAttribute('data-panel');
-      var panel = document.getElementById(panelId);
-      var isOpen = panel && panel.classList.contains('open');
+  wraps.forEach(function(wrap) {
+    var trigger = wrap.querySelector('.mega-trigger');
+    var panel = wrap.querySelector('.mega-panel');
+    if (!trigger || !panel) return;
 
+    // Hover open -- immediate, no delay
+    wrap.addEventListener('mouseenter', function() {
+      clearTimeout(closeTimer);
       closeAll();
+      panel.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+    });
 
-      if (!isOpen && panel) {
+    // Hover leave -- 150ms grace period for diagonal mouse movement
+    wrap.addEventListener('mouseleave', function() {
+      closeTimer = setTimeout(closeAll, 150);
+    });
+
+    // Click also works (touch devices)
+    trigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var isOpen = panel.classList.contains('open');
+      closeAll();
+      if (!isOpen) {
         panel.classList.add('open');
         trigger.setAttribute('aria-expanded', 'true');
-        trigger.classList.add('active-menu');
       }
-    });
-
-    // Hover delay for mouse users (200ms)
-    var hoverTimer;
-    trigger.addEventListener('mouseenter', function() {
-      var self = this;
-      hoverTimer = setTimeout(function() {
-        var panelId = 'panel-' + self.getAttribute('data-panel');
-        var panel = document.getElementById(panelId);
-        if (panel && !panel.classList.contains('open')) {
-          closeAll();
-          panel.classList.add('open');
-          self.setAttribute('aria-expanded', 'true');
-          self.classList.add('active-menu');
-        }
-      }, 200);
-    });
-    trigger.addEventListener('mouseleave', function() {
-      clearTimeout(hoverTimer);
     });
   });
 
@@ -109,23 +105,82 @@
     }
   });
 
-  // Close on Escape
+  // Escape closes
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeAll();
   });
+})();
 
-  // Mobile accordion behavior
-  var mobileToggles = document.querySelectorAll('.mobile-mega-trigger');
-  mobileToggles.forEach(function(toggle) {
-    toggle.addEventListener('click', function() {
-      var target = this.getAttribute('data-panel');
-      var content = document.getElementById('mobile-' + target);
-      if (content) {
-        var isExpanded = content.classList.toggle('expanded');
-        this.setAttribute('aria-expanded', isExpanded);
-      }
+// ---------------------------------------------------------------------------
+// Kebab menu (triple-dot settings dropdown)
+// ---------------------------------------------------------------------------
+(function() {
+  var kebabBtn = document.getElementById('kebabBtn');
+  var kebabDrop = document.getElementById('kebabDropdown');
+  if (!kebabBtn || !kebabDrop) return;
+
+  kebabBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    // Close mega-menus first
+    document.querySelectorAll('.mega-panel').forEach(function(p) { p.classList.remove('open'); });
+    document.querySelectorAll('.mega-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
+    kebabDrop.classList.toggle('open');
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.kebab-menu')) {
+      kebabDrop.classList.remove('open');
+    }
+  });
+
+  // Theme toggle inside kebab
+  var themeBtn = document.getElementById('kebabThemeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (window.RexTheme) window.RexTheme.toggle();
+      setTimeout(function() { kebabDrop.classList.remove('open'); }, 100);
+    });
+  }
+
+  // Close kebab after any item click
+  kebabDrop.querySelectorAll('.kebab-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      setTimeout(function() { kebabDrop.classList.remove('open'); }, 100);
     });
   });
+
+  // Escape closes kebab
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') kebabDrop.classList.remove('open');
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// Hamburger menu (mobile nav toggle)
+// ---------------------------------------------------------------------------
+(function() {
+  var hamburger = document.getElementById('hamburger');
+  var nav = document.querySelector('.sticky-nav');
+  if (!hamburger || !nav) return;
+
+  hamburger.addEventListener('click', function() {
+    nav.classList.toggle('nav-open');
+    // Close mega-panels when toggling mobile nav
+    document.querySelectorAll('.mega-panel').forEach(function(p) { p.classList.remove('open'); });
+    document.querySelectorAll('.mega-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
+  });
+
+  // Close mobile nav when a non-mega link is clicked
+  var navLinks = document.getElementById('navLinks');
+  if (navLinks) {
+    navLinks.querySelectorAll('a:not(.mega-link)').forEach(function(link) {
+      link.addEventListener('click', function() {
+        nav.classList.remove('nav-open');
+      });
+    });
+  }
 })();
 
 // ---------------------------------------------------------------------------
@@ -351,6 +406,11 @@ document.addEventListener('DOMContentLoaded', function() {
     input = input || document.getElementById('searchPaletteInput');
     resultsDiv = resultsDiv || document.getElementById('searchPaletteResults');
     if (!overlay) return;
+    // Close kebab and mega-menus when search opens
+    document.querySelectorAll('.mega-panel').forEach(function(p) { p.classList.remove('open'); });
+    document.querySelectorAll('.mega-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
+    var kd = document.getElementById('kebabDropdown');
+    if (kd) kd.classList.remove('open');
     overlay.style.display = '';
     activeIdx = -1;
     if (input) { input.value = ''; input.focus(); }

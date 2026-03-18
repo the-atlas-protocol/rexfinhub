@@ -12,7 +12,7 @@
     if (data.indices && data.indices.length) {
       data.indices.forEach(function(idx) {
         var pct = idx.change_pct || 0;
-        var color = pct >= 0 ? 'var(--data-positive)' : 'var(--data-negative)';
+        var color = pct >= 0 ? '#4ade80' : '#f87171';
         var arrow = pct >= 0 ? '\u25B2' : '\u25BC';
         var sign = pct >= 0 ? '+' : '';
         html += '<span class="ticker-item ticker-index">';
@@ -28,7 +28,7 @@
     if (data.products && data.products.length) {
       data.products.forEach(function(p) {
         var pct = p.change_pct || 0;
-        var color = pct >= 0 ? 'var(--data-positive)' : 'var(--data-negative)';
+        var color = pct >= 0 ? '#4ade80' : '#f87171';
         var arrow = pct >= 0 ? '\u25B2' : '\u25BC';
         var sign = pct >= 0 ? '+' : '';
         html += '<span class="ticker-item">';
