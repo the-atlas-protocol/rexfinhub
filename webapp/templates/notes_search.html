@@ -45,6 +45,7 @@
         <th>Barrier</th>
         <th>Maturity</th>
         <th>CUSIP</th>
+        <th>Filing</th>
         <th>Product Name</th>
       </tr>
     </thead>
@@ -59,6 +60,7 @@
         <td style="font-family: var(--font-mono);">{{ p.barrier }}</td>
         <td style="white-space:nowrap">{{ p.maturity }}</td>
         <td style="font-family: var(--font-mono); font-size: 11px;">{{ p.cusip }}</td>
+        <td>{% if p.filing_url %}<a href="{{ p.filing_url }}" target="_blank" style="font-size: 11px;">View</a>{% else %}--{% endif %}</td>
         <td style="font-size: 11px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</td>
       </tr>
       {% endfor %}
