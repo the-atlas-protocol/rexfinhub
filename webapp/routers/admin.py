@@ -307,7 +307,7 @@ def send_test_weekly(request: Request, db: Session = Depends(get_db)):
         dashboard_url = str(request.base_url).rstrip("/")
         html = build_weekly_digest_html(db, dashboard_url=dashboard_url)
         ok = _send_weekly_html(
-            f"REX ETF Weekly Report - {datetime.now().strftime('%B %d, %Y')}",
+            f"REX Weekly ETP Report: {datetime.now().strftime('%m/%d/%Y')}",
             html, ["relasmar@rexfin.com"]
         )
 
@@ -421,7 +421,7 @@ def send_test_li_report(request: Request, db: Session = Depends(get_db)):
         dashboard_url = str(request.base_url).rstrip("/")
         html, images = build_li_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
-                               subject_override="REX ETF Leveraged & Inverse Report",
+                               subject_override=f"REX ETP Leverage & Inverse Report: {datetime.now().strftime('%m/%d/%Y')}",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=test_li_sent", status_code=303)
@@ -443,7 +443,7 @@ def send_test_cc_report(request: Request, db: Session = Depends(get_db)):
         dashboard_url = str(request.base_url).rstrip("/")
         html, images = build_cc_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
-                               subject_override="REX ETF Income Report",
+                               subject_override=f"REX ETP Income Report: {datetime.now().strftime('%m/%d/%Y')}",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=test_cc_sent", status_code=303)
@@ -468,7 +468,7 @@ def send_li_report(request: Request, db: Session = Depends(get_db)):
         if not recipients:
             return RedirectResponse("/admin/?digest=no_recipients", status_code=303)
         ok = _send_html_digest(html, recipients, edition="daily",
-                               subject_override="REX ETF Leveraged & Inverse Report",
+                               subject_override=f"REX ETP Leverage & Inverse Report: {datetime.now().strftime('%m/%d/%Y')}",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=li_sent", status_code=303)
@@ -493,7 +493,7 @@ def send_cc_report(request: Request, db: Session = Depends(get_db)):
         if not recipients:
             return RedirectResponse("/admin/?digest=no_recipients", status_code=303)
         ok = _send_html_digest(html, recipients, edition="daily",
-                               subject_override="REX ETF Income Report",
+                               subject_override=f"REX ETP Income Report: {datetime.now().strftime('%m/%d/%Y')}",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=cc_sent", status_code=303)
@@ -543,7 +543,7 @@ def send_test_flow_report(request: Request, db: Session = Depends(get_db)):
         dashboard_url = str(request.base_url).rstrip("/")
         html, images = build_flow_email(dashboard_url=dashboard_url, db=db)
         ok = _send_html_digest(html, ["relasmar@rexfin.com"], edition="daily",
-                               subject_override=f"REX ETF Weekly Flow Report - {datetime.now().strftime('%B %d, %Y')}",
+                               subject_override=f"REX ETP Flow Report: {datetime.now().strftime('%m/%d/%Y')}",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=test_flow_sent", status_code=303)
@@ -568,7 +568,7 @@ def send_flow_report(request: Request, db: Session = Depends(get_db)):
         if not recipients:
             return RedirectResponse("/admin/?digest=no_recipients", status_code=303)
         ok = _send_html_digest(html, recipients, edition="daily",
-                               subject_override=f"REX ETF Weekly Flow Report - {datetime.now().strftime('%B %d, %Y')}",
+                               subject_override=f"REX ETP Flow Report: {datetime.now().strftime('%m/%d/%Y')}",
                                images=images)
         if ok:
             return RedirectResponse("/admin/?digest=flow_sent", status_code=303)

@@ -175,131 +175,14 @@
   {% endif %}
 </div>
 
-<!-- Email Management -->
-<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
-  <h3 style="margin:0 0 4px; font-size:16px;">Email Management</h3>
-  <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
-    Send digest emails to all {{ recipients|length }} approved recipients.
+<!-- Email Reports — all reports are generated and sent locally, not through the webapp -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light); opacity:0.5;">
+  <h3 style="margin:0 0 4px; font-size:16px;">Email Reports
+    <span style="font-size:11px; color:var(--muted); background:#fff3cd; padding:2px 8px; border-radius:4px; margin-left:8px;">Local only</span>
+  </h3>
+  <p style="font-size:13px; color:var(--muted); margin:0;">
+    All reports (Daily, Weekly, L&I, Income, Flow) are generated and sent locally. Not available through the web admin.
   </p>
-
-  <!-- Daily + Weekly (editable) -->
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
-
-    <!-- Daily Filing Report -->
-    <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white);">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00897B;"></span>
-        <strong style="font-size:14px;">Daily Filing Report</strong>
-      </div>
-      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">SEC filings, daily movers, market snapshot. Sent to ETFUpdates@rexfin.com.</p>
-      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-        <form method="post" action="/admin/digest/send" onsubmit="return confirm('Send DAILY brief to all recipients?');">
-          <button type="submit" class="btn btn-sm" style="background:#00897B; color:#fff; border:none;">Send All</button>
-        </form>
-        <a href="/admin/digest/preview-daily" target="_blank"
-           class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview</a>
-        <form method="post" action="/admin/digest/send-test">
-          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#00897B; border:1px solid #dee2e6;">Test (to me)</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Weekly Report -->
-    <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white);">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#0984e3;"></span>
-        <strong style="font-size:14px;">Weekly Report</strong>
-      </div>
-      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Executive summary with charts, AUM by suite, market landscape.</p>
-      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-        <form method="post" action="/admin/digest/send-weekly" onsubmit="return confirm('Send WEEKLY report to all recipients?');">
-          <button type="submit" class="btn btn-sm" style="background:#0984e3; color:#fff; border:none;">Send All</button>
-        </form>
-        <a href="/admin/digest/preview-weekly" target="_blank"
-           class="btn btn-sm" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center;">Preview</a>
-        <form method="post" action="/admin/digest/send-test-weekly">
-          <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#0984e3; border:1px solid #dee2e6;">Test (to me)</button>
-        </form>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Bloomberg Reports -->
-  <div style="border:1px solid var(--border); border-radius:8px; padding:16px; background:var(--white); margin-bottom:16px;">
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <strong style="font-size:14px;">Bloomberg Reports</strong>
-    </div>
-    <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Leveraged & Inverse and Income reports sourced from Bloomberg data.</p>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-
-      <!-- L&I Report -->
-      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a1a2e;"></span>
-          <strong style="font-size:13px;">Leveraged & Inverse</strong>
-        </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <form method="post" action="/admin/reports/send-li" onsubmit="return confirm('Send L&I report to all recipients?');">
-            <button type="submit" class="btn btn-sm" style="background:#1a1a2e; color:#fff; border:none; font-size:11px;">Send All</button>
-          </form>
-          <a href="/admin/reports/preview-li" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
-          <form method="post" action="/admin/reports/send-test-li">
-            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Income Report -->
-      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a1a2e;"></span>
-          <strong style="font-size:13px;">Income Report</strong>
-        </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <form method="post" action="/admin/reports/send-cc" onsubmit="return confirm('Send Income report to all recipients?');">
-            <button type="submit" class="btn btn-sm" style="background:#1a1a2e; color:#fff; border:none; font-size:11px;">Send All</button>
-          </form>
-          <a href="/admin/reports/preview-cc" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
-          <form method="post" action="/admin/reports/send-test-cc">
-            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Flow Report -->
-      <div style="border:1px solid var(--border); border-radius:6px; padding:12px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a1a2e;"></span>
-          <strong style="font-size:13px;">Flow Report</strong>
-        </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <form method="post" action="/admin/reports/send-flow" onsubmit="return confirm('Send Flow report to all recipients?');">
-            <button type="submit" class="btn btn-sm" style="background:#1a1a2e; color:#fff; border:none; font-size:11px;">Send All</button>
-          </form>
-          <a href="/admin/reports/preview-flow" target="_blank"
-             class="btn btn-sm" style="background:#f8f9fa; color:#1a1a2e; border:1px solid #dee2e6; text-decoration:none; display:inline-block; text-align:center; font-size:11px;">Preview</a>
-          <form method="post" action="/admin/reports/send-test-flow">
-            <button type="submit" class="btn btn-sm" style="background:#f8f9fa; color:#636e72; border:1px solid #dee2e6; font-size:11px;">Test (to me)</button>
-          </form>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Recipients list -->
-  <details style="margin-top:4px;">
-    <summary style="font-size:12px; color:var(--muted); cursor:pointer;">View all recipients ({{ recipients|length }})</summary>
-    <div style="margin-top:8px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px;">
-      {% for email in recipients %}
-      <div style="font-size:12px; padding:4px 8px; background:var(--white); border:1px solid var(--border); border-radius:4px; font-family:var(--font-mono);">{{ email }}</div>
-      {% endfor %}
-    </div>
-  </details>
 </div>
 
 <!-- Digest Subscribers -->
