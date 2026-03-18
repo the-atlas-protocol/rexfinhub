@@ -17,6 +17,18 @@
     <div class="kpi"><div class="num">{{ stats.date_min[:4] }}–{{ stats.date_max[:4] }}</div><div class="label">Date Range</div></div>
   </div>
 
+  <!-- Charts -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+    <div style="background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Top 10 Issuers by Product Count</h3>
+      <canvas id="issuerChart" height="250"></canvas>
+    </div>
+    <div style="background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Annual Issuance Volume</h3>
+      <canvas id="yearChart" height="250"></canvas>
+    </div>
+  </div>
+
   <div class="section-header">
     <h2>Products by Issuer</h2>
     <span class="badge">{{ stats.by_issuer|length }}</span>
@@ -77,7 +89,7 @@
   </div>
   <table>
     <thead>
-      <tr><th>Date</th><th>Issuer</th><th>Type</th><th>Underliers</th><th>Coupon</th><th>Barrier</th><th>Product Name</th></tr>
+      <tr><th>Date</th><th>Issuer</th><th>Type</th><th>Underliers</th><th>Coupon</th><th>Barrier</th><th>Filing</th><th>Product Name</th></tr>
     </thead>
     <tbody>
       {% for p in stats.recent_products %}
@@ -88,11 +100,59 @@
         <td style="font-family: var(--font-mono); font-size: 11px;">{{ p.underliers }}</td>
         <td style="font-family: var(--font-mono);">{{ p.coupon }}</td>
         <td style="font-family: var(--font-mono);">{{ p.barrier }}</td>
+        <td>{% if p.filing_url %}<a href="{{ p.filing_url }}" target="_blank" style="font-size: 11px;">View</a>{% else %}--{% endif %}</td>
         <td style="font-size: 11px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+  // Issuer bar chart
+  new Chart(document.getElementById('issuerChart'), {
+    type: 'bar',
+    data: {
+      labels: [{% for row in stats.by_issuer[:10] %}'{{ row.name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        data: [{% for row in stats.by_issuer[:10] %}{{ row.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: '#2196F3',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v } },
+        y: { ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+  // Year trend chart
+  var yearData = [{% for row in stats.by_year|reverse %}{{ row.count }}{% if not loop.last %},{% endif %}{% endfor %}];
+  var yearLabels = [{% for row in stats.by_year|reverse %}'{{ row.year }}'{% if not loop.last %},{% endif %}{% endfor %}];
+  new Chart(document.getElementById('yearChart'), {
+    type: 'bar',
+    data: {
+      labels: yearLabels,
+      datasets: [{
+        data: yearData,
+        backgroundColor: '#0D9488',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v } },
+        x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+      }
+    }
+  });
+  </script>
 
   {% else %}
   <div class="what-changed" style="margin-top: 32px;">
