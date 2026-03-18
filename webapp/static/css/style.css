@@ -164,8 +164,8 @@ a:hover { color: var(--blue-hover); text-decoration: none; }
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 .sticky-nav a:hover,
-.sticky-nav a.active { color: white; text-decoration: none; }
-.sticky-nav a.active { border-bottom-color: var(--blue); }
+.sticky-nav a.active { color: rgba(255,255,255,0.95); text-decoration: none; }
+.sticky-nav a.active { border-bottom-color: var(--blue); font-weight: 600; }
 .sticky-nav .brand {
   font-weight: 700; font-size: 15px; color: white;
   letter-spacing: -0.3px;
@@ -203,7 +203,7 @@ a:hover { color: var(--blue-hover); text-decoration: none; }
   padding: var(--sp-5);
   flex: 1; min-width: 120px; text-align: center;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--navy);
+  border-left: none;
   border-top: none;
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-base), transform var(--transition-base);
@@ -215,7 +215,7 @@ a:hover { color: var(--blue-hover); text-decoration: none; }
 }
 .kpi .label {
   font-size: var(--text-xs); color: var(--gray-500);
-  text-transform: uppercase; letter-spacing: 0.8px;
+  text-transform: uppercase; letter-spacing: 0.04em;
   font-weight: 600; margin-top: var(--sp-1);
 }
 .kpi-green .num { color: var(--green); }
@@ -240,7 +240,9 @@ a:hover { color: var(--blue-hover); text-decoration: none; }
   display: flex; align-items: center; justify-content: space-between;
   margin: var(--sp-8) 0 var(--sp-3);
   padding-bottom: var(--sp-2);
-  border-bottom: 2px solid var(--navy);
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  padding-left: var(--sp-3);
 }
 .section-header h2 { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.3px; }
 .section-header .badge {
@@ -293,7 +295,10 @@ a:hover { color: var(--blue-hover); text-decoration: none; }
 .filter-bar input:focus,
 .filter-bar select:focus {
   outline: none; border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+  box-shadow: 0 0 0 2px rgba(33,150,243,0.15);
+}
+.filter-bar select:hover, .filter-bar input:hover {
+  border-color: var(--gray-400);
 }
 .filter-bar .count {
   font-size: var(--text-sm); color: var(--gray-500);
@@ -325,15 +330,16 @@ table {
   border-radius: var(--radius-lg);
 }
 th {
-  background: var(--navy); color: rgba(255,255,255,0.9);
+  background: var(--gray-50); color: var(--gray-700);
   padding: var(--sp-2) var(--sp-3);
   text-align: left; font-weight: 600;
   font-size: var(--text-xs); text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.03em;
   white-space: nowrap; user-select: none;
+  border-bottom: 2px solid var(--gray-200);
 }
 th.sortable { cursor: pointer; }
-th.sortable:hover { background: var(--navy-light); }
+th.sortable:hover { background: var(--gray-100); }
 th.sorted-asc::after { content: " \25B2"; font-size: 9px; opacity: 0.7; }
 th.sorted-desc::after { content: " \25BC"; font-size: 9px; opacity: 0.7; }
 td {
@@ -342,7 +348,7 @@ td {
   vertical-align: middle;
 }
 tbody tr:nth-child(even) { background: var(--gray-50); }
-tbody tr:hover { background: var(--surface-2); }
+tbody tr:hover { background: #EFF6FF; }
 tr.today-highlight { background: var(--green-bg); }
 
 /* Data table headers - no sticky inside overflow wrappers */
@@ -474,8 +480,12 @@ td.num-col, th.num-col { text-align: right; font-family: var(--font-mono); font-
   transition: all var(--transition-fast); line-height: 1.4;
 }
 .btn:hover { text-decoration: none; }
-.btn-primary { background: var(--navy); color: white; }
-.btn-primary:hover { background: var(--navy-light); color: white; }
+.btn:hover:not(.btn-primary):not(.btn-green):not(.btn-red) {
+  background: var(--surface-2);
+  border-color: var(--gray-400);
+}
+.btn-primary { background: var(--blue); color: white; }
+.btn-primary:hover { background: var(--blue-hover); color: white; box-shadow: 0 2px 8px rgba(33,150,243,0.25); }
 .btn-green { background: var(--green); color: white; }
 .btn-green:hover { background: #00a844; color: white; }
 .btn-sm { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }
@@ -903,7 +913,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 
 /* Dark mode: buttons and select */
 [data-theme="dark"] .btn { color: var(--text-primary); }
-[data-theme="dark"] .btn-primary { background: var(--navy-light); color: white; }
+[data-theme="dark"] .btn-primary { background: var(--blue); color: white; }
 [data-theme="dark"] .select-sm { background: var(--input-bg); border-color: var(--input-border); color: var(--input-color); }
 
 /* Smooth theme transitions */

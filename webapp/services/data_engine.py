@@ -537,13 +537,14 @@ def _unpivot_aum(master_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Zero out AUM for months before inception (Bloomberg backfills stale data)
+    ts["aum_value"] = pd.to_numeric(ts["aum_value"], errors="coerce").fillna(0.0)
     if has_inception:
         incep = pd.to_datetime(ts["inception_date"], errors="coerce")
         pre_inception = ts["date"] < incep
         zeroed = (pre_inception & (ts["aum_value"] > 0)).sum()
         if zeroed:
             ts.loc[pre_inception, "aum_value"] = 0.0
-            log.info("Zeroed %d pre-inception AUM values during unpivot", zeroed)
+            pass  # zeroed pre-inception AUM values
         ts = ts.drop(columns=["inception_date"])
 
     ts = ts.drop(columns=["aum_col"])
