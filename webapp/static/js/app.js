@@ -50,71 +50,151 @@
 })();
 
 // ---------------------------------------------------------------------------
-// Hamburger menu
+// Mega-menu controller (click-to-open, hover delay, Escape close)
 // ---------------------------------------------------------------------------
 (function() {
-  document.addEventListener('DOMContentLoaded', function() {
-    var hamburger = document.getElementById('hamburger');
-    var navLinks = document.getElementById('navLinks');
-    if (!hamburger || !navLinks) return;
+  var triggers = document.querySelectorAll('.mega-trigger');
+  if (!triggers.length) return;
 
-    hamburger.addEventListener('click', function() {
-      hamburger.classList.toggle('open');
-      navLinks.classList.toggle('open');
+  function closeAll() {
+    triggers.forEach(function(t) {
+      t.setAttribute('aria-expanded', 'false');
+      t.classList.remove('active-menu');
     });
-
-    // Close menu when a direct link (not dropdown trigger) is clicked
-    navLinks.querySelectorAll('a:not(.nav-dropdown-trigger)').forEach(function(link) {
-      link.addEventListener('click', function() {
-        hamburger.classList.remove('open');
-        navLinks.classList.remove('open');
-      });
+    document.querySelectorAll('.mega-panel').forEach(function(p) {
+      p.classList.remove('open');
     });
+  }
 
-    // Mobile: tap dropdown trigger to toggle submenu
-    navLinks.querySelectorAll('.nav-dropdown-trigger').forEach(function(trigger) {
-      trigger.addEventListener('click', function(e) {
-        if (window.innerWidth <= 768) {
-          e.preventDefault();
-          var dd = trigger.closest('.nav-dropdown');
-          dd.classList.toggle('nav-dd-open');
-        }
-      });
-    });
-  });
-})();
-
-// ---------------------------------------------------------------------------
-// Kebab (triple-dot) menu
-// ---------------------------------------------------------------------------
-(function() {
-  document.addEventListener('DOMContentLoaded', function() {
-    var btn = document.getElementById('kebabBtn');
-    var dropdown = document.getElementById('kebabDropdown');
-    var themeBtn = document.getElementById('kebabThemeToggle');
-    if (!btn || !dropdown) return;
-
-    btn.addEventListener('click', function(e) {
+  triggers.forEach(function(trigger) {
+    trigger.addEventListener('click', function(e) {
       e.stopPropagation();
-      dropdown.classList.toggle('open');
-    });
+      var panelId = 'panel-' + trigger.getAttribute('data-panel');
+      var panel = document.getElementById(panelId);
+      var isOpen = panel && panel.classList.contains('open');
 
-    // Close on outside click
-    document.addEventListener('click', function(e) {
-      if (!dropdown.contains(e.target) && e.target !== btn) {
-        dropdown.classList.remove('open');
+      closeAll();
+
+      if (!isOpen && panel) {
+        panel.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+        trigger.classList.add('active-menu');
       }
     });
 
-    // Theme toggle from kebab menu
-    if (themeBtn && window.RexTheme) {
-      themeBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        window.RexTheme.toggle();
-      });
+    // Hover delay for mouse users (200ms)
+    var hoverTimer;
+    trigger.addEventListener('mouseenter', function() {
+      var self = this;
+      hoverTimer = setTimeout(function() {
+        var panelId = 'panel-' + self.getAttribute('data-panel');
+        var panel = document.getElementById(panelId);
+        if (panel && !panel.classList.contains('open')) {
+          closeAll();
+          panel.classList.add('open');
+          self.setAttribute('aria-expanded', 'true');
+          self.classList.add('active-menu');
+        }
+      }, 200);
+    });
+    trigger.addEventListener('mouseleave', function() {
+      clearTimeout(hoverTimer);
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.mega-trigger-wrap')) {
+      closeAll();
     }
   });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeAll();
+  });
+
+  // Mobile accordion behavior
+  var mobileToggles = document.querySelectorAll('.mobile-mega-trigger');
+  mobileToggles.forEach(function(toggle) {
+    toggle.addEventListener('click', function() {
+      var target = this.getAttribute('data-panel');
+      var content = document.getElementById('mobile-' + target);
+      if (content) {
+        var isExpanded = content.classList.toggle('expanded');
+        this.setAttribute('aria-expanded', isExpanded);
+      }
+    });
+  });
 })();
+
+// ---------------------------------------------------------------------------
+// Sticky nav shadow on scroll
+// ---------------------------------------------------------------------------
+(function() {
+  var nav = document.querySelector('.sticky-nav');
+  if (!nav) return;
+  window.addEventListener('scroll', function() {
+    nav.classList.toggle('scrolled', window.scrollY > 10);
+  }, { passive: true });
+})();
+
+// ---------------------------------------------------------------------------
+// KPI value count-up animation
+// ---------------------------------------------------------------------------
+window.animateValue = function(el, target, duration, formatter) {
+  if (!el || isNaN(target)) return;
+  var start = 0;
+  var startTime = null;
+  duration = duration || 800;
+  formatter = formatter || function(v) { return Math.round(v).toLocaleString(); };
+
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    var progress = Math.min((timestamp - startTime) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+    el.textContent = formatter(start + (target - start) * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+};
+
+// ---------------------------------------------------------------------------
+// Section fade-in on scroll (IntersectionObserver)
+// ---------------------------------------------------------------------------
+(function() {
+  if (!('IntersectionObserver' in window)) return;
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.section-animate').forEach(function(el) {
+    observer.observe(el);
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// Toast notifications
+// ---------------------------------------------------------------------------
+window.showToast = function(message, duration) {
+  duration = duration || 3000;
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(function() {
+    toast.classList.add('fade-out');
+    setTimeout(function() {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  }, duration);
+};
 
 // ---------------------------------------------------------------------------
 // Trust/filing utilities
@@ -230,10 +310,41 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ---------------------------------------------------------------------------
-// F2: Global Search Palette (Ctrl+K)
+// F2: Global Search Palette (Ctrl+K) with Quick Navigation
 // ---------------------------------------------------------------------------
 (function() {
   var overlay, input, resultsDiv, debounceTimer, activeIdx = -1;
+
+  var QUICK_NAV = [
+    { name: 'REX View', url: '/market/rex', pillar: 'Market', desc: 'Suite AUM, flows, positioning' },
+    { name: 'Category View', url: '/market/category', pillar: 'Market', desc: 'Competitive landscape' },
+    { name: 'Issuer Analysis', url: '/market/issuer', pillar: 'Market', desc: 'Rank issuers' },
+    { name: 'Filing Activity', url: '/dashboard', pillar: 'Filings', desc: 'Today\'s SEC filings' },
+    { name: 'Filing Landscape', url: '/screener/', pillar: 'Filings', desc: '3x/4x/5x matrix' },
+    { name: 'Bloomberg Scoring', url: '/screener/3x-analysis', pillar: 'Filings', desc: 'Product recommendations' },
+    { name: 'Search Funds', url: '/funds/', pillar: 'Filings', desc: 'Fund search by name/ticker' },
+    { name: 'Search Filings', url: '/filings/', pillar: 'Filings', desc: 'Filing search by date/form' },
+    { name: 'Market Overview', url: '/intel/', pillar: 'Ownership', desc: '$289B ETP ownership' },
+    { name: 'REX Quarter Report', url: '/intel/rex', pillar: 'Ownership', desc: 'REX institutional holders' },
+    { name: 'Browse Institutions', url: '/holdings/', pillar: 'Ownership', desc: '10,535 institutions' },
+    { name: 'Sales Intelligence', url: '/intel/rex/sales', pillar: 'Ownership', desc: 'Momentum, concentration' },
+    { name: 'Structured Notes', url: '/notes/', pillar: 'Notes', desc: '594K products overview' },
+    { name: 'Issuer Dashboard', url: '/notes/issuers', pillar: 'Notes', desc: '19 issuers market share' },
+    { name: 'Product Search', url: '/notes/search', pillar: 'Notes', desc: 'Filter by issuer/type' },
+    { name: 'Data Exports', url: '/downloads/', pillar: 'Tools', desc: 'CSV/Excel downloads' },
+    { name: 'Evaluate Ticker', url: '/screener/evaluate', pillar: 'Filings', desc: 'Score ticker viability' },
+    { name: 'Crossover Analysis', url: '/holdings/crossover', pillar: 'Ownership', desc: 'Prospect identification' }
+  ];
+
+  function matchQuickNav(q) {
+    if (!q || q.length < 2) return [];
+    var lower = q.toLowerCase();
+    return QUICK_NAV.filter(function(item) {
+      return item.name.toLowerCase().indexOf(lower) >= 0
+        || item.pillar.toLowerCase().indexOf(lower) >= 0
+        || item.desc.toLowerCase().indexOf(lower) >= 0;
+    });
+  }
 
   function openSearch() {
     overlay = overlay || document.getElementById('searchPalette');
@@ -290,15 +401,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var html = '';
 
-    // Pages (quick nav)
+    // Pages / Quick Navigation
     if (data.pages && data.pages.length) {
       html += '<div class="search-group"><div class="search-group-title">'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:0.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>'
-        + 'Pages</div>';
+        + 'Quick Navigation</div>';
       data.pages.forEach(function(p) {
         html += '<a href="' + escapeHtml(p.url) + '" class="search-result-item">'
-          + '<div class="sri-main"><div class="sri-title">' + escapeHtml(p.name) + '</div></div>'
-          + '<span class="sri-arrow">&#8594;</span></a>';
+          + '<div class="sri-main">'
+          + '<div class="sri-title">' + escapeHtml(p.name) + '</div>'
+          + (p.desc ? '<div class="sri-sub">' + escapeHtml(p.desc) + '</div>' : '')
+          + '</div>';
+        if (p.pillar) {
+          html += '<span class="sri-badge">' + escapeHtml(p.pillar) + '</span>';
+        }
+        html += '<span class="sri-arrow">&#8594;</span></a>';
       });
       html += '</div>';
     }
@@ -387,15 +504,53 @@ document.addEventListener('DOMContentLoaded', function() {
       if (resultsDiv) resultsDiv.innerHTML = '<div class="search-hint">Type to search pages, products, trusts, and funds</div>';
       return;
     }
-    if (resultsDiv) resultsDiv.innerHTML = '<div class="search-loading">Searching...</div>';
+
+    // Gather quick nav matches immediately (no network)
+    var navMatches = matchQuickNav(q);
+
+    // Show quick nav results instantly while API loads
+    if (navMatches.length) {
+      var quickHtml = '<div class="search-group"><div class="search-group-title">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:0.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>'
+        + 'Quick Navigation</div>';
+      navMatches.forEach(function(item) {
+        quickHtml += '<a href="' + escapeHtml(item.url) + '" class="search-result-item">'
+          + '<div class="sri-main">'
+          + '<div class="sri-title">' + escapeHtml(item.name) + '</div>'
+          + '<div class="sri-sub">' + escapeHtml(item.desc) + '</div>'
+          + '</div>'
+          + '<span class="sri-badge">' + escapeHtml(item.pillar) + '</span>'
+          + '<span class="sri-arrow">&#8594;</span></a>';
+      });
+      quickHtml += '</div>';
+      resultsDiv.innerHTML = quickHtml + '<div class="search-loading">Searching...</div>';
+    } else {
+      resultsDiv.innerHTML = '<div class="search-loading">Searching...</div>';
+    }
+
     fetch('/api/v1/search?q=' + encodeURIComponent(q) + '&limit=10')
       .then(function(r) {
         if (!r.ok) throw new Error('Search failed');
         return r.json();
       })
-      .then(renderResults)
+      .then(function(data) {
+        // Prepend quick nav matches as "pages" above API results
+        if (navMatches.length) {
+          data.pages = navMatches.map(function(item) {
+            return { name: item.name, url: item.url, desc: item.desc, pillar: item.pillar };
+          });
+        }
+        renderResults(data);
+      })
       .catch(function() {
-        if (resultsDiv) resultsDiv.innerHTML = '<div class="search-empty">Search unavailable</div>';
+        // If API fails, still show quick nav results
+        if (navMatches.length) {
+          renderResults({ pages: navMatches.map(function(item) {
+            return { name: item.name, url: item.url, desc: item.desc, pillar: item.pillar };
+          }) });
+        } else {
+          if (resultsDiv) resultsDiv.innerHTML = '<div class="search-empty">Search unavailable</div>';
+        }
       });
   }
 
