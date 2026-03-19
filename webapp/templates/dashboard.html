@@ -303,7 +303,7 @@
         {% endif %}
       </div>
       <select class="select-sm" onchange="location='?{{ base_qs }}{% if base_qs %}&{% endif %}page=1&per_page='+this.value">
-        {% for n in [25, 50, 100, 200] %}
+        {% for n in [10, 25, 50, 100] %}
         <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
         {% endfor %}
       </select>
@@ -343,9 +343,9 @@
   </div>
 </div>
 
-<!-- 4. All Trusts (Card Grid) -->
-<div class="section-header" style="margin-top:10px;">
-  <h2>All Trusts</h2>
+<!-- 4. All Trusts (Card Grid) — collapsed by default -->
+<div class="section-header" style="margin-top:32px; cursor:pointer;" onclick="var w=document.getElementById('trust-grid-section');w.style.display=w.style.display==='none'?'block':'none';this.querySelector('.toggle-arrow').textContent=w.style.display==='none'?'Show':'Hide';">
+  <h2>All Trusts <span class="toggle-arrow" style="font-size:13px;font-weight:400;color:#94a3b8;margin-left:8px;">Show</span></h2>
   <div style="display:flex; align-items:center; gap:8px;">
     <span class="badge">{{ total_trust_count }}</span>
     <div class="view-toggle">
@@ -360,6 +360,7 @@
   </div>
 </div>
 
+<div id="trust-grid-section" style="display:none;">
 <!-- Entity type filter pills -->
 {% if type_counts and type_counts|length > 1 %}
 <div style="margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -382,7 +383,7 @@
   {% endfor %}
 </div>
 
-<div id="trust-grid-wrapper">
+<div id="trust-grid-wrapper" style="display:none;">
 <div class="trust-grid" id="trust-grid">
   {% set monogram_colors = ['#1565C0','#2E7D32','#6A1B9A','#C62828','#00838F','#4527A0','#AD1457','#EF6C00','#283593','#00695C','#37474F','#5D4037'] %}
   {% for t in trusts %}
@@ -453,6 +454,7 @@
 </div>
 {% endif %}
 </div>
+</div><!-- /trust-grid-section -->
 
 <!-- 5. Navigate Section -->
 <div class="section-header" style="margin-top:32px;">

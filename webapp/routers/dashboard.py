@@ -292,7 +292,7 @@ def dashboard(
     trust_filter: str = "active",
     trust_page: int = Query(default=1, ge=1),
     page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=50, ge=10, le=200),
+    per_page: int = Query(default=10, ge=10, le=200),
     db: Session = Depends(get_db),
 ):
     all_trusts = _trust_stats(db)
@@ -398,7 +398,7 @@ def dashboard(
         qs_params["filing_trust_id"] = filing_trust_id
     if entity_type:
         qs_params["entity_type"] = entity_type
-    if per_page != 50:
+    if per_page != 10:
         qs_params["per_page"] = per_page
     if trust_filter != "active":
         qs_params["trust_filter"] = trust_filter
@@ -422,7 +422,7 @@ def dashboard(
         trust_qs_params["form_type"] = form_type
     if filing_trust_id:
         trust_qs_params["filing_trust_id"] = filing_trust_id
-    if per_page != 50:
+    if per_page != 10:
         trust_qs_params["per_page"] = per_page
     trust_base_qs = urllib.parse.urlencode(trust_qs_params)
 
