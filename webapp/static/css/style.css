@@ -1017,12 +1017,12 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 }
 
 .mega-panel {
-  position: fixed;
-  top: 52px;  /* nav bar height + small gap */
-  left: 50%;
-  transform: translateX(-50%) translateY(-6px);
-  width: 760px;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 880px;
   max-width: calc(100vw - 32px);
+  overflow: hidden;
   background: #ffffff;
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: 12px;
@@ -1035,13 +1035,17 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   z-index: 1000;
   visibility: hidden;
   opacity: 0;
-  transform: translateX(-50%) translateY(-6px);
+  transform: translateY(-6px);
   transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
+}
+.mega-panel.mega-panel-right {
+  left: auto;
+  right: 0;
 }
 .mega-panel.open {
   visibility: visible;
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
   transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 0s;
 }
 
