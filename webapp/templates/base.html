@@ -408,25 +408,45 @@
 <footer class="site-footer" style="background:#0f1923;color:rgba(255,255,255,0.7);">
   <div class="footer-grid">
     <div>
-      <div class="footer-brand-title">REX Financial Intelligence Hub</div>
-      <div class="footer-brand-desc">Central intelligence platform for REX Financial.</div>
+      <div class="footer-heading" style="color:#fff;font-size:14px;text-transform:none;letter-spacing:0;">REX Financial Intelligence Hub</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;margin-top:8px;">SEC filings, market intelligence, ownership analytics, and structured product data — one platform, updated daily.</div>
+      <div style="margin-top:16px;font-size:11px;color:rgba(255,255,255,0.35);">
+        <div>Data: SEC EDGAR · Bloomberg</div>
+        <div style="margin-top:4px;">Last sync: {{ last_sync_date or 'N/A' }}</div>
+      </div>
     </div>
     <div>
-      <div class="footer-heading">Navigation</div>
-      <ul class="footer-links">
-        <li><a href="/market/monitor">Market Monitor</a></li>
-        <li><a href="/market/rex">Market — REX View</a></li>
-        <li><a href="/dashboard">Filings — Dashboard</a></li>
-        <li><a href="/screener/">Filings — Landscape</a></li>
-        <li><a href="/holdings/">Ownership — Holdings</a></li>
-        <li><a href="/notes/">Structured Notes — Overview</a></li>
-        <li><a href="/downloads/">Exports</a></li>
-      </ul>
+      <div class="footer-heading">Market</div>
+      <a href="/market/rex" class="footer-link">REX View</a>
+      <a href="/market/category" class="footer-link">Category View</a>
+      <a href="/market/issuer" class="footer-link">Issuer Analysis</a>
+      <a href="/market/underlier" class="footer-link">Underlier Analysis</a>
+      <a href="/market/compare" class="footer-link">Compare Products</a>
+      <a href="/market/monitor" class="footer-link">Market Monitor</a>
     </div>
     <div>
-      <div class="footer-heading">Data Sources</div>
-      <div class="footer-source">SEC EDGAR</div>
-      <div class="footer-source">Bloomberg Terminal</div>
+      <div class="footer-heading">Filings</div>
+      <a href="/dashboard" class="footer-link">Filing Activity</a>
+      <a href="/funds/" class="footer-link">Search Funds</a>
+      <a href="/filings/" class="footer-link">Search Filings</a>
+      <a href="/screener/" class="footer-link">Filing Landscape</a>
+      <a href="/screener/3x-analysis" class="footer-link">Bloomberg Scoring</a>
+    </div>
+    <div>
+      <div class="footer-heading">Ownership</div>
+      <a href="/intel/" class="footer-link">Market Overview</a>
+      <a href="/intel/rex" class="footer-link">REX Quarter Report</a>
+      <a href="/holdings/" class="footer-link">Browse Institutions</a>
+      <a href="/intel/rex/sales" class="footer-link">Sales Intelligence</a>
+      <a href="/holdings/crossover" class="footer-link">Crossover Analysis</a>
+    </div>
+    <div>
+      <div class="footer-heading">Notes & Tools</div>
+      <a href="/notes/" class="footer-link">Structured Notes</a>
+      <a href="/notes/issuers" class="footer-link">Issuer Dashboard</a>
+      <a href="/notes/search" class="footer-link">Product Search</a>
+      <a href="/downloads/" class="footer-link">Data Exports</a>
+      <a href="/digest/subscribe" class="footer-link">Email Digest</a>
     </div>
   </div>
   <div class="footer-bottom">
