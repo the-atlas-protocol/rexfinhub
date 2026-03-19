@@ -95,9 +95,22 @@
   var kebabDrop = document.getElementById('kebabDropdown');
   if (!kebabBtn || !kebabDrop) return;
 
+  // Hover to open (same as mega-menu)
+  var kebabWrap = kebabBtn.closest('.kebab-menu');
+  var kebabCloseTimer;
+  if (kebabWrap) {
+    kebabWrap.addEventListener('mouseenter', function() {
+      clearTimeout(kebabCloseTimer);
+      document.querySelectorAll('.mega-panel').forEach(function(p) { p.classList.remove('open'); });
+      kebabDrop.classList.add('open');
+    });
+    kebabWrap.addEventListener('mouseleave', function() {
+      kebabCloseTimer = setTimeout(function() { kebabDrop.classList.remove('open'); }, 300);
+    });
+  }
+  // Click fallback (touch devices)
   kebabBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    // Close mega-menus first
     document.querySelectorAll('.mega-panel').forEach(function(p) { p.classList.remove('open'); });
     document.querySelectorAll('.mega-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
     kebabDrop.classList.toggle('open');
