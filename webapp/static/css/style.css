@@ -1022,11 +1022,6 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   left: 0;
   width: 760px;
   max-width: calc(100vw - 32px);
-  /* Right-side panels anchor to right edge to prevent viewport overflow */
-}
-.mega-panel.mega-panel-right {
-  left: auto;
-  right: 0;
   background: #ffffff;
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: 12px;
@@ -1041,6 +1036,10 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   opacity: 0;
   transform: translateY(-6px);
   transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
+}
+.mega-panel.mega-panel-right {
+  left: auto;
+  right: 0;
 }
 .mega-panel.open {
   visibility: visible;
