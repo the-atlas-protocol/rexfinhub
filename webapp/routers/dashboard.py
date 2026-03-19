@@ -426,6 +426,35 @@ def dashboard(
         trust_qs_params["per_page"] = per_page
     trust_base_qs = urllib.parse.urlencode(trust_qs_params)
 
+    # Today's filing count (for KPI strip)
+    todays_filings = db.execute(
+        select(func.count(Filing.id)).where(Filing.filing_date == date.today())
+    ).scalar() or 0
+
+    # Count distinct trusts that filed today (for KPI context line)
+    todays_trust_count = db.execute(
+        select(func.count(func.distinct(Filing.trust_id)))
+        .where(Filing.filing_date == date.today())
+    ).scalar() or 0
+
+    # Competitor filings this week (non-REX trusts, grouped by trust)
+    week_ago = date.today() - timedelta(days=7)
+    competitor_filings = db.execute(text("""
+        SELECT t.name as trust_name, t.id as trust_id,
+               COUNT(*) as filing_count,
+               GROUP_CONCAT(DISTINCT f.form) as form_types
+        FROM filings f
+        JOIN trusts t ON f.trust_id = t.id
+        WHERE f.filing_date >= :week_ago
+        AND t.name NOT LIKE '%REX%'
+        AND t.name NOT LIKE '%T-REX%'
+        AND t.name NOT LIKE '%MicroSectors%'
+        AND t.is_active = 1
+        GROUP BY t.id
+        ORDER BY COUNT(*) DESC
+        LIMIT 10
+    """), {"week_ago": str(week_ago)}).fetchall()
+
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "trusts": trust_list,
@@ -456,6 +485,9 @@ def dashboard(
         "status_counts": status_counts,
         "status_labels": _STATUS_LABELS,
         "new_filings_7d": new_filings_7d,
+        "todays_filings": todays_filings,
+        "todays_trust_count": todays_trust_count,
+        "competitor_filings": competitor_filings,
     })
 
 

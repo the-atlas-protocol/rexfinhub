@@ -1,13 +1,160 @@
 {% extends "base.html" %}
-{% block title %}Filing Dashboard — REX Financial Intelligence Hub{% endblock %}
+{% block title %}SEC Filing Intelligence — REX Financial Intelligence Hub{% endblock %}
 
 {% block content %}
+<style>
+/* === Dashboard-specific styles === */
+.dash-kpi-strip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 16px 0;
+  margin-bottom: 20px;
+}
+.dash-kpi-item {
+  padding: 0 24px;
+  border-right: 1px solid var(--gray-200);
+}
+.dash-kpi-item:first-child { padding-left: 0; }
+.dash-kpi-item:last-child { border-right: none; }
+.dash-kpi-num {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--gray-900);
+  line-height: 1.2;
+}
+.dash-kpi-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.dash-kpi-context {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* Two-column layout */
+.dash-columns {
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* Competitor watch card */
+.competitor-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  overflow: hidden;
+}
+.competitor-card-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+.competitor-item {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background var(--transition-fast);
+}
+.competitor-item:last-child { border-bottom: none; }
+.competitor-item:hover { background: var(--gray-50); }
+.competitor-name { font-size: 14px; font-weight: 500; color: #0f172a; }
+.competitor-forms { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.competitor-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form type pill badges */
+.form-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.form-badge-485bpos { background: #D1FAE5; color: #065F46; }
+.form-badge-485bxt { background: #DBEAFE; color: #1E40AF; }
+.form-badge-485apos { background: #FEF3C7; color: #92400E; }
+.form-badge-497 { background: #E0E7FF; color: #3730A3; }
+.form-badge-497k { background: #E0E7FF; color: #3730A3; }
+.form-badge-s1 { background: #FCE7F3; color: #9D174D; }
+.form-badge-s3 { background: #FCE7F3; color: #9D174D; }
+.form-badge-effect { background: #CCFBF1; color: #0F766E; }
+.form-badge-posam { background: #F3E8FF; color: #6B21A8; }
+.form-badge-default { background: #F1F5F9; color: #475569; }
+
+/* Navigate links */
+.nav-links-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+  margin-bottom: 32px;
+}
+.nav-link-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: var(--white);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.nav-link-card:hover {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+}
+.nav-link-title { font-size: 14px; font-weight: 600; color: var(--blue); }
+.nav-link-desc { font-size: 12px; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .dash-columns { grid-template-columns: 1fr; }
+  .nav-links-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-kpi-strip { flex-wrap: wrap; gap: 12px; }
+  .dash-kpi-item { border-right: none; padding: 0 16px 0 0; }
+}
+@media (max-width: 480px) {
+  .nav-links-grid { grid-template-columns: 1fr; }
+}
+
+/* Dark mode */
+[data-theme="dark"] .competitor-card { background: var(--card-bg); border-color: var(--card-border); }
+[data-theme="dark"] .competitor-card-header { border-color: var(--card-border); color: var(--text-primary); }
+[data-theme="dark"] .competitor-item { border-color: var(--card-border); }
+[data-theme="dark"] .competitor-item:hover { background: var(--surface-2); }
+[data-theme="dark"] .competitor-name { color: var(--text-primary); }
+[data-theme="dark"] .competitor-count { color: var(--text-secondary); }
+[data-theme="dark"] .nav-link-card { background: var(--card-bg); border-color: var(--card-border); }
+[data-theme="dark"] .nav-link-card:hover { border-color: var(--blue); }
+[data-theme="dark"] .dash-kpi-num { color: var(--text-primary); }
+[data-theme="dark"] .dash-kpi-item { border-color: var(--card-border); }
+</style>
+
+<!-- Header -->
 <div class="header">
   <div class="breadcrumb">
     <a href="/">Home</a><span class="sep">/</span>
-    <span>Trust Dashboard</span>
+    <span>SEC Filing Intelligence</span>
   </div>
-  <h1>Trust Dashboard</h1>
+  <h1>SEC Filing Intelligence</h1>
   <div class="date">{{ today.strftime('%B %d, %Y') }} &middot; {{ status_counts.values()|sum }} trusts monitored</div>
 </div>
 
@@ -18,147 +165,187 @@
 </div>
 {% endif %}
 
-<!-- Verdict Block -->
+<!-- 1. KPI Strip (inline compact) -->
+<div class="dash-kpi-strip">
+  <div class="dash-kpi-item">
+    <div class="dash-kpi-num">{{ todays_filings }}</div>
+    <div class="dash-kpi-label">Today's Filings</div>
+    <div class="dash-kpi-context">{% if todays_trust_count %}across {{ todays_trust_count }} trust{{ 's' if todays_trust_count != 1 else '' }}{% else %}no activity yet{% endif %}</div>
+  </div>
+  <div class="dash-kpi-item">
+    <div class="dash-kpi-num">{{ new_filings_7d }}</div>
+    <div class="dash-kpi-label">This Week</div>
+    <div class="dash-kpi-context">last 7 days</div>
+  </div>
+  <div class="dash-kpi-item">
+    <div class="dash-kpi-num">{{ total_effective }}</div>
+    <div class="dash-kpi-label">Effective Funds</div>
+    <div class="dash-kpi-context">{{ total_pending }} pending, {{ total_delayed }} delayed</div>
+  </div>
+  <div class="dash-kpi-item">
+    <div class="dash-kpi-num">{{ status_counts.values()|sum }}</div>
+    <div class="dash-kpi-label">Total Trusts Monitored</div>
+    <div class="dash-kpi-context">{{ total_funds }} funds tracked</div>
+  </div>
+</div>
+
+<!-- 2. Intelligence Brief (verdict) -->
 <div class="verdict">
   <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px;">Today's Filing Activity</div>
-  {{ total_filings or 0 }} filings recorded across {{ total_trust_count or 0 }} trusts.
-  {{ total_funds or 0 }} funds tracked ({{ total_effective or 0 }} effective, {{ total_pending or 0 }} pending).
-  {% if new_filings_7d %}<strong>{{ new_filings_7d }}</strong> new filings this week.{% endif %}
-  {% if recent_filings %}
-    Most recent: {{ recent_filings[0].trust_name or '' }} filed {{ recent_filings[0].Filing.form or '' }}.
-  {% endif %}
-</div>
-
-<!-- KPIs -->
-<div class="kpi-row">
-  <div class="kpi">
-    <div class="num">{{ total_trust_count }}</div>
-    <div class="label">Trusts{% if entity_type %} ({{ type_labels.get(entity_type, entity_type) }}){% endif %}{% if trust_filter != 'all' %} ({{ status_labels.get(trust_filter, trust_filter) }}){% endif %}</div>
-  </div>
-  <div class="kpi">
-    <div class="num">{{ total_funds }}</div>
-    <div class="label">Total Funds</div>
-  </div>
-  <div class="kpi kpi-green">
-    <div class="num">{{ total_effective }}</div>
-    <div class="label">Effective</div>
-  </div>
-  <div class="kpi kpi-orange">
-    <div class="num">{{ total_pending }}</div>
-    <div class="label">Pending</div>
-  </div>
-  <div class="kpi kpi-red">
-    <div class="num">{{ total_delayed }}</div>
-    <div class="label">Delayed</div>
-    <div class="kpi-trend">+{{ new_filings_7d }} this week</div>
-  </div>
-</div>
-{% if type_counts and type_counts|length > 1 %}
-<div style="margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap;">
-  <a href="/dashboard?days={{ days }}{% if form_type %}&form_type={{ form_type }}{% endif %}" class="btn btn-sm {% if not entity_type %}btn-primary{% endif %}" style="font-size:12px;">All ({{ type_counts.values()|sum }})</a>
-  {% for val, label in type_labels.items() %}
-  {% if type_counts.get(val, 0) > 0 %}
-  <a href="/dashboard?entity_type={{ val }}&days={{ days }}{% if form_type %}&form_type={{ form_type }}{% endif %}" class="btn btn-sm {% if entity_type == val %}btn-primary{% endif %}" style="font-size:12px;">{{ label }} ({{ type_counts.get(val, 0) }})</a>
-  {% endif %}
-  {% endfor %}
-</div>
-{% endif %}
-
-<!-- Recent Filings -->
-<div class="section-header">
-  <h2>Recent Filings</h2>
-  <span class="badge">{{ total_filings }}</span>
-</div>
-<form method="get" action="/dashboard" style="margin-bottom:12px;">
-  <div class="filter-bar" style="border-radius:8px;">
-    <select name="days">
-      {% for d, label in [(7,'7 days'),(14,'14 days'),(30,'30 days'),(90,'90 days'),(0,'All time')] %}
-      <option value="{{ d }}" {% if days == d %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <select name="form_type">
-      <option value="">All Forms</option>
-      {% for ft in ['485BPOS','485BXT','485APOS','497','S-1','S-3','EFFECT','POS AM'] %}
-      <option value="{{ ft }}" {% if form_type == ft %}selected{% endif %}>{{ ft }}</option>
-      {% endfor %}
-    </select>
-    <select name="filing_trust_id">
-      <option value="0">All Trusts</option>
-      {% for t in filing_trusts %}
-      <option value="{{ t.id }}" {% if filing_trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-  </div>
-</form>
-
-{% if recent_filings %}
-<p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">{{ total_filings }} filing{{ 's' if total_filings != 1 else '' }} found{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</p>
-<table id="recentFilings">
-  <thead>
-    <tr>
-      <th class="sortable" onclick="sortTable('recentFilings', 0)">Date</th>
-      <th class="sortable" onclick="sortTable('recentFilings', 1)">Form</th>
-      <th class="sortable" onclick="sortTable('recentFilings', 2)">Trust</th>
-      <th class="sortable" onclick="sortTable('recentFilings', 3)">Fund(s)</th>
-      <th>Doc</th>
-      <th>AI</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in recent_filings %}
-    {% set f = row.Filing %}
-    <tr>
-      <td>{{ f.filing_date or '' }}</td>
-      <td>{{ f.form }}</td>
-      <td><a href="/trusts/{{ row.trust_slug }}">{{ row.trust_name }}</a></td>
-      <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ row.fund_names or '' }}</td>
-      <td>
-        {% if f.primary_link %}
-        <a href="{{ f.primary_link }}" target="_blank">View</a>
-        {% endif %}
-      </td>
-      <td><a href="/analysis/filing/{{ f.id }}" class="btn btn-sm" style="font-size:11px;">Analyze</a></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% if total_pages > 1 %}
-<div class="pagination-bar">
-  <span class="pagination-info">{{ total_filings }} filings &middot; page {{ page }} of {{ total_pages }}</span>
-  <div class="pagination-controls">
-    {% if page > 1 %}
-    <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page - 1 }}" class="btn btn-sm">Prev</a>
+  {% if todays_filings > 0 %}
+    <strong>{{ todays_filings }}</strong> filing{{ 's' if todays_filings != 1 else '' }} recorded today across {{ todays_trust_count }} trust{{ 's' if todays_trust_count != 1 else '' }}.
+    {% if recent_filings %}
+      Most recent: <strong>{{ recent_filings[0].trust_name or '' }}</strong> filed {{ recent_filings[0].Filing.form or '' }}.
     {% endif %}
-    {% set start_p = [1, page - 2]|max %}
-    {% set end_p = [total_pages + 1, page + 3]|min %}
-    {% for p in range(start_p, end_p) %}
-    <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ p }}" class="btn btn-sm {{ 'btn-primary' if p == page else '' }}">{{ p }}</a>
-    {% endfor %}
-    {% if page < total_pages %}
-    <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page + 1 }}" class="btn btn-sm">Next</a>
-    {% endif %}
-  </div>
-  <select class="select-sm" onchange="location='?{{ base_qs }}{% if base_qs %}&{% endif %}page=1&per_page='+this.value">
-    {% for n in [25, 50, 100, 200] %}
-    <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
-    {% endfor %}
-  </select>
-</div>
-{% endif %}
-{% else %}
-<div style="text-align:center; padding:20px; color:var(--muted); font-size:13px;">
-  {% if form_type or filing_trust_id or days != 7 %}
-  No filings match the selected filters.
   {% else %}
-  No recent filings in the last 7 days.
+    No filings recorded today.
   {% endif %}
+  {{ total_funds }} funds tracked ({{ total_effective }} effective, {{ total_pending }} pending).
+  {% if new_filings_7d %}<strong>{{ new_filings_7d }}</strong> new filings this week.{% endif %}
 </div>
-{% endif %}
 
-<!-- All Trusts (Card Grid) -->
-<div class="section-header" style="margin-top:30px;">
-  <h2>Monitored Trusts</h2>
+<!-- 3. Two-Column Layout: Recent Filings | Competitor Watch -->
+<div class="dash-columns">
+  <!-- LEFT: Recent Filings (60%) -->
+  <div>
+    <div class="section-header">
+      <h2>Recent Filings</h2>
+      <span class="badge">{{ total_filings }}</span>
+    </div>
+    <form method="get" action="/dashboard" style="margin-bottom:12px;">
+      <div class="filter-bar" style="border-radius:8px;">
+        <select name="days">
+          {% for d, label in [(7,'7 days'),(14,'14 days'),(30,'30 days'),(90,'90 days'),(0,'All time')] %}
+          <option value="{{ d }}" {% if days == d %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="form_type">
+          <option value="">All Forms</option>
+          {% for ft in ['485BPOS','485BXT','485APOS','497','S-1','S-3','EFFECT','POS AM'] %}
+          <option value="{{ ft }}" {% if form_type == ft %}selected{% endif %}>{{ ft }}</option>
+          {% endfor %}
+        </select>
+        <select name="filing_trust_id">
+          <option value="0">All Trusts</option>
+          {% for t in filing_trusts %}
+          <option value="{{ t.id }}" {% if filing_trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      </div>
+    </form>
+
+    {% if recent_filings %}
+    <p style="font-size:var(--text-sm); color:var(--gray-500); margin-bottom:var(--sp-2);">{{ total_filings }} filing{{ 's' if total_filings != 1 else '' }} found{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</p>
+    <table id="recentFilings">
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortTable('recentFilings', 0)">Date</th>
+          <th>Form</th>
+          <th class="sortable" onclick="sortTable('recentFilings', 2)">Trust</th>
+          <th class="sortable" onclick="sortTable('recentFilings', 3)">Fund(s)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in recent_filings %}
+        {% set f = row.Filing %}
+        <tr>
+          <td>{{ f.filing_date or '' }}</td>
+          <td>
+            {% set form_lower = f.form|lower|replace(' ', '')|replace('-', '') %}
+            {% if '485bpos' in form_lower %}
+              <span class="form-badge form-badge-485bpos">{{ f.form }}</span>
+            {% elif '485bxt' in form_lower %}
+              <span class="form-badge form-badge-485bxt">{{ f.form }}</span>
+            {% elif '485apos' in form_lower %}
+              <span class="form-badge form-badge-485apos">{{ f.form }}</span>
+            {% elif '497' in form_lower %}
+              <span class="form-badge form-badge-497">{{ f.form }}</span>
+            {% elif 's1' in form_lower or 's-1' in f.form|lower %}
+              <span class="form-badge form-badge-s1">{{ f.form }}</span>
+            {% elif 's3' in form_lower or 's-3' in f.form|lower %}
+              <span class="form-badge form-badge-s3">{{ f.form }}</span>
+            {% elif 'effect' in form_lower %}
+              <span class="form-badge form-badge-effect">{{ f.form }}</span>
+            {% elif 'pos' in form_lower and 'am' in form_lower %}
+              <span class="form-badge form-badge-posam">{{ f.form }}</span>
+            {% else %}
+              <span class="form-badge form-badge-default">{{ f.form }}</span>
+            {% endif %}
+          </td>
+          <td><a href="/trusts/{{ row.trust_slug }}">{{ row.trust_name }}</a></td>
+          <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ row.fund_names or '' }}</td>
+          <td style="white-space:nowrap;">
+            {% if f.primary_link %}
+            <a href="{{ f.primary_link }}" target="_blank" style="margin-right:6px;">View</a>
+            {% endif %}
+            <a href="/analysis/filing/{{ f.id }}" class="btn btn-sm" style="font-size:11px;">Analyze</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if total_pages > 1 %}
+    <div class="pagination-bar">
+      <span class="pagination-info">{{ total_filings }} filings &middot; page {{ page }} of {{ total_pages }}</span>
+      <div class="pagination-controls">
+        {% if page > 1 %}
+        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page - 1 }}" class="btn btn-sm">Prev</a>
+        {% endif %}
+        {% set start_p = [1, page - 2]|max %}
+        {% set end_p = [total_pages + 1, page + 3]|min %}
+        {% for p in range(start_p, end_p) %}
+        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ p }}" class="btn btn-sm {{ 'btn-primary' if p == page else '' }}">{{ p }}</a>
+        {% endfor %}
+        {% if page < total_pages %}
+        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page + 1 }}" class="btn btn-sm">Next</a>
+        {% endif %}
+      </div>
+      <select class="select-sm" onchange="location='?{{ base_qs }}{% if base_qs %}&{% endif %}page=1&per_page='+this.value">
+        {% for n in [25, 50, 100, 200] %}
+        <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    {% else %}
+    <div style="text-align:center; padding:20px; color:var(--muted); font-size:13px;">
+      {% if form_type or filing_trust_id or days != 7 %}
+      No filings match the selected filters.
+      {% else %}
+      No recent filings in the last 7 days.
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT: Competitor Watch (40%) -->
+  <div>
+    <div class="competitor-card">
+      <div class="competitor-card-header">Competitor Watch <span style="font-weight:400; color:#94a3b8; font-size:12px;">&middot; this week</span></div>
+      {% if competitor_filings %}
+        {% for c in competitor_filings %}
+        <a href="/filings/?trust_id={{ c.trust_id }}&date_range=7" class="competitor-item">
+          <div>
+            <div class="competitor-name">{{ c.trust_name }}</div>
+            <div class="competitor-forms">{{ c.form_types }}</div>
+          </div>
+          <div class="competitor-count">{{ c.filing_count }}</div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div style="padding:24px 14px; text-align:center; color:#94a3b8; font-size:13px;">
+          No competitor filings this week.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 4. All Trusts (Card Grid) -->
+<div class="section-header" style="margin-top:10px;">
+  <h2>All Trusts</h2>
   <div style="display:flex; align-items:center; gap:8px;">
     <span class="badge">{{ total_trust_count }}</span>
     <div class="view-toggle">
@@ -172,6 +359,18 @@
     <a href="/search/" class="btn btn-primary btn-sm">+ Request a Trust</a>
   </div>
 </div>
+
+<!-- Entity type filter pills -->
+{% if type_counts and type_counts|length > 1 %}
+<div style="margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap;">
+  <a href="/dashboard?days={{ days }}{% if form_type %}&form_type={{ form_type }}{% endif %}" class="btn btn-sm {% if not entity_type %}btn-primary{% endif %}" style="font-size:12px;">All ({{ type_counts.values()|sum }})</a>
+  {% for val, label in type_labels.items() %}
+  {% if type_counts.get(val, 0) > 0 %}
+  <a href="/dashboard?entity_type={{ val }}&days={{ days }}{% if form_type %}&form_type={{ form_type }}{% endif %}" class="btn btn-sm {% if entity_type == val %}btn-primary{% endif %}" style="font-size:12px;">{{ label }} ({{ type_counts.get(val, 0) }})</a>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 
 <!-- Trust status filter buttons -->
 <div style="margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -253,6 +452,29 @@
   No trusts match the selected filter.
 </div>
 {% endif %}
+</div>
+
+<!-- 5. Navigate Section -->
+<div class="section-header" style="margin-top:32px;">
+  <h2>Navigate</h2>
+</div>
+<div class="nav-links-grid">
+  <a href="/screener/" class="nav-link-card">
+    <div class="nav-link-title">Filing Landscape</div>
+    <div class="nav-link-desc">Bloomberg data across all monitored ETF products</div>
+  </a>
+  <a href="/screener/3x-analysis" class="nav-link-card">
+    <div class="nav-link-title">Bloomberg Scoring</div>
+    <div class="nav-link-desc">3x/4x launch candidate pipeline and scoring</div>
+  </a>
+  <a href="/screener/evaluate" class="nav-link-card">
+    <div class="nav-link-title">Evaluate Ticker</div>
+    <div class="nav-link-desc">4-pillar analysis for any ticker symbol</div>
+  </a>
+  <a href="/filings/" class="nav-link-card">
+    <div class="nav-link-title">Search All Filings</div>
+    <div class="nav-link-desc">Full-text search across 26,000+ SEC filings</div>
+  </a>
 </div>
 
 {% endblock %}
