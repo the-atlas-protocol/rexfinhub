@@ -1038,10 +1038,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   transform: translateY(-6px);
   transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
 }
-.mega-panel.mega-panel-right {
-  left: auto;
-  right: 0;
-}
+/* Right-side panels positioned via JS to prevent overflow */
 .mega-panel.open {
   visibility: visible;
   opacity: 1;

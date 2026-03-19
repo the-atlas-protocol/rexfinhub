@@ -70,8 +70,27 @@
     wrap.addEventListener('mouseenter', function() {
       clearTimeout(closeTimer);
       closeAll();
+      // Position panel within viewport
+      panel.style.left = '0';
+      panel.style.right = 'auto';
       panel.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
+      // Check if panel overflows right
+      var rect = panel.getBoundingClientRect();
+      if (rect.right > window.innerWidth - 16) {
+        panel.style.left = 'auto';
+        panel.style.right = '0';
+        // Check if it now overflows left
+        var rect2 = panel.getBoundingClientRect();
+        if (rect2.left < 16) {
+          // Center it relative to viewport instead
+          var navRect = document.querySelector('.sticky-nav').getBoundingClientRect();
+          panel.style.position = 'fixed';
+          panel.style.top = navRect.bottom + 4 + 'px';
+          panel.style.left = Math.max(16, (window.innerWidth - panel.offsetWidth) / 2) + 'px';
+          panel.style.right = 'auto';
+        }
+      }
     });
     wrap.addEventListener('mouseleave', function() {
       closeTimer = setTimeout(closeAll, 300);
