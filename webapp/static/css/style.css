@@ -1020,7 +1020,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  width: 880px;
+  width: 920px;
   max-width: calc(100vw - 32px);
   overflow: hidden;
   background: #ffffff;
@@ -1058,6 +1058,8 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   display: flex;
   flex-direction: column;
   gap: 0;
+  overflow: hidden;
+  min-width: 0;
 }
 .mega-section-label {
   font-size: 11px;
