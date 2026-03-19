@@ -1,19 +1,20 @@
 {% extends "base.html" %}
-{% block title %}4x Filing Candidates - REX Financial Intelligence Hub{% endblock %}
+{% block title %}Product Screener - REX Financial{% endblock %}
 
 {% block content %}
 <div class="header">
   <div class="breadcrumb">
-    <a href="/screener/">Screener</a><span class="sep">/</span>
-    <span>4x Candidates</span>
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/screener/">Filings</a><span class="sep">/</span>
+    <span>Product Screener</span>
   </div>
-  <h1>4x Filing Candidates</h1>
+  <h1>Product Screener</h1>
   <div class="date">
     {% if data_date %}Data as of {{ data_date }}{% endif %}
   </div>
 </div>
 
-<!-- Sub-navigation -->
+<!-- Tab bar -->
 {% include "_screener_subnav.html" %}
 
 {% if cache_warming is defined and cache_warming %}

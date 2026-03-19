@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block title %}Filing Explorer — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+{# ── Breadcrumb ── #}
+<div class="breadcrumb" style="margin-bottom:16px; padding-top:24px;">
+  <a href="/">Home</a>
+  <span class="sep">/</span>
+  <a href="/filings/">Filings</a>
+  <span class="sep">/</span>
+  Filing Explorer
+</div>
+
+{# ── Header Row: Title left, KPIs right ── #}
+<div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px;">
+  <h1 style="font-size:20px; font-weight:600; color:#0f172a;">Filing Explorer</h1>
+  <div style="display:flex; align-items:center; gap:16px; font-size:13px; color:#64748b;">
+    <span><span style="font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ "{:,}".format(fund_count) }}</span> funds</span>
+    <div style="width:1px; height:16px; background:#e5e7eb;"></div>
+    <span><span style="font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ "{:,}".format(filing_count) }}</span> filings</span>
+    <div style="width:1px; height:16px; background:#e5e7eb;"></div>
+    <span><span style="font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ "{:,}".format(trust_count) }}</span> trusts</span>
+  </div>
+</div>
+
+{# ── Mode Toggle Tabs ── #}
+<div style="display:flex; border-bottom:1px solid #e5e7eb; margin-bottom:24px;">
+  <a href="/filings/?mode=funds" style="padding:10px 20px 12px; font-size:14px; font-weight:{% if mode == 'funds' %}600{% else %}500{% endif %}; text-decoration:none; border-bottom:2px solid {% if mode == 'funds' %}#2563eb{% else %}transparent{% endif %}; color:{% if mode == 'funds' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px;">Funds</a>
+  <a href="/filings/?mode=filings" style="padding:10px 20px 12px; font-size:14px; font-weight:{% if mode == 'filings' %}600{% else %}500{% endif %}; text-decoration:none; border-bottom:2px solid {% if mode == 'filings' %}#2563eb{% else %}transparent{% endif %}; color:{% if mode == 'filings' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px;">Filings</a>
+</div>
+
+{% if mode == 'funds' %}
+{# ══════════════════════════════════════════ #}
+{# ── FUNDS MODE                           ── #}
+{# ══════════════════════════════════════════ #}
+
+{# Filter bar #}
+<form method="get" action="/filings/" style="margin-bottom:16px;">
+  <input type="hidden" name="mode" value="funds">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by fund name or ticker..."
+           style="flex:1; min-width:240px; padding:8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; outline:none; color:#0f172a; background:#ffffff;">
+    <select name="status" style="padding:8px 32px 8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; background:#ffffff; appearance:none; color:#0f172a; cursor:pointer; outline:none;">
+      <option value="">All Statuses</option>
+      <option value="EFFECTIVE" {% if status == 'EFFECTIVE' %}selected{% endif %}>Effective</option>
+      <option value="PENDING" {% if status == 'PENDING' %}selected{% endif %}>Pending</option>
+      <option value="DELAYED" {% if status == 'DELAYED' %}selected{% endif %}>Delayed</option>
+    </select>
+    <select name="trust_id" style="padding:8px 32px 8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; background:#ffffff; appearance:none; color:#0f172a; cursor:pointer; outline:none;">
+      <option value="0">All Trusts</option>
+      {% for t in trusts %}
+      <option value="{{ t.id }}" {% if trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" style="padding:8px 20px; font-size:13px; font-weight:600; font-family:inherit; border:none; border-radius:4px; cursor:pointer; white-space:nowrap; background:#2563eb; color:#ffffff;">Filter</button>
+    {% if q or status or trust_id %}
+    <a href="/filings/?mode=funds" style="font-size:12px; color:#64748b; margin-left:4px;">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+{# Result count #}
+<div style="font-size:13px; color:#64748b; margin-bottom:12px;">
+  Showing {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total_results]|min }} of {{ "{:,}".format(total_results) }} funds
+</div>
+
+{# Funds table #}
+<div style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;">
+  <table id="fundsTable" style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="sortTable('fundsTable', 0)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2;">Fund Name</th>
+        <th class="sortable" onclick="sortTable('fundsTable', 1)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:80px;">Ticker</th>
+        <th class="sortable" onclick="sortTable('fundsTable', 2)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2;">Trust</th>
+        <th class="sortable" onclick="sortTable('fundsTable', 3)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:96px;">Status</th>
+        <th class="sortable" onclick="sortTable('fundsTable', 4)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:100px;">Latest Form</th>
+        <th class="sortable" onclick="sortTable('fundsTable', 5)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:right; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:110px;">Filing Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in funds %}
+      {% set f = row.FundStatus %}
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="font-size:13px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle;">
+          {% if f.series_id %}
+          <a href="/funds/{{ f.series_id }}" style="color:#2563eb; text-decoration:none; font-weight:500;">{{ f.fund_name }}</a>
+          {% else %}
+          {{ f.fund_name }}
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle; font-family:'SF Mono','Cascadia Code','Consolas',monospace; letter-spacing:0.02em;">{{ f.ticker or '' }}</td>
+        <td style="font-size:13px; color:#64748b; padding:10px 16px; height:40px; vertical-align:middle; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          <a href="/trusts/{{ row.trust_slug }}" style="color:#64748b; text-decoration:none;">{{ row.trust_name }}</a>
+        </td>
+        <td style="font-size:13px; padding:10px 16px; height:40px; vertical-align:middle;">
+          {% if f.status == 'EFFECTIVE' %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; white-space:nowrap; background:#ecfdf5; color:#059669;">Effective</span>
+          {% elif f.status == 'PENDING' %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; white-space:nowrap; background:#fffbeb; color:#d97706;">Pending</span>
+          {% elif f.status == 'DELAYED' %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; white-space:nowrap; background:#fef2f2; color:#dc2626;">Delayed</span>
+          {% else %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; white-space:nowrap; background:#f3f4f6; color:#6b7280;">{{ f.status }}</span>
+          {% endif %}
+        </td>
+        <td style="font-size:13px; padding:10px 16px; height:40px; vertical-align:middle;">
+          {% if f.latest_form %}
+          {% set form_upper = f.latest_form|upper %}
+          {% if form_upper.startswith('485B') and 'BXT' not in form_upper %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#ecfdf5; color:#059669;">{{ f.latest_form }}</span>
+          {% elif 'BXT' in form_upper %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#dbeafe; color:#1e40af;">{{ f.latest_form }}</span>
+          {% elif form_upper.startswith('485A') %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#fffbeb; color:#d97706;">{{ f.latest_form }}</span>
+          {% elif form_upper.startswith('497') %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#f3f4f6; color:#6b7280;">{{ f.latest_form }}</span>
+          {% else %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#f3f4f6; color:#6b7280;">{{ f.latest_form }}</span>
+          {% endif %}
+          {% else %}
+          —
+          {% endif %}
+        </td>
+        <td style="font-size:13px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle; text-align:right; font-variant-numeric:tabular-nums;">{{ f.latest_filing_date or '' }}</td>
+      </tr>
+      {% endfor %}
+      {% if not funds %}
+      <tr><td colspan="6" style="text-align:center; padding:40px; color:#64748b; font-size:14px;">No funds match the selected filters.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{# Pagination #}
+{% if total_pages > 1 %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 0;">
+  <div style="font-size:13px; color:#64748b;">
+    {{ "{:,}".format(total_results) }} funds &middot; page {{ page }} of {{ total_pages }}
+  </div>
+  <div style="display:flex; align-items:center; gap:4px;">
+    {% set base_params = "mode=funds&q=" ~ q ~ "&status=" ~ status ~ "&trust_id=" ~ trust_id ~ "&per_page=" ~ per_page %}
+    {% if page > 1 %}
+    <a href="/filings/?{{ base_params }}&page={{ page - 1 }}" class="btn btn-sm">Prev</a>
+    {% else %}
+    <span class="btn btn-sm" style="opacity:0.4; cursor:default;">Prev</span>
+    {% endif %}
+
+    {% if total_pages <= 7 %}
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <span style="padding:4px 10px; background:#0f172a; color:white; border-radius:4px; font-size:12px; font-weight:600;">{{ p }}</span>
+        {% else %}
+        <a href="/filings/?{{ base_params }}&page={{ p }}" class="btn btn-sm">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {% set pages_to_show = [] %}
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+          {% if pages_to_show.append(p) %}{% endif %}
+        {% endif %}
+      {% endfor %}
+      {% set prev_p = [0] %}
+      {% for p in pages_to_show %}
+        {% if p - prev_p[-1] > 1 %}
+        <span style="padding:4px 4px; font-size:12px; color:#64748b;">...</span>
+        {% endif %}
+        {% if p == page %}
+        <span style="padding:4px 10px; background:#0f172a; color:white; border-radius:4px; font-size:12px; font-weight:600;">{{ p }}</span>
+        {% else %}
+        <a href="/filings/?{{ base_params }}&page={{ p }}" class="btn btn-sm">{{ p }}</a>
+        {% endif %}
+        {% if prev_p.append(p) %}{% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if page < total_pages %}
+    <a href="/filings/?{{ base_params }}&page={{ page + 1 }}" class="btn btn-sm">Next</a>
+    {% else %}
+    <span class="btn btn-sm" style="opacity:0.4; cursor:default;">Next</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+{# ══════════════════════════════════════════ #}
+{# ── FILINGS MODE                         ── #}
+{# ══════════════════════════════════════════ #}
+
+{# Filter bar #}
+<form method="get" action="/filings/" style="margin-bottom:16px;">
+  <input type="hidden" name="mode" value="filings">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search filings..."
+           style="flex:1; min-width:240px; padding:8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; outline:none; color:#0f172a; background:#ffffff;">
+    <select name="form_type" style="padding:8px 32px 8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; background:#ffffff; appearance:none; color:#0f172a; cursor:pointer; outline:none;">
+      <option value="">All Forms</option>
+      {% for ft in ['485BPOS', '485BXT', '485APOS', '497', '497K'] %}
+      <option value="{{ ft }}" {% if form_type == ft %}selected{% endif %}>{{ ft }}</option>
+      {% endfor %}
+    </select>
+    <select name="trust_id" style="padding:8px 32px 8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; background:#ffffff; appearance:none; color:#0f172a; cursor:pointer; outline:none;">
+      <option value="0">All Trusts</option>
+      {% for t in trusts %}
+      <option value="{{ t.id }}" {% if trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="date_range" style="padding:8px 32px 8px 12px; font-size:13px; font-family:inherit; border:1px solid #e5e7eb; border-radius:4px; background:#ffffff; appearance:none; color:#0f172a; cursor:pointer; outline:none;">
+      <option value="all" {% if date_range == 'all' %}selected{% endif %}>All Time</option>
+      <option value="7" {% if date_range == '7' %}selected{% endif %}>Last 7 Days</option>
+      <option value="30" {% if date_range == '30' %}selected{% endif %}>Last 30 Days</option>
+      <option value="90" {% if date_range == '90' %}selected{% endif %}>Last 90 Days</option>
+      <option value="365" {% if date_range == '365' %}selected{% endif %}>Last Year</option>
+    </select>
+    <button type="submit" style="padding:8px 20px; font-size:13px; font-weight:600; font-family:inherit; border:none; border-radius:4px; cursor:pointer; white-space:nowrap; background:#2563eb; color:#ffffff;">Filter</button>
+    {% if q or form_type or trust_id or date_range != 'all' %}
+    <a href="/filings/?mode=filings" style="font-size:12px; color:#64748b; margin-left:4px;">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+{# Form count summary bar #}
+<div style="display:flex; align-items:center; gap:16px; font-size:13px; color:#64748b; margin-bottom:16px;">
+  {% if form_counts %}
+  {% if form_counts.get('485BPOS', 0) > 0 %}
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#ecfdf5; color:#059669;">485BPOS</span>
+    {{ "{:,}".format(form_counts['485BPOS']) }}
+  </div>
+  {% endif %}
+  {% if form_counts.get('485BXT', 0) > 0 %}
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#dbeafe; color:#1e40af;">485BXT</span>
+    {{ "{:,}".format(form_counts['485BXT']) }}
+  </div>
+  {% endif %}
+  {% if form_counts.get('485APOS', 0) > 0 %}
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#fffbeb; color:#d97706;">485APOS</span>
+    {{ "{:,}".format(form_counts['485APOS']) }}
+  </div>
+  {% endif %}
+  {% if form_counts.get('497', 0) > 0 %}
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#f3f4f6; color:#6b7280;">497</span>
+    {{ "{:,}".format(form_counts['497']) }}
+  </div>
+  {% endif %}
+  {% if form_counts.get('OTHER', 0) > 0 %}
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#f3f4f6; color:#6b7280;">Other</span>
+    {{ "{:,}".format(form_counts['OTHER']) }}
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+{# Filings table #}
+{% if filings %}
+<div style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;">
+  <table id="filingsTable" style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="sortTable('filingsTable', 0)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:100px;">Date</th>
+        <th class="sortable" onclick="sortTable('filingsTable', 1)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:96px;">Form</th>
+        <th class="sortable" onclick="sortTable('filingsTable', 2)" style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2;">Trust</th>
+        <th style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2;">Fund(s)</th>
+        <th style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:center; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:56px;">Doc</th>
+        <th style="background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; width:80px;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in filings %}
+      {% set f = row.Filing %}
+      {% set form_upper = f.form|upper if f.form else '' %}
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="font-size:13px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle; font-variant-numeric:tabular-nums;">{{ f.filing_date or '' }}</td>
+        <td style="font-size:13px; padding:10px 16px; height:40px; vertical-align:middle;">
+          {% if form_upper.startswith('485B') and 'BXT' not in form_upper %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#ecfdf5; color:#059669;">{{ f.form }}</span>
+          {% elif 'BXT' in form_upper %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#dbeafe; color:#1e40af;">{{ f.form }}</span>
+          {% elif form_upper.startswith('485A') %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#fffbeb; color:#d97706;">{{ f.form }}</span>
+          {% elif form_upper.startswith('497') %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#f3f4f6; color:#6b7280;">{{ f.form }}</span>
+          {% else %}
+          <span style="display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; background:#f3f4f6; color:#6b7280;">{{ f.form }}</span>
+          {% endif %}
+        </td>
+        <td style="font-size:13px; color:#64748b; padding:10px 16px; height:40px; vertical-align:middle;">
+          <a href="/trusts/{{ row.trust_slug }}" style="color:#64748b; text-decoration:none;">{{ row.trust_name }}</a>
+        </td>
+        <td style="font-size:12px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+            title="{{ row.fund_names or '' }}">{{ row.fund_names or '' }}</td>
+        <td style="font-size:13px; padding:10px 16px; height:40px; vertical-align:middle; text-align:center;">
+          {% if f.primary_link %}
+          <a href="{{ f.primary_link }}" target="_blank" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:500;">View</a>
+          {% endif %}
+        </td>
+        <td style="font-size:13px; padding:10px 16px; height:40px; vertical-align:middle;">
+          <a href="/analysis/filing/{{ f.id }}" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:500;">Analyze</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Pagination #}
+{% if total_pages > 1 %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 0;">
+  <div style="font-size:13px; color:#64748b;">
+    {{ "{:,}".format(total_filings) }} filings &middot; page {{ page }} of {{ total_pages }}
+  </div>
+  <div style="display:flex; align-items:center; gap:4px;">
+    {% if page > 1 %}
+    <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page - 1 }}" class="btn btn-sm">Prev</a>
+    {% else %}
+    <span class="btn btn-sm" style="opacity:0.4; cursor:default;">Prev</span>
+    {% endif %}
+    {% set start_p = [1, page - 2]|max %}
+    {% set end_p = [total_pages + 1, page + 3]|min %}
+    {% for p in range(start_p, end_p) %}
+    {% if p == page %}
+    <span style="padding:4px 10px; background:#0f172a; color:white; border-radius:4px; font-size:12px; font-weight:600;">{{ p }}</span>
+    {% else %}
+    <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ p }}" class="btn btn-sm">{{ p }}</a>
+    {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}
+    <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page + 1 }}" class="btn btn-sm">Next</a>
+    {% else %}
+    <span class="btn btn-sm" style="opacity:0.4; cursor:default;">Next</span>
+    {% endif %}
+  </div>
+  <select style="padding:4px 8px; font-size:12px; border:1px solid #e5e7eb; border-radius:4px;" onchange="location='?{{ base_qs }}{% if base_qs %}&{% endif %}page=1&per_page='+this.value">
+    {% for n in [25, 50, 100, 200] %}
+    <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
+    {% endfor %}
+  </select>
+</div>
+{% endif %}
+
+{% else %}
+<div style="text-align:center; padding:40px; color:#64748b; font-size:14px;">
+  {% if q or form_type or trust_id or date_range != 'all' %}
+  No filings match the selected filters.
+  <br><a href="/filings/?mode=filings" style="font-size:13px; margin-top:8px; display:inline-block; color:#2563eb;">Clear all filters</a>
+  {% else %}
+  No filings found in the database.
+  {% endif %}
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

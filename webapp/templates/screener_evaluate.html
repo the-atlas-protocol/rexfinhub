@@ -1,16 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Candidate Evaluator - REX Financial Intelligence Hub{% endblock %}
+{% block title %}Product Screener - REX Financial{% endblock %}
 
 {% block content %}
 <div class="header">
-  <h1>Candidate Evaluator</h1>
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/screener/">Filings</a><span class="sep">/</span>
+    <span>Product Screener</span>
+  </div>
+  <h1>Product Screener</h1>
   <div class="date">
     Enter ticker symbols to evaluate for ETF filing/launch decisions.
     Each ticker is assessed across 4 pillars: Demand, Competition, Market Feedback, Filing Status.
   </div>
 </div>
 
-<!-- Sub-navigation -->
+<!-- Tab bar -->
 {% include "_screener_subnav.html" %}
 
 {% if cache_warming is defined and cache_warming %}

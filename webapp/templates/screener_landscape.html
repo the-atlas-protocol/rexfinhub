@@ -1,19 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Competitive Filing Landscape - REX Financial{% endblock %}
+{% block title %}Product Screener - REX Financial{% endblock %}
 
 {% block content %}
 <div class="header">
   <div class="breadcrumb">
     <a href="/">Home</a><span class="sep">/</span>
-    <span>Screener</span>
+    <a href="/screener/">Filings</a><span class="sep">/</span>
+    <span>Product Screener</span>
   </div>
   <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
     <div>
-      <h1>Competitive Filing Landscape</h1>
+      <h1>Product Screener</h1>
       <div class="date">3x / 4x / 5x SEC Filing Matrix | Source: EDGAR | {{ generated_at }}</div>
     </div>
   </div>
 </div>
+
+<!-- Tab bar -->
+{% include "_screener_subnav.html" %}
 
 <!-- ==================== KPI ROW ==================== -->
 <div class="kpi-row">

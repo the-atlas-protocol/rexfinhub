@@ -1,12 +1,10 @@
-{# Bloomberg Analysis sub-navigation for screener pages.
+{# Product Screener tab bar — unified navigation across all screener pages.
    Usage: {% include "_screener_subnav.html" %}
-   Requires `tab` variable in template context.
+   Active tab is determined from request.url.path.
 #}
-<div class="sub-nav">
-  <a href="/screener/3x-analysis" class="pill{% if tab == 'recommendations' %} active{% endif %}">3x Analysis</a>
-  <a href="/screener/4x" class="pill{% if tab == '4x' %} active{% endif %}">4x Candidates</a>
-  <a href="/screener/market" class="pill{% if tab == 'market' %} active{% endif %}">Market Landscape</a>
-  <a href="/screener/rex-funds" class="pill{% if tab == 'rex' %} active{% endif %}">REX Portfolio</a>
-  <a href="/screener/risk" class="pill{% if tab == 'risk' %} active{% endif %}">Risk Watchlist</a>
-  <a href="/screener/evaluate" class="pill{% if tab == 'evaluate' %} active{% endif %}">Evaluate</a>
+<div style="display:flex; border-bottom:1px solid #e5e7eb; margin-bottom:24px;">
+  <a href="/screener/" style="padding:10px 20px 12px; font-size:14px; font-weight:{% if request.url.path == '/screener/' or request.url.path == '/screener' %}600{% else %}500{% endif %}; text-decoration:none; border-bottom:2px solid {% if request.url.path == '/screener/' or request.url.path == '/screener' %}#2563eb{% else %}transparent{% endif %}; color:{% if request.url.path == '/screener/' or request.url.path == '/screener' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px; white-space:nowrap;">Competitive Landscape</a>
+  <a href="/screener/3x-analysis" style="padding:10px 20px 12px; font-size:14px; font-weight:{% if '3x' in request.url.path %}600{% else %}500{% endif %}; text-decoration:none; border-bottom:2px solid {% if '3x' in request.url.path %}#2563eb{% else %}transparent{% endif %}; color:{% if '3x' in request.url.path %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px; white-space:nowrap;">3x Candidates</a>
+  <a href="/screener/4x" style="padding:10px 20px 12px; font-size:14px; font-weight:{% if '4x' in request.url.path %}600{% else %}500{% endif %}; text-decoration:none; border-bottom:2px solid {% if '4x' in request.url.path %}#2563eb{% else %}transparent{% endif %}; color:{% if '4x' in request.url.path %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px; white-space:nowrap;">4x Candidates</a>
+  <a href="/screener/evaluate" style="padding:10px 20px 12px; font-size:14px; font-weight:{% if 'evaluate' in request.url.path %}600{% else %}500{% endif %}; text-decoration:none; border-bottom:2px solid {% if 'evaluate' in request.url.path %}#2563eb{% else %}transparent{% endif %}; color:{% if 'evaluate' in request.url.path %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px; white-space:nowrap;">Evaluate Ticker</a>
 </div>
