@@ -34,6 +34,17 @@ config/email_recipients_private.txt
 
 # Temporary/scratch files
 temp/
+temp_cache/
+
+# Reports (generated locally, not deployed)
+reports/
+
+# Cookies / auth artifacts
+cookies.txt
+cookies_render.txt
+
+# Claude internal
+.claude/scheduled_tasks.lock
 
 # Database files (if using SQLite locally)
 *.db
