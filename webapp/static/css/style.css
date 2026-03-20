@@ -9,9 +9,9 @@
   --navy-light:  #1a2636;
   --navy-muted:  #2a3a4a;
 
-  --blue:        #2196F3;
-  --blue-hover:  #1976D2;
-  --blue-subtle: #e3f2fd;
+  --blue:        #2563eb;
+  --blue-hover:  #1d4ed8;
+  --blue-subtle: #eff6ff;
 
   --green:       #059669;
   --green-bg:    #e8f5e9;
@@ -205,8 +205,8 @@ td[data-sort], .mono {
 /* ===== PAGE HEADER ===== */
 .header { padding: var(--sp-8) 0 var(--sp-4); }
 .header h1 {
-  font-size: var(--text-2xl); font-weight: 700;
-  color: var(--navy); letter-spacing: -0.5px; line-height: 1.3;
+  font-size: 20px; font-weight: 600;
+  color: #0f172a; letter-spacing: -0.01em; line-height: 1.3;
 }
 .header .date { color: var(--gray-500); font-size: var(--text-md); margin-top: var(--sp-1); }
 
@@ -269,7 +269,7 @@ td[data-sort], .mono {
 /* ===== WHAT CHANGED BOX ===== */
 .what-changed {
   background: var(--blue-subtle);
-  border-left: 4px solid var(--blue);
+  border-left: 2px solid var(--blue);
   padding: var(--sp-4) var(--sp-5);
   margin: var(--sp-5) 0;
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
@@ -287,7 +287,7 @@ td[data-sort], .mono {
   border-left: 3px solid var(--blue);
   padding-left: var(--sp-3);
 }
-.section-header h2 { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.3px; }
+.section-header h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
 .section-header .badge {
   background: var(--navy); color: white;
   padding: 2px 12px; border-radius: var(--radius-pill);
@@ -410,7 +410,7 @@ td, .data-table td, .rt-table td {
   line-height: 1.3;
   font-size: 13px;
 }
-tbody tr:nth-child(even) { background: var(--gray-50); }
+/* zebra striping removed per STYLE_GUIDE */
 tbody tr:hover, .data-table tbody tr:hover, .rt-table tbody tr:hover { background: #f8fafc; }
 /* Last row no border */
 .data-table tbody tr:last-child td, .rt-table tbody tr:last-child td { border-bottom: none; }
@@ -597,8 +597,7 @@ td.num-col, th.num-col {
 }
 .meta-item {
   background: var(--white); padding: var(--sp-3);
-  border-radius: var(--radius-md); border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  border-radius: 6px; border: 1px solid #e5e7eb;
 }
 .meta-item .meta-label {
   font-size: var(--text-xs); text-transform: uppercase;
@@ -904,7 +903,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
    ======================================================== */
 .verdict {
   background: var(--surface-2);
-  border-left: 4px solid var(--blue);
+  border-left: 2px solid var(--blue);
   border-radius: 0 6px 6px 0;
   padding: var(--sp-4) var(--sp-6);
   font-size: var(--text-md);
