@@ -108,6 +108,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
+# Expose feature flags to all templates (used by base.html for conditional nav)
+templates.env.globals["enable_13f"] = bool(os.environ.get("ENABLE_13F"))
 
 _caches_ready = False  # flipped True when all caches are loaded
 

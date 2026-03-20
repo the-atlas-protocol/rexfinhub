@@ -12,7 +12,10 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
 
-DB_PATH = Path("D:/sec-data/databases/structured_notes.db")
+# Prefer local D: drive (development), fall back to data/ (Render deployment)
+_DB_PRIMARY = Path("D:/sec-data/databases/structured_notes.db")
+_DB_FALLBACK = Path("data/structured_notes.db")
+DB_PATH = _DB_PRIMARY if _DB_PRIMARY.exists() else _DB_FALLBACK
 
 
 def _load_stats() -> dict:

@@ -138,7 +138,7 @@
                 <div class="mega-link-desc">2x/3x/4x/5x competitive filing matrix</div>
               </div>
             </a>
-            <a href="/screener/3x-analysis" class="mega-link {% if '3x' in request.url.path or '4x' in request.url.path or 'candidates' in request.url.path %}active{% endif %}">
+            <a href="/screener/3x-analysis" class="mega-link {% if '3x-analysis' in request.url.path %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-6"/></svg></div>
               <div class="mega-link-text">
                 <div class="mega-link-title">LI Filing Candidates</div>
@@ -174,6 +174,7 @@
         <div class="mega-columns">
           <div class="mega-column">
             <div class="mega-section-label">Dashboards</div>
+            {% if enable_13f %}
             <a href="/intel/" class="mega-link {% if request.url.path == '/intel/' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg></div>
               <div class="mega-link-text">
@@ -181,6 +182,16 @@
                 <div class="mega-link-desc">$289B ETP ownership landscape</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Market Overview <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">$289B ETP ownership landscape</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if enable_13f %}
             <a href="/intel/rex" class="mega-link {% if request.url.path == '/intel/rex' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></div>
               <div class="mega-link-text">
@@ -188,7 +199,17 @@
                 <div class="mega-link-desc">120 institutions, $452M in REX products</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">REX Quarter Report <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">120 institutions, $452M in REX products</div>
+              </div>
+            </div>
+            {% endif %}
             <div class="mega-section-label">Search</div>
+            {% if enable_13f %}
             <a href="/holdings/" class="mega-link {% if request.url.path == '/holdings/' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
               <div class="mega-link-text">
@@ -196,6 +217,16 @@
                 <div class="mega-link-desc">10,535 institutions by AUM</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Browse Institutions <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">10,535 institutions by AUM</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if enable_13f %}
             <a href="/holdings/crossover" class="mega-link {% if request.url.path == '/holdings/crossover' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/><path d="M18 3v12a9 9 0 0 1-9-9"/></svg></div>
               <div class="mega-link-text">
@@ -203,9 +234,19 @@
                 <div class="mega-link-desc">Prospects: competitor holders to convert</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/><path d="M18 3v12a9 9 0 0 1-9-9"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Crossover Analysis <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">Prospects: competitor holders to convert</div>
+              </div>
+            </div>
+            {% endif %}
           </div>
           <div class="mega-column">
             <div class="mega-section-label">Analysis</div>
+            {% if enable_13f %}
             <a href="/intel/rex/sales" class="mega-link {% if request.url.path == '/intel/rex/sales' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
               <div class="mega-link-text">
@@ -213,6 +254,16 @@
                 <div class="mega-link-desc">Momentum, concentration, state rankings</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Sales Intelligence <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">Momentum, concentration, state rankings</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if enable_13f %}
             <a href="/intel/rex/performance" class="mega-link {% if request.url.path == '/intel/rex/performance' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-6"/></svg></div>
               <div class="mega-link-text">
@@ -220,6 +271,16 @@
                 <div class="mega-link-desc">Product performance metrics</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-6"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">REX Performance <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">Product performance metrics</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if enable_13f %}
             <a href="/intel/rex/filers" class="mega-link {% if request.url.path == '/intel/rex/filers' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg></div>
               <div class="mega-link-text">
@@ -227,6 +288,16 @@
                 <div class="mega-link-desc">Who started holding REX this quarter</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">New REX Filers <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">Who started holding REX this quarter</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if enable_13f %}
             <a href="/intel/competitors" class="mega-link {% if request.url.path == '/intel/competitors' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
               <div class="mega-link-text">
@@ -234,9 +305,19 @@
                 <div class="mega-link-desc">Competitor issuer ownership</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Competitor Analysis <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">Competitor issuer ownership</div>
+              </div>
+            </div>
+            {% endif %}
           </div>
           <div class="mega-column">
             <div class="mega-section-label">Tools</div>
+            {% if enable_13f %}
             <a href="/intel/country" class="mega-link {% if request.url.path == '/intel/country' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg></div>
               <div class="mega-link-text">
@@ -244,6 +325,16 @@
                 <div class="mega-link-desc">International holder breakdown</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Country Intel <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">International holder breakdown</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if enable_13f %}
             <a href="/intel/trends" class="mega-link {% if request.url.path == '/intel/trends' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></div>
               <div class="mega-link-text">
@@ -251,6 +342,15 @@
                 <div class="mega-link-desc">QoQ ownership trends</div>
               </div>
             </a>
+            {% else %}
+            <div class="mega-link coming-soon">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Market Trends <span class="coming-soon-badge">Soon</span></div>
+                <div class="mega-link-desc">QoQ ownership trends</div>
+              </div>
+            </div>
+            {% endif %}
             <div class="mega-link coming-soon">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
               <div class="mega-link-text">
@@ -388,11 +488,15 @@
     </div>
     <div>
       <div class="footer-heading">Ownership</div>
+      {% if enable_13f %}
       <a href="/intel/" class="footer-link">Market Overview</a>
       <a href="/intel/rex" class="footer-link">REX Quarter Report</a>
       <a href="/holdings/" class="footer-link">Browse Institutions</a>
       <a href="/intel/rex/sales" class="footer-link">Sales Intelligence</a>
       <a href="/holdings/crossover" class="footer-link">Crossover Analysis</a>
+      {% else %}
+      <span class="footer-link" style="opacity:0.4">Coming Soon</span>
+      {% endif %}
     </div>
     <div>
       <div class="footer-heading">Notes & Tools</div>
