@@ -196,7 +196,7 @@
         {% for row in recent_filings %}
         {% set f = row.Filing %}
         <tr>
-          <td class="date-col">{{ f.filing_date or '' }}</td>
+          <td class="date-col" style="white-space: nowrap;">{{ f.filing_date or '' }}</td>
           <td>
             {% set form_lower = f.form|lower|replace(' ', '')|replace('-', '') %}
             {% if '485bpos' in form_lower %}

@@ -25,6 +25,35 @@ PROSPECTUS_FORMS = ["485APOS", "485BPOS", "485BXT", "497", "497K"]
 _DATE_RANGE_MAP = {"7": 7, "30": 30, "90": 90, "365": 365}
 
 
+@router.get("/hub")
+def filings_hub(request: Request, db: Session = Depends(get_db)):
+    """Filings pillar landing page -- overview and navigation."""
+    todays_filings = db.execute(
+        select(func.count(Filing.id)).where(Filing.filing_date == date.today())
+    ).scalar() or 0
+
+    cutoff_7d = date.today() - timedelta(days=7)
+    weekly_filings = db.execute(
+        select(func.count(Filing.id)).where(Filing.filing_date >= cutoff_7d)
+    ).scalar() or 0
+
+    effective_funds = db.execute(
+        select(func.count(FundStatus.id)).where(FundStatus.status == "EFFECTIVE")
+    ).scalar() or 0
+
+    trusts_monitored = db.execute(
+        select(func.count(Trust.id)).where(Trust.is_active == True)
+    ).scalar() or 0
+
+    return templates.TemplateResponse("filings_hub.html", {
+        "request": request,
+        "todays_filings": todays_filings,
+        "weekly_filings": weekly_filings,
+        "effective_funds": f"{effective_funds:,}",
+        "trusts_monitored": f"{trusts_monitored:,}",
+    })
+
+
 @router.get("/")
 def filing_explorer(
     request: Request,

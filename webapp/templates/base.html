@@ -121,6 +121,13 @@
         <div class="mega-columns">
           <div class="mega-column">
             <div class="mega-section-label">Monitor</div>
+            <a href="/filings/hub" class="mega-link {% if request.url.path == '/filings/hub' %}active{% endif %}">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Filings Overview</div>
+                <div class="mega-link-desc">Section overview and navigation</div>
+              </div>
+            </a>
             <a href="/dashboard" class="mega-link {% if request.url.path == '/dashboard' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
               <div class="mega-link-text">
@@ -480,6 +487,7 @@
     </div>
     <div>
       <div class="footer-heading">Filings</div>
+      <a href="/filings/hub" class="footer-link">Filings Overview</a>
       <a href="/dashboard" class="footer-link">Filing Activity</a>
       <a href="/screener/" class="footer-link">L&I Filing Landscape</a>
       <a href="/screener/3x-analysis" class="footer-link">LI Filing Candidates</a>

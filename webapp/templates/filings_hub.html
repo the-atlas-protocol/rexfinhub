@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}SEC Filing Intelligence — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<style>
+/* ===== FILINGS HUB — Pillar Landing Page ===== */
+
+.fh-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+/* KPI row — 4 cards, K-A style with green filing accent */
+.fh-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.fh-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  border-top: 3px solid #059669;
+  padding: 20px 24px;
+}
+.fh-kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.fh-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+/* Quick overview — 5 cards in a row */
+.fh-overview {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.fh-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 20px 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+.fh-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.fh-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2563eb;
+  margin-bottom: 4px;
+}
+.fh-card-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .fh-kpis { grid-template-columns: repeat(2, 1fr); }
+  .fh-overview { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .fh-container { padding: 0 16px; }
+  .fh-kpis { grid-template-columns: 1fr; }
+  .fh-overview { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="fh-container">
+
+<!-- Breadcrumb -->
+<div class="breadcrumb" style="margin-bottom: 8px;">
+  <a href="/">Home</a><span class="sep">/</span>
+  <span>Filings</span>
+</div>
+
+<!-- Title -->
+<h1 style="font-size: 20px; font-weight: 600; color: #0f172a; margin: 0 0 4px;">SEC Filing Intelligence</h1>
+<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin: 0 0 32px;">
+  Real-time SEC filing monitor, competitive landscape analysis, and product development tools for leveraged &amp; inverse ETFs.
+</p>
+
+<!-- KPI Cards (K-A style, filing pillar green) -->
+<div class="fh-kpis">
+  <div class="fh-kpi-card">
+    <div class="fh-kpi-value">{{ todays_filings }}</div>
+    <div class="fh-kpi-label">Today's Filings</div>
+  </div>
+  <div class="fh-kpi-card">
+    <div class="fh-kpi-value">{{ weekly_filings }}</div>
+    <div class="fh-kpi-label">This Week</div>
+  </div>
+  <div class="fh-kpi-card">
+    <div class="fh-kpi-value">{{ effective_funds }}</div>
+    <div class="fh-kpi-label">Effective Funds</div>
+  </div>
+  <div class="fh-kpi-card">
+    <div class="fh-kpi-value">{{ trusts_monitored }}</div>
+    <div class="fh-kpi-label">Trusts Monitored</div>
+  </div>
+</div>
+
+<!-- Quick Overview — 5 sub-page cards -->
+<div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #94a3b8; margin-bottom: 12px;">Explore</div>
+<div class="fh-overview">
+  <a href="/dashboard" class="fh-card">
+    <div class="fh-card-title">Filing Activity</div>
+    <div class="fh-card-desc">Recent filings and competitor watch</div>
+  </a>
+  <a href="/screener/" class="fh-card">
+    <div class="fh-card-title">L&I Filing Landscape</div>
+    <div class="fh-card-desc">2x/3x/4x/5x competitive filing matrix</div>
+  </a>
+  <a href="/screener/3x-analysis" class="fh-card">
+    <div class="fh-card-title">LI Filing Candidates</div>
+    <div class="fh-card-desc">2x/3x/4x scored candidate pipeline</div>
+  </a>
+  <a href="/screener/evaluate" class="fh-card">
+    <div class="fh-card-title">LI Stock Evaluator</div>
+    <div class="fh-card-desc">4-pillar ticker evaluation</div>
+  </a>
+  <a href="/filings/" class="fh-card">
+    <div class="fh-card-title">Fund/Filing Explorer</div>
+    <div class="fh-card-desc">Search funds and filings</div>
+  </a>
+</div>
+
+</div><!-- /.fh-container -->
+{% endblock %}
