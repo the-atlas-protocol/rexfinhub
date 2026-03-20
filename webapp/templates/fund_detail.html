@@ -4,9 +4,10 @@
 {% block content %}
 <div class="header">
   <div class="breadcrumb">
-    <a href="/">Dashboard</a><span class="sep">/</span>
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/filings">Filings</a><span class="sep">/</span>
     {% if trust %}<a href="/trusts/{{ trust.slug }}">{{ trust.name }}</a><span class="sep">/</span>{% endif %}
-    <span>{{ fund.fund_name }}</span>
+    <span>Fund Detail</span>
   </div>
   <h1>{{ fund.fund_name }}</h1>
   <div class="date">
@@ -91,10 +92,10 @@
 <!-- Form type filter pills -->
 <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
   <span class="form-pill active" onclick="filterFilings('ALL', this)">All</span>
-  <span class="form-pill" onclick="filterFilings('485APOS', this)" style="border-color:#e67e22;">485APOS</span>
-  <span class="form-pill" onclick="filterFilings('485BPOS', this)" style="border-color:#27ae60;">485BPOS</span>
-  <span class="form-pill" onclick="filterFilings('485BXT', this)" style="border-color:#0984e3;">485BXT</span>
-  <span class="form-pill" onclick="filterFilings('497', this)" style="border-color:#636e72;">497</span>
+  <span class="form-pill" onclick="filterFilings('485APOS', this)">485APOS</span>
+  <span class="form-pill" onclick="filterFilings('485BPOS', this)">485BPOS</span>
+  <span class="form-pill" onclick="filterFilings('485BXT', this)">485BXT</span>
+  <span class="form-pill" onclick="filterFilings('497', this)">497</span>
 </div>
 
 <table id="filing-table">
@@ -137,11 +138,11 @@
       <td>{{ e.effective_date or '' }}</td>
       <td>
         {% if e.effective_date_confidence == 'HIGH' %}
-        <span style="color:var(--green); font-size:12px;">HIGH</span>
+        <span style="color:#059669; font-size:12px;">HIGH</span>
         {% elif e.effective_date_confidence == 'MEDIUM' %}
-        <span style="color:var(--orange); font-size:12px;">MED</span>
+        <span style="color:#d97706; font-size:12px;">MED</span>
         {% elif e.effective_date_confidence %}
-        <span style="color:var(--gray); font-size:12px;">{{ e.effective_date_confidence }}</span>
+        <span style="color:#6b7280; font-size:12px;">{{ e.effective_date_confidence }}</span>
         {% endif %}
       </td>
       <td style="white-space:nowrap;">

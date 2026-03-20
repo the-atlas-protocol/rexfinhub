@@ -12,16 +12,16 @@
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.form-badge-485bpos { background: #D1FAE5; color: #065F46; }
-.form-badge-485bxt { background: #DBEAFE; color: #1E40AF; }
-.form-badge-485apos { background: #FEF3C7; color: #92400E; }
-.form-badge-497 { background: #E0E7FF; color: #3730A3; }
-.form-badge-497k { background: #E0E7FF; color: #3730A3; }
+.form-badge-485bpos { background: #ecfdf5; color: #059669; }
+.form-badge-485bxt { background: #dbeafe; color: #1e40af; }
+.form-badge-485apos { background: #fffbeb; color: #d97706; }
+.form-badge-497 { background: #f3f4f6; color: #6b7280; }
+.form-badge-497k { background: #f3f4f6; color: #6b7280; }
 .form-badge-s1 { background: #FCE7F3; color: #9D174D; }
 .form-badge-s3 { background: #FCE7F3; color: #9D174D; }
 .form-badge-effect { background: #CCFBF1; color: #0F766E; }
 .form-badge-posam { background: #F3E8FF; color: #6B21A8; }
-.form-badge-default { background: #F1F5F9; color: #475569; }
+.form-badge-default { background: #f1f5f9; color: #475569; }
 
 /* Two-column layout */
 .dash-columns {
@@ -176,7 +176,7 @@
           <option value="{{ t.id }}" {% if filing_trust_id == t.id %}selected{% endif %}>{{ t.name }}</option>
           {% endfor %}
         </select>
-        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <button type="submit" style="background:#0f172a; color:#fff; border:none; border-radius:6px; padding:8px 16px; font-size:13px; font-weight:500; cursor:pointer;">Filter</button>
       </div>
     </form>
 
@@ -225,7 +225,7 @@
             {% if f.primary_link %}
             <a href="{{ f.primary_link }}" target="_blank" style="margin-right:6px;">View</a>
             {% endif %}
-            <a href="/analysis/filing/{{ f.id }}" class="btn btn-sm" style="font-size:11px;">Analyze</a>
+            <a href="/analysis/filing/{{ f.id }}" style="color:#2563eb; font-weight:500; text-decoration:none; font-size:12px;">Analyze</a>
           </td>
         </tr>
         {% endfor %}
@@ -241,7 +241,7 @@
         {% set start_p = [1, page - 2]|max %}
         {% set end_p = [total_pages + 1, page + 3]|min %}
         {% for p in range(start_p, end_p) %}
-        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ p }}" class="btn btn-sm {{ 'btn-primary' if p == page else '' }}">{{ p }}</a>
+        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ p }}" class="btn btn-sm" style="{{ 'background:#0f172a; color:#fff; border-color:#0f172a;' if p == page else 'background:#f3f4f6; color:#374151;' }}">{{ p }}</a>
         {% endfor %}
         {% if page < total_pages %}
         <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page + 1 }}" class="btn btn-sm">Next</a>

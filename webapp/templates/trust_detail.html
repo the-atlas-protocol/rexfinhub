@@ -4,8 +4,9 @@
 {% block content %}
 <div class="header">
   <div class="breadcrumb">
-    <a href="/">Dashboard</a><span class="sep">/</span>
-    <span>{{ trust.name }}</span>
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/filings">Filings</a><span class="sep">/</span>
+    <span>Trust Detail</span>
   </div>
   <div style="display:flex; justify-content:space-between; align-items:center;">
     <div>
@@ -17,19 +18,19 @@
 
 <!-- KPIs -->
 <div class="kpi-row">
-  <div class="kpi">
+  <div class="kpi kpi-filing">
     <div class="num">{{ total }}</div>
     <div class="label">Total Funds</div>
   </div>
-  <div class="kpi kpi-green">
+  <div class="kpi kpi-filing kpi-green">
     <div class="num">{{ effective }}</div>
     <div class="label">Effective</div>
   </div>
-  <div class="kpi kpi-orange">
+  <div class="kpi kpi-filing kpi-orange">
     <div class="num">{{ pending }}</div>
     <div class="label">Pending</div>
   </div>
-  <div class="kpi kpi-red">
+  <div class="kpi kpi-filing kpi-red">
     <div class="num">{{ delayed }}</div>
     <div class="label">Delayed</div>
   </div>
@@ -92,11 +93,11 @@
       <td>
         {% if item.expected %}
           {% if item.expected.days_left <= 0 %}
-            <span style="color:var(--green); font-weight:bold">{{ item.expected.date }}</span>
+            <span style="color:#059669; font-weight:bold">{{ item.expected.date }}</span>
           {% elif item.expected.days_left <= 14 %}
-            <span style="color:var(--orange); font-weight:bold">{{ item.expected.date }} ({{ item.expected.days_left }}d)</span>
+            <span style="color:#d97706; font-weight:bold">{{ item.expected.date }} ({{ item.expected.days_left }}d)</span>
           {% else %}
-            <span style="color:var(--gray)">{{ item.expected.date }} ({{ item.expected.days_left }}d)</span>
+            <span style="color:#6b7280">{{ item.expected.date }} ({{ item.expected.days_left }}d)</span>
           {% endif %}
         {% endif %}
       </td>
