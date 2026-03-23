@@ -66,13 +66,17 @@
   <div>
     <div class="breadcrumb">
       <a href="/">Home</a><span class="sep">/</span>
-      <a href="/dashboard">Filings</a><span class="sep">/</span>
+      <a href="/filings/">Filings</a><span class="sep">/</span>
       <span>L&I Filing Landscape</span>
     </div>
     <h1 style="font-size:20px; font-weight:600; color:#0f172a; margin:8px 0 4px;">L&I Filing Landscape</h1>
-    <div style="font-size:13px; color:#94a3b8;">3x / 4x / 5x SEC Filing Matrix | Source: EDGAR | {{ generated_at }}</div>
+    <div style="font-size:13px; color:#94a3b8;">2x / 3x / 4x / 5x SEC Filing Matrix | Source: EDGAR | {{ generated_at }}</div>
   </div>
   <div style="display:flex; align-items:center; gap:0;">
+    <div style="padding:0 20px; border-right:1px solid #e5e7eb; text-align:center;">
+      <div style="font-size:24px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ kpis.count_2x }}</div>
+      <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:#94a3b8;">2X NAMES</div>
+    </div>
     <div style="padding:0 20px; border-right:1px solid #e5e7eb; text-align:center;">
       <div style="font-size:24px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ kpis.count_3x }}</div>
       <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:#94a3b8;">3X NAMES</div>
@@ -96,41 +100,31 @@
   </div>
 </div>
 
-<!-- Quick Links Bar -->
-<div style="display:flex; gap:16px; margin-bottom:24px; font-size:13px;">
-  <a href="/dashboard" style="color:#2563eb; text-decoration:none; font-weight:500;">Filing Activity</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/screener/" style="color:#2563eb; text-decoration:none; font-weight:500;">L&I Filing Landscape</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/screener/3x-analysis" style="color:#2563eb; text-decoration:none; font-weight:500;">LI Filing Candidates</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/screener/evaluate" style="color:#2563eb; text-decoration:none; font-weight:500;">LI Stock Evaluator</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/filings/" style="color:#2563eb; text-decoration:none; font-weight:500;">Fund/Filing Explorer</a>
-</div>
+{% include "_filings_subnav.html" %}
 
 <!-- Tab bar -->
 {% include "_screener_subnav.html" %}
 
 <!-- ==================== FILTERS ==================== -->
 <div class="sg-filter-bar">
-  <a href="/screener/?leverage=all&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == 'all' %} active{% endif %}">All</a>
-  <a href="/screener/?leverage=3x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '3x' %} active{% endif %}">3x</a>
-  <a href="/screener/?leverage=4x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '4x' %} active{% endif %}">4x</a>
-  <a href="/screener/?leverage=5x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '5x' %} active{% endif %}">5x</a>
+  <a href="/filings/landscape?leverage=all&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == 'all' %} active{% endif %}">All</a>
+  <a href="/filings/landscape?leverage=2x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '2x' %} active{% endif %}">2x</a>
+  <a href="/filings/landscape?leverage=3x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '3x' %} active{% endif %}">3x</a>
+  <a href="/filings/landscape?leverage=4x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '4x' %} active{% endif %}">4x</a>
+  <a href="/filings/landscape?leverage=5x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '5x' %} active{% endif %}">5x</a>
   <span class="sg-divider"></span>
-  <a href="/screener/?leverage={{ leverage }}&view=all&q={{ q }}" class="sg-pill{% if view == 'all' %} active{% endif %}">All Names</a>
-  <a href="/screener/?leverage={{ leverage }}&view=rex-only&q={{ q }}" class="sg-pill{% if view == 'rex-only' %} active{% endif %}">REX Only</a>
-  <a href="/screener/?leverage={{ leverage }}&view=missing&q={{ q }}" class="sg-pill{% if view == 'missing' %} active{% endif %}">Missing</a>
+  <a href="/filings/landscape?leverage={{ leverage }}&view=all&q={{ q }}" class="sg-pill{% if view == 'all' %} active{% endif %}">All Names</a>
+  <a href="/filings/landscape?leverage={{ leverage }}&view=rex-only&q={{ q }}" class="sg-pill{% if view == 'rex-only' %} active{% endif %}">REX Only</a>
+  <a href="/filings/landscape?leverage={{ leverage }}&view=missing&q={{ q }}" class="sg-pill{% if view == 'missing' %} active{% endif %}">Missing</a>
   <span class="sg-divider"></span>
-  <form method="get" action="/screener/" style="display:flex; gap:4px; margin:0;">
+  <form method="get" action="/filings/landscape" style="display:flex; gap:4px; margin:0;">
     <input type="hidden" name="leverage" value="{{ leverage }}">
     <input type="hidden" name="view" value="{{ view }}">
     <input type="text" name="q" value="{{ q }}" placeholder="Search underlier..." class="sg-search">
     <button type="submit" class="sg-pill active" style="cursor:pointer;">Go</button>
   </form>
   {% if q %}
-  <a href="/screener/?leverage={{ leverage }}&view={{ view }}" class="sg-clear">Clear</a>
+  <a href="/filings/landscape?leverage={{ leverage }}&view={{ view }}" class="sg-clear">Clear</a>
   {% endif %}
 </div>
 
@@ -193,17 +187,19 @@
   <thead>
     <tr>
       <th onclick="sortTable('scorecardTable',0)">Issuer</th>
-      <th onclick="sortTable('scorecardTable',1)" style="text-align:center;">3x</th>
-      <th onclick="sortTable('scorecardTable',2)" style="text-align:center;">4x</th>
-      <th onclick="sortTable('scorecardTable',3)" style="text-align:center;">5x</th>
-      <th onclick="sortTable('scorecardTable',4)" style="text-align:center;">Total</th>
-      <th onclick="sortTable('scorecardTable',5)" style="text-align:center;">Exclusive</th>
+      <th onclick="sortTable('scorecardTable',1)" style="text-align:center;">2x</th>
+      <th onclick="sortTable('scorecardTable',2)" style="text-align:center;">3x</th>
+      <th onclick="sortTable('scorecardTable',3)" style="text-align:center;">4x</th>
+      <th onclick="sortTable('scorecardTable',4)" style="text-align:center;">5x</th>
+      <th onclick="sortTable('scorecardTable',5)" style="text-align:center;">Total</th>
+      <th onclick="sortTable('scorecardTable',6)" style="text-align:center;">Exclusive</th>
     </tr>
   </thead>
   <tbody>
     {% for s in issuer_scorecard %}
     <tr{% if s.is_rex %} class="scorecard-rex"{% endif %}>
       <td style="font-weight:{% if s.is_rex %}700{% else %}500{% endif %};">{{ s.issuer }}</td>
+      <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c2 }}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c3 }}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c4 }}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c5 }}</td>

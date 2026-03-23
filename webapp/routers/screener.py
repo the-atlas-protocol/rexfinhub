@@ -1,216 +1,80 @@
-"""Screener router - Filing Landscape + Bloomberg Analysis + Evaluator."""
+"""Screener router - Bloomberg Analysis pages + 301 redirects to /filings/."""
 from __future__ import annotations
 
-import io
 import json
 import logging
-import os
-from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Query, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
 from webapp.models import ScreenerResult, ScreenerUpload
+from webapp.services.screener_helpers import (
+    get_3x_data,
+    data_available,
+    cache_warming,
+    _ON_RENDER,
+)
 
 router = APIRouter(prefix="/screener", tags=["screener"])
 templates = Jinja2Templates(directory="webapp/templates")
 log = logging.getLogger(__name__)
 
-REX_ISSUERS = {"T-REX", "REX"}
-
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-_ON_RENDER = bool(os.environ.get("RENDER"))
-
-
-def _get_3x_data() -> dict | None:
-    """Get cached 3x analysis. On Render, loads from DB. Locally, computes."""
-    from webapp.services.screener_3x_cache import get_3x_analysis, compute_and_cache
-
-    analysis = get_3x_analysis()
-    if analysis is not None:
-        return analysis
-
-    # On Render: try DB, never compute from Excel
-    if _ON_RENDER:
-        from webapp.database import SessionLocal
-        from webapp.services.screener_3x_cache import load_from_db, set_3x_analysis
-        db = SessionLocal()
-        try:
-            data = load_from_db(db)
-            if data:
-                set_3x_analysis(data)
-                return data
-        finally:
-            db.close()
-        return None
-
-    # Local: compute from Excel
-    try:
-        return compute_and_cache()
-    except FileNotFoundError:
-        return None
-    except Exception as e:
-        log.error("Failed to compute 3x analysis: %s", e)
-        return None
-
-
-def _data_available() -> bool:
-    """Check if Bloomberg data is available (file on disk or cached in DB)."""
-    try:
-        from screener.config import DATA_FILE
-        if DATA_FILE.exists():
-            return True
-    except Exception:
-        pass
-    # On Render (no Excel file): check if DB cache has screener data
-    if _ON_RENDER:
-        return _get_3x_data() is not None
-    return False
-
-
-def _cache_warming() -> bool:
-    """No longer has a warming state - cache is either populated or empty."""
-    return False
-
-
-# ---------------------------------------------------------------------------
-# Filing Landscape (new landing page - SEC data only, no Bloomberg)
+# 301 redirects — old screener URLs → new /filings/ URLs
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def screener_landing(
-    request: Request,
-    db: Session = Depends(get_db),
-    leverage: str = Query("all"),
-    view: str = Query("all"),
-    q: str = Query(""),
-):
-    """Competitive Filing Landscape - the main screener landing page."""
-    from webapp.services.filing_landscape import build_filing_landscape
+def screener_landing_redirect(request: Request):
+    qs = str(request.url.query)
+    url = "/filings/landscape" + ("?" + qs if qs else "")
+    return RedirectResponse(url=url, status_code=301)
 
-    data = build_filing_landscape(db)
-    matrices = data["matrices"]
-
-    # Determine which leverage levels to show
-    if leverage in ("3x", "4x", "5x"):
-        display_leverages = [leverage]
-    else:
-        display_leverages = ["3x", "4x", "5x"]
-
-    # Apply view filter (rex-only / missing)
-    filtered_matrices = {}
-    for lev in display_leverages:
-        matrix = dict(matrices.get(lev, {}))
-        if view == "rex-only":
-            matrix = {
-                u: iss_map for u, iss_map in matrix.items()
-                if len(iss_map) == 1 and any(i in REX_ISSUERS for i in iss_map)
-            }
-        elif view == "missing":
-            matrix = {
-                u: iss_map for u, iss_map in matrix.items()
-                if not any(i in REX_ISSUERS for i in iss_map)
-            }
-
-        # Apply search filter
-        if q:
-            q_upper = q.upper()
-            matrix = {
-                u: iss_map for u, iss_map in matrix.items()
-                if q_upper in u.upper()
-            }
-
-        filtered_matrices[lev] = matrix
-
-    any_results = any(bool(m) for m in filtered_matrices.values())
-
-    return templates.TemplateResponse("screener_landscape.html", {
-        "request": request,
-        "kpis": data["kpis"],
-        "filtered_matrices": filtered_matrices,
-        "active_issuers": data["active_issuers"],
-        "issuer_scorecard": data["issuer_scorecard"],
-        "generated_at": data["generated_at"],
-        "bloomberg_available": _data_available(),
-        "leverage": leverage,
-        "view": view,
-        "q": q,
-        "display_leverages": display_leverages,
-        "any_results": any_results,
-    })
-
-
-# ---------------------------------------------------------------------------
-# 3x Recommendations (moved from / to /3x-analysis)
-# ---------------------------------------------------------------------------
 
 @router.get("/3x-analysis")
-def screener_3x_recommendations(request: Request):
-    """LI Filing Candidates - unified 2x/3x/4x leverage analysis."""
-    analysis = _get_3x_data()
+def screener_3x_redirect():
+    return RedirectResponse(url="/filings/candidates", status_code=301)
 
-    if analysis is None:
-        return templates.TemplateResponse("screener_3x.html", {
-            "request": request,
-            "tab": "recommendations",
-            "data_available": _data_available(),
-            "cache_warming": _cache_warming(),
-        })
-
-    four_x = analysis.get("four_x", [])
-    avg_daily_vol = 0
-    if four_x:
-        avg_daily_vol = sum(c.get("daily_vol", 0) for c in four_x) / len(four_x)
-
-    return templates.TemplateResponse("screener_3x.html", {
-        "request": request,
-        "tab": "recommendations",
-        "data_available": True,
-        "snapshot": analysis["snapshot"],
-        "tiers": analysis["tiers"],
-        "four_x": four_x,
-        "four_x_count": len(four_x),
-        "avg_daily_vol": avg_daily_vol,
-        "top_2x": analysis.get("top_2x", []),
-        "data_date": analysis.get("data_date"),
-        "computed_at": analysis.get("computed_at"),
-    })
-
-
-# ---------------------------------------------------------------------------
-# 4x Candidates (redirect to unified page)
-# ---------------------------------------------------------------------------
 
 @router.get("/4x")
-def screener_4x_candidates(request: Request):
-    """Redirect old 4x page to unified LI Filing Candidates."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/screener/3x-analysis", status_code=301)
+def screener_4x_redirect():
+    return RedirectResponse(url="/filings/candidates", status_code=301)
+
+
+@router.get("/evaluate")
+def screener_evaluate_redirect():
+    return RedirectResponse(url="/filings/evaluator", status_code=301)
+
+
+@router.post("/evaluate")
+def screener_evaluate_post_redirect():
+    return RedirectResponse(url="/filings/evaluator", status_code=307)
+
+
+@router.get("/report")
+def screener_report_redirect():
+    return RedirectResponse(url="/filings/report", status_code=301)
 
 
 # ---------------------------------------------------------------------------
-# Market Landscape
+# Market Landscape (stays in screener)
 # ---------------------------------------------------------------------------
 
 @router.get("/market")
 def screener_market_landscape(request: Request):
     """Market Landscape - underlier popularity + top 2x ETFs."""
-    analysis = _get_3x_data()
+    analysis = get_3x_data()
 
     if analysis is None:
         return templates.TemplateResponse("screener_market.html", {
             "request": request,
             "tab": "market",
-            "data_available": _data_available(),
-            "cache_warming": _cache_warming(),
+            "data_available": data_available(),
+            "cache_warming": cache_warming(),
         })
 
     return templates.TemplateResponse("screener_market.html", {
@@ -304,7 +168,7 @@ def screener_rex_funds(
 
     # Get track record from 3x analysis cache
     rex_track = []
-    analysis = _get_3x_data()
+    analysis = get_3x_data()
     if analysis:
         rex_track = analysis.get("rex_track", [])
 
@@ -325,14 +189,14 @@ def screener_rex_funds(
 @router.get("/risk")
 def screener_risk_watchlist(request: Request):
     """Risk Watchlist - scoped volatility risk table."""
-    analysis = _get_3x_data()
+    analysis = get_3x_data()
 
     if analysis is None:
         return templates.TemplateResponse("screener_risk.html", {
             "request": request,
             "tab": "risk",
-            "data_available": _data_available(),
-            "cache_warming": _cache_warming(),
+            "data_available": data_available(),
+            "cache_warming": cache_warming(),
         })
 
     risk_watchlist = analysis.get("risk_watchlist", [])
@@ -351,7 +215,7 @@ def screener_risk_watchlist(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Stock Detail (unchanged)
+# Stock Detail
 # ---------------------------------------------------------------------------
 
 @router.get("/stock/{ticker}")
@@ -446,111 +310,3 @@ def screener_stock_detail(
         "upload": latest_upload,
         "tab": "competitive",
     })
-
-
-# ---------------------------------------------------------------------------
-# Report Download (updated to 3x report)
-# ---------------------------------------------------------------------------
-
-@router.get("/report")
-def screener_report_download(request: Request):
-    """Generate and download the 3x/4x PDF report."""
-    if _ON_RENDER:
-        from fastapi.responses import HTMLResponse
-        return HTMLResponse(
-            "<h2>Report generation is not available on Render. Run locally.</h2>",
-            status_code=404,
-        )
-    try:
-        from screener.generate_report import run_3x_report
-        out_path = run_3x_report()
-        pdf_bytes = out_path.read_bytes()
-
-        return StreamingResponse(
-            io.BytesIO(pdf_bytes),
-            media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={out_path.name}"},
-        )
-    except FileNotFoundError:
-        from fastapi.responses import HTMLResponse
-        return HTMLResponse(
-            "<h2>No Bloomberg data. Upload from Admin panel first.</h2>",
-            status_code=404,
-        )
-    except Exception as e:
-        log.error("Report generation failed: %s", e)
-        from fastapi.responses import HTMLResponse
-        return HTMLResponse(f"<h2>Report generation failed</h2><p>{e}</p>", status_code=500)
-
-
-# ---------------------------------------------------------------------------
-# Candidate Evaluator (unchanged)
-# ---------------------------------------------------------------------------
-
-@router.get("/evaluate")
-def screener_evaluate_page(request: Request):
-    """Interactive candidate evaluator page."""
-    return templates.TemplateResponse("screener_evaluate.html", {
-        "request": request,
-        "tab": "evaluate",
-        "data_available": _data_available(),
-        "cache_warming": _cache_warming(),
-    })
-
-
-@router.post("/evaluate")
-def screener_evaluate_api(
-    request: Request,
-    tickers: list[str] = Body(..., embed=True),
-):
-    """API endpoint: evaluate candidate tickers and return JSON results."""
-    if not tickers:
-        return JSONResponse({"error": "No tickers provided"}, status_code=400)
-
-    tickers = tickers[:20]
-
-    if _ON_RENDER:
-        return JSONResponse(
-            {"error": "Evaluation requires Bloomberg data (run locally)."},
-            status_code=404,
-        )
-
-    try:
-        from screener.candidate_evaluator import evaluate_candidates
-        results = evaluate_candidates(tickers)
-    except FileNotFoundError:
-        return JSONResponse(
-            {"error": "Bloomberg data file not found. Upload from Admin panel first."},
-            status_code=404,
-        )
-    except Exception as e:
-        log.error("Candidate evaluation failed: %s", e)
-        return JSONResponse({"error": str(e)[:200]}, status_code=500)
-
-    clean_results = []
-    for r in results:
-        clean_results.append(_serialize_eval(r))
-
-    return JSONResponse({"results": clean_results})
-
-
-def _serialize_eval(r: dict) -> dict:
-    """Convert evaluation result to JSON-safe dict."""
-    import math
-
-    def _clean(v):
-        if v is None:
-            return None
-        if isinstance(v, float):
-            if math.isnan(v) or math.isinf(v):
-                return None
-            return round(v, 2)
-        if isinstance(v, dict):
-            return {k: _clean(vv) for k, vv in v.items()}
-        if isinstance(v, list):
-            return [_clean(vv) for vv in v]
-        if hasattr(v, 'item'):  # numpy scalar
-            return _clean(v.item())
-        return v
-
-    return _clean(r)

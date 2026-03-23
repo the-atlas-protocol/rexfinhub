@@ -1,0 +1,15 @@
+{# Filing pillar sub-navigation — shared partial.
+   Usage: {% include "_filings_subnav.html" %}
+   Active tab detected from request.url.path.
+#}
+<div style="display:flex; gap:16px; margin-bottom:24px; font-size:13px;">
+  <a href="/filings/dashboard" style="color:{% if request.url.path == '/filings/dashboard' %}#0f172a{% else %}#2563eb{% endif %}; text-decoration:none; font-weight:{% if request.url.path == '/filings/dashboard' %}600{% else %}500{% endif %};">Filings Dashboard</a>
+  <span style="color:#e5e7eb;">|</span>
+  <a href="/filings/landscape" style="color:{% if request.url.path == '/filings/landscape' %}#0f172a{% else %}#2563eb{% endif %}; text-decoration:none; font-weight:{% if request.url.path == '/filings/landscape' %}600{% else %}500{% endif %};">L&I Filing Landscape</a>
+  <span style="color:#e5e7eb;">|</span>
+  <a href="/filings/candidates" style="color:{% if request.url.path == '/filings/candidates' %}#0f172a{% else %}#2563eb{% endif %}; text-decoration:none; font-weight:{% if request.url.path == '/filings/candidates' %}600{% else %}500{% endif %};">L&I Filing Candidates</a>
+  <span style="color:#e5e7eb;">|</span>
+  <a href="/filings/evaluator" style="color:{% if request.url.path == '/filings/evaluator' %}#0f172a{% else %}#2563eb{% endif %}; text-decoration:none; font-weight:{% if request.url.path == '/filings/evaluator' %}600{% else %}500{% endif %};">L&I Stock Evaluator</a>
+  <span style="color:#e5e7eb;">|</span>
+  <a href="/filings/explorer" style="color:{% if request.url.path == '/filings/explorer' %}#0f172a{% else %}#2563eb{% endif %}; text-decoration:none; font-weight:{% if request.url.path == '/filings/explorer' %}600{% else %}500{% endif %};">Fund/Filing Explorer</a>
+</div>

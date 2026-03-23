@@ -116,53 +116,46 @@
 
     <!-- PILLAR 2: Filing Intelligence -->
     <div class="mega-trigger-wrap">
-      <button class="mega-trigger {% if request.url.path == '/dashboard' or request.url.path.startswith('/filings') or request.url.path.startswith('/screener') or request.url.path.startswith('/funds') or request.url.path.startswith('/trusts') %}active{% endif %}" aria-expanded="false" data-panel="filings">Filings</button>
+      <a href="/filings/" class="mega-trigger {% if request.url.path.startswith('/filings') or request.url.path.startswith('/funds') or request.url.path.startswith('/trusts') %}active{% endif %}" data-panel="filings">Filings</a>
       <div class="mega-panel" id="panel-filings">
         <div class="mega-columns">
           <div class="mega-column">
             <div class="mega-section-label">Monitor</div>
-            <a href="/filings/hub" class="mega-link {% if request.url.path == '/filings/hub' %}active{% endif %}">
-              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-              <div class="mega-link-text">
-                <div class="mega-link-title">Filings Overview</div>
-                <div class="mega-link-desc">Section overview and navigation</div>
-              </div>
-            </a>
-            <a href="/dashboard" class="mega-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+            <a href="/filings/dashboard" class="mega-link {% if request.url.path == '/filings/dashboard' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
               <div class="mega-link-text">
-                <div class="mega-link-title">Filing Activity</div>
+                <div class="mega-link-title">Filings Dashboard</div>
                 <div class="mega-link-desc">Recent filings and competitor watch</div>
               </div>
             </a>
           </div>
           <div class="mega-column">
             <div class="mega-section-label">Analyze</div>
-            <a href="/screener/" class="mega-link {% if request.url.path == '/screener/' or request.url.path == '/screener' %}active{% endif %}">
+            <a href="/filings/landscape" class="mega-link {% if request.url.path == '/filings/landscape' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
               <div class="mega-link-text">
                 <div class="mega-link-title">L&I Filing Landscape</div>
                 <div class="mega-link-desc">2x/3x/4x/5x competitive filing matrix</div>
               </div>
             </a>
-            <a href="/screener/3x-analysis" class="mega-link {% if '3x-analysis' in request.url.path %}active{% endif %}">
+            <a href="/filings/candidates" class="mega-link {% if request.url.path == '/filings/candidates' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-6"/></svg></div>
               <div class="mega-link-text">
-                <div class="mega-link-title">LI Filing Candidates</div>
+                <div class="mega-link-title">L&I Filing Candidates</div>
                 <div class="mega-link-desc">2x/3x/4x scored candidate pipeline</div>
               </div>
             </a>
-            <a href="/screener/evaluate" class="mega-link {% if 'evaluate' in request.url.path %}active{% endif %}">
+            <a href="/filings/evaluator" class="mega-link {% if request.url.path == '/filings/evaluator' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
               <div class="mega-link-text">
-                <div class="mega-link-title">LI Stock Evaluator</div>
+                <div class="mega-link-title">L&I Stock Evaluator</div>
                 <div class="mega-link-desc">4-pillar ticker evaluation</div>
               </div>
             </a>
           </div>
           <div class="mega-column">
             <div class="mega-section-label">Search</div>
-            <a href="/filings/" class="mega-link {% if request.url.path.startswith('/filings') %}active{% endif %}">
+            <a href="/filings/explorer" class="mega-link {% if request.url.path == '/filings/explorer' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
               <div class="mega-link-text">
                 <div class="mega-link-title">Fund/Filing Explorer</div>
@@ -487,12 +480,11 @@
     </div>
     <div>
       <div class="footer-heading">Filings</div>
-      <a href="/filings/hub" class="footer-link">Filings Overview</a>
-      <a href="/dashboard" class="footer-link">Filing Activity</a>
-      <a href="/screener/" class="footer-link">L&I Filing Landscape</a>
-      <a href="/screener/3x-analysis" class="footer-link">LI Filing Candidates</a>
-      <a href="/screener/evaluate" class="footer-link">LI Stock Evaluator</a>
-      <a href="/filings/" class="footer-link">Fund/Filing Explorer</a>
+      <a href="/filings/dashboard" class="footer-link">Filings Dashboard</a>
+      <a href="/filings/landscape" class="footer-link">L&I Filing Landscape</a>
+      <a href="/filings/candidates" class="footer-link">L&I Filing Candidates</a>
+      <a href="/filings/evaluator" class="footer-link">L&I Stock Evaluator</a>
+      <a href="/filings/explorer" class="footer-link">Fund/Filing Explorer</a>
     </div>
     <div>
       <div class="footer-heading">Ownership</div>

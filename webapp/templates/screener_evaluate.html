@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}LI Stock Evaluator - REX Financial{% endblock %}
+{% block title %}L&I Stock Evaluator - REX Financial{% endblock %}
 
 {% block head %}
 <style>
@@ -120,10 +120,10 @@
 <div class="header">
   <div class="breadcrumb">
     <a href="/">Home</a><span class="sep">/</span>
-    <a href="/dashboard">Filings</a><span class="sep">/</span>
-    <span>LI Stock Evaluator</span>
+    <a href="/filings/">Filings</a><span class="sep">/</span>
+    <span>L&I Stock Evaluator</span>
   </div>
-  <h1 style="font-size:20px; font-weight:600; color:#0f172a;">LI Stock Evaluator</h1>
+  <h1 style="font-size:20px; font-weight:600; color:#0f172a;">L&I Stock Evaluator</h1>
   <div class="date" style="max-width:600px;">
     Enter ticker symbols to evaluate for ETF filing/launch decisions.
     Each ticker is assessed across 4 pillars: Demand, Competition, Market Feedback, Filing Status.
@@ -131,17 +131,7 @@
 </div>
 
 <!-- Quick Links Bar -->
-<div style="display:flex; gap:16px; margin-bottom:24px; font-size:13px;">
-  <a href="/dashboard" style="color:#2563eb; text-decoration:none; font-weight:500;">Filing Activity</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/screener/" style="color:#2563eb; text-decoration:none; font-weight:500;">L&I Filing Landscape</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/screener/3x-analysis" style="color:#2563eb; text-decoration:none; font-weight:500;">LI Filing Candidates</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/screener/evaluate" style="color:#2563eb; text-decoration:none; font-weight:500;">LI Stock Evaluator</a>
-  <span style="color:#e5e7eb;">|</span>
-  <a href="/filings/" style="color:#2563eb; text-decoration:none; font-weight:500;">Fund/Filing Explorer</a>
-</div>
+{% include "_filings_subnav.html" %}
 
 <!-- Tab bar -->
 {% include "_screener_subnav.html" %}
@@ -238,7 +228,7 @@ async function evaluateTickers() {
   btn.textContent = 'Evaluating...';
 
   try {
-    const resp = await fetch('/screener/evaluate', {
+    const resp = await fetch('/filings/evaluator', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({tickers: tickers}),
