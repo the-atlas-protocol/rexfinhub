@@ -805,3 +805,115 @@ def compute_blowup_risk(stock_df: pd.DataFrame) -> pd.DataFrame:
              len(out[out["risk_level"].isin(["HIGH", "EXTREME"])]),
              len(out[out["risk_level"] == "EXTREME"]))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Section 7: 2x Filing Candidates (fundamentals-only scoring)
+# ---------------------------------------------------------------------------
+
+def compute_2x_candidates(
+    scored_df: pd.DataFrame,
+    etp_df: pd.DataFrame,
+) -> list[dict]:
+    """Identify 2x filing candidates for REX: stocks worth filing 2x products for.
+
+    Scoring is 100% fundamentals (composite_score percentile) since there is no
+    prior leverage AUM to use as a demand signal for a *new* 2x product.
+
+    Competitive density penalty: if 3+ competitors already have 2x products on
+    the same underlier, reduce score by 20 points (crowded market).
+
+    Filters out stocks where REX already has a 2x product (trading or filed).
+
+    Returns list of dicts sorted by score descending, classified into tiers:
+    Tier 1 (>=70), Tier 2 (40-69), Tier 3 (<40).
+    """
+    # Only stocks passing threshold filters, with real vol & OI data
+    df = scored_df[scored_df.get("passes_filters", True) == True].copy()
+    vol_col = "Volatility 30D"
+    oi_col = "Total OI"
+    if vol_col in df.columns:
+        df = df[pd.to_numeric(df[vol_col], errors="coerce").fillna(0) > 0]
+    if oi_col in df.columns:
+        df = df[pd.to_numeric(df[oi_col], errors="coerce").fillna(0) > 0]
+
+    ticker_col = "ticker_clean" if "ticker_clean" in df.columns else "Ticker"
+
+    # Build lookups
+    rex_2x = _build_rex_2x_status(etp_df)
+    aum_lookup = _build_2x_aum_lookup(etp_df)
+
+    # Risk lookup
+    risk_df = compute_blowup_risk(scored_df)
+    risk_lookup = {}
+    if not risk_df.empty:
+        for _, row in risk_df.iterrows():
+            tc = str(row.get("ticker_clean", "")).upper()
+            risk_lookup[tc] = row.get("risk_level", "LOW")
+
+    # Sector abbreviations
+    sector_abbrev = {
+        "Information Technology": "Info Tech",
+        "Communication Services": "Comm Svcs",
+        "Consumer Discretionary": "Cons Disc",
+        "Consumer Staples": "Cons Staples",
+    }
+
+    # Score = 100% fundamentals percentile
+    df["_fund_pctl"] = df["composite_score"].rank(pct=True, na_option="bottom") * 100
+
+    # Sort by fundamentals percentile
+    df = df.sort_values("_fund_pctl", ascending=False).reset_index(drop=True)
+
+    results = []
+    for _, row in df.iterrows():
+        tc = str(row.get(ticker_col, "")).upper()
+
+        # Skip stocks where REX already has a 2x product
+        rex_status = rex_2x.get(tc, "No")
+        if rex_status in ("Yes", "Filed"):
+            continue
+
+        score = round(float(row["_fund_pctl"]), 1)
+
+        # Competitive density penalty: 3+ competitor 2x products = -20
+        comp_info = aum_lookup.get(tc, {})
+        competitor_count = comp_info.get("count_2x", 0)
+        competitor_aum = comp_info.get("aum_2x", 0)
+        if competitor_count >= 3:
+            score = max(0, score - 20)
+
+        mkt_cap = float(row.get("Mkt Cap", 0)) if pd.notna(row.get("Mkt Cap")) else 0
+        sector_raw = str(row.get("GICS Sector", "")) if pd.notna(row.get("GICS Sector")) else "-"
+        sector = sector_abbrev.get(sector_raw, sector_raw[:14]) if sector_raw != "-" else "-"
+        risk = risk_lookup.get(tc, "LOW")
+
+        # Determine tier
+        if score >= 70:
+            tier = 1
+        elif score >= 40:
+            tier = 2
+        else:
+            tier = 3
+
+        results.append({
+            "ticker": tc,
+            "sector": sector,
+            "score": score,
+            "mkt_cap": round(mkt_cap, 0),
+            "competitor_2x_count": competitor_count,
+            "competitor_2x_aum": round(competitor_aum, 1),
+            "rex_filed": False,
+            "risk": risk,
+            "tier": tier,
+        })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+
+    tier_counts = {1: 0, 2: 0, 3: 0}
+    for r in results:
+        tier_counts[r["tier"]] = tier_counts.get(r["tier"], 0) + 1
+
+    log.info("2x candidates: %d total (Tier 1=%d, Tier 2=%d, Tier 3=%d)",
+             len(results), tier_counts[1], tier_counts[2], tier_counts[3])
+    return results

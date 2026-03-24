@@ -547,6 +547,8 @@ def filing_candidates(request: Request):
     if four_x:
         avg_daily_vol = sum(c.get("daily_vol", 0) for c in four_x) / len(four_x)
 
+    two_x_candidates = analysis.get("two_x_candidates", [])
+
     return templates.TemplateResponse("screener_3x.html", {
         "request": request,
         "tab": "recommendations",
@@ -557,6 +559,7 @@ def filing_candidates(request: Request):
         "four_x_count": len(four_x),
         "avg_daily_vol": avg_daily_vol,
         "top_2x": analysis.get("top_2x", []),
+        "two_x_candidates": two_x_candidates,
         "data_date": analysis.get("data_date"),
         "computed_at": analysis.get("computed_at"),
     })

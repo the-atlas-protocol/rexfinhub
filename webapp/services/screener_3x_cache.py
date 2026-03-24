@@ -140,6 +140,7 @@ def compute_and_cache() -> dict:
             get_4x_candidates,
             compute_blowup_risk,
             compute_3x_filing_score,
+            compute_2x_candidates,
             _build_2x_aum_lookup,
             _build_rex_2x_status,
         )
@@ -196,6 +197,9 @@ def compute_and_cache() -> dict:
 
         risk_watchlist.sort(key=lambda x: x.get("aum_2x", 0), reverse=True)
 
+        # 2x filing candidates (fundamentals-only scoring)
+        two_x_candidates = compute_2x_candidates(scored, etp_df)
+
         result = {
             "snapshot": snapshot,
             "top_2x": top_2x,
@@ -203,13 +207,15 @@ def compute_and_cache() -> dict:
             "rex_track": rex_track,
             "tiers": tiers,
             "four_x": four_x,
+            "two_x_candidates": two_x_candidates,
             "risk_watchlist": risk_watchlist,
             "data_date": data_date,
             "computed_at": datetime.now().strftime("%b %d, %Y %H:%M"),
         }
 
         _cache = result
-        log.info("3x analysis complete: %d tier1, %d tier2, %d tier3, %d 4x, %d risk",
+        log.info("3x analysis complete: %d tier1, %d tier2, %d tier3, %d 4x, %d 2x-cand, %d risk",
                  len(tiers.get("tier_1", [])), len(tiers.get("tier_2", [])),
-                 len(tiers.get("tier_3", [])), len(four_x), len(risk_watchlist))
+                 len(tiers.get("tier_3", [])), len(four_x), len(two_x_candidates),
+                 len(risk_watchlist))
         return result
