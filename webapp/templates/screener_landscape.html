@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}L&I Filing Landscape - REX Financial{% endblock %}
+{% block title %}L&I Landscape - REX Financial{% endblock %}
 
 {% block head %}
 <style>
@@ -24,8 +24,6 @@
   font-size: 13px; width: 160px; font-family: inherit; background: #ffffff; color: #0f172a;
 }
 .sg-search:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
-.sg-clear { color: #dc2626; font-size: 13px; font-weight: 500; text-decoration: none; }
-.sg-clear:hover { color: #b91c1c; }
 
 /* Matrix dot marks */
 .matrix-dot { font-size: 14px; font-weight: 700; }
@@ -48,15 +46,26 @@
 .scorecard-rex { background: #f8fafc; }
 .scorecard-rex:hover { background: #f1f5f9 !important; }
 
-/* Accordion */
-.sg-accordion { border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; margin-top: 32px; background: #ffffff; }
-.sg-accordion-hd {
-  background: #f8fafc; padding: 12px 16px; cursor: pointer;
-  display: flex; justify-content: space-between; align-items: center; user-select: none;
+/* Mode tabs */
+.landscape-tabs {
+  display: flex; border-bottom: 1px solid #e5e7eb; margin-bottom: 24px;
 }
-.sg-accordion-hd:hover { background: #f1f5f9; }
-.sg-accordion-hd h3 { font-size: 14px; font-weight: 600; color: #0f172a; margin: 0; }
-.sg-accordion-bd { display: none; padding: 16px; }
+.landscape-tab {
+  padding: 10px 20px; font-size: 14px; font-weight: 500; text-decoration: none;
+  color: #64748b; border-bottom: 2px solid transparent; transition: all 0.15s ease;
+}
+.landscape-tab:hover { color: #0f172a; text-decoration: none; }
+.landscape-tab.active {
+  color: #0f172a; font-weight: 600; border-bottom-color: #059669;
+}
+
+/* REX-highlighted column headers */
+.th-rex { font-weight: 700; color: #059669; }
+
+/* Row count display */
+.landscape-row-count {
+  font-size: 12px; color: #64748b; font-family: var(--font-mono);
+}
 </style>
 {% endblock %}
 
@@ -67,11 +76,18 @@
     <div class="breadcrumb">
       <a href="/">Home</a><span class="sep">/</span>
       <a href="/filings/">Filings</a><span class="sep">/</span>
-      <span>L&I Filing Landscape</span>
+      <span>L&I Landscape</span>
     </div>
-    <h1 style="font-size:20px; font-weight:600; color:#0f172a; margin:8px 0 4px;">L&I Filing Landscape</h1>
-    <div style="font-size:13px; color:#94a3b8;">2x / 3x / 4x / 5x SEC Filing Matrix | Source: EDGAR | {{ generated_at }}</div>
+    <h1 style="font-size:20px; font-weight:600; color:#0f172a; margin:8px 0 4px;">L&I Landscape</h1>
+    <div style="font-size:13px; color:#94a3b8;">
+      {% if mode == 'filings' %}
+      2x / 3x / 4x / 5x SEC Filing Matrix | Source: EDGAR | {{ generated_at }}
+      {% else %}
+      Bloomberg L&I Product Universe
+      {% endif %}
+    </div>
   </div>
+  {% if mode == 'filings' %}
   <div style="display:flex; align-items:center; gap:0;">
     <div style="padding:0 20px; border-right:1px solid #e5e7eb; text-align:center;">
       <div style="font-size:24px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ kpis.count_2x }}</div>
@@ -98,83 +114,24 @@
       <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:#94a3b8;">UNIQUE NAMES</div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 {% include "_filings_subnav.html" %}
 
-<!-- ==================== FILTERS ==================== -->
-<div class="sg-filter-bar">
-  <a href="/filings/landscape?leverage=all&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == 'all' %} active{% endif %}">All</a>
-  <a href="/filings/landscape?leverage=2x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '2x' %} active{% endif %}">2x</a>
-  <a href="/filings/landscape?leverage=3x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '3x' %} active{% endif %}">3x</a>
-  <a href="/filings/landscape?leverage=4x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '4x' %} active{% endif %}">4x</a>
-  <a href="/filings/landscape?leverage=5x&view={{ view }}&q={{ q }}" class="sg-pill{% if leverage == '5x' %} active{% endif %}">5x</a>
-  <span class="sg-divider"></span>
-  <a href="/filings/landscape?leverage={{ leverage }}&view=all&q={{ q }}" class="sg-pill{% if view == 'all' %} active{% endif %}">All Names</a>
-  <a href="/filings/landscape?leverage={{ leverage }}&view=rex-only&q={{ q }}" class="sg-pill{% if view == 'rex-only' %} active{% endif %}">REX Only</a>
-  <a href="/filings/landscape?leverage={{ leverage }}&view=missing&q={{ q }}" class="sg-pill{% if view == 'missing' %} active{% endif %}">Missing</a>
-  <span class="sg-divider"></span>
-  <form method="get" action="/filings/landscape" style="display:flex; gap:4px; margin:0;">
-    <input type="hidden" name="leverage" value="{{ leverage }}">
-    <input type="hidden" name="view" value="{{ view }}">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search underlier..." class="sg-search">
-    <button type="submit" class="sg-pill active" style="cursor:pointer;">Go</button>
-  </form>
-  {% if q %}
-  <a href="/filings/landscape?leverage={{ leverage }}&view={{ view }}" class="sg-clear">Clear</a>
-  {% endif %}
+<!-- ==================== MODE TABS ==================== -->
+<div class="landscape-tabs">
+  <a href="/filings/landscape?mode=filings" class="landscape-tab{% if mode == 'filings' %} active{% endif %}">Filings</a>
+  <a href="/filings/landscape?mode=products" class="landscape-tab{% if mode == 'products' %} active{% endif %}">Products</a>
 </div>
 
-<!-- ==================== MATRIX TABLES ==================== -->
-<div class="screener-wrap">
-{% for lev in display_leverages %}
-{% set matrix = filtered_matrices[lev] %}
-{% set issuers = active_issuers.get(lev, []) %}
-{% if matrix %}
-<div class="sg-section"{% if not loop.first %} style="margin-top:32px;"{% endif %}>
-  <h2>{{ lev }} Filing Matrix</h2>
-  <span class="sg-badge">{{ matrix|length }} names / {{ issuers|length }} issuers</span>
-</div>
-<div class="table-scroll-wrap">
-<table id="matrix{{ lev }}">
-  <thead>
-    <tr>
-      <th style="min-width:160px;" onclick="sortTable('matrix{{ lev }}',0)">Underlier</th>
-      {% for iss in issuers %}
-      <th style="text-align:center; min-width:80px;{% if iss in ('T-REX', 'REX') %} font-weight:700;{% endif %}" onclick="sortTable('matrix{{ lev }}',{{ loop.index }})">{{ iss }}</th>
-      {% endfor %}
-    </tr>
-  </thead>
-  <tbody>
-    {% for underlier in matrix.keys()|sort %}
-    {% set issuers_map = matrix[underlier] %}
-    <tr>
-      <td style="font-weight:600;">{{ underlier }}</td>
-      {% for iss in issuers %}
-      <td style="text-align:center;">
-        {% if iss in issuers_map %}
-        <span class="matrix-dot {% if iss in ('T-REX', 'REX') %}matrix-dot-rex{% else %}matrix-dot-other{% endif %}">&#9679;</span>
-        {% endif %}
-      </td>
-      {% endfor %}
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div>
-{% endif %}
-{% endfor %}
-</div>
-
-{% if not any_results %}
-<div style="margin-top:24px; padding:16px 20px; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px;">
-  <div style="font-size:16px; font-weight:600; color:#0f172a; margin-bottom:4px;">No results</div>
-  <p style="font-size:13px; color:#64748b; margin:0;">No names match your current filters. Try broadening your search.</p>
-</div>
-{% endif %}
+{% if mode == 'filings' %}
+{# ================================================================
+   FILINGS MODE — Issuer Scorecard + Single Flat Matrix Table
+   ================================================================ #}
 
 <!-- ==================== ISSUER SCORECARD ==================== -->
-<div class="sg-section" style="margin-top:32px;">
+<div class="sg-section">
   <h2>Issuer Scorecard</h2>
   <span class="sg-badge">{{ issuer_scorecard|length }} issuers</span>
 </div>
@@ -209,30 +166,239 @@
 </div>
 </div>
 
-<!-- ==================== BLOOMBERG ANALYSIS ACCORDION ==================== -->
-<div class="sg-accordion">
-  <div class="sg-accordion-hd" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
-    <h3>Bloomberg Analysis Tools</h3>
-    <span style="font-size:12px; color:#64748b;">&#9654;</span>
-  </div>
-  <div class="sg-accordion-bd">
-    {% if bloomberg_available %}
-    <p style="font-size:13px; color:#64748b; margin-bottom:12px;">
-      Bloomberg-powered analysis using data from <code style="font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:3px;">data/SCREENER/data.xlsx</code>.
-    </p>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <a href="/screener/3x-analysis" class="sg-pill">3x Analysis</a>
-      <a href="/screener/4x" class="sg-pill">4x Candidates</a>
-      <a href="/screener/market" class="sg-pill">Market Landscape</a>
-      <a href="/screener/rex-funds" class="sg-pill">REX Portfolio</a>
-      <a href="/screener/risk" class="sg-pill">Risk Watchlist</a>
-      <a href="/screener/evaluate" class="sg-pill">Evaluate</a>
-    </div>
-    {% else %}
-    <div style="background:#fffbeb; border-left:2px solid #d97706; padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; color:#374151;">
-      <strong>No Bloomberg data available.</strong> Run the daily pipeline to load and score Bloomberg data.
-    </div>
-    {% endif %}
-  </div>
+<!-- ==================== FILTERS (JS client-side) ==================== -->
+<div class="sg-section" style="margin-top:32px;">
+  <h2>Filing Matrix</h2>
+  <span class="sg-badge landscape-row-count" id="rowCount">{{ flat_rows|length }} rows</span>
 </div>
+
+<div class="sg-filter-bar">
+  {# Leverage filter pills #}
+  <button type="button" class="sg-pill active" data-filter-group="lev" data-value="all" onclick="setFilter(this)">All</button>
+  <button type="button" class="sg-pill" data-filter-group="lev" data-value="2x" onclick="setFilter(this)">2x</button>
+  <button type="button" class="sg-pill" data-filter-group="lev" data-value="3x" onclick="setFilter(this)">3x</button>
+  <button type="button" class="sg-pill" data-filter-group="lev" data-value="4x" onclick="setFilter(this)">4x</button>
+  <button type="button" class="sg-pill" data-filter-group="lev" data-value="5x" onclick="setFilter(this)">5x</button>
+  <span class="sg-divider"></span>
+  {# View filter pills #}
+  <button type="button" class="sg-pill active" data-filter-group="view" data-value="all" onclick="setFilter(this)">All Names</button>
+  <button type="button" class="sg-pill" data-filter-group="view" data-value="rex-only" onclick="setFilter(this)">T-REX Only</button>
+  <button type="button" class="sg-pill" data-filter-group="view" data-value="missing" onclick="setFilter(this)">Gaps</button>
+  <span class="sg-divider"></span>
+  {# Search input #}
+  <input type="text" id="underlierSearch" placeholder="Search underlier..." class="sg-search" oninput="filterLandscape()">
+</div>
+
+<!-- ==================== SINGLE FLAT MATRIX TABLE ==================== -->
+<div class="screener-wrap">
+<div class="table-scroll-wrap">
+<table id="landscapeTable">
+  <thead>
+    <tr>
+      <th style="min-width:140px;" onclick="sortTable('landscapeTable',0)">Underlier</th>
+      <th style="min-width:60px; text-align:center;" onclick="sortTable('landscapeTable',1)">Leverage</th>
+      {% for iss in all_issuers %}
+      <th style="text-align:center; min-width:80px;{% if iss in ('T-REX', 'REX') %} color:#059669;{% endif %}" class="{% if iss in ('T-REX', 'REX') %}th-rex{% endif %}" onclick="sortTable('landscapeTable',{{ loop.index + 1 }})">{{ iss }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in flat_rows %}
+    <tr data-leverage="{{ row.leverage }}" data-rex="{{ 'true' if row.has_rex else 'false' }}" data-underlier="{{ row.underlier }}">
+      <td style="font-weight:600;">{{ row.underlier }}</td>
+      <td style="text-align:center; font-size:12px; font-weight:500; color:#64748b;">{{ row.leverage }}</td>
+      {% for iss in all_issuers %}
+      <td style="text-align:center;">
+        {% if iss in row.issuers %}
+        <span class="matrix-dot {% if iss in ('T-REX', 'REX') %}matrix-dot-rex{% else %}matrix-dot-other{% endif %}">&#9679;</span>
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+{% if not flat_rows %}
+<div style="margin-top:24px; padding:16px 20px; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px;">
+  <div style="font-size:16px; font-weight:600; color:#0f172a; margin-bottom:4px;">No data</div>
+  <p style="font-size:13px; color:#64748b; margin:0;">No filing data available. Run the pipeline to populate the database.</p>
+</div>
+{% endif %}
+
+{% else %}
+{# ================================================================
+   PRODUCTS MODE — Bloomberg L&I ETF/ETN Universe
+   ================================================================ #}
+
+{% if products_error %}
+<div style="margin-top:8px; padding:16px 20px; background:#fffbeb; border:1px solid #fbbf24; border-left:3px solid #d97706; border-radius:6px;">
+  <div style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:4px;">Bloomberg Data Required</div>
+  <p style="font-size:13px; color:#64748b; margin:0;">{{ products_error }}</p>
+</div>
+{% elif products %}
+
+<!-- Filters (JS client-side) -->
+<div class="sg-section">
+  <h2>L&I Products</h2>
+  <span class="sg-badge landscape-row-count" id="productCount">{{ products|length }} products</span>
+</div>
+
+<div class="sg-filter-bar">
+  {# Leverage filter #}
+  <button type="button" class="sg-pill active" data-filter-group="prod-lev" data-value="all" onclick="setFilter(this)">All</button>
+  <button type="button" class="sg-pill" data-filter-group="prod-lev" data-value="2" onclick="setFilter(this)">2x</button>
+  <button type="button" class="sg-pill" data-filter-group="prod-lev" data-value="3" onclick="setFilter(this)">3x</button>
+  <button type="button" class="sg-pill" data-filter-group="prod-lev" data-value="4" onclick="setFilter(this)">4x</button>
+  <span class="sg-divider"></span>
+  {# Direction filter #}
+  <button type="button" class="sg-pill active" data-filter-group="prod-dir" data-value="all" onclick="setFilter(this)">All</button>
+  <button type="button" class="sg-pill" data-filter-group="prod-dir" data-value="long" onclick="setFilter(this)">Long</button>
+  <button type="button" class="sg-pill" data-filter-group="prod-dir" data-value="short" onclick="setFilter(this)">Short</button>
+  <span class="sg-divider"></span>
+  {# REX Only toggle #}
+  <button type="button" class="sg-pill" data-filter-group="prod-rex" data-value="all" onclick="setFilter(this)" style="display:none;"></button>
+  <button type="button" class="sg-pill" id="rexToggle" onclick="toggleRex(this)">REX Only</button>
+  <span class="sg-divider"></span>
+  <input type="text" id="productSearch" placeholder="Search ticker/name..." class="sg-search" oninput="filterProducts()">
+</div>
+
+<div class="screener-wrap">
+<div class="table-scroll-wrap">
+<table id="productsTable">
+  <thead>
+    <tr>
+      <th onclick="sortTable('productsTable',0)" style="min-width:80px;">Ticker</th>
+      <th onclick="sortTable('productsTable',1)" style="min-width:240px;">Fund Name</th>
+      <th onclick="sortTable('productsTable',2)" style="min-width:120px;">Issuer</th>
+      <th onclick="sortTable('productsTable',3)" style="text-align:center; min-width:80px;">Leverage</th>
+      <th onclick="sortTable('productsTable',4)" style="text-align:center; min-width:80px;">Direction</th>
+      <th onclick="sortTable('productsTable',5)" style="text-align:right; min-width:100px;">AUM ($M)</th>
+      <th onclick="sortTable('productsTable',6)" style="text-align:right; min-width:100px;">Flow 1M ($M)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in products %}
+    <tr data-leverage="{{ p.leverage|abs|round(0)|int }}" data-direction="{{ p.direction|lower }}" data-rex="{{ 'true' if p.is_rex else 'false' }}" data-ticker="{{ p.ticker|upper }}" data-name="{{ p.fund_name|upper }}"{% if p.is_rex %} class="scorecard-rex"{% endif %}>
+      <td style="font-weight:600; font-family:var(--font-mono); font-size:13px;">{{ p.ticker }}</td>
+      <td style="font-size:13px;">{{ p.fund_name }}</td>
+      <td style="font-size:13px;{% if p.is_rex %} font-weight:600; color:#059669;{% endif %}">{{ p.issuer }}</td>
+      <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ p.leverage }}x</td>
+      <td style="text-align:center; font-size:12px; font-weight:500; color:{% if 'long' in p.direction|lower %}#059669{% elif 'short' in p.direction|lower or 'inverse' in p.direction|lower %}#dc2626{% else %}#64748b{% endif %};">{{ p.direction }}</td>
+      <td style="text-align:right; font-variant-numeric:tabular-nums;" data-sort="{{ p.aum }}">{{ '{:,.1f}'.format(p.aum) if p.aum else '--' }}</td>
+      <td style="text-align:right; font-variant-numeric:tabular-nums; color:{% if p.flow_1m > 0 %}#059669{% elif p.flow_1m < 0 %}#dc2626{% else %}#64748b{% endif %};" data-sort="{{ p.flow_1m }}">{{ '{:,.1f}'.format(p.flow_1m) if p.flow_1m else '--' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+{% else %}
+<div style="margin-top:8px; padding:16px 20px; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px;">
+  <div style="font-size:16px; font-weight:600; color:#0f172a; margin-bottom:4px;">No products found</div>
+  <p style="font-size:13px; color:#64748b; margin:0;">No L&I products available. Check Bloomberg data file.</p>
+</div>
+{% endif %}
+
+{% endif %}
+
+<script>
+/* ===== Client-side filtering for both modes ===== */
+
+function setFilter(btn) {
+    var group = btn.getAttribute('data-filter-group');
+    document.querySelectorAll('[data-filter-group="' + group + '"]').forEach(function(p) {
+        p.classList.remove('active');
+    });
+    btn.classList.add('active');
+
+    if (group === 'lev' || group === 'view') {
+        filterLandscape();
+    } else {
+        filterProducts();
+    }
+}
+
+/* --- Filings mode filtering --- */
+function filterLandscape() {
+    var levBtn = document.querySelector('[data-filter-group="lev"].active');
+    var viewBtn = document.querySelector('[data-filter-group="view"].active');
+    var lev = levBtn ? levBtn.getAttribute('data-value') : 'all';
+    var view = viewBtn ? viewBtn.getAttribute('data-value') : 'all';
+    var q = (document.getElementById('underlierSearch') || {}).value;
+    q = q ? q.toUpperCase() : '';
+
+    var rows = document.querySelectorAll('#landscapeTable tbody tr');
+    var visible = 0;
+
+    rows.forEach(function(row) {
+        var rowLev = row.getAttribute('data-leverage');
+        var rowRex = row.getAttribute('data-rex') === 'true';
+        var rowName = row.getAttribute('data-underlier') || '';
+
+        var show = true;
+        if (lev !== 'all' && rowLev !== lev) show = false;
+        if (view === 'rex-only' && !rowRex) show = false;
+        if (view === 'missing' && rowRex) show = false;
+        if (q && rowName.toUpperCase().indexOf(q) === -1) show = false;
+
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    var counter = document.getElementById('rowCount');
+    if (counter) counter.textContent = visible + ' rows';
+}
+
+/* --- Products mode filtering --- */
+var _rexOnly = false;
+
+function toggleRex(btn) {
+    _rexOnly = !_rexOnly;
+    if (_rexOnly) {
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+    filterProducts();
+}
+
+function filterProducts() {
+    var levBtn = document.querySelector('[data-filter-group="prod-lev"].active');
+    var dirBtn = document.querySelector('[data-filter-group="prod-dir"].active');
+    var lev = levBtn ? levBtn.getAttribute('data-value') : 'all';
+    var dir = dirBtn ? dirBtn.getAttribute('data-value') : 'all';
+    var q = (document.getElementById('productSearch') || {}).value;
+    q = q ? q.toUpperCase() : '';
+
+    var rows = document.querySelectorAll('#productsTable tbody tr');
+    var visible = 0;
+
+    rows.forEach(function(row) {
+        var rowLev = row.getAttribute('data-leverage');
+        var rowDir = row.getAttribute('data-direction') || '';
+        var rowRex = row.getAttribute('data-rex') === 'true';
+        var rowTicker = row.getAttribute('data-ticker') || '';
+        var rowName = row.getAttribute('data-name') || '';
+
+        var show = true;
+        if (lev !== 'all' && rowLev !== lev) show = false;
+        if (dir !== 'all') {
+            if (dir === 'long' && rowDir.indexOf('long') === -1) show = false;
+            if (dir === 'short' && rowDir.indexOf('short') === -1 && rowDir.indexOf('inverse') === -1) show = false;
+        }
+        if (_rexOnly && !rowRex) show = false;
+        if (q && rowTicker.indexOf(q) === -1 && rowName.indexOf(q) === -1) show = false;
+
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    var counter = document.getElementById('productCount');
+    if (counter) counter.textContent = visible + ' products';
+}
+</script>
 {% endblock %}

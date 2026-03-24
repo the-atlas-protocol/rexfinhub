@@ -466,62 +466,117 @@ def filings_dashboard(
 def filing_landscape(
     request: Request,
     db: Session = Depends(get_db),
+    mode: str = Query("filings"),
     leverage: str = Query("all"),
     view: str = Query("all"),
     q: str = Query(""),
 ):
-    """Competitive Filing Landscape - the main screener landing page."""
-    from webapp.services.filing_landscape import build_filing_landscape
+    """L&I Landscape - filing matrix (SEC) and product data (Bloomberg)."""
+    if mode not in ("filings", "products"):
+        mode = "filings"
 
-    data = build_filing_landscape(db)
-    matrices = data["matrices"]
+    # ------------------------------------------------------------------
+    # Filings mode: SEC filing matrix
+    # ------------------------------------------------------------------
+    if mode == "filings":
+        from webapp.services.filing_landscape import build_filing_landscape
 
-    # Determine which leverage levels to show
-    if leverage in ("2x", "3x", "4x", "5x"):
-        display_leverages = [leverage]
-    else:
-        display_leverages = ["2x", "3x", "4x", "5x"]
+        data = build_filing_landscape(db)
+        matrices = data["matrices"]
 
-    # Apply view filter (rex-only / missing)
-    filtered_matrices = {}
-    for lev in display_leverages:
-        matrix = dict(matrices.get(lev, {}))
-        if view == "rex-only":
-            matrix = {
-                u: iss_map for u, iss_map in matrix.items()
-                if len(iss_map) == 1 and any(i in REX_ISSUERS for i in iss_map)
-            }
-        elif view == "missing":
-            matrix = {
-                u: iss_map for u, iss_map in matrix.items()
-                if not any(i in REX_ISSUERS for i in iss_map)
-            }
+        # Build flat rows for the single unified table
+        all_issuers_ordered = data["all_active_issuers"]
+        flat_rows = []
+        for lev in ("2x", "3x", "4x", "5x"):
+            for underlier in sorted(matrices.get(lev, {}).keys()):
+                issuers_map = matrices[lev][underlier]
+                has_rex = any(i in REX_ISSUERS for i in issuers_map)
+                flat_rows.append({
+                    "underlier": underlier,
+                    "leverage": lev,
+                    "issuers": issuers_map,
+                    "has_rex": has_rex,
+                })
 
-        # Apply search filter
-        if q:
-            q_upper = q.upper()
-            matrix = {
-                u: iss_map for u, iss_map in matrix.items()
-                if q_upper in u.upper()
-            }
+        return templates.TemplateResponse("screener_landscape.html", {
+            "request": request,
+            "mode": "filings",
+            "kpis": data["kpis"],
+            "flat_rows": flat_rows,
+            "all_issuers": all_issuers_ordered,
+            "issuer_scorecard": data["issuer_scorecard"],
+            "generated_at": data["generated_at"],
+            "leverage": leverage,
+            "view": view,
+            "q": q,
+        })
 
-        filtered_matrices[lev] = matrix
+    # ------------------------------------------------------------------
+    # Products mode: Bloomberg L&I product data
+    # ------------------------------------------------------------------
+    products = []
+    products_error = ""
+    try:
+        from screener.data_loader import load_etp_data
+        import pandas as pd
 
-    any_results = any(bool(m) for m in filtered_matrices.values())
+        etp_df = load_etp_data()
+
+        # Determine leverage column
+        lev_col = None
+        for candidate in [
+            "q_category_attributes.map_li_leverage_amount",
+            "map_li_leverage_amount",
+        ]:
+            if candidate in etp_df.columns:
+                lev_col = candidate
+                break
+
+        if lev_col:
+            etp_df["_lev"] = pd.to_numeric(etp_df[lev_col], errors="coerce").fillna(0)
+        else:
+            etp_df["_lev"] = 0
+
+        li_products = etp_df[etp_df["_lev"].abs() >= 1.5].copy()
+
+        # Direction column
+        dir_col = None
+        for candidate in [
+            "q_category_attributes.map_li_direction",
+            "map_li_direction",
+        ]:
+            if candidate in etp_df.columns:
+                dir_col = candidate
+                break
+
+        for _, row in li_products.iterrows():
+            direction = str(row.get(dir_col, "")) if dir_col else ""
+            products.append({
+                "ticker": str(row.get("ticker", "")),
+                "fund_name": str(row.get("fund_name", "")),
+                "issuer": str(row.get("issuer_display", row.get("issuer", ""))),
+                "leverage": float(row.get("_lev", 0)),
+                "direction": direction,
+                "aum": round(float(row.get("t_w4.aum", 0) or 0), 1),
+                "flow_1m": round(float(row.get("t_w4.fund_flow_1month", 0) or 0), 1),
+                "is_rex": bool(row.get("is_rex", False)),
+            })
+
+        products.sort(key=lambda x: x["aum"], reverse=True)
+    except FileNotFoundError:
+        products_error = "Product data requires Bloomberg. Available locally."
+    except Exception as e:
+        log.warning("Failed to load L&I products: %s", e)
+        products_error = "Product data requires Bloomberg. Available locally."
 
     return templates.TemplateResponse("screener_landscape.html", {
         "request": request,
-        "kpis": data["kpis"],
-        "filtered_matrices": filtered_matrices,
-        "active_issuers": data["active_issuers"],
-        "issuer_scorecard": data["issuer_scorecard"],
-        "generated_at": data["generated_at"],
-        "bloomberg_available": data_available(),
+        "mode": "products",
+        "products": products,
+        "products_error": products_error,
         "leverage": leverage,
         "view": view,
         "q": q,
-        "display_leverages": display_leverages,
-        "any_results": any_results,
     })
 
 

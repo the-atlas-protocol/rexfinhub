@@ -35,8 +35,8 @@ ISSUER_MAP = {
 }
 
 ISSUER_ORDER = [
-    "T-REX", "ProShares", "Direxion", "GraniteShares", "Defiance",
-    "Vol Shares", "Tradr", "Lev Shares", "LevMax", "Roundhill",
+    "T-REX", "REX", "ProShares", "Direxion", "GraniteShares", "Defiance",
+    "Vol Shares", "Tradr", "Lev Shares", "LevMax", "Roundhill", "Kurv",
 ]
 
 REX_ISSUERS = {"T-REX", "REX"}

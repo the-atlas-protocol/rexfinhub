@@ -155,15 +155,15 @@
 
 <!-- ==================== LEVERAGE TOGGLE ==================== -->
 <div style="display:flex; gap:8px; margin-bottom:24px;">
-  <button class="lev-toggle active" onclick="showLeverage('3x')">3x Candidates</button>
+  <button class="lev-toggle active" onclick="showLeverage('2x')">2x Candidates</button>
+  <button class="lev-toggle" onclick="showLeverage('3x')">3x Candidates</button>
   <button class="lev-toggle" onclick="showLeverage('4x')">4x Candidates</button>
-  <button class="lev-toggle" onclick="showLeverage('2x')">2x Candidates</button>
 </div>
 
 <!-- ================================================================ -->
 <!-- ==================== 3x SECTION ================================ -->
 <!-- ================================================================ -->
-<div id="lev-3x">
+<div id="lev-3x" style="display:none;">
 
 <!-- KPI ROW 1: 3x MARKET -->
 <div class="kpi-row">
@@ -549,7 +549,7 @@
 <!-- ================================================================ -->
 <!-- ==================== 2x SECTION ================================ -->
 <!-- ================================================================ -->
-<div id="lev-2x" style="display:none;">
+<div id="lev-2x">
 
 {% set two_x = two_x_candidates|default([]) %}
 {% set two_x_tier1 = two_x|selectattr('tier', 'equalto', 1)|list %}
