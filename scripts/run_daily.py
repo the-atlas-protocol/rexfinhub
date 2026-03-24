@@ -95,6 +95,47 @@ def upload_db_to_render() -> None:
             pass
 
 
+def upload_screener_cache_to_render() -> None:
+    """Upload pre-computed screener cache JSON to Render (237KB, instant).
+
+    This ensures the candidates/evaluator pages show data on the live site
+    without needing the full 1GB+ DB upload to succeed.
+    """
+    import json
+    import requests
+
+    try:
+        from webapp.services.screener_3x_cache import get_3x_analysis
+        data = get_3x_analysis()
+        if not data:
+            print("  No screener cache in memory, skipping.")
+            return
+
+        # Write to temp file
+        cache_path = PROJECT_ROOT / "temp" / "screener_cache.json"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(cache_path, "w") as f:
+            json.dump(data, f, default=str)
+        size_kb = cache_path.stat().st_size / 1024
+
+        # Login as admin and upload
+        session = requests.Session()
+        session.post(f"{DASHBOARD_URL}/login", data={"password": "***REDACTED***", "next": "/"})
+        with open(cache_path, "rb") as f:
+            resp = session.post(
+                f"{DASHBOARD_URL}/admin/upload/screener-cache",
+                files={"file": ("screener_cache.json", f, "application/json")},
+                timeout=30,
+            )
+        if resp.status_code == 200:
+            keys = resp.json().get("keys", [])
+            print(f"  Uploaded {size_kb:.0f} KB ({len(keys)} keys: {', '.join(keys[:5])}...)")
+        else:
+            print(f"  Upload failed: {resp.status_code} {resp.text[:200]}")
+    except Exception as e:
+        print(f"  Screener cache upload failed (non-fatal): {e}")
+
+
 def main():
     start = time.time()
     today = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -160,8 +201,12 @@ def main():
     except Exception as e:
         print(f"  DB compact failed (non-fatal): {e}")
 
-    # Step 4: Upload DB to Render
-    print("\n[4/4] Uploading database to Render...")
+    # Step 4: Upload screener cache to Render (237KB, always works)
+    print("\n[4/5] Uploading screener cache to Render...")
+    upload_screener_cache_to_render()
+
+    # Step 5: Upload DB to Render (large, may fail on Starter plan)
+    print("\n[5/5] Uploading database to Render...")
     upload_db_to_render()
 
     elapsed = time.time() - start
