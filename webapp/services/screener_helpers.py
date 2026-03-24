@@ -69,10 +69,13 @@ def cache_warming() -> bool:
 
 def serialize_eval(r: dict) -> dict:
     """Convert evaluation result to JSON-safe dict."""
+    from datetime import date, datetime
 
     def _clean(v):
         if v is None:
             return None
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
         if isinstance(v, float):
             if math.isnan(v) or math.isinf(v):
                 return None

@@ -410,7 +410,7 @@ def filings_dashboard(
         .where(Filing.filing_date == date.today())
     ).scalar() or 0
 
-    # Competitor filings this week (non-REX trusts, grouped by trust)
+    # Competitor new fund filings this week (485BPOS/485APOS only — new funds, not supplements)
     week_ago = date.today() - timedelta(days=7)
     competitor_filings = db.execute(text("""
         SELECT t.name as trust_name, t.id as trust_id,
@@ -421,6 +421,7 @@ def filings_dashboard(
         JOIN trusts t ON f.trust_id = t.id
         LEFT JOIN fund_extractions fe ON fe.filing_id = f.id
         WHERE f.filing_date >= :week_ago
+        AND (f.form LIKE '485BPOS%' OR f.form LIKE '485APOS%')
         AND t.name NOT LIKE '%REX%'
         AND t.name NOT LIKE '%T-REX%'
         AND t.name NOT LIKE '%MicroSectors%'
