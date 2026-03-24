@@ -71,7 +71,7 @@ def _safe_redirect(url: str) -> str:
 
 
 # Paths that don't require site auth
-_PUBLIC_PREFIXES = ("/login", "/static/", "/health", "/api/v1/", "/favicon")
+_PUBLIC_PREFIXES = ("/login", "/static/", "/health", "/api/v1/", "/favicon", "/debug-test")
 
 
 class SiteAuthMiddleware(BaseHTTPMiddleware):
@@ -264,6 +264,16 @@ def create_app() -> FastAPI:
         if not _caches_ready:
             return JSONResponse(resp, status_code=503)
         return resp
+
+    @app.get("/debug-test")
+    def debug_test(request: Request):
+        """Diagnostic: test template rendering without auth."""
+        try:
+            return templates.TemplateResponse("login.html", {
+                "request": request, "error": None, "next_url": "/"
+            })
+        except Exception as e:
+            return JSONResponse({"error": str(e), "type": type(e).__name__}, status_code=500)
 
     # --- Maintenance banner (in-memory, resets on deploy) ---
     @app.get("/api/v1/maintenance")
