@@ -211,6 +211,9 @@ def compute_and_cache() -> dict:
         # 2x filing candidates (fundamentals-only scoring)
         two_x_candidates = compute_2x_candidates(scored, etp_df)
 
+        # L&I products for landscape products tab (leverage >= 1.5x)
+        li_products = _build_li_products(etp_df)
+
         result = {
             "snapshot": snapshot,
             "top_2x": top_2x,
@@ -220,13 +223,65 @@ def compute_and_cache() -> dict:
             "four_x": four_x,
             "two_x_candidates": two_x_candidates,
             "risk_watchlist": risk_watchlist,
+            "li_products": li_products,
             "data_date": data_date,
             "computed_at": datetime.now().strftime("%b %d, %Y %H:%M"),
         }
 
         _cache = result
-        log.info("3x analysis complete: %d tier1, %d tier2, %d tier3, %d 4x, %d 2x-cand, %d risk",
+        log.info("3x analysis complete: %d tier1, %d tier2, %d tier3, %d 4x, %d 2x-cand, %d risk, %d li-products",
                  len(tiers.get("tier_1", [])), len(tiers.get("tier_2", [])),
                  len(tiers.get("tier_3", [])), len(four_x), len(two_x_candidates),
-                 len(risk_watchlist))
+                 len(risk_watchlist), len(li_products))
         return result
+
+
+def _build_li_products(etp_df) -> list[dict]:
+    """Extract L&I products (leverage >= 1.5x) from ETP data for the landscape products tab."""
+    import pandas as pd
+
+    # Determine leverage column
+    lev_col = None
+    for candidate in [
+        "q_category_attributes.map_li_leverage_amount",
+        "map_li_leverage_amount",
+    ]:
+        if candidate in etp_df.columns:
+            lev_col = candidate
+            break
+
+    if lev_col:
+        etp_df = etp_df.copy()
+        etp_df["_lev"] = pd.to_numeric(etp_df[lev_col], errors="coerce").fillna(0)
+    else:
+        return []
+
+    li_df = etp_df[etp_df["_lev"].abs() >= 1.5]
+
+    # Determine direction column
+    dir_col = None
+    for candidate in [
+        "q_category_attributes.map_li_direction",
+        "map_li_direction",
+    ]:
+        if candidate in etp_df.columns:
+            dir_col = candidate
+            break
+
+    products = []
+    for _, row in li_df.iterrows():
+        direction = str(row.get(dir_col, "")) if dir_col else ""
+        products.append({
+            "ticker": str(row.get("ticker", "")),
+            "fund_name": str(row.get("fund_name", "")),
+            "issuer": str(row.get("issuer_display", row.get("issuer", ""))),
+            "leverage": float(row.get("_lev", 0)),
+            "direction": direction,
+            "aum": round(float(row.get("t_w4.aum", 0) or 0), 1),
+            "flow_1m": round(float(row.get("t_w4.fund_flow_1month", 0) or 0), 1),
+            "is_rex": bool(row.get("is_rex", False)),
+        })
+
+    products.sort(key=lambda x: x["aum"], reverse=True)
+    log.info("L&I products extracted: %d products", len(products))
+    return products

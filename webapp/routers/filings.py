@@ -512,62 +512,16 @@ def filing_landscape(
         })
 
     # ------------------------------------------------------------------
-    # Products mode: Bloomberg L&I product data
+    # Products mode: load from screener cache (works on Render + local)
     # ------------------------------------------------------------------
     products = []
     products_error = ""
-    try:
-        from screener.data_loader import load_etp_data
-        import pandas as pd
 
-        etp_df = load_etp_data()
-
-        # Determine leverage column
-        lev_col = None
-        for candidate in [
-            "q_category_attributes.map_li_leverage_amount",
-            "map_li_leverage_amount",
-        ]:
-            if candidate in etp_df.columns:
-                lev_col = candidate
-                break
-
-        if lev_col:
-            etp_df["_lev"] = pd.to_numeric(etp_df[lev_col], errors="coerce").fillna(0)
-        else:
-            etp_df["_lev"] = 0
-
-        li_products = etp_df[etp_df["_lev"].abs() >= 1.5].copy()
-
-        # Direction column
-        dir_col = None
-        for candidate in [
-            "q_category_attributes.map_li_direction",
-            "map_li_direction",
-        ]:
-            if candidate in etp_df.columns:
-                dir_col = candidate
-                break
-
-        for _, row in li_products.iterrows():
-            direction = str(row.get(dir_col, "")) if dir_col else ""
-            products.append({
-                "ticker": str(row.get("ticker", "")),
-                "fund_name": str(row.get("fund_name", "")),
-                "issuer": str(row.get("issuer_display", row.get("issuer", ""))),
-                "leverage": float(row.get("_lev", 0)),
-                "direction": direction,
-                "aum": round(float(row.get("t_w4.aum", 0) or 0), 1),
-                "flow_1m": round(float(row.get("t_w4.fund_flow_1month", 0) or 0), 1),
-                "is_rex": bool(row.get("is_rex", False)),
-            })
-
-        products.sort(key=lambda x: x["aum"], reverse=True)
-    except FileNotFoundError:
-        products_error = "Product data requires Bloomberg. Available locally."
-    except Exception as e:
-        log.warning("Failed to load L&I products: %s", e)
-        products_error = "Product data requires Bloomberg. Available locally."
+    analysis = get_3x_data()
+    if analysis and analysis.get("li_products"):
+        products = analysis["li_products"]
+    else:
+        products_error = "Product data not yet cached. Score Bloomberg data from the Admin panel first."
 
     return templates.TemplateResponse("screener_landscape.html", {
         "request": request,
@@ -648,7 +602,7 @@ def filing_evaluator_api(
 
     if _ON_RENDER:
         return JSONResponse(
-            {"error": "Evaluation requires Bloomberg data (run locally)."},
+            {"error": "Stock evaluation available locally only. Use L&I Filing Candidates for pre-scored results."},
             status_code=404,
         )
 

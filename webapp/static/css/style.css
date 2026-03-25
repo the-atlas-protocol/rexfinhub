@@ -395,7 +395,7 @@ th, .data-table thead th, .rt-table thead th {
   letter-spacing: 0.04em;
   white-space: nowrap; user-select: none;
   border-bottom: 2px solid #e5e7eb;
-  position: sticky; top: 0; z-index: 2;
+  position: sticky; top: var(--nav-height); z-index: 2;
 }
 /* Numeric header alignment */
 .rt-th.rt-num, th.num-col { text-align: right; }
