@@ -2221,3 +2221,4 @@ body, .sticky-nav, table, th, td, .kpi, .trust-card, .trust-block,
 .ticker-val { color: rgba(255,255,255,0.9); font-family: var(--font-mono); font-size: 12px; }
 .ticker-track:hover { animation-play-state: paused; }
 [data-theme="dark"] .ticker-strip { background: #080c10; }
+/* cache-bust 1774451644 */
