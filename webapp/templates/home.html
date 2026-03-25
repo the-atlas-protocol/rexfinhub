@@ -346,7 +346,7 @@
         <span class="ha-pillar-dot dot-amber"></span>
         Structured Notes
       </div>
-      <span class="ha-pillar-badge">594K products</span>
+      <span class="ha-pillar-badge">{{ "{:,.0f}".format(notes_product_count|default(0)) if notes_product_count else "598K" }} products</span>
     </div>
     <ul class="ha-pillar-links">
       <li><a href="/notes/">Market Overview</a><span class="ha-link-desc">Aggregate issuance and trends</span></li>

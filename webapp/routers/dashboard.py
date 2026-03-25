@@ -75,21 +75,23 @@ def _generate_morning_brief(db: Session) -> str:
     return " ".join(parts)
 
 
-def _get_notes_date() -> str | None:
-    """Get the latest filing date from the structured notes DB on D: drive."""
+def _get_notes_stats() -> dict:
+    """Get date + product count from the structured notes DB."""
+    result = {"date": None, "product_count": 0}
     try:
         import sqlite3
-        notes_db = Path("D:/sec-data/databases/structured_notes.db")
-        if not notes_db.exists():
-            return None
-        conn = sqlite3.connect(str(notes_db))
-        row = conn.execute(
-            "SELECT MAX(filing_date) FROM filings WHERE extracted = 1"
-        ).fetchone()
-        conn.close()
-        return row[0] if row and row[0] else None
+        for db_path in [Path("D:/sec-data/databases/structured_notes.db"), Path("data/structured_notes.db")]:
+            if db_path.exists():
+                conn = sqlite3.connect(str(db_path))
+                row = conn.execute("SELECT MAX(filing_date) FROM filings WHERE extracted = 1").fetchone()
+                result["date"] = row[0] if row and row[0] else None
+                row = conn.execute("SELECT COUNT(*) FROM products").fetchone()
+                result["product_count"] = row[0] if row else 0
+                conn.close()
+                break
     except Exception:
-        return None
+        pass
+    return result
 
 
 @router.get("/")
@@ -133,8 +135,10 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         except Exception:
             pass
 
-    # Data freshness: structured notes
-    notes_date = _get_notes_date()
+    # Data freshness + product count: structured notes
+    notes_stats = _get_notes_stats()
+    notes_date = notes_stats["date"]
+    notes_product_count = notes_stats["product_count"]
 
     # last_sync_date for footer
     last_sync_date = str(filing_date) if filing_date else str(date.today())
@@ -188,6 +192,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         "filing_date": filing_date,
         "ownership_date": "Q4 2025",
         "notes_date": notes_date,
+        "notes_product_count": notes_product_count,
         "last_sync_date": last_sync_date,
         "weekly_fund_filings": weekly_fund_filings,
         "weekly_notes_filings": weekly_notes_filings,
