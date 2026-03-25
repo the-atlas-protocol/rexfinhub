@@ -357,6 +357,40 @@
 
 </div>
 
+<!-- ===== THIS WEEK'S FILINGS ===== -->
+{% if weekly_fund_filings or weekly_notes_filings %}
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px;">
+  {% if weekly_fund_filings %}
+  <div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; border-top:3px solid #059669; padding:20px 24px;">
+    <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; margin-bottom:12px;">This Week's Fund Filings</div>
+    {% for f in weekly_fund_filings %}
+    <a href="/trusts/{{ f.slug }}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9; text-decoration:none; color:#0f172a; font-size:13px;">
+      <span style="font-weight:500;">{{ f.name[:40] }}{% if f.name|length > 40 %}...{% endif %}</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:#94a3b8;">{{ f.forms }}</span>
+        <span style="background:#0f172a; color:#fff; padding:2px 8px; border-radius:100px; font-size:11px; font-weight:600;">{{ f.count }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if weekly_notes_filings %}
+  <div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; border-top:3px solid #2563eb; padding:20px 24px;">
+    <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; margin-bottom:12px;">This Week's Structured Notes</div>
+    {% for n in weekly_notes_filings %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:13px; color:#0f172a;">
+      <span style="font-weight:500;">{{ n.issuer }}</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:#94a3b8;">{{ n.date }}</span>
+        <span style="background:#2563eb; color:#fff; padding:2px 8px; border-radius:100px; font-size:11px; font-weight:600;">{{ n.count }}</span>
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <!-- ===== DATA FRESHNESS ===== -->
 <div class="ha-freshness">
   Market: {{ market_date or 'N/A' }} &middot; Filings: {{ filing_date or 'N/A' }} &middot; 13F: {{ ownership_date or 'Q4 2025' }} &middot; Notes: {{ notes_date or 'N/A' }}

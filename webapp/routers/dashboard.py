@@ -139,6 +139,48 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     # last_sync_date for footer
     last_sync_date = str(filing_date) if filing_date else str(date.today())
 
+    # This week's fund filings (trust-level, last 7 days)
+    week_ago = date.today() - timedelta(days=7)
+    weekly_fund_filings = []
+    try:
+        rows = db.execute(text("""
+            SELECT t.name, t.slug, COUNT(DISTINCT f.id) as cnt,
+                   GROUP_CONCAT(DISTINCT f.form) as forms,
+                   MAX(f.filing_date) as latest
+            FROM filings f
+            JOIN trusts t ON f.trust_id = t.id
+            WHERE f.filing_date >= :cutoff AND t.is_active = 1
+            GROUP BY t.id ORDER BY latest DESC LIMIT 10
+        """), {"cutoff": str(week_ago)}).fetchall()
+        weekly_fund_filings = [
+            {"name": r[0], "slug": r[1], "count": r[2], "forms": r[3], "date": r[4]}
+            for r in rows
+        ]
+    except Exception:
+        pass
+
+    # This week's structured notes filings
+    weekly_notes_filings = []
+    try:
+        import sqlite3
+        for db_path in [Path("D:/sec-data/databases/structured_notes.db"), Path("data/structured_notes.db")]:
+            if db_path.exists():
+                conn = sqlite3.connect(str(db_path))
+                rows = conn.execute("""
+                    SELECT p.parent_issuer, COUNT(*) as cnt, MAX(f.filing_date) as latest
+                    FROM products p JOIN filings f ON p.filing_id = f.id
+                    WHERE f.filing_date >= date('now', '-7 days') AND f.extracted = 1
+                    GROUP BY p.parent_issuer ORDER BY cnt DESC LIMIT 10
+                """).fetchall()
+                weekly_notes_filings = [
+                    {"issuer": r[0], "count": r[1], "date": r[2]}
+                    for r in rows
+                ]
+                conn.close()
+                break
+    except Exception:
+        pass
+
     return templates.TemplateResponse("home.html", {
         "request": request,
         "brief_text": brief_text,
@@ -147,6 +189,8 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         "ownership_date": "Q4 2025",
         "notes_date": notes_date,
         "last_sync_date": last_sync_date,
+        "weekly_fund_filings": weekly_fund_filings,
+        "weekly_notes_filings": weekly_notes_filings,
     })
 
 
