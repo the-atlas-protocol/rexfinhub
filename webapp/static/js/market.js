@@ -196,7 +196,7 @@ var MarketCharts = (function() {
 
   function renderBarChart(canvasId, labels, values, isRex) {
     var ctx = document.getElementById(canvasId);
-    if (!ctx) return null;
+    if (!ctx || !labels || labels.length === 0) return null;
     var theme = getChartThemeColors();
 
     var colors = labels.map(function(_, i) {
@@ -211,6 +211,7 @@ var MarketCharts = (function() {
 
     var chart = new Chart(ctx, {
       type: 'bar',
+      plugins: [ChartDataLabels],
       data: {
         labels: labels,
         datasets: [{
@@ -225,25 +226,21 @@ var MarketCharts = (function() {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: true,
+        layout: { padding: { right: 80 } },
         scales: {
           x: {
-            ticks: {
-              callback: function(val) { return fmtMoney(val); },
-              font: { size: 10 },
-              color: theme.labelColor
-            },
-            grid: { color: theme.gridColor }
+            display: false,
+            grace: '15%'
           },
           y: {
             ticks: {
-              font: { size: 10, family: "'Inter', sans-serif" },
+              font: { size: 11, weight: '600', family: "'Inter', sans-serif" },
               color: theme.labelColor
             },
             grid: { display: false }
           }
         },
         plugins: {
-          datalabels: { display: false },
           legend: { display: false },
           tooltip: {
             callbacks: {
@@ -251,6 +248,16 @@ var MarketCharts = (function() {
                 return fmtMoney(ctx.parsed.x);
               }
             }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'right',
+            color: function() {
+              return document.documentElement.getAttribute('data-theme') === 'dark' ? '#e2e8f0' : '#1E293B';
+            },
+            font: { size: 11, weight: '600' },
+            formatter: function(v) { return fmtMoney(v); },
+            clip: false
           }
         }
       }
@@ -277,6 +284,12 @@ var MarketCharts = (function() {
     var groupColors = {};
     sortedIssuers.forEach(function(g, i) { groupColors[g] = palette[i % palette.length]; });
 
+    // Build a lookup from ticker -> product data for tooltip access
+    var productLookup = {};
+    products.forEach(function(p) {
+      productLookup[p.label] = p;
+    });
+
     var chart = new Chart(ctx, {
       type: 'treemap',
       data: {
@@ -284,16 +297,27 @@ var MarketCharts = (function() {
           label: 'AUM by Product',
           tree: products,
           key: 'value',
-          groups: ['group'],
-          borderColor: 'rgba(255,255,255,0.7)',
-          borderWidth: 1,
-          spacing: 0.5,
+          groups: ['group', 'label'],
+          borderColor: function(c) {
+            if (!c.raw || !c.raw._data) {
+              // Group-level border (issuer box outline)
+              return 'rgba(255,255,255,0.9)';
+            }
+            // Leaf-level border (product sub-square)
+            return 'rgba(255,255,255,0.5)';
+          },
+          borderWidth: function(c) {
+            if (!c.raw || !c.raw._data) return 2;
+            return 1;
+          },
+          spacing: 1,
           backgroundColor: function(c) {
             if (!c.raw || !c.raw.g) return '#6B7280';
             var base = groupColors[c.raw.g] || '#6B7280';
             // Leaf nodes (individual products)
             if (c.raw._data) {
-              return c.raw._data.is_rex ? base : base + 'DD';
+              var prod = c.raw._data;
+              return prod.is_rex ? base : base + 'CC';
             }
             // Group-level node (issuer header)
             return base;
@@ -301,7 +325,7 @@ var MarketCharts = (function() {
           captions: {
             display: true,
             color: '#ffffff',
-            font: { size: 13, weight: 'bold' },
+            font: { size: 12, weight: 'bold' },
             align: 'left',
             padding: 4,
             hoverColor: '#ffffff',
@@ -310,7 +334,7 @@ var MarketCharts = (function() {
               var name = c.raw.g;
               var grpAum = issuerAum[name] || 0;
               var pct = totalAum > 0 ? (grpAum / totalAum * 100).toFixed(1) : '0.0';
-              return name + ' ' + pct + '%';
+              return name + '  ' + pct + '%';
             }
           },
           labels: {
@@ -318,8 +342,7 @@ var MarketCharts = (function() {
             formatter: function(c) {
               if (!c.raw || !c.raw._data) return '';
               var ticker = c.raw._data.label || '';
-              var pct = c.raw._data.pct != null ? c.raw._data.pct.toFixed(1) + '%' : '';
-              return ticker && pct ? [ticker, pct] : ticker;
+              return ticker;
             },
             color: '#ffffff',
             hoverColor: '#ffffff',
@@ -338,21 +361,28 @@ var MarketCharts = (function() {
             callbacks: {
               title: function(items) {
                 var raw = items[0].raw;
-                if (raw._data) return raw._data.fund_name || raw._data.label || '';
+                if (raw._data) {
+                  // Leaf node: show fund name
+                  var prod = raw._data;
+                  return prod.fund_name || prod.label || '';
+                }
+                // Group node: show issuer name
                 return raw.g || '';
               },
               label: function(item) {
                 var raw = item.raw;
                 if (raw._data) {
+                  // Leaf node: show ticker, AUM, share, issuer
+                  var prod = raw._data;
                   var lines = [];
-                  if (raw._data.ticker) lines.push('Ticker: ' + raw._data.ticker);
-                  if (raw._data.aum_fmt) lines.push('AUM: ' + raw._data.aum_fmt);
-                  if (raw._data.pct != null) lines.push('Share: ' + raw._data.pct.toFixed(2) + '%');
-                  if (raw._data.issuer) lines.push('Issuer: ' + raw._data.issuer);
-                  if (raw._data.is_rex) lines.push('REX Product');
+                  if (prod.ticker) lines.push('Ticker: ' + prod.ticker);
+                  if (prod.aum_fmt) lines.push('AUM: ' + prod.aum_fmt);
+                  if (prod.pct != null) lines.push('Share: ' + prod.pct.toFixed(2) + '%');
+                  if (prod.issuer) lines.push('Issuer: ' + prod.issuer);
+                  if (prod.is_rex) lines.push('REX Product');
                   return lines;
                 }
-                // Group-level: show issuer name and total
+                // Group-level: show issuer total and market share
                 var grpTotal = item.raw.v || 0;
                 var grpPct = totalAum > 0 ? (grpTotal / totalAum * 100).toFixed(1) : '0.0';
                 return ['Total AUM: ' + fmtMoney(grpTotal), 'Market Share: ' + grpPct + '%'];

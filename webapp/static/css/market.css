@@ -205,7 +205,7 @@
 }
 
 .chart-box #categoryTreemap {
-  max-height: 450px;
+  max-height: none;
 }
 
 /* Section title */
