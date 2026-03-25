@@ -601,8 +601,24 @@ def filing_evaluator_api(
     tickers = tickers[:20]
 
     if _ON_RENDER:
+        # Try cached evaluations
+        analysis = get_3x_data()
+        eval_cache = analysis.get("eval_cache", {}) if analysis else {}
+
+        cached_results = []
+        missing = []
+        for t in tickers:
+            tc = t.upper().replace(" US", "")
+            if tc in eval_cache:
+                cached_results.append(eval_cache[tc])
+            else:
+                missing.append(tc)
+
+        if cached_results:
+            return JSONResponse({"results": cached_results, "cached": True, "missing": missing})
+
         return JSONResponse(
-            {"error": "Stock evaluation available locally only. Use L&I Filing Candidates for pre-scored results."},
+            {"error": "Ticker not in cache. Available: " + ", ".join(sorted(eval_cache.keys())[:20])},
             status_code=404,
         )
 

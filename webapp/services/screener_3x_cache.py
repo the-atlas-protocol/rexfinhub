@@ -214,6 +214,36 @@ def compute_and_cache() -> dict:
         # L&I products for landscape products tab (leverage >= 1.5x)
         li_products = _build_li_products(etp_df)
 
+        # Pre-evaluate top tickers for Render (cached evaluator)
+        eval_cache = {}
+        try:
+            from screener.candidate_evaluator import evaluate_candidates
+            eval_tickers = set()
+            for t in tiers.get("tier_1", [])[:30]:
+                eval_tickers.add(t.get("ticker", ""))
+            for t in tiers.get("tier_2", [])[:20]:
+                eval_tickers.add(t.get("ticker", ""))
+            for t in four_x[:20]:
+                eval_tickers.add(t.get("ticker", t.get("underlier", "")))
+            for t in two_x_candidates[:30]:
+                eval_tickers.add(t.get("ticker", ""))
+            eval_tickers.discard("")
+
+            if eval_tickers:
+                results_eval = evaluate_candidates(
+                    list(eval_tickers)[:100],
+                    stock_df=stock_df,
+                    etp_df=etp_df,
+                )
+                from webapp.services.screener_helpers import serialize_eval
+                for r in results_eval:
+                    tc = r.get("ticker_clean", r.get("ticker", "")).replace(" US", "")
+                    if tc:
+                        eval_cache[tc.upper()] = serialize_eval(r)
+                log.info("Pre-evaluated %d tickers for Render cache", len(eval_cache))
+        except Exception as e:
+            log.warning("Pre-evaluation failed (non-fatal): %s", e)
+
         result = {
             "snapshot": snapshot,
             "top_2x": top_2x,
@@ -224,6 +254,7 @@ def compute_and_cache() -> dict:
             "two_x_candidates": two_x_candidates,
             "risk_watchlist": risk_watchlist,
             "li_products": li_products,
+            "eval_cache": eval_cache,
             "data_date": data_date,
             "computed_at": datetime.now().strftime("%b %d, %Y %H:%M"),
         }

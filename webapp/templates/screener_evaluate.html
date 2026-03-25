@@ -138,11 +138,10 @@
   <p style="font-size:13px; color:#64748b; margin:0;">The screener cache is warming up. This page will be ready shortly. Please refresh in a few seconds.</p>
 </div>
 {% elif not data_available %}
-<div style="padding:16px 20px; background:#fffbeb; border:1px solid #e5e7eb; border-left:2px solid #d97706; border-radius:0 6px 6px 0; margin-bottom:24px;">
-  <div style="font-size:16px; font-weight:600; color:#0f172a; margin-bottom:4px;">No Bloomberg data available</div>
-  <p style="font-size:13px; color:#64748b; margin:0;">Screener data not yet available. Run the daily pipeline to load Bloomberg data.</p>
+<div style="padding:12px 16px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:16px; font-size:13px; color:#64748b;">
+  Using cached evaluations. Top 100 tickers pre-scored.
 </div>
-{% else %}
+{% endif %}
 
 <!-- Ticker Input Section -->
 <div class="sg-input-card">
@@ -172,7 +171,6 @@
 <!-- Error Area -->
 <div id="errorArea" class="sg-error"></div>
 
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -231,7 +229,7 @@ async function evaluateTickers() {
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Evaluation failed');
-    renderResults(data.results);
+    renderResults(data.results, data.missing || [], data.cached || false);
     loading.style.display = 'none';
     results.style.display = 'block';
   } catch (err) {
@@ -244,12 +242,18 @@ async function evaluateTickers() {
   }
 }
 
-function renderResults(results) {
+function renderResults(results, missing, cached) {
   const recs = results.filter(r => r.verdict === 'RECOMMEND').length;
   const cautions = results.filter(r => r.verdict === 'CAUTION').length;
   const neutrals = results.filter(r => r.verdict === 'NEUTRAL').length;
 
-  document.getElementById('summaryKpis').innerHTML = `
+  let missingHtml = '';
+  if (missing && missing.length > 0) {
+    missingHtml = `<div style="padding:10px 16px; background:#fffbeb; border:1px solid #e5e7eb; border-left:2px solid #d97706; border-radius:0 6px 6px 0; margin-bottom:16px; font-size:13px; color:#92400e;">
+      Not in cache: <strong>${missing.join(', ')}</strong></div>`;
+  }
+
+  document.getElementById('summaryKpis').innerHTML = missingHtml + `
     <div class="kpi kpi-filing"><div class="num">${results.length}</div><div class="label">Evaluated</div></div>
     <div class="kpi kpi-filing"><div class="num" style="color:#059669;">${recs}</div><div class="label">Recommend</div></div>
     <div class="kpi kpi-filing"><div class="num" style="color:#64748b;">${neutrals}</div><div class="label">Neutral</div></div>
