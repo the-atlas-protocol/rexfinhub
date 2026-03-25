@@ -1098,11 +1098,43 @@ def get_category_summary(db: Session, category: str | None, filters: dict | None
         iss_flow_1m = float(iss_df["t_w4.fund_flow_1month"].sum()) if "t_w4.fund_flow_1month" in iss_df.columns else 0.0
         appr_chart["values"].append(round(iss_aum - iss_aum_prev - iss_flow_1m, 2))
 
+    # Market share over time (from time series, top issuers)
+    mkt_share_ts = {"labels": [], "datasets": []}
+    try:
+        ts_df = _load_ts(db)
+        if category and category != "All":
+            ts_df = ts_df[ts_df["category_display"].str.strip() == category.strip()]
+        months = sorted(ts_df["months_ago"].dropna().unique())
+        months_display = [f"{int(m)}M ago" if m > 0 else "Current" for m in months[:13]]
+        mkt_share_ts["labels"] = months_display
+
+        palette = ['#1E40AF','#DC2626','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#65A30D','#6366F1','#F43F5E']
+        for idx, iss_name in enumerate(chart_issuers[:8]):
+            iss_ts = ts_df[ts_df["issuer_display"] == iss_name]
+            pcts = []
+            for m in months[:13]:
+                month_total = float(ts_df[ts_df["months_ago"] == m]["aum_value"].sum()) or 1.0
+                iss_month = float(iss_ts[iss_ts["months_ago"] == m]["aum_value"].sum())
+                pcts.append(round(iss_month / month_total * 100, 2))
+            mkt_share_ts["datasets"].append({
+                "label": iss_name,
+                "data": pcts,
+                "borderColor": palette[idx % len(palette)],
+                "backgroundColor": palette[idx % len(palette)] + "20",
+                "fill": False,
+                "tension": 0.3,
+                "pointRadius": 2,
+                "borderWidth": 2,
+            })
+    except Exception as e:
+        log.warning("Market share TS failed: %s", e)
+
     chart_data = {
         "flow": flow_chart,
         "volume": vol_chart,
         "spread": spread_chart,
         "appreciation": appr_chart,
+        "mkt_share_ts": mkt_share_ts,
     }
 
     return {

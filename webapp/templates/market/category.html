@@ -109,7 +109,7 @@
       <button class="pill chart-mode-btn" data-mode="volume" onclick="switchCatChartMode('volume')">Volume</button>
       <button class="pill chart-mode-btn" data-mode="spread" onclick="switchCatChartMode('spread')">Bid-Ask</button>
       <button class="pill chart-mode-btn" data-mode="appreciation" onclick="switchCatChartMode('appreciation')">Mkt Appr</button>
-      <button class="pill chart-mode-btn" data-mode="mktshare" onclick="switchCatChartMode('mktshare')">Mkt Share (%)</button>
+      <button class="pill chart-mode-btn" data-mode="mktshare" onclick="switchCatChartMode('mktshare')">Mkt Share Over Time</button>
     </div>
     <div id="catAumControls" style="display:none;"></div>
     <div id="catFlowControls" style="display:none; margin-bottom:8px;">
@@ -466,42 +466,36 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
     } else if (mode === 'mktshare') {
-      // Market share % by issuer — horizontal bar chart
-      var iLabels = issuerData.labels || [];
-      var iValues = issuerData.values || [];
-      var totalAum = iValues.reduce(function(a,b) { return a+b; }, 0);
-      var pctValues = iValues.map(function(v) { return totalAum > 0 ? +(v / totalAum * 100).toFixed(2) : 0; });
-      var palette = ['#1E40AF','#DC2626','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#65A30D','#6366F1','#F43F5E','#0D9488','#A855F7'];
-      var barColors = iLabels.map(function(_, i) {
-        return (issuerData.is_rex && issuerData.is_rex[i]) ? '#1E40AF' : palette[i % palette.length];
-      });
-      _catUnifiedChart = new Chart(ctx, {
-        type: 'bar',
-        plugins: [ChartDataLabels],
-        data: {
-          labels: iLabels,
-          datasets: [{ data: pctValues, backgroundColor: barColors, borderRadius: 3 }]
-        },
-        options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: true,
-          layout: { padding: { left: 10, right: 60 } },
-          scales: {
-            x: { display: false, max: Math.max.apply(null, pctValues) * 1.3 },
-            y: { ticks: { font: { size: 11, weight: '600' }, color: labelColor }, grid: { display: false } }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: function(c) { return c.parsed.x.toFixed(1) + '%'; } } },
-            datalabels: {
-              anchor: 'end', align: 'right',
-              color: function() { return isDark ? '#e2e8f0' : '#1E293B'; },
-              font: { size: 11, weight: '700' },
-              formatter: function(v) { return v.toFixed(1) + '%'; },
-              clip: false
+      // Market share % over time — line chart by issuer
+      var msData = catChartData.mkt_share_ts || {};
+      var msLabels = msData.labels || [];
+      var msDatasets = msData.datasets || [];
+      if (msLabels.length > 0 && msDatasets.length > 0) {
+        // Reverse so time flows left to right (oldest → newest)
+        msLabels = msLabels.slice().reverse();
+        msDatasets = msDatasets.map(function(ds) {
+          return Object.assign({}, ds, { data: ds.data.slice().reverse() });
+        });
+        _catUnifiedChart = new Chart(ctx, {
+          type: 'line',
+          data: { labels: msLabels, datasets: msDatasets },
+          options: {
+            responsive: true, maintainAspectRatio: true,
+            scales: {
+              x: { ticks: { font: { size: 10 }, color: labelColor, maxRotation: 45 }, grid: { display: false } },
+              y: {
+                ticks: { font: { size: 11 }, color: labelColor, callback: function(v) { return v + '%'; } },
+                grid: { color: gridColor }
+              }
+            },
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 }, usePointStyle: true, padding: 12 } },
+              tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + c.parsed.y.toFixed(1) + '%'; } } },
+              datalabels: { display: false }
             }
           }
-        }
-      });
+        });
+      }
     }
   };
 
