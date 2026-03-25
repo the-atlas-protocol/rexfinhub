@@ -320,9 +320,10 @@ function fmtNum(v, decimals) {
   if (v === null || v === undefined) return '-';
   if (typeof v === 'string') return v;
   const d = decimals !== undefined ? decimals : 1;
-  if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(1) + 'B';
-  if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-  if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  // Values from Bloomberg are in $M — convert to readable
+  if (Math.abs(v) >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'T';
+  if (Math.abs(v) >= 1e3) return '$' + (v / 1e3).toFixed(1) + 'B';
+  if (Math.abs(v) >= 1) return '$' + v.toFixed(0) + 'M';
   return v.toFixed(d);
 }
 
