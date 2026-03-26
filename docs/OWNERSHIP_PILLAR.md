@@ -139,7 +139,40 @@ SITE_PASSWORD=dev123
 | Main site DB | `data/etp_tracker.db` | Trusts, funds, filings, classification, market data | Ryu |
 | Holdings DB | `data/13f_holdings.db` | Institutions, holdings, CUSIP mappings | You |
 
-These are separate SQLite files with separate SQLAlchemy engines. The holdings engine ATTACHes the main DB as `main_site` at connection time, enabling cross-DB reads.
+These are separate SQLite files with separate SQLAlchemy engines.
+
+**You do NOT need a copy of `etp_tracker.db` to develop.** If the file is missing, SQLAlchemy creates an empty one on startup. Your pages will work — they just won't have cross-referenced fund/classification data until you connect to the live site's API or get a copy of the DB.
+
+### Accessing Ryu's data (classification, funds, trusts)
+
+You have three options — choose whichever fits your workflow:
+
+**Option 1 — API calls (recommended):**
+Call the existing REST API endpoints to get fund/trust/classification data:
+- `GET /api/v1/trusts` — all monitored trusts
+- `GET /api/v1/funds` — fund list with status, ticker, series_id
+- `GET /api/v1/filings/recent` — recent filings
+These work on the live site and locally. Requires `X-API-Key` header.
+
+**Option 2 — CSV files (already in the repo):**
+Classification rules are in `config/rules/` — fund_mapping.csv, rex_funds.csv, rex_suite_mapping.csv, etc. Read these directly with pandas. No DB or API needed.
+
+**Option 3 — Dual DB sessions (for production):**
+In production, your code and Ryu's code run in the same FastAPI app. You can import both `get_holdings_db()` (your data) and `get_db()` (his data) as separate dependencies and query both:
+```python
+from webapp.dependencies import get_holdings_db, get_db
+
+@router.get("/ownership/funds/{ticker}")
+def fund_holders(ticker: str, hdb=Depends(get_holdings_db), main_db=Depends(get_db)):
+    # Query holdings from your DB
+    holders = hdb.execute(select(Holding).where(...)).scalars().all()
+    # Query fund info from main DB
+    fund = main_db.execute(select(FundStatus).where(FundStatus.ticker == ticker)).scalar()
+    ...
+```
+
+### Legacy ATTACH mechanism
+The current `database.py` ATTACHes etp_tracker.db to the holdings engine at connection time. This is a SQLite-specific convenience for cross-DB JOINs. It works but creates a file dependency. You may keep it, replace it with one of the approaches above, or remove it entirely.
 
 ### Your tables (in 13f_holdings.db)
 
@@ -475,10 +508,11 @@ cp config/.env.example config/.env
 #   SITE_PASSWORD=dev123       (any password — needed to log into the site)
 #   ADMIN_PASSWORD=dev123      (any password — needed for admin panel)
 
-# 5. Place database files in data/
-#    - etp_tracker.db (get from Ryu — needed for classification/fund data)
-#    - 13f_holdings.db (your 13F data — either from Ryu or run your pipeline)
+# 5. Create data directory (DBs are auto-created empty on first run)
 mkdir -p data
+# Optional: if Ryu gives you 13f_holdings.db with existing data, place it here.
+# etp_tracker.db is NOT required — it auto-creates empty on startup.
+# Use the API or CSV files for classification data (see "Accessing Ryu's data" above).
 
 # 6. Run the server
 python -m uvicorn webapp.main:app --reload --port 8000
