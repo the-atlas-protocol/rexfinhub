@@ -87,22 +87,60 @@ def get_leverage(name: str) -> str | None:
 def extract_underlier(name: str) -> str | None:
     n = name.strip()
     patterns = [
-        r"T-REX\s+\d[Xx]\s+(?:LONG|INVERSE|SHORT)\s+(.+?)\s+DAILY",
-        r"Direxion Daily\s+(.+?)\s+(?:Bull|Bear)\s+[2345][Xx]",
+        # T-REX: "T-REX 2X Long NVDA Daily Target ETF"
+        r"T-REX\s+\d+\.?\d*[Xx]\s+(?:LONG|INVERSE|SHORT)\s+(.+?)\s+DAILY",
+        # Direxion: "Direxion Daily NVDA Bull 2X" / "Direxion Monthly NASDAQ Bear 1.25X"
+        r"Direxion\s+(?:Daily|Monthly|Weekly)\s+(.+?)\s+(?:Bull|Bear)\s+\d",
+        # ProShares target: "ProShares Daily Target 2X ..."
         r"ProShares Daily Target \d[Xx]\s+(.+?)$",
-        r"GraniteShares\s+\d[Xx]\s+(?:Long|Short|Inverse)\s+(.+?)\s+Daily",
-        r"Defiance Daily Target \d[Xx]\s+(?:Long|Short|Inverse)\s+(.+?)\s+ETF",
-        r"^[2345][Xx]\s+(.+?)\s+ETF",
+        # GraniteShares: "GraniteShares 2x Long NVDA Daily ETF" / "GraniteShares 1.25x Long TSLA"
+        r"GraniteShares\s+\d+\.?\d*[xX]\s+(?:Long|Short|Inverse)\s+(.+?)\s+(?:Daily|ETF)",
+        # Defiance: "Defiance Daily Target 2X Short MSTR ETF"
+        r"Defiance Daily Target \d+\.?\d*[Xx]\s+(?:Long|Short|Inverse)\s+(.+?)\s+(?:Daily|ETF)",
+        # AXS: "AXS 1.25X NVDA Bull Daily ETF"
+        r"AXS\s+\d+\.?\d*[Xx]\s+(.+?)\s+(?:Bull|Bear)\s+(?:Daily|Weekly)",
+        # Tradr: "Tradr 2X Long NVDA Daily ETF"
+        r"[Tt][Rr]adr\s+\d+\.?\d*[Xx]\s+(?:Long|Short)\s+(.+?)\s+(?:Daily|Weekly|Monthly|Quarterly)",
+        # Leverage Shares: "Leverage Shares 2x Long AAPL Daily ETP"
+        r"Leverage Shares\s+\d+\.?\d*[xX]\s+(?:Long|Short)\s+(.+?)\s+(?:Daily|ETP|ETF)",
+        # LevMax: "LevMax 2X NVDA [Monthly]"
         r"LevMax\S*\s+(.+?)\s+\[",
-        r"[Tt][Rr]adr\s+\d[Xx]\s+(?:Long|Short)\s+(.+?)\s+(?:Daily|Weekly|Monthly|Quarterly)",
-        r"Leverage Shares\s+\d[Xx]\s+(?:Long|Short)\s+(.+?)\s+Daily",
-        r"Roundhill\s+\d[Xx]\s+(.+?)\s+ETF",
-        r"ProShares\s+Ultra(?:Pro\s+(?:Short\s+)?)?(.+?)(?:\s+ETF)?$",
+        # Roundhill: "Roundhill 2X NVDA ETF"
+        r"Roundhill\s+\d+\.?\d*[Xx]\s+(.+?)\s+ETF",
+        # Generic NX pattern: "2X AAPL ETF" / "3X Long NVDA"
+        r"^\d+\.?\d*[Xx]\s+(?:Long|Short|Inverse|Bull|Bear)?\s*(.+?)\s+(?:Daily|ETF|ETP|Shares)",
+        # ProShares Ultra/UltraPro: "ProShares Ultra S&P500" / "ProShares UltraPro Short QQQ"
+        r"ProShares\s+Ultra(?:Pro\s+(?:Short\s+)?|Short\s+)?(.+?)(?:\s+ETF)?$",
+        # YieldMax / REX income with leverage
+        r"YieldMax\s+\d+\.?\d*[Xx]\s+(.+?)\s+Option",
+        # Catch-all: explicit ticker between Long/Short and Daily
+        r"(?:Long|Short|Inverse|Bull|Bear)\s+([A-Z]{1,5})\s+(?:Daily|Weekly|Monthly|ETF)",
+        # Corgi/simple: "AAPL 2x Daily ETF" / "NVDA 2x Daily ETF"
+        r"^([A-Z]{1,5})\s+\d+\.?\d*[xX]\s+(?:Daily|Weekly|Monthly)",
+        # GraniteShares YieldBOOST: "GraniteShares YieldBOOST AAPL 2x Income"
+        r"YieldBOOST\s+([A-Z]{1,5})\s+\d+\.?\d*[xX]",
+        # Rex Daily Target: "Rex Daily Target 1.5X MSTR ETF"
+        r"Rex Daily Target \d+\.?\d*[Xx]\s+(.+?)\s+ETF",
+        # 21Shares: "21Shares 2x Long Dogecoin ETF"
+        r"21Shares\s+\d+\.?\d*[xX]\s+(?:Long|Short)\s+(.+?)\s+ETF",
+        # Teucrium: "Teucrium -2x Daily Corn ETF"
+        r"Teucrium\s+-?\d+\.?\d*[xX]\s+Daily\s+(.+?)\s+ETF",
+        # Innovator: "Innovator 2x Bitcoin Daily ETF"
+        r"Innovator\s+\d+\.?\d*[xX]\s+(.+?)\s+(?:Daily|Monthly|ETF)",
+        # Defiance standalone: "Defiance 2X Daily Long Pure Drone..."
+        r"Defiance\s+\d+\.?\d*[Xx]\s+Daily\s+(?:Long|Short)\s+(?:Pure\s+)?(.+?)\s+(?:ETF|Automation)",
+        # Leverage Shares Capped: "Leverage Shares 2x Capped Accelerated APP Monthly"
+        r"Leverage Shares\s+\d+\.?\d*[xX]\s+(?:Capped\s+)?(?:Accelerated\s+)?([A-Z]{1,5})\s+(?:Monthly|Daily|Weekly)",
     ]
     for pat in patterns:
         m = re.search(pat, n, re.IGNORECASE)
         if m:
-            return m.group(1).strip()
+            result = m.group(1).strip()
+            # Clean trailing noise words
+            result = re.sub(r'\s+(?:Daily|Target|Shares|Fund|Trust|Strategy|Index)\s*$',
+                            '', result, flags=re.IGNORECASE).strip()
+            if result:
+                return result
     return None
 
 
