@@ -42,8 +42,8 @@ ISSUER_ORDER = [
 
 REX_ISSUERS = {"T-REX", "REX"}
 
-# Leverage levels in sort order (fractional first, then whole)
-LEVERAGE_SORT_ORDER = ["0.5x", "0.75x", "1.25x", "1.5x", "2x", "3x", "4x", "5x"]
+# Leverage levels in sort order (inverse first, then fractional, then whole)
+LEVERAGE_SORT_ORDER = ["-1x", "0.5x", "0.75x", "1.25x", "1.5x", "2x", "3x", "4x", "5x"]
 _LEV_RANK = {lev: i for i, lev in enumerate(LEVERAGE_SORT_ORDER)}
 
 # Whole-number leverage levels used for matrices / scorecard
@@ -80,7 +80,17 @@ def get_leverage(name: str) -> str | None:
     if "ULTRASHORT" in n or "ULTRA SHORT" in n:
         return "2x"
     if "ULTRA " in n or n.endswith("ULTRA"):
+        # Exclude false positives: "Ultra Short Income", "Ultra Shares" (mutual fund classes)
+        if any(fp in n for fp in ["ULTRA SHORT INCOME", "ULTRA SHARES", "ULTRA SHORT DURATION"]):
+            return None
         return "2x"
+    # 1x Inverse / Bear (no leverage multiplier, but inverse exposure)
+    if re.search(r"\b1[Xx]\b", n) and any(k in n for k in ["BEAR", "INVERSE", "SHORT"]):
+        return "-1x"
+    if any(k in n for k in ["INVERSE", "BEAR "]) and not any(k in n for k in ["LEVERAG", "BULL"]):
+        # Standalone inverse without explicit multiplier (Roundhill Inverse, Defiance Inverse)
+        if re.search(r"INVERSE|BEAR\s+(?:DAILY|WEEKLY|MONTHLY|ETF)", n):
+            return "-1x"
     return None
 
 

@@ -226,7 +226,7 @@
 <div class="sg-filter-bar">
   {# Leverage filter pills — client-side JS #}
   <button class="sg-pill active" data-filter="leverage" data-value="all" onclick="setFilter('leverage','all')">All</button>
-  {% for lev in ['1.25x', '1.5x', '2x', '3x', '4x', '5x'] %}
+  {% for lev in ['-1x', '1.25x', '1.5x', '2x', '3x', '4x', '5x'] %}
   {% if leverage_counts.get(lev, 0) > 0 %}
   <button class="sg-pill" data-filter="leverage" data-value="{{ lev }}" onclick="setFilter('leverage','{{ lev }}')">{{ lev }}</button>
   {% endif %}
