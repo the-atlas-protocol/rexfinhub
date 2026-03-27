@@ -87,6 +87,29 @@ class SiteAuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class DataFreshnessMiddleware(BaseHTTPMiddleware):
+    """Populate request.state with data freshness info for templates."""
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        # Always init (even for static) so template never gets AttributeError
+        request.state.data_freshness = {}
+        request.state.data_sources = []
+        if not any(path.startswith(p) for p in ("/static/", "/api/", "/login", "/health", "/favicon")):
+            try:
+                from webapp.services.data_freshness import get_freshness, sources_for_path
+                from webapp.database import SessionLocal as _SL
+                db = _SL()
+                try:
+                    request.state.data_freshness = get_freshness(db)
+                    request.state.data_sources = sources_for_path(path)
+                finally:
+                    db.close()
+            except Exception as e:
+                log.debug("Freshness middleware: %s", e)
+        return await call_next(request)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses."""
 
@@ -110,6 +133,8 @@ templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
 # Expose feature flags to all templates (used by base.html for conditional nav)
 templates.env.globals["enable_13f"] = bool(os.environ.get("ENABLE_13F"))
+
+
 
 _caches_ready = False  # flipped True when all caches are loaded
 
@@ -176,6 +201,7 @@ def create_app() -> FastAPI:
     # SiteAuthMiddleware needs session -> add it first (inner),
     # then SessionMiddleware (outer, decodes session before auth check).
     app.add_middleware(SiteAuthMiddleware)
+    app.add_middleware(DataFreshnessMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=28800, same_site="lax", https_only=bool(os.environ.get("RENDER")))
 

@@ -453,6 +453,11 @@
 <div class="ticker-strip"><div class="ticker-track" id="tickerTrack"></div></div>
 
 <div class="container">
+  {% set data_freshness = request.state.data_freshness|default({}) %}
+  {% set data_sources = request.state.data_sources|default([]) %}
+  {% if data_freshness and data_sources %}
+  {% include "_data_freshness.html" %}
+  {% endif %}
   {% block content %}{% endblock %}
 </div>
 

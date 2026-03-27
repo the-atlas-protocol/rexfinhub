@@ -43,3 +43,31 @@ def require_auth(request: Request):
     if user is None:
         return RedirectResponse("/auth/login", status_code=302)
     return user
+
+
+def freshness_context(request: Request, db=None):
+    """Build data freshness context for a template response.
+
+    Usage in route handler:
+        ctx = {"request": request, ...other context...}
+        ctx.update(freshness_context(request, db))
+        return templates.TemplateResponse("page.html", ctx)
+    """
+    try:
+        from webapp.services.data_freshness import get_freshness, sources_for_path
+        if db is None:
+            _db = SessionLocal()
+            _close = True
+        else:
+            _db = db
+            _close = False
+        try:
+            return {
+                "data_freshness": get_freshness(_db),
+                "data_sources": sources_for_path(request.url.path),
+            }
+        finally:
+            if _close:
+                _db.close()
+    except Exception:
+        return {"data_freshness": {}, "data_sources": []}
