@@ -119,7 +119,7 @@ def category_view(
     db: Session = Depends(get_db),
     cat: str = Query(default="All"),
     filters: str = Query(default=None),
-    fund_structure: str = Query(default="ETF"),
+    fund_structure: str = Query(default="ETF,ETN"),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=50, ge=10, le=200),
 ):
@@ -220,7 +220,7 @@ def treemap_view(request: Request, cat: str = Query(default="")):
 
 
 @router.get("/issuer")
-def issuer_view(request: Request, db: Session = Depends(get_db), cat: str = Query(default="All"), fund_structure: str = Query(default="ETF")):
+def issuer_view(request: Request, db: Session = Depends(get_db), cat: str = Query(default="All"), fund_structure: str = Query(default="ETF,ETN")):
     svc = _svc()
     available = svc.data_available(db)
     if not available:
@@ -401,12 +401,13 @@ def api_category_summary(
     db: Session = Depends(get_db),
     category: str = Query(default="All"),
     filters: str = Query(default=None),
+    fund_structure: str = Query(default="ETF,ETN"),
 ):
     try:
         svc = _svc()
         filter_dict = json.loads(filters) if filters else {}
         cat = category if category != "All" else None
-        data = svc.get_category_summary(db, cat, filter_dict)
+        data = svc.get_category_summary(db, cat, filter_dict, fund_structure=fund_structure)
         return JSONResponse(data)
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
@@ -452,22 +453,22 @@ def api_slicers(category: str, db: Session = Depends(get_db)):
 
 
 @router.get("/api/treemap")
-def api_treemap(db: Session = Depends(get_db), category: str = Query(default="All")):
+def api_treemap(db: Session = Depends(get_db), category: str = Query(default="All"), fund_structure: str = Query(default="ETF,ETN")):
     try:
         svc = _svc()
         cat = category if category != "All" else None
-        return JSONResponse(svc.get_treemap_data(db, cat))
+        return JSONResponse(svc.get_treemap_data(db, cat, fund_type=fund_structure))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
 
 @router.get("/api/issuer")
-def api_issuer(db: Session = Depends(get_db), category: str = Query(default="All")):
+def api_issuer(db: Session = Depends(get_db), category: str = Query(default="All"), fund_structure: str = Query(default="ETF,ETN")):
     try:
         svc = _svc()
         cat = category if category != "All" else None
-        return JSONResponse(svc.get_issuer_summary(db, cat))
+        return JSONResponse(svc.get_issuer_summary(db, cat, fund_structure=fund_structure))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)
