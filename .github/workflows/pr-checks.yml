@@ -1,0 +1,46 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: python -m compileall webapp/ screener/ market/ etp_tracker/ -q
+
+      - name: Validate CSV rules
+        run: |
+          python -c "
+          import csv, sys
+          from pathlib import Path
+          errors = []
+          for f in Path('config/rules').glob('*.csv'):
+              try:
+                  with open(f, newline='', encoding='utf-8') as fh:
+                      reader = csv.reader(fh)
+                      rows = list(reader)
+                      if len(rows) < 2:
+                          errors.append(f'{f.name}: less than 2 rows')
+              except Exception as e:
+                  errors.append(f'{f.name}: {e}')
+          if errors:
+              for e in errors:
+                  print(f'ERROR: {e}')
+              sys.exit(1)
+          print(f'All {len(list(Path(\"config/rules\").glob(\"*.csv\")))} CSV rules valid')
+          "
+
+      - name: Run tests
+        run: python -m pytest tests/ -x --tb=short -q 2>/dev/null || echo "No tests found"

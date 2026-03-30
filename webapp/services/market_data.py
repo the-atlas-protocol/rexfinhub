@@ -399,7 +399,6 @@ _SUITE_ORDER = [
     "IncomeMax",
     "Autocallable",
     "Crypto",
-    "Osprey",
     "T-Bill",
     "Thematic",
 ]

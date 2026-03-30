@@ -18,15 +18,25 @@ _FALLBACK_BBG_DAILY = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_fil
 
 # Resolution order: OneDrive daily -> local daily
 def _resolve_data_file() -> Path:
+    """Return the freshest accessible Bloomberg file."""
+    import logging
+    _log = logging.getLogger(__name__)
+    accessible = []
     for candidate in [_ONEDRIVE_BBG_DAILY, _FALLBACK_BBG_DAILY]:
         if candidate.exists():
             try:
                 with open(candidate, "rb") as f:
                     f.read(4)
-                return candidate
+                accessible.append(candidate)
             except PermissionError:
                 continue
-    return _FALLBACK_BBG_DAILY
+    if not accessible:
+        return _FALLBACK_BBG_DAILY
+    chosen = max(accessible, key=lambda p: p.stat().st_mtime)
+    from datetime import datetime
+    mtime = datetime.fromtimestamp(chosen.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    _log.info("Market data file: %s (modified %s)", chosen.name, mtime)
+    return chosen
 
 DATA_FILE = _resolve_data_file()
 

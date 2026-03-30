@@ -66,7 +66,7 @@ def _parse_ts(ts: dict) -> dict[str, Any]:
 
 
 @router.get("/rex")
-def rex_view(request: Request, db: Session = Depends(get_db), product_type: str = Query(default="All"), fund_structure: str = Query(default="ETF"), category: str = Query(default="All")):
+def rex_view(request: Request, db: Session = Depends(get_db), product_type: str = Query(default="All"), fund_structure: str = Query(default="ETF,ETN"), category: str = Query(default="All")):
     """REX View - executive dashboard by suite."""
     svc = _svc()
     available = svc.data_available(db)
@@ -81,7 +81,7 @@ def rex_view(request: Request, db: Session = Depends(get_db), product_type: str 
         })
     try:
         cat_arg = category if category != "All" else None
-        summary = svc.get_rex_summary(db, fund_structure=fund_structure, category=cat_arg)
+        summary = svc.get_rex_summary(db, fund_structure=fund_structure, category=cat_arg, etn_overrides=True)
 
         trend = _parse_ts(svc.get_time_series(db, is_rex=True, category=cat_arg, fund_type=fund_structure))
         # If a specific category is selected, also provide "all REX" trend for overlay
@@ -390,7 +390,7 @@ def underlier_view(request: Request, db: Session = Depends(get_db), type: str = 
 def api_rex_summary(db: Session = Depends(get_db)):
     try:
         svc = _svc()
-        return JSONResponse(svc.get_rex_summary(db))
+        return JSONResponse(svc.get_rex_summary(db, fund_structure="ETF,ETN", etn_overrides=True))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)

@@ -45,15 +45,25 @@ _ONEDRIVE_BBG_DAILY = Path(
 _LOCAL_BBG_DAILY = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")
 
 def _resolve_engine_data_file() -> Path:
+    """Return the freshest accessible Bloomberg file."""
+    import logging
+    _log = logging.getLogger(__name__)
+    accessible = []
     for p in (_ONEDRIVE_BBG_DAILY, _LOCAL_BBG_DAILY):
         if p.exists():
             try:
                 with open(p, "rb") as f:
                     f.read(4)
-                return p
+                accessible.append(p)
             except PermissionError:
                 continue
-    return _LOCAL_BBG_DAILY
+    if not accessible:
+        return _LOCAL_BBG_DAILY
+    chosen = max(accessible, key=lambda p: p.stat().st_mtime)
+    from datetime import datetime
+    mtime = datetime.fromtimestamp(chosen.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    _log.info("Data file resolved: %s (modified %s)", chosen.name, mtime)
+    return chosen
 
 DATA_FILE = _resolve_engine_data_file()
 

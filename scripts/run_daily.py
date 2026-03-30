@@ -410,10 +410,23 @@ def main():
     changed_trusts = None
 
     if run_all:
+        # === Step 0: Sync trust universe from SEC ===
+        print("\n[0/10] Syncing trust universe from SEC...")
+        try:
+            from scripts.sync_trust_universe import sync_universe
+            cache_dir = _resolve_cache_dir()
+            universe = sync_universe(skip_download=False, prime_cache_dir=cache_dir)
+            if universe["new_trusts"]:
+                print(f"  ** {universe['new_trusts']} new trust(s) added — pipeline will scrape them **")
+            if universe["cache_primed"]:
+                print(f"  ** Primed {universe['cache_primed']} cache files for new trusts **")
+        except Exception as e:
+            print(f"  Universe sync failed (non-fatal): {e}")
+
         # === PARALLEL PHASE: SEC scrape + Structured Notes simultaneously ===
         # These use different SEC endpoints and different databases — safe to run together
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        print("\n[1-2/8] SEC Pipeline + Structured Notes (parallel)...")
+        print("\n[1-2/10] SEC Pipeline + Structured Notes (parallel)...")
 
         sec_result = [None]  # mutable container for thread result
         notes_ok = [False]
@@ -453,30 +466,38 @@ def main():
             print(f"  Archive failed: {e}")
 
         # === Market data + screener cache ===
-        print("\n[5/9] Market Data + Screener Cache...")
+        print("\n[5/10] Market Data + Screener Cache...")
         try:
             run_market_sync()
         except Exception as e:
             print(f"  Market sync failed: {e}")
 
+        # === Archive screener snapshot ===
+        print("\n[6/10] Archiving screener snapshot...")
+        try:
+            from scripts.archive_screener import archive_daily
+            archive_daily()
+        except Exception as e:
+            print(f"  Screener archive failed (non-fatal): {e}")
+
         # === Classification ===
-        print("\n[6/9] Classifying new funds...")
+        print("\n[7/10] Classifying new funds...")
         try:
             run_classification()
         except Exception as e:
             print(f"  Classification failed: {e}")
 
         # === Upload phase ===
-        print("\n[7/9] Compacting DB...")
+        print("\n[8/10] Compacting DB...")
         try:
             compact_db()
         except Exception as e:
             print(f"  Compact failed: {e}")
 
-        print("\n[8/9] Uploading screener cache to Render...")
+        print("\n[9/10] Uploading screener cache to Render...")
         upload_screener_cache_to_render()
 
-        print("\n[9/9] Uploading DB to Render...")
+        print("\n[10/10] Uploading DB to Render...")
         upload_db_to_render()
 
     else:
@@ -511,6 +532,12 @@ def main():
                 run_market_sync()
             except Exception as e:
                 print(f"  Market sync failed: {e}")
+            print("\n[2] Archiving screener snapshot...")
+            try:
+                from scripts.archive_screener import archive_daily
+                archive_daily()
+            except Exception as e:
+                print(f"  Archive failed (non-fatal): {e}")
 
         if args.upload:
             print("\n[1] Compacting DB...")

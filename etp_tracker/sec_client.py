@@ -81,7 +81,12 @@ class SECClient:
         r = self.session.get(url, timeout=self.timeout)
         r.raise_for_status()
         text = r.text
-        try: self._web_path(url, ".txt").write_text(text, encoding="utf-8", errors="ignore")
+        try:
+            dest = self._web_path(url, ".txt")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            tmp = dest.with_suffix(".tmp")
+            tmp.write_text(text, encoding="utf-8", errors="ignore")
+            tmp.replace(dest)  # atomic rename
         except Exception: pass
         return text
 
@@ -96,7 +101,12 @@ class SECClient:
         r = self.session.get(url, timeout=self.timeout)
         r.raise_for_status()
         data = r.content
-        try: self._web_path(url, ".bin").write_bytes(data)
+        try:
+            dest = self._web_path(url, ".bin")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            tmp = dest.with_suffix(".tmp")
+            tmp.write_bytes(data)
+            tmp.replace(dest)  # atomic rename
         except Exception: pass
         return data
 
@@ -134,7 +144,11 @@ class SECClient:
                 return json.loads(cache_path.read_text(encoding="utf-8"))
             r.raise_for_status()
             data = r.json()
-            try: cache_path.write_text(json.dumps(data), encoding="utf-8")
+            try:
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = cache_path.with_suffix(".tmp")
+                tmp.write_text(json.dumps(data), encoding="utf-8")
+                tmp.replace(cache_path)
             except Exception: pass
             return data
         try:
@@ -144,7 +158,11 @@ class SECClient:
             r = self.session.get(url, timeout=self.timeout)
             r.raise_for_status()
             data = r.json()
-            try: cache_path.write_text(json.dumps(data), encoding="utf-8")
+            try:
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = cache_path.with_suffix(".tmp")
+                tmp.write_text(json.dumps(data), encoding="utf-8")
+                tmp.replace(cache_path)
             except Exception: pass
             return data
 
@@ -166,7 +184,10 @@ class SECClient:
         r.raise_for_status()
         data = r.json()
         try:
-            cache_path.write_text(json.dumps(data), encoding="utf-8")
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = cache_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data), encoding="utf-8")
+            tmp.replace(cache_path)
         except Exception:
             pass
         return data

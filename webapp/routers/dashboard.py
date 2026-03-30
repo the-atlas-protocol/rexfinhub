@@ -249,7 +249,7 @@ def api_home_kpis(db: Session = Depends(get_db)):
     weekly_flows = None
     try:
         from webapp.services.market_data import get_rex_summary
-        summary = get_rex_summary(db, fund_structure="ETF")
+        summary = get_rex_summary(db, fund_structure="ETF,ETN", etn_overrides=True)
         if summary:
             kpis = summary.get("kpis", {})
             rex_aum = kpis.get("total_aum_fmt", "--")

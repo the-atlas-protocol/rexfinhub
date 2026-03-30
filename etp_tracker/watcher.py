@@ -212,11 +212,12 @@ def auto_approve_candidates(db, threshold: float = AUTO_APPROVE_THRESHOLD) -> in
                 log.info("Candidate CIK %s already tracked as '%s'", c.cik, existing_trust.name)
                 continue
 
-            # Create new Trust record
+            # Create new Trust record (prefer enriched name from SEC)
+            trust_name = result.get("name") or c.company_name
             trust = Trust(
                 cik=c.cik,
-                name=c.company_name,
-                slug=c.company_name.lower().replace(" ", "-").replace("/", "-")[:200],
+                name=trust_name,
+                slug=trust_name.lower().replace(" ", "-").replace("/", "-")[:200],
                 is_active=True,
                 source="watcher",
                 entity_type=result.get("entity_type", "unknown"),

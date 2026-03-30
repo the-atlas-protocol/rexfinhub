@@ -62,13 +62,28 @@ def sync(force: bool = False) -> bool:
     size_mb = ONEDRIVE_SRC.stat().st_size / 1_048_576
     print(f"Synced: {size_mb:.1f}MB (modified {src_mtime.strftime('%Y-%m-%d %H:%M')})")
 
-    # Prune history older than 90 days
+    # Prune history older than 90 days — archive to D: first
+    cold_dir = Path("D:/sec-data/archives/bloomberg")
     cutoff = datetime.now().timestamp() - (90 * 86400)
     pruned = 0
+    archived_cold = 0
     for old_file in HISTORY_DIR.glob("bbg_data_*.xlsm"):
         if old_file.stat().st_mtime < cutoff:
+            # Copy to cold storage before deleting
+            if cold_dir.parent.exists():
+                cold_dir.mkdir(parents=True, exist_ok=True)
+                cold_path = cold_dir / old_file.name
+                if not cold_path.exists():
+                    try:
+                        shutil.copy2(str(old_file), str(cold_path))
+                        archived_cold += 1
+                    except Exception as e:
+                        print(f"Cold archive failed for {old_file.name}: {e}")
+                        continue  # Don't delete if cold archive failed
             old_file.unlink()
             pruned += 1
+    if archived_cold:
+        print(f"Archived {archived_cold} file(s) to D: cold storage")
     if pruned:
         print(f"Pruned {pruned} archive(s) older than 90 days")
 

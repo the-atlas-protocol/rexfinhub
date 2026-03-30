@@ -94,7 +94,7 @@ def competitors_page(
     issuers = get_holdings_by_issuer(db, q, rex_only=False)
     # Filter out REX issuers from issuer list
     issuers = [i for i in issuers if i.get("issuer") not in (
-        "REX Financial", "REX Financial: MicroSectors", "Osprey Funds"
+        "REX Financial", "REX Financial: MicroSectors",
     )]
 
     # Competitor-specific KPIs
@@ -174,7 +174,7 @@ def competitors_new_filers_page(
 
     issuer_breakdown = get_holdings_by_issuer(db, q, rex_only=False)
     issuer_breakdown = [i for i in issuer_breakdown if i.get("issuer") not in (
-        "REX Financial", "REX Financial: MicroSectors", "Osprey Funds"
+        "REX Financial", "REX Financial: MicroSectors",
     )]
     vertical_breakdown = get_holdings_by_vertical(db, q, rex_only=False)
 

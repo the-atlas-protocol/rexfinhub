@@ -84,7 +84,21 @@ def get_holdings_db():
 
 def init_db():
     """Create all tables if they don't exist, and migrate missing columns."""
+    import logging
+    _log = logging.getLogger(__name__)
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    # Integrity check on existing DB (fast — ~50ms for 1GB DB)
+    if DB_PATH.exists():
+        import sqlite3
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            result = conn.execute("PRAGMA quick_check").fetchone()
+            conn.close()
+            if result[0] != "ok":
+                _log.error("DATABASE INTEGRITY CHECK FAILED: %s", result[0])
+        except Exception as e:
+            _log.error("Database integrity check error: %s", e)
     from webapp.models import (  # noqa: F401 - import to register models
         Trust, Filing, FundExtraction, FundStatus,
         NameHistory, AnalysisResult, PipelineRun,
