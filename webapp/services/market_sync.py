@@ -196,6 +196,14 @@ def sync_market_data(
     db.execute(delete(MktMasterData).where(True))
     db.flush()
 
+    # Step 3b: Apply MicroSectors ETN overrides (bake into DB so Render has correct values)
+    try:
+        from webapp.services.market_data import _apply_etn_overrides
+        _apply_etn_overrides(master_df)
+        log.info("ETN overrides baked into master_df for DB insert")
+    except Exception as e:
+        log.warning("ETN overrides not applied (non-fatal): %s", e)
+
     # Step 4: Bulk insert master data
     log.info("Inserting %d master rows...", len(master_df))
     master_rows = _insert_master_data(db, master_df, run_id)
