@@ -29,8 +29,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 ZIP_CACHE = Path("D:/sec-data/submissions.zip")
 ZIP_FALLBACK = PROJECT_ROOT / "temp" / "submissions.zip"
 
-# All form types we care about
-TARGET_FORMS = ("485", "N-1A", "S-1", "S-3", "10-K", "10-Q")
+# Form types that identify ETF/ETP/crypto filers (NOT 10-K/10-Q which match every company)
+TARGET_FORMS = ("485", "N-1A", "S-1", "S-3")
 
 # Forms that indicate specific regulatory acts
 _485_FORMS = {"485APOS", "485BPOS", "485BXT", "497", "497J", "497K", "N-1A"}

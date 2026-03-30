@@ -83,8 +83,34 @@ def main():
     except Exception as e:
         print(f"  Watcher failed: {e}")
 
+    # Step 1b: Structured notes discovery
+    print("\n[1b/6] Structured Notes discovery...")
+    notes_project = Path("C:/Projects/structured-notes")
+    notes_src = Path("D:/sec-data/databases/structured_notes.db")
+    notes_dst = PROJECT_ROOT / "data" / "structured_notes.db"
+    try:
+        if notes_project.exists():
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "cli.py", "discover"],
+                cwd=str(notes_project), capture_output=True, text=True, timeout=300
+            )
+            if result.returncode == 0:
+                new_lines = [l for l in result.stdout.split('\n') if 'new filings' in l]
+                total_new = sum(int(l.split()[1]) for l in new_lines if l.strip())
+                print(f"  Discovered {total_new} new note filings")
+            else:
+                print(f"  Discovery failed: {result.stderr[-100:]}")
+            # Sync DB from D: to local
+            if notes_src.exists():
+                import shutil
+                shutil.copy2(str(notes_src), str(notes_dst))
+                print(f"  Notes DB synced from D:")
+    except Exception as e:
+        print(f"  Notes failed: {e}")
+
     # Step 2: SEC pipeline (incremental — only new filings)
-    print("\n[2/5] SEC Filing Pipeline (incremental)...")
+    print("\n[2/6] SEC Filing Pipeline (incremental)...")
     try:
         from etp_tracker.run_pipeline import run_pipeline, load_ciks_from_db
 
@@ -108,7 +134,7 @@ def main():
         print(f"  Pipeline failed: {e}")
 
     # Step 3: DB sync
-    print("\n[3/5] Syncing to database...")
+    print("\n[3/6] Syncing to database...")
     try:
         from webapp.services.sync_service import seed_trusts, sync_all
         from webapp.database import init_db, SessionLocal
@@ -125,7 +151,7 @@ def main():
         print(f"  DB sync failed: {e}")
 
     # Step 4: Archive cache to D: (if available)
-    print("\n[4/5] Archiving cache...")
+    print("\n[4/6] Archiving cache...")
     try:
         cache_archive = Path("D:/sec-data/cache/rexfinhub")
         cache_local = PROJECT_ROOT / "cache"
@@ -159,7 +185,7 @@ def main():
 
     # Step 5: Upload to Render (only if something changed)
     if new_trusts > 0 or new_filings > 0:
-        print("\n[5/5] Uploading to Render...")
+        print("\n[5/6] Uploading to Render...")
         try:
             # Compact DB
             import sqlite3
@@ -214,7 +240,7 @@ def main():
         except Exception as e:
             print(f"  Upload failed: {e}")
     else:
-        print("\n[5/5] No changes — skipping Render upload")
+        print("\n[5/6] No changes — skipping Render upload")
 
     elapsed = time.time() - start
     print(f"\n=== Rapid Sync done in {elapsed:.0f}s ===")
