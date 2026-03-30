@@ -110,14 +110,15 @@ def main():
     # Step 3: DB sync
     print("\n[3/5] Syncing to database...")
     try:
-        from webapp.services.sync_service import sync_all
+        from webapp.services.sync_service import seed_trusts, sync_all
         from webapp.database import init_db, SessionLocal
 
         init_db()
         db = SessionLocal()
         try:
-            result = sync_all(db, OUTPUT_DIR, changed_trusts=changed_trusts)
-            print(f"  Synced: {result.get('trusts_synced', 0)} trusts")
+            seed_trusts(db)
+            results = sync_all(db, OUTPUT_DIR, only_trusts=changed_trusts)
+            print(f"  Synced: {len(results)} trusts")
         finally:
             db.close()
     except Exception as e:
