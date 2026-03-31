@@ -1651,6 +1651,52 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     if top10 or bot10:
         body += _flow_bars(top10, bot10, n=10)
 
+    # Pipeline: pending autocallable products from SEC filings
+    try:
+        from webapp.models import FundStatus as _FS, Trust as _T
+        from sqlalchemy import select as _sel
+        _pending = db.execute(
+            _sel(_FS.fund_name, _FS.effective_date, _T.name.label("trust_name"))
+            .join(_T, _T.id == _FS.trust_id)
+            .where(_FS.fund_name.ilike("%autocall%"))
+            .where(_FS.status == "PENDING")
+            .order_by(_T.name, _FS.fund_name)
+        ).all()
+        if _pending:
+            _rows_html = ""
+            _prev_trust = ""
+            for p in _pending:
+                trust_label = p.trust_name if p.trust_name != _prev_trust else ""
+                _prev_trust = p.trust_name
+                eff = str(p.effective_date)[:10] if p.effective_date else "TBD"
+                _rows_html += (
+                    f'<tr>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;color:{_GRAY};">'
+                    f'{_esc(trust_label)}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;">'
+                    f'{_esc(p.fund_name[:50])}</td>'
+                    f'<td style="padding:4px 8px;border-bottom:1px solid {_BORDER};font-size:11px;'
+                    f'text-align:right;color:{_ORANGE};font-weight:600;">{eff}</td>'
+                    f'</tr>'
+                )
+            body += (
+                f'<tr><td style="padding:18px 30px 5px;">'
+                f'<div style="font-size:14px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
+                f'padding-bottom:6px;border-bottom:2px solid {_ORANGE};">'
+                f'Filing Pipeline ({len(_pending)} pending)</div>'
+                f'</td></tr>'
+                f'<tr><td style="padding:0 30px 10px;">'
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                f'<tr style="font-size:9px;color:{_GRAY};text-transform:uppercase;">'
+                f'<td style="padding:4px 8px;">Trust</td>'
+                f'<td style="padding:4px 8px;">Fund Name</td>'
+                f'<td style="padding:4px 8px;text-align:right;">Expected</td></tr>'
+                f'{_rows_html}'
+                f'</table></td></tr>'
+            )
+    except Exception:
+        pass
+
     # Market share line chart — ON HOLD
     # To re-enable: see git commit e2b5ae1 for the full chart code.
     # Shows category AUM since CAIE launch (Jun 2025) + REX share from ATCL (Feb 2026).
@@ -1660,11 +1706,12 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     body += (
         f'<tr><td style="padding:16px 30px 12px;">'
         f'<div style="font-size:10px;color:{_GRAY};line-height:1.4;border-top:1px solid {_BORDER};padding-top:10px;">'
-        f'<b>Methodology:</b> Weekly flows ("1W") measure the net change between Monday closes '
-        f'(e.g., Monday 3/23 close to Monday 3/30 close). Monthly flows ("1M") measure the net change '
-        f'from the last trading day of the prior month to the last trading day of the current month '
-        f'(e.g., Feb 28 close to Mar 31 close). If a reference date falls on a non-trading day, '
-        f'the last available trading day is used. AUM and flow data sourced from Bloomberg L.P.'
+        f'<b>Methodology:</b> Fund flows are calculated as [Shares Outstanding(t) - Shares Outstanding(t-1)] x NAV(t). '
+        f'US ETP flows are reported with a <b>one-day lag</b> (shares outstanding reported by issuers with a one-day delay). '
+        f'Weekly flows ("1W") measure net creations/redemptions between Monday closes '
+        f'(e.g., Mon 3/23 to Mon 3/30). Monthly flows ("1M") measure the net change from the last '
+        f'trading day of the prior month to the last trading day of the current month. '
+        f'Values displayed in USD millions. Source: Bloomberg L.P.'
         f'</div></td></tr>'
     )
 
