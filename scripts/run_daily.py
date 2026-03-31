@@ -504,21 +504,12 @@ def main():
         print("\n[11/11] Sending email reports...")
         try:
             import subprocess
-            day_of_week = datetime.now().strftime("%A")
-            if day_of_week == "Monday":
-                # Monday: send daily + weekly + L&I + Income + Flow
-                print("  Monday -- sending all reports...")
-                subprocess.run(
-                    [sys.executable, str(PROJECT_ROOT / "scripts" / "send_email.py"), "send", "all", "--force"],
-                    cwd=str(PROJECT_ROOT), timeout=300,
-                )
-            else:
-                # Tue-Fri: send daily only
-                print(f"  {day_of_week} -- sending daily report...")
-                subprocess.run(
-                    [sys.executable, str(PROJECT_ROOT / "scripts" / "send_email.py"), "send", "daily", "--force"],
-                    cwd=str(PROJECT_ROOT), timeout=300,
-                )
+            # Send all reports every day (daily + weekly + L&I + Income + Flow)
+            print("  Sending all reports...")
+            subprocess.run(
+                [sys.executable, str(PROJECT_ROOT / "scripts" / "send_email.py"), "send", "all", "--force"],
+                cwd=str(PROJECT_ROOT), timeout=300,
+            )
         except Exception as e:
             print(f"  Email send failed (non-fatal): {e}")
 
