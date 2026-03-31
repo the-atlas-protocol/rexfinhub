@@ -44,18 +44,11 @@ TASKS = [
         "start_time": "15:45",
     },
     {
-        "name": "ETP_Preview",
-        "desc": "Preview reports in Chrome at 5PM for review before sending",
-        "command": f'"{PYTHON}" "{PROJECT_ROOT / "scripts" / "send_email.py"}" preview all',
-        "schedule": "/sc weekly /d MON,TUE,WED,THU,FRI",
-        "start_time": "17:00",
-    },
-    {
         "name": "ETP_DailySync",
-        "desc": "Full pipeline + reports at 6PM (skips trust universe — already done at 3:45)",
+        "desc": "Full pipeline at 5:00 PM — finishes by ~5:45, sends emails at 6:00",
         "command": f'"{PYTHON}" "{PROJECT_ROOT / "scripts" / "run_daily.py"}"',
         "schedule": "/sc weekly /d MON,TUE,WED,THU,FRI",
-        "start_time": "18:00",
+        "start_time": "17:00",
     },
 ]
 

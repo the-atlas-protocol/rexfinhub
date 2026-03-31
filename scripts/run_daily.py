@@ -555,10 +555,17 @@ def main():
         except Exception as e:
             print(f"  Notes upload failed (non-fatal): {e}")
 
-        # === Send email reports ===
+        # === Wait until 6:00 PM to send emails ===
         print("\n[12/12] Sending email reports...")
         try:
             import subprocess
+            target_hour = 18  # 6:00 PM
+            now_dt = datetime.now()
+            if now_dt.hour < target_hour:
+                wait_until = now_dt.replace(hour=target_hour, minute=0, second=0, microsecond=0)
+                wait_secs = (wait_until - now_dt).total_seconds()
+                print(f"  Pipeline done. Waiting until 6:00 PM to send ({wait_secs / 60:.0f} min)...")
+                time.sleep(wait_secs)
             day_of_week = datetime.now().strftime("%A")
             if day_of_week in ("Saturday", "Sunday"):
                 print(f"  {day_of_week} -- skipping email reports")
