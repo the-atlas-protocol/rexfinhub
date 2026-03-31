@@ -1,5 +1,6 @@
 # Database
 pgdata/
+pgsql/
 pg.log
 *.backup
 

@@ -1132,7 +1132,13 @@ function _buildCountry6M(dbSuiteName, countries) {
   const data = REPORT_DATA.suite_country_6m?.[dbSuiteName] || [];
   return data.map(m => {
     const total = Object.values(m.countries).reduce((s, v) => s + v, 0) || 1;
-    const pcts = countries.map(c => (m.countries[c] || 0) / total * 100);
+    const pcts = countries.map(c => {
+      if (c === 'Other') {
+        const named = countries.filter(x => x !== 'Other').reduce((s, x) => s + (m.countries[x] || 0), 0);
+        return (total - named) / total * 100;
+      }
+      return (m.countries[c] || 0) / total * 100;
+    });
     return { month: m.month, pcts };
   });
 }
@@ -1162,8 +1168,26 @@ function _buildDisplayFamily6M(familyFilter, countries) {
   const lastMonth = lastTimeline.length ? lastTimeline[lastTimeline.length - 1].month : "Feb '26";
   return [{ month: lastMonth, pcts }];
 }
-const EPI_COUNTRY_6M = _buildDisplayFamily6M((f) => f === 'EPI + Autocallable', ['Japan', 'Korea', 'Hong Kong', 'Other']);
-const GI_COUNTRY_6M = _buildDisplayFamily6M((f, t) => f === 'G&I + IncomeMax', ['Korea', 'Japan', 'Singapore', 'Other']);
+// EPI and G&I: use Income family 6-month data (EPI dominates Income, G&I is small)
+// Current month uses exact per-fund split; historical months use Income family total
+const EPI_COUNTRY_6M = (() => {
+  const income6m = _buildCountry6M('Income', ['Japan', 'Korea', 'Hong Kong', 'Other']);
+  // Replace last month with exact EPI-only data
+  if (income6m.length > 0) {
+    const exact = _buildDisplayFamily6M((f) => f === 'EPI + Autocallable', ['Japan', 'Korea', 'Hong Kong', 'Other']);
+    if (exact.length > 0) income6m[income6m.length - 1] = exact[0];
+  }
+  return income6m;
+})();
+const GI_COUNTRY_6M = (() => {
+  const income6m = _buildCountry6M('Income', ['Korea', 'Japan', 'Singapore', 'Other']);
+  // Replace last month with exact G&I-only data
+  if (income6m.length > 0) {
+    const exact = _buildDisplayFamily6M((f, t) => f === 'G&I + IncomeMax', ['Korea', 'Japan', 'Singapore', 'Other']);
+    if (exact.length > 0) income6m[income6m.length - 1] = exact[0];
+  }
+  return income6m;
+})();
 
 // --- % of global AUM in Asia per suite (dashed line in family timelines) ---
 // Uses per-suite per-month global AUM from DB (each month's actual denominator)
@@ -2006,11 +2030,21 @@ function buildAppendix(colors) {
   const familyColors = {
     'T-REX': '#c93c37',
     'MicroSectors': '#1a7f37',
-    'EPI + Autocallable': '#0c2340',
-    'G&I + IncomeMax': '#2c6fbb',
+    'Equity Premium Income': '#0c2340',
+    'Autocallable': '#0c2340',
+    'Growth & Income': '#2c6fbb',
+    'IncomeMax': '#2c6fbb',
     'Other': '#8c8c8c',
     'Crypto': '#8c8c8c'
   };
+  // Appendix shows specific labels, not grouped names
+  function appendixLabel(fund, groupFamily) {
+    if (fund === 'ULTI') return 'IncomeMax';
+    if (fund === 'ATCL') return 'Autocallable';
+    if (groupFamily === 'EPI + Autocallable') return 'Equity Premium Income';
+    if (groupFamily === 'G&I + IncomeMax') return 'Growth & Income';
+    return groupFamily;
+  }
 
   // Sort by AUM descending
   const appendixData = SUITE_FILTER ? APPENDIX.filter(f => f.family === SUITE_FILTER) : APPENDIX;
@@ -2035,7 +2069,8 @@ function buildAppendix(colors) {
     if (!body) return;
     funds.forEach(f => {
       const tr = document.createElement('tr');
-      const fc = familyColors[f.family] || colors.muted;
+      const label = appendixLabel(f.fund, f.family);
+      const fc = familyColors[label] || colors.muted;
       const priorAum = f.mom !== 0 ? f.aum / (1 + f.mom) : f.aum;
       const dollarChange = f.aum - priorAum;
       const marketMove = dollarChange - f.flows;
@@ -2043,7 +2078,7 @@ function buildAppendix(colors) {
         ? (f.mom > 0 ? '>999%' : '<-999%')
         : momSign(f.mom) + (f.mom * 100).toFixed(1) + '%';
       tr.innerHTML = `<td class="bold">${f.fund}</td>` +
-        `<td><span style="color:${fc};font-weight:600;font-size:8.5px;">${f.family}</span></td>` +
+        `<td><span style="color:${fc};font-weight:600;font-size:8.5px;">${label}</span></td>` +
         `<td class="r">${fmtDollar(f.aum)}</td><td class="r">${fmtDollar(f.total)}</td>` +
         `<td class="r">${fmtPct(f.pct)}</td>` +
         `<td class="r"><span class="${momClass(f.mom)}">${momPctStr}</span></td>` +

@@ -1,0 +1,10 @@
+Hi Grace, Geeseok,
+
+Yes, the lower values on Futu/MooMoo, Oriental Harbour, and MooMoo SG are expected. Between quarterly reports, we estimate current AUM based on how each fund's price has moved. Since most of these funds declined in February, the estimates come in lower than the raw numbers.
+
+All monthly reported sources (KSD, SBI, Rakuten, Monex, Matsui, ViewTrade, Asset Plus) match your data exactly.
+
+These are estimates until the next quarterly reports come in. Once we have Q1 data from Futu and the other quarterly reporters, the March report will be significantly more accurate.
+
+Best,
+Ryu
