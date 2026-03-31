@@ -1540,6 +1540,14 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
     body = ""
 
+    # Data date line
+    body += (
+        f'<tr><td style="padding:12px 30px 0;">'
+        f'<div style="font-size:11px;color:{_GRAY};font-style:italic;">'
+        f'Data as of {date_str}</div>'
+        f'</td></tr>'
+    )
+
     # Highlights
     bullets = []
     aum_str = kpis.get("total_aum", "--")
@@ -1600,6 +1608,89 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
             ])
         body += _table(headers, iss_rows, aligns, highlight_col=3,
                         rex_rows=rex_idxs, col_widths=widths)
+
+    # Market share line chart (AUM + REX share over 12 months)
+    try:
+        import json as _json
+        from urllib.parse import quote as _quote
+        from webapp.services.market_data import _load_master, _apply_etn_overrides
+        import pandas as _pd
+
+        _master = _load_master(db)
+        _apply_etn_overrides(_master)
+        _auto_all = _master[_master["fund_name"].fillna("").str.contains("autocall", case=False, na=False)]
+        _auto_rex = _auto_all[_auto_all["is_rex"] == True]
+
+        # Build 12-month history (aum_12 = 12 months ago, aum = current)
+        _months = list(range(12, 0, -1)) + [0]
+        _labels = []
+        _total_aum = []
+        _rex_share = []
+        for m in _months:
+            col = f"t_w4.aum_{m}" if m > 0 else "t_w4.aum"
+            if col in _auto_all.columns:
+                t = _pd.to_numeric(_auto_all[col], errors="coerce").fillna(0).sum()
+                r = _pd.to_numeric(_auto_rex[col], errors="coerce").fillna(0).sum()
+                _total_aum.append(round(t, 1))
+                _rex_share.append(round(r / t * 100, 2) if t > 0 else 0)
+                _labels.append(f"M-{m}" if m > 0 else "Now")
+
+        if len(_labels) > 3:
+            _chart = {
+                "type": "line",
+                "data": {
+                    "labels": _labels,
+                    "datasets": [
+                        {
+                            "label": "Category AUM ($M)",
+                            "data": _total_aum,
+                            "borderColor": _NAVY,
+                            "backgroundColor": _NAVY + "20",
+                            "fill": True,
+                            "tension": 0.3,
+                            "pointRadius": 3,
+                            "borderWidth": 2,
+                            "yAxisID": "y",
+                        },
+                        {
+                            "label": "REX Market Share (%)",
+                            "data": _rex_share,
+                            "borderColor": _REX_GREEN,
+                            "backgroundColor": _REX_GREEN,
+                            "fill": False,
+                            "tension": 0.3,
+                            "pointRadius": 3,
+                            "borderWidth": 2,
+                            "borderDash": [5, 3],
+                            "yAxisID": "y1",
+                        },
+                    ],
+                },
+                "options": {
+                    "responsive": True,
+                    "interaction": {"mode": "index", "intersect": False},
+                    "scales": {
+                        "x": {"ticks": {"font": {"size": 10}, "color": "#6b7280"}, "grid": {"display": False}},
+                        "y": {"title": {"display": True, "text": "AUM ($M)", "font": {"size": 11}, "color": "#6b7280"},
+                               "ticks": {"font": {"size": 10}, "color": "#6b7280"}, "grid": {"color": "#f3f4f6"}},
+                        "y1": {"position": "right",
+                                "title": {"display": True, "text": "REX Share (%)", "font": {"size": 11}, "color": _REX_GREEN},
+                                "ticks": {"font": {"size": 10}, "color": _REX_GREEN}, "grid": {"drawOnChartArea": False}},
+                    },
+                    "plugins": {"legend": {"display": True, "labels": {"font": {"size": 11}, "usePointStyle": True}}},
+                },
+            }
+            _chart_url = f"https://quickchart.io/chart?c={_quote(_json.dumps(_chart, separators=(',', ':')))}&w=600&h=250&bkg=%23ffffff&v=4"
+            body += (
+                f'<tr><td style="padding:18px 30px 8px;">'
+                f'<div style="font-size:11px;font-weight:600;color:{_GRAY};text-transform:uppercase;'
+                f'letter-spacing:0.5px;margin-bottom:8px;">Category AUM & REX Market Share (12 Months)</div>'
+                f'<img src="{_chart_url}" width="600" height="250" alt="Market Share Chart" '
+                f'style="display:block;width:100%;max-width:600px;height:auto;border-radius:6px;" />'
+                f'</td></tr>'
+            )
+    except Exception:
+        pass  # Chart is non-critical
 
     # Flow bars
     top10 = auto_suite.get("top10", [])[:10]
