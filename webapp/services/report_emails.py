@@ -561,91 +561,91 @@ def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
 
 
 def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
-    """Bi-directional flow chart: inflows go RIGHT (green), outflows go LEFT (red).
+    """Bi-directional flow chart with dynamic zero-point.
 
-    Bars ordered by magnitude (largest at top). Replaces the Top 10 tables.
+    - All positive: 0 on left, largest inflow on right
+    - All negative: largest outflow on left, 0 on right
+    - Mixed: largest outflow on left, largest inflow on right, 0 in between
     """
-    top_in = [f for f in inflows[:n] if f.get("flow_1w", 0) > 0]
-    top_in.sort(key=lambda f: f.get("flow_1w", 0), reverse=True)
-    # Outflows: only negative flows, smallest magnitude at top, largest at bottom
-    top_out = [f for f in outflows[:n] if f.get("flow_1w", 0) < 0]
-    top_out.sort(key=lambda f: abs(f.get("flow_1w", 0)), reverse=False)
+    top_in = sorted([f for f in inflows[:n] if f.get("flow_1w", 0) > 0],
+                    key=lambda f: f["flow_1w"], reverse=True)
+    top_out = sorted([f for f in outflows[:n] if f.get("flow_1w", 0) < 0],
+                     key=lambda f: abs(f["flow_1w"]), reverse=True)
     if not top_in and not top_out:
         return ""
 
-    all_flows = [abs(f.get("flow_1w", 0)) for f in top_in + top_out]
-    max_flow = max(all_flows) if all_flows else 1
-    if max_flow == 0:
-        max_flow = 1  # avoid division by zero when all flows are zero
+    max_pos = max((f["flow_1w"] for f in top_in), default=0)
+    max_neg = max((abs(f["flow_1w"]) for f in top_out), default=0)
+    total_range = max_pos + max_neg
+    if total_range == 0:
+        total_range = 1
 
-    # Build rows: inflows first (green, bars go right), then outflows (red, bars go left)
-    rows_html = ""
-    # If no outflows, use full-width bars (left-aligned); if both, use center-split
-    full_width = not top_out
-    bar_scale = 90 if full_width else 50
+    # Bar area as percentage of the inner table width
+    bar_area = 100  # use full width of the bar cell
+    if max_neg == 0:
+        zero_pct = 0  # all positive: zero at left edge
+    elif max_pos == 0:
+        zero_pct = bar_area  # all negative: zero at right edge
+    else:
+        zero_pct = max_neg / total_range * bar_area
 
-    # Inflows: label | [green bar] | value
-    if top_in:
-        rows_html += (f'<tr><td colspan="3" style="padding:4px 0 2px;font-size:10px;'
-                      f'font-weight:600;color:{_GREEN};text-transform:uppercase;'
-                      f'letter-spacing:0.5px;">Inflows</td></tr>')
-    for f in top_in:
+    def _bar_row(f: dict) -> str:
         flow = f.get("flow_1w", 0)
-        pct = abs(flow) / max_flow * bar_scale
-        bar_w = max(pct, 2)
-        if full_width:
-            bar_html = (
-                f'<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
-                f'<tr><td style="width:{bar_w:.0f}%;background:{_GREEN};height:14px;border-radius:3px;'
-                f'font-size:0;">&nbsp;</td>'
-                f'<td style="width:{100 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr></table>'
-            )
+        ticker = _esc(f["ticker"])
+        fmt = _esc(f["flow_1w_fmt"])
+        is_pos = flow >= 0
+        bar_len = abs(flow) / total_range * bar_area
+        bar_len = max(bar_len, 1.5)
+        color = _GREEN if is_pos else _RED
+        txt_color = _GREEN if is_pos else _RED
+
+        if is_pos:
+            # Bar goes right from zero: [left_pad][zero|green_bar][right_pad]
+            left = zero_pct
+            right = bar_area - zero_pct - bar_len
+            bar = (f'<td style="width:{max(left, 0):.1f}%;font-size:0;">&nbsp;</td>'
+                   f'<td style="width:{bar_len:.1f}%;background:{color};height:14px;'
+                   f'border-radius:0 3px 3px 0;font-size:0;">&nbsp;</td>'
+                   f'<td style="width:{max(right, 0):.1f}%;font-size:0;">&nbsp;</td>')
         else:
-            bar_html = (
-                f'<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
-                f'<tr><td style="width:50%;font-size:0;">&nbsp;</td>'
-                f'<td style="width:{bar_w:.0f}%;background:{_GREEN};height:14px;border-radius:0 3px 3px 0;'
-                f'font-size:0;">&nbsp;</td>'
-                f'<td style="width:{50 - bar_w:.0f}%;font-size:0;">&nbsp;</td></tr></table>'
-            )
-        rows_html += f"""<tr>
-<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:70px;white-space:nowrap;">{_esc(f["ticker"])}</td>
-<td style="padding:2px 4px;width:100%;">{bar_html}</td>
-<td style="padding:2px 0;font-size:11px;color:{_GREEN};text-align:right;white-space:nowrap;
-  width:75px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
-</tr>"""
+            # Bar goes left from zero: [left_pad][red_bar|zero][right_pad]
+            left = zero_pct - bar_len
+            right = bar_area - zero_pct
+            bar = (f'<td style="width:{max(left, 0):.1f}%;font-size:0;">&nbsp;</td>'
+                   f'<td style="width:{bar_len:.1f}%;background:{color};height:14px;'
+                   f'border-radius:3px 0 0 3px;font-size:0;">&nbsp;</td>'
+                   f'<td style="width:{max(right, 0):.1f}%;font-size:0;">&nbsp;</td>')
 
-    # Outflows: label | [red bar][empty] | value  (bars grow LEFT from center)
+        return (f'<tr>'
+                f'<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;'
+                f'white-space:nowrap;overflow:hidden;">{ticker}</td>'
+                f'<td style="padding:2px 4px;">'
+                f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+                f'style="border-collapse:collapse;"><tr>{bar}</tr></table></td>'
+                f'<td style="padding:2px 4px;font-size:11px;color:{txt_color};text-align:right;'
+                f'white-space:nowrap;width:70px;font-weight:600;">{fmt}</td></tr>')
+
+    rows = ""
+    if top_in:
+        rows += (f'<tr><td colspan="3" style="padding:4px 0 2px;font-size:10px;'
+                 f'font-weight:600;color:{_GREEN};text-transform:uppercase;'
+                 f'letter-spacing:0.5px;">Inflows</td></tr>')
+        for f in top_in:
+            rows += _bar_row(f)
     if top_out:
-        rows_html += (f'<tr><td colspan="3" style="padding:6px 0 2px;font-size:10px;'
-                      f'font-weight:600;color:{_RED};text-transform:uppercase;'
-                      f'letter-spacing:0.5px;">Outflows</td></tr>')
-    for f in top_out:
-        flow = f.get("flow_1w", 0)
-        pct = abs(flow) / max_flow * 50
-        bar_w = max(pct, 2)
-        rows_html += f"""<tr>
-<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:70px;white-space:nowrap;">{_esc(f["ticker"])}</td>
-<td style="padding:2px 4px;width:100%;">
-  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-  <tr><td style="width:{50 - bar_w:.0f}%;font-size:0;">&nbsp;</td>
-  <td style="width:{bar_w:.0f}%;background:{_RED};height:14px;border-radius:3px 0 0 3px;
-    font-size:0;">&nbsp;</td>
-  <td style="width:50%;font-size:0;">&nbsp;</td></tr>
-  </table>
-</td>
-<td style="padding:2px 0;font-size:11px;color:{_RED};text-align:right;white-space:nowrap;
-  width:75px;font-weight:600;">{_esc(f["flow_1w_fmt"])}</td>
-</tr>"""
+        rows += (f'<tr><td colspan="3" style="padding:6px 0 2px;font-size:10px;'
+                 f'font-weight:600;color:{_RED};text-transform:uppercase;'
+                 f'letter-spacing:0.5px;">Outflows</td></tr>')
+        for f in top_out:
+            rows += _bar_row(f)
 
-    # Center line indicator
     return (
         f'<tr><td style="padding:8px 30px 10px;">'
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
         f'style="background:{_WHITE};border:1px solid {_BORDER};border-radius:8px;padding:10px 12px;">'
         f'<tr><td colspan="3" style="padding:0 0 6px;font-size:11px;font-weight:600;'
         f'color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Weekly Fund Flows</td></tr>'
-        f'{rows_html}'
+        f'{rows}'
         f'</table></td></tr>'
     )
 
