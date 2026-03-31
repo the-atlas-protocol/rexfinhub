@@ -164,6 +164,44 @@ def archive_daily(label: str | None = None) -> dict:
     except Exception as e:
         print(f"  Screener results export failed: {e}")
 
+    # 5b. Autocall ranks (for week-over-week rank change tracking)
+    try:
+        from webapp.services.report_data import get_flow_report
+        from webapp.database import init_db, SessionLocal
+        init_db()
+        _db = SessionLocal()
+        try:
+            flow = get_flow_report(_db)
+            for s in flow.get("suites", []):
+                if "autocall" in s.get("label", "").lower():
+                    issuers = s.get("issuers", [])
+                    by_share = sorted(issuers, key=lambda x: x.get("market_share", 0), reverse=True)
+                    by_1w = sorted(issuers, key=lambda x: x.get("flow_1w", 0), reverse=True)
+                    by_1m = sorted(issuers, key=lambda x: x.get("flow_1m", 0) or 0, reverse=True)
+                    ranks = {}
+                    for i, iss in enumerate(by_share, 1):
+                        ranks.setdefault(iss["issuer"], {})["share_rank"] = i
+                    for i, iss in enumerate(by_1w, 1):
+                        ranks.setdefault(iss["issuer"], {})["flow_1w_rank"] = i
+                    for i, iss in enumerate(by_1m, 1):
+                        ranks.setdefault(iss["issuer"], {})["flow_1m_rank"] = i
+                    for iss in issuers:
+                        ranks[iss["issuer"]]["aum"] = iss.get("aum", 0)
+                        ranks[iss["issuer"]]["market_share"] = iss.get("market_share", 0)
+                        ranks[iss["issuer"]]["is_rex"] = iss.get("is_rex", False)
+                    autocall_path = Path("data/DASHBOARD/exports/autocall_ranks")
+                    autocall_path.mkdir(parents=True, exist_ok=True)
+                    rank_file = autocall_path / f"{datetime.now().strftime('%Y-%m-%d')}.json"
+                    with open(rank_file, "w") as f:
+                        json.dump({"date": datetime.now().strftime("%Y-%m-%d"), "issuers": ranks}, f, indent=2, default=str)
+                    metadata["files"]["autocall_ranks.json"] = rank_file.stat().st_size
+                    print(f"  Autocall ranks: {len(ranks)} issuers")
+                    break
+        finally:
+            _db.close()
+    except Exception as e:
+        print(f"  Autocall ranks failed: {e}")
+
     # 6. Write metadata
     metadata_path = local_dir / "metadata.json"
     with open(metadata_path, "w") as f:

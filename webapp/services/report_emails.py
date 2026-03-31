@@ -1572,6 +1572,46 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     # Landscape section title
     body += _section_title("Autocallable ETF Landscape", suite_color)
 
+    # Load prior week's ranks for delta comparison
+    _prior_ranks = {}
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+        from datetime import timedelta as _td
+        _rank_dir = _Path("data/DASHBOARD/exports/autocall_ranks")
+        if _rank_dir.exists():
+            _files = sorted(_rank_dir.glob("*.json"), reverse=True)
+            # Find the most recent file that's at least 5 days old (last week)
+            for _f in _files:
+                _fdate = _f.stem  # YYYY-MM-DD
+                try:
+                    from datetime import date as _dclass
+                    _fd = _dclass.fromisoformat(_fdate)
+                    if (datetime.now().date() - _fd).days >= 5:
+                        _prior = _json.loads(_f.read_text())
+                        _prior_ranks = _prior.get("issuers", {})
+                        break
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    def _rank_pill(current: int, prior_key: str) -> str:
+        """Render Option C colored pill showing rank change."""
+        prior = _prior_ranks.get("REX", {}).get(prior_key)
+        if prior is None:
+            return ""
+        delta = prior - current  # positive = improved (went from #5 to #3 = +2)
+        if delta > 0:
+            return (f'<div style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:10px;'
+                    f'font-size:9px;font-weight:700;background:#ecfdf5;color:{_GREEN};">&#x25B2; {delta}</div>')
+        elif delta < 0:
+            return (f'<div style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:10px;'
+                    f'font-size:9px;font-weight:700;background:#fef2f2;color:{_RED};">&#x25BC; {abs(delta)}</div>')
+        else:
+            return (f'<div style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:10px;'
+                    f'font-size:9px;font-weight:700;background:#f3f4f6;color:{_GRAY};">&#x2014;</div>')
+
     # REX positioning: Share Rank, 1W Flow Rank, 1M Flow Rank
     if rex_s.get("count", 0) > 0:
         _metrics = []
@@ -1580,21 +1620,24 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
             _metrics.append(
                 f'<td style="padding:6px 10px;text-align:center;">'
                 f'<div style="font-size:18px;font-weight:700;color:{sc};">#{_share_rank}</div>'
-                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Share Rank</div></td>'
+                f'{_rank_pill(_share_rank, "share_rank")}'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">Share Rank</div></td>'
             )
         if _flow_1w_rank is not None:
             fc = _GREEN if _flow_1w_rank <= 3 else _GRAY
             _metrics.append(
                 f'<td style="padding:6px 10px;text-align:center;">'
                 f'<div style="font-size:18px;font-weight:700;color:{fc};">#{_flow_1w_rank}</div>'
-                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">1W Flow Rank</div></td>'
+                f'{_rank_pill(_flow_1w_rank, "flow_1w_rank")}'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">1W Flow Rank</div></td>'
             )
         if _flow_1m_rank is not None:
             mc = _GREEN if _flow_1m_rank <= 3 else _GRAY
             _metrics.append(
                 f'<td style="padding:6px 10px;text-align:center;">'
                 f'<div style="font-size:18px;font-weight:700;color:{mc};">#{_flow_1m_rank}</div>'
-                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">1M Flow Rank</div></td>'
+                f'{_rank_pill(_flow_1m_rank, "flow_1m_rank")}'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">1M Flow Rank</div></td>'
             )
         if _metrics:
             body += (
