@@ -72,7 +72,11 @@ def _fmt_currency(val: float) -> str:
         return f"{sign}${av / 1_000:,.1f}B"
     if av >= 1:
         return f"{sign}${av:,.1f}M"
-    return f"{sign}${av:.1f}M"
+    if av >= 0.05:
+        return f"{sign}${av:.1f}M"
+    if av > 0:
+        return f"{sign}${av * 1000:.0f}K"
+    return "--"
 
 
 def _fmt_flow(val: float) -> str:
@@ -520,7 +524,8 @@ def _read_csv(path: Path) -> pd.DataFrame:
 def _read_report_cache(db: Session | None, key: str) -> dict | None:
     """Read a pre-computed report from mkt_report_cache.
 
-    Returns the deserialized dict if found, None otherwise.
+    Returns the deserialized dict if found and fresh, None if stale or missing.
+    Staleness check: cache must be from the same pipeline run as the latest master data.
     """
     if db is None:
         return None
@@ -529,6 +534,15 @@ def _read_report_cache(db: Session | None, key: str) -> dict | None:
             select(MktReportCache).where(MktReportCache.report_key == key)
         ).scalar_one_or_none()
         if row and row.data_json:
+            # Check if cache is from the latest pipeline run
+            from webapp.models import MktPipelineRun
+            latest_run = db.execute(
+                select(MktPipelineRun.id).order_by(MktPipelineRun.id.desc()).limit(1)
+            ).scalar()
+            if latest_run and row.pipeline_run_id and row.pipeline_run_id < latest_run:
+                log.info("Report cache '%s' is stale (run %d vs latest %d), rebuilding",
+                         key, row.pipeline_run_id, latest_run)
+                return None  # Force rebuild
             return json.loads(row.data_json)
     except Exception as e:
         log.debug("Report cache read failed for %s: %s", key, e)
