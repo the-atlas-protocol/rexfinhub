@@ -209,6 +209,33 @@ def main():
     except Exception as e:
         log(f"  DB sync failed: {e}")
 
+    # Step 4b: Classify new funds
+    log("\n[4b/6] Classifying new funds...")
+    try:
+        from tools.rules_editor.classify_engine import scan_unmapped, apply_classifications
+        import shutil
+
+        scan = scan_unmapped(since_days=7)
+        candidates = scan.get("candidates", [])
+        approved = [c for c in candidates if c.get("confidence") in ("HIGH", "MEDIUM")]
+        if approved:
+            apply_classifications(approved)
+            rules_dir = PROJECT_ROOT / "data" / "rules"
+            config_dir = PROJECT_ROOT / "config" / "rules"
+            for csv_name in ["fund_mapping.csv", "issuer_mapping.csv",
+                             "attributes_LI.csv", "attributes_CC.csv",
+                             "attributes_Crypto.csv", "attributes_Defined.csv",
+                             "attributes_Thematic.csv"]:
+                src = rules_dir / csv_name
+                dst = config_dir / csv_name
+                if src.exists():
+                    shutil.copy2(src, dst)
+            log(f"  Classified {len(approved)} funds ({len(candidates) - len(approved)} LOW skipped)")
+        else:
+            log(f"  No new funds to classify ({len(candidates)} candidates, all LOW)")
+    except Exception as e:
+        log(f"  Classification failed: {e}")
+
     # Step 5: Archive cache C: -> D: (only if D: available)
     log("\n[5/6] Archiving cache...")
     try:
