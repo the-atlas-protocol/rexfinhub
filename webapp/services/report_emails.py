@@ -1507,6 +1507,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     External report — no internal dashboard links.
     """
     dashboard_url = ""  # External report — never link to internal site
+    title = "Autocallable ETF Category Weekly Update"
     from webapp.services.report_data import get_flow_report
     data = get_flow_report(db)
 
@@ -1514,7 +1515,6 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         data = get_flow_report(None)
 
     date_str = _data_date_str(data)
-    title = "REX Autocallable ETF Report"
 
     if not data.get("available"):
         return _wrap_email(title, _NAVY,
@@ -1609,33 +1609,49 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         body += _table(headers, iss_rows, aligns, highlight_col=3,
                         rex_rows=rex_idxs, col_widths=widths)
 
-    # Market share line chart (AUM + REX share over 12 months)
+    # Flow bars
+    top10 = auto_suite.get("top10", [])[:10]
+    bot10 = auto_suite.get("bottom10", [])[:10]
+    if top10 or bot10:
+        body += _flow_bars(top10, bot10, n=10)
+
+    # Market share line chart — since CAIE launch (June 2025)
     try:
         import json as _json
         from urllib.parse import quote as _quote
         from webapp.services.market_data import _load_master, _apply_etn_overrides
         import pandas as _pd
+        from dateutil.relativedelta import relativedelta
 
         _master = _load_master(db)
         _apply_etn_overrides(_master)
         _auto_all = _master[_master["fund_name"].fillna("").str.contains("autocall", case=False, na=False)]
         _auto_rex = _auto_all[_auto_all["is_rex"] == True]
 
-        # Build 12-month history (aum_12 = 12 months ago, aum = current)
-        _months = list(range(12, 0, -1)) + [0]
+        # CAIE launched June 2025 = ~9 months ago. Only show from M-9 onward.
+        # REX ATCL launched Feb 2026 = ~1 month ago. Show REX as null before that.
+        _now = datetime.now()
         _labels = []
         _total_aum = []
         _rex_share = []
-        for m in _months:
+        for m in range(9, -1, -1):  # M-9 (Jun 2025) through M-0 (now)
             col = f"t_w4.aum_{m}" if m > 0 else "t_w4.aum"
-            if col in _auto_all.columns:
-                t = _pd.to_numeric(_auto_all[col], errors="coerce").fillna(0).sum()
-                r = _pd.to_numeric(_auto_rex[col], errors="coerce").fillna(0).sum()
-                _total_aum.append(round(t, 1))
+            if col not in _auto_all.columns:
+                continue
+            t = _pd.to_numeric(_auto_all[col], errors="coerce").fillna(0).sum()
+            r = _pd.to_numeric(_auto_rex[col], errors="coerce").fillna(0).sum()
+            if t < 1:  # Skip months before any product existed
+                continue
+            _total_aum.append(round(t, 1))
+            # Only show REX share from Feb 2026 (ATCL launch) = M-1 or M-0
+            if m <= 1:
                 _rex_share.append(round(r / t * 100, 2) if t > 0 else 0)
-                _labels.append(f"M-{m}" if m > 0 else "Now")
+            else:
+                _rex_share.append(None)  # null = gap in chart
+            month_date = _now - relativedelta(months=m)
+            _labels.append(month_date.strftime("%b %Y"))
 
-        if len(_labels) > 3:
+        if len(_labels) > 2:
             _chart = {
                 "type": "line",
                 "data": {
@@ -1659,10 +1675,11 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                             "backgroundColor": _REX_GREEN,
                             "fill": False,
                             "tension": 0.3,
-                            "pointRadius": 3,
-                            "borderWidth": 2,
+                            "pointRadius": 4,
+                            "borderWidth": 2.5,
                             "borderDash": [5, 3],
                             "yAxisID": "y1",
+                            "spanGaps": False,
                         },
                     ],
                 },
@@ -1684,19 +1701,24 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
             body += (
                 f'<tr><td style="padding:18px 30px 8px;">'
                 f'<div style="font-size:11px;font-weight:600;color:{_GRAY};text-transform:uppercase;'
-                f'letter-spacing:0.5px;margin-bottom:8px;">Category AUM & REX Market Share (12 Months)</div>'
+                f'letter-spacing:0.5px;margin-bottom:8px;">Autocallable ETF Category Growth (Since CAIE Launch)</div>'
                 f'<img src="{_chart_url}" width="600" height="250" alt="Market Share Chart" '
                 f'style="display:block;width:100%;max-width:600px;height:auto;border-radius:6px;" />'
                 f'</td></tr>'
             )
     except Exception:
-        pass  # Chart is non-critical
+        pass
 
-    # Flow bars
-    top10 = auto_suite.get("top10", [])[:10]
-    bot10 = auto_suite.get("bottom10", [])[:10]
-    if top10 or bot10:
-        body += _flow_bars(top10, bot10, n=10)
+    # Bloomberg methodology note
+    body += (
+        f'<tr><td style="padding:16px 30px 12px;">'
+        f'<div style="font-size:10px;color:{_GRAY};line-height:1.4;border-top:1px solid {_BORDER};padding-top:10px;">'
+        f'<b>Methodology:</b> Weekly flows ("1W") measure the net change between Monday closes '
+        f'(e.g., Monday 3/23 close to Monday 3/30 close). If Monday is a non-trading day, the last '
+        f'available trading day is used. Monthly flows follow the same convention over calendar months. '
+        f'AUM and flow data sourced from Bloomberg L.P.'
+        f'</div></td></tr>'
+    )
 
     html = _wrap_email(title, _NAVY, body, dashboard_url, date_str)
     # Strip footer — this is an external report
