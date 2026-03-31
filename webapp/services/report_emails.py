@@ -1545,16 +1545,17 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     aum_str = kpis.get("total_aum", "--")
     flow_1w = kpis.get("flow_1w", "--")
     count = kpis.get("count", 0)
-    bullets.append(f"Autocallable ETF category: {aum_str} AUM across {count} products ({flow_1w} 1W flow)")
+    bullets.append(f"Autocallable ETF landscape: {aum_str} AUM across {count} products ({flow_1w} 1W flow)")
     if rex_s.get("count", 0) > 0:
         bullets.append(f"REX ATCL: {rex_s.get('total_aum', '--')} AUM, {rex_s.get('flow_1w', '--')} 1W flow, {rex_s.get('market_share', '--')} market share")
     if issuers:
         leader = issuers[0]
-        bullets.append(f"Category leader: {leader.get('issuer', '?')} ({leader.get('aum_fmt', '--')} AUM, {leader.get('flow_1w_fmt', '--')} 1W flow)")
+        bullets.append(f"Landscape leader: {leader.get('issuer', '?')} ({leader.get('aum_fmt', '--')} AUM, {leader.get('flow_1w_fmt', '--')} 1W flow)")
     body += _key_highlights_box(bullets)
 
-    # Compute REX flow rank and market share rank
+    # Compute REX ranks + flow capture
     _flow_rank = _share_rank = None
+    _flow_capture = None
     if issuers and rex_s.get("count", 0) > 0:
         for i, iss in enumerate(sorted(issuers, key=lambda x: x.get("flow_1w", 0), reverse=True)):
             if iss.get("is_rex", False):
@@ -1564,33 +1565,44 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
             if iss.get("is_rex", False):
                 _share_rank = i + 1
                 break
+        cat_flow_raw = kpis.get("flow_1w_raw", 0)
+        rex_flow_raw = rex_s.get("flow_1w_raw", 0)
+        if cat_flow_raw and cat_flow_raw > 0:  # Only meaningful when category has net inflows
+            _flow_capture = rex_flow_raw / cat_flow_raw * 100
 
-    rank_badges = ""
-    if _flow_rank is not None:
-        fc = _GREEN if _flow_rank <= 3 else _GRAY
-        rank_badges += (
-            f'<span style="display:inline-block;margin-left:10px;padding:2px 8px;'
-            f'border-radius:4px;font-size:11px;font-weight:700;color:{fc};'
-            f'background:{_LIGHT};border:1px solid {_BORDER};">'
-            f'Flow #{_flow_rank}</span>'
-        )
-    if _share_rank is not None:
-        sc = _GREEN if _share_rank <= 3 else _GRAY
-        rank_badges += (
-            f'<span style="display:inline-block;margin-left:6px;padding:2px 8px;'
-            f'border-radius:4px;font-size:11px;font-weight:700;color:{sc};'
-            f'background:{_LIGHT};border:1px solid {_BORDER};">'
-            f'Share #{_share_rank}</span>'
-        )
+    # Landscape section title
+    body += _section_title("Autocallable ETF Landscape", suite_color)
 
-    # Category + REX KPIs with rank badges
-    body += (
-        f'<tr><td style="padding:18px 30px 5px;">'
-        f'<div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
-        f'padding-bottom:6px;border-bottom:2px solid {suite_color};">'
-        f'Autocallable ETF Category{rank_badges}</div>'
-        f'</td></tr>'
-    )
+    # REX positioning: Share Rank, Flow Rank, Flow Capture
+    if rex_s.get("count", 0) > 0:
+        _metrics = []
+        if _share_rank is not None:
+            sc = _GREEN if _share_rank <= 3 else _GRAY
+            _metrics.append(
+                f'<td style="padding:6px 10px;text-align:center;">'
+                f'<div style="font-size:18px;font-weight:700;color:{sc};">#{_share_rank}</div>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Share Rank</div></td>'
+            )
+        if _flow_rank is not None:
+            fc = _GREEN if _flow_rank <= 3 else _GRAY
+            _metrics.append(
+                f'<td style="padding:6px 10px;text-align:center;">'
+                f'<div style="font-size:18px;font-weight:700;color:{fc};">#{_flow_rank}</div>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Flow Rank</div></td>'
+            )
+        if _flow_capture is not None:
+            cap_color = _GREEN if _flow_capture >= 0 else _RED
+            _metrics.append(
+                f'<td style="padding:6px 10px;text-align:center;">'
+                f'<div style="font-size:18px;font-weight:700;color:{cap_color};">{_flow_capture:+.1f}%</div>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;">Flow Capture</div></td>'
+            )
+        if _metrics:
+            body += (
+                f'<tr><td style="padding:8px 30px;">'
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                f'<tr>{"".join(_metrics)}</tr></table></td></tr>'
+            )
     rex_row = None
     if rex_s.get("count", 0) > 0:
         rex_row = [
@@ -1611,9 +1623,6 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         ],
         rex_row=rex_row,
     )
-
-    # Flow metrics
-    body += _flow_metrics_row(kpis, rex_s, issuers)
 
     # Market share bar
     if issuers:
