@@ -1499,6 +1499,116 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     return html, []
 
 
+def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
+    """Build REX Autocallable ETF Report — standalone extract from flow report.
+
+    Shows the Autocallable category: KPIs, issuer comparison, market share,
+    flow bars. Designed for weekly distribution to ATCL partners.
+    """
+    from webapp.services.report_data import get_flow_report
+    data = get_flow_report(db)
+
+    if data.get("available") and "grand_kpis" not in data:
+        data = get_flow_report(None)
+
+    date_str = _data_date_str(data)
+    title = "REX Autocallable ETF Report"
+
+    if not data.get("available"):
+        return _wrap_email(title, _NAVY,
+                           '<tr><td style="padding:20px 30px;">Report data not available.</td></tr>',
+                           dashboard_url, date_str), []
+
+    suites = data.get("suites", [])
+    auto_suite = None
+    for s in suites:
+        if "autocall" in s.get("label", "").lower():
+            auto_suite = s
+            break
+
+    if not auto_suite:
+        return _wrap_email(title, _NAVY,
+                           '<tr><td style="padding:20px 30px;">No autocallable data found.</td></tr>',
+                           dashboard_url, date_str), []
+
+    kpis = auto_suite.get("kpis", {})
+    rex_s = auto_suite.get("rex_kpis", {})
+    issuers = auto_suite.get("issuers", [])
+    suite_color = _SUITE_COLORS.get("Autocallable", "#F3DFC1")
+
+    body = ""
+
+    # Highlights
+    bullets = []
+    aum_str = kpis.get("total_aum", "--")
+    flow_1w = kpis.get("flow_1w", "--")
+    count = kpis.get("count", 0)
+    bullets.append(f"Autocallable ETF category: {aum_str} AUM across {count} products ({flow_1w} 1W flow)")
+    if rex_s.get("count", 0) > 0:
+        bullets.append(f"REX ATCL: {rex_s.get('total_aum', '--')} AUM, {rex_s.get('flow_1w', '--')} 1W flow, {rex_s.get('market_share', '--')} market share")
+    if issuers:
+        leader = issuers[0]
+        bullets.append(f"Category leader: {leader.get('issuer', '?')} ({leader.get('aum_fmt', '--')} AUM, {leader.get('flow_1w_fmt', '--')} 1W flow)")
+    body += _key_highlights_box(bullets)
+
+    # Category + REX KPIs
+    body += _section_title(f"Autocallable ETF Category")
+    rex_row = None
+    if rex_s.get("count", 0) > 0:
+        rex_row = [
+            ("REX Funds", str(rex_s.get("count", 0))),
+            ("REX AUM", rex_s.get("total_aum", "--")),
+            ("REX 1W Flow", rex_s.get("flow_1w", "--"),
+             rex_s.get("flow_1w_positive", True)),
+            ("Market Share", rex_s.get("market_share", "--")),
+        ]
+    body += _flow_dual_kpi(
+        market_row=[
+            ("ETPs", str(kpis.get("count", 0))),
+            ("AUM", kpis.get("total_aum", "--")),
+            ("1W Flow", kpis.get("flow_1w", "--"),
+             kpis.get("flow_1w_positive", True)),
+            ("1M Flow", kpis.get("flow_1m", "--"),
+             kpis.get("flow_1m_positive", True)),
+        ],
+        rex_row=rex_row,
+    )
+
+    # Flow metrics
+    body += _flow_metrics_row(kpis, rex_s, issuers)
+
+    # Market share bar
+    if issuers:
+        body += _flow_share_bar(issuers, n=6)
+
+    # Issuer comparison table
+    if issuers:
+        headers = ["Issuer", "ETPs", "AUM", "1W Flow", "1M Flow", "Share"]
+        aligns = ["left", "right", "right", "right", "right", "right"]
+        widths = ["140px", "50px", "80px", "80px", "80px", "55px"]
+        iss_rows = []
+        rex_idxs = set()
+        for ri, iss in enumerate(issuers):
+            if iss.get("is_rex", False):
+                rex_idxs.add(ri)
+            iss_rows.append([
+                _esc(iss["issuer"][:28]), str(iss["count"]), iss["aum_fmt"],
+                iss["flow_1w_fmt"], iss["flow_1m_fmt"],
+                f'{iss["market_share"]:.1f}%',
+            ])
+        body += _table(headers, iss_rows, aligns, highlight_col=3,
+                        rex_rows=rex_idxs, col_widths=widths)
+
+    # Flow bars
+    top10 = auto_suite.get("top10", [])[:10]
+    bot10 = auto_suite.get("bottom10", [])[:10]
+    if top10 or bot10:
+        body += _flow_bars(top10, bot10, n=10)
+
+    html = _wrap_email(title, _NAVY, body, dashboard_url, date_str)
+    return html, []
+
+
 def cid_to_data_uri(html: str, images: list[tuple[str, bytes, str]]) -> str:
     """Replace cid: references with data: URIs for browser preview.
 

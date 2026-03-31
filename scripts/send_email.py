@@ -111,6 +111,12 @@ def _build_flow(db) -> str:
     return html
 
 
+def _build_autocall(db) -> str:
+    from webapp.services.report_emails import build_autocall_email
+    html, _ = build_autocall_email(DASHBOARD_URL, db)
+    return html
+
+
 def _data_date(db) -> str:
     """Get data date (MM/DD/YYYY) from report cache for email subjects."""
     from webapp.services.report_data import get_li_report
@@ -127,6 +133,7 @@ WEEKLY_REPORTS = [
     ("REX ETP Leverage & Inverse Report", "li_report", _build_li),
     ("REX ETP Income Report", "income_report", _build_income),
     ("REX ETP Flow Report", "flow_report", _build_flow),
+    ("REX Autocallable ETF Report", "autocall_report", _build_autocall),
 ]
 
 
