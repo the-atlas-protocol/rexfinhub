@@ -1544,6 +1544,23 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                            '<tr><td style="padding:20px 30px;">No autocallable data found.</td></tr>',
                            dashboard_url, date_str), []
 
+    # Compute flow date ranges for labels (1-day lag from pull date)
+    from dateutil.relativedelta import relativedelta as _rl
+    _pull = datetime.now()
+    _lag = _pull - timedelta(days=1)
+    _d = _lag
+    _td_count = 0
+    while _td_count < 5:
+        _d -= timedelta(days=1)
+        if _d.weekday() < 5:
+            _td_count += 1
+    _1w_start = _d + timedelta(days=1)
+    while _1w_start.weekday() >= 5:
+        _1w_start += timedelta(days=1)
+    _1m_start = _lag - _rl(months=1)
+    _1w_label = f"{_1w_start.month}/{_1w_start.day}-{_lag.month}/{_lag.day}"
+    _1m_label = f"{_1m_start.month}/{_1m_start.day}-{_lag.month}/{_lag.day}"
+
     kpis = auto_suite.get("kpis", {})
     rex_s = auto_suite.get("rex_kpis", {})
     issuers = auto_suite.get("issuers", [])
@@ -1556,12 +1573,12 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     aum_str = kpis.get("total_aum", "--")
     flow_1w = kpis.get("flow_1w", "--")
     count = kpis.get("count", 0)
-    bullets.append(f"Autocallable ETF landscape: {aum_str} AUM across {count} products ({flow_1w} 1W flow)")
+    bullets.append(f"Autocallable ETF landscape: {aum_str} AUM across {count} products ({flow_1w} flow {_1w_label})")
     if rex_s.get("count", 0) > 0:
-        bullets.append(f"REX ATCL: {rex_s.get('total_aum', '--')} AUM, {rex_s.get('flow_1w', '--')} 1W flow, {rex_s.get('market_share', '--')} market share")
+        bullets.append(f"REX ATCL: {rex_s.get('total_aum', '--')} AUM, {rex_s.get('flow_1w', '--')} flow ({_1w_label}), {rex_s.get('market_share', '--')} market share")
     if issuers:
         leader = issuers[0]
-        bullets.append(f"Landscape leader: {leader.get('issuer', '?')} ({leader.get('aum_fmt', '--')} AUM, {leader.get('flow_1w_fmt', '--')} 1W flow)")
+        bullets.append(f"Landscape leader: {leader.get('issuer', '?')} ({leader.get('aum_fmt', '--')} AUM, {leader.get('flow_1w_fmt', '--')} flow {_1w_label})")
     body += _key_highlights_box(bullets)
 
     # Compute REX ranks
@@ -1640,7 +1657,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                 f'<td style="padding:6px 10px;text-align:center;">'
                 f'<div style="font-size:18px;font-weight:700;color:{fc};">#{_flow_1w_rank}</div>'
                 f'{_rank_pill(_flow_1w_rank, "flow_1w_rank")}'
-                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">1W Flow Rank</div></td>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">{_1w_label} Flow Rank</div></td>'
             )
         if _flow_1m_rank is not None:
             mc = _GREEN if _flow_1m_rank <= 3 else _NAVY
@@ -1648,7 +1665,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                 f'<td style="padding:6px 10px;text-align:center;">'
                 f'<div style="font-size:18px;font-weight:700;color:{mc};">#{_flow_1m_rank}</div>'
                 f'{_rank_pill(_flow_1m_rank, "flow_1m_rank")}'
-                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">1M Flow Rank</div></td>'
+                f'<div style="font-size:8px;color:{_GRAY};text-transform:uppercase;margin-top:3px;">{_1m_label} Flow Rank</div></td>'
             )
         if _metrics:
             body += (
@@ -1661,7 +1678,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         rex_row = [
             ("REX Funds", str(rex_s.get("count", 0))),
             ("REX AUM", rex_s.get("total_aum", "--")),
-            ("REX 1W Flow", rex_s.get("flow_1w", "--"),
+            (f"REX Flow ({_1w_label})", rex_s.get("flow_1w", "--"),
              rex_s.get("flow_1w_positive", True)),
             ("Market Share", rex_s.get("market_share", "--")),
         ]
@@ -1669,9 +1686,9 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         market_row=[
             ("ETPs", str(kpis.get("count", 0))),
             ("AUM", kpis.get("total_aum", "--")),
-            ("1W Flow", kpis.get("flow_1w", "--"),
+            (f"Flow ({_1w_label})", kpis.get("flow_1w", "--"),
              kpis.get("flow_1w_positive", True)),
-            ("1M Flow", kpis.get("flow_1m", "--"),
+            (f"Flow ({_1m_label})", kpis.get("flow_1m", "--"),
              kpis.get("flow_1m_positive", True)),
         ],
         rex_row=rex_row,
@@ -1683,7 +1700,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
     # Issuer comparison table
     if issuers:
-        headers = ["Issuer", "ETPs", "AUM", "1W Flow", "1M Flow", "Share"]
+        headers = ["Issuer", "ETPs", "AUM", f"Flow ({_1w_label})", f"Flow ({_1m_label})", "Share"]
         aligns = ["left", "right", "right", "right", "right", "right"]
         widths = ["140px", "50px", "80px", "80px", "80px", "55px"]
         iss_rows = []
