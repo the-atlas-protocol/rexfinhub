@@ -1709,8 +1709,8 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         f'<b>Methodology:</b> Fund flows are calculated as [Shares Outstanding(t) - Shares Outstanding(t-1)] x NAV(t). '
         f'US ETP flows are reported with a <b>one-day lag</b> (shares outstanding reported by issuers with a one-day delay). '
         f'Weekly flows ("1W") measure net creations/redemptions between Monday closes '
-        f'(e.g., Mon 3/23 to Mon 3/30). Monthly flows ("1M") measure the net change from the last '
-        f'trading day of the prior month to the last trading day of the current month. '
+        f'(e.g., Mon 3/23 to Mon 3/30). Monthly flows ("1M") measure a rolling one-month window '
+        f'from today (e.g., ~Mar 1 to Mar 30). '
         f'Values displayed in USD millions. Source: Bloomberg L.P.'
         f'</div></td></tr>'
     )
