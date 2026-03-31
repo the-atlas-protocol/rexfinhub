@@ -1709,7 +1709,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         f'1W sums daily flows over 5 trading days ending one day prior to pull date. '
         f'1M looks back to the same calendar date one month prior '
         f'(if the prior month has fewer days, it snaps to month-end), also lagged one day. '
-        f'Values in USD millions. Source: Bloomberg L.P.'
+        f'Values in USD millions. Source: Bloomberg.'
         f'</div></td></tr>'
     )
 
