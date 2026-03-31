@@ -164,7 +164,60 @@ def archive_daily(label: str | None = None) -> dict:
     except Exception as e:
         print(f"  Screener results export failed: {e}")
 
-    # 5b. Autocall ranks (for week-over-week rank change tracking)
+    # 5b. Full market data snapshot (mkt_master_data — all products, all columns)
+    try:
+        from webapp.database import init_db, SessionLocal
+        from sqlalchemy import text
+        init_db()
+        _db = SessionLocal()
+        try:
+            rows = _db.execute(text("SELECT * FROM mkt_master_data")).fetchall()
+            if rows:
+                cols = rows[0]._fields if hasattr(rows[0], "_fields") else rows[0].keys()
+                import pandas as _pd
+                mkt_df = _pd.DataFrame(rows, columns=cols)
+                # Coerce object columns to string for parquet safety
+                for col in mkt_df.columns:
+                    if mkt_df[col].dtype == "object":
+                        mkt_df[col] = mkt_df[col].astype(str).replace("nan", "")
+                mkt_path = local_dir / "mkt_master_data.parquet"
+                mkt_df.to_parquet(mkt_path, index=False)
+                metadata["mkt_master_rows"] = len(mkt_df)
+                metadata["files"]["mkt_master_data.parquet"] = mkt_path.stat().st_size
+                print(f"  Market master: {len(mkt_df)} rows x {len(mkt_df.columns)} cols")
+        finally:
+            _db.close()
+    except Exception as e:
+        print(f"  Market master export failed: {e}")
+
+    # 5c. Report cache snapshots (li_report, cc_report, flow_report JSON)
+    try:
+        from webapp.database import init_db, SessionLocal
+        from webapp.models import MktReportCache
+        from sqlalchemy import select
+        init_db()
+        _db = SessionLocal()
+        try:
+            caches = _db.execute(select(MktReportCache)).scalars().all()
+            if caches:
+                report_cache = {}
+                for c in caches:
+                    report_cache[c.report_key] = {
+                        "data_as_of": c.data_as_of,
+                        "updated_at": str(c.updated_at),
+                        "size": len(c.data_json) if c.data_json else 0,
+                    }
+                cache_path = local_dir / "report_cache_meta.json"
+                with open(cache_path, "w") as f:
+                    json.dump(report_cache, f, indent=2, default=str)
+                metadata["files"]["report_cache_meta.json"] = cache_path.stat().st_size
+                print(f"  Report cache: {len(caches)} reports")
+        finally:
+            _db.close()
+    except Exception as e:
+        print(f"  Report cache export failed: {e}")
+
+    # 5d. Autocall ranks (for week-over-week rank change tracking)
     try:
         from webapp.services.report_data import get_flow_report
         from webapp.database import init_db, SessionLocal
