@@ -1,0 +1,37 @@
+# Database
+pgdata/
+pg.log
+*.backup
+
+# Bloomberg data (large binary, on SharePoint)
+bloomberg_daily_file_live.xlsm
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp files
+temp/
+temp_*.py
+temp_*.js
+temp_*.png
+
+# Attachments (broker Excel files — source data, tracked separately)
+attachments/
+
+# Grace source data
+grace_data/
+
+# Node modules
+node_modules/
+
+# Reports (PDFs are generated output, not source)
+reports/2026-02/*.png
+reports/*.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+*.env
