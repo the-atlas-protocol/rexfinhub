@@ -1,24 +1,7 @@
-{% extends "base.html" %}
+{% extends "market/base.html" %}
 {% block title %}ETP Screener - REX Financial Intelligence Hub{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="/static/css/market.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% endblock %}
-
-{% block content %}
-<div class="market-header">
-  <h1>Market Intelligence</h1>
-  <div class="market-nav-pills">
-    <a href="/market/rex" class="pill">REX View</a>
-    <a href="/market/category" class="pill">Category View</a>
-    <a href="/market/issuer" class="pill">Issuer Analysis</a>
-    <a href="/market/underlier" class="pill">Underlier</a>
-    <a href="/market/calendar" class="pill">Calendar</a>
-    <a href="/market/compare" class="pill">Compare</a>
-    <a href="/market/rex-performance" class="pill active">ETP Screener</a>
-  </div>
-</div>
+{% block market_content %}
 <style>
   /* Layout */
   .screener-wrap { display:flex; gap:0; height:calc(100vh - 200px); }
@@ -115,16 +98,22 @@
   .screener-table th.dragging { opacity:.5; }
   .screener-table th.drag-over { border-left:3px solid #fff; }
 
-  /* Full page override */
-  #tab-content, .container, main { max-width:none !important; padding-left:0 !important; padding-right:0 !important; }
-  .market-header { padding-left:14px; }
+  /* Full page override with small buffer */
+  #tab-content { max-width:none !important; padding:0 12px !important; }
+  /* Hide the market-level data-as-of (it's redundant on the screener) */
+  .market-data-date { display:none !important; }
 
   /* Suite filter hidden by default */
   .suite-filter-wrap { display:none; }
   .suite-filter-wrap.visible { display:contents; }
 
-  /* Hint text */
-  .scroll-hint { font-size:10px; color:#aaa; font-style:italic; }
+  /* Scroll hint accent */
+  .scroll-hint { font-size:11px; color:#2E75B6; font-weight:500; background:#edf2fb; padding:2px 8px; border-radius:3px; }
+
+  /* Horizontal scroll buttons */
+  .h-scroll-controls { display:flex; gap:4px; align-items:center; }
+  .h-scroll-btn { width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer; font-size:14px; color:#1F3864; }
+  .h-scroll-btn:hover { background:#e8edf3; border-color:#1F3864; }
 </style>
 
 {% if not available %}
@@ -136,7 +125,11 @@
   <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle columns panel">&#9776;</button>
   <div class="kpi-item"><span class="kpi-label">Showing:</span> <span class="kpi-value" id="kpiShowing">-</span></div>
   <div class="kpi-item"><span class="kpi-label">Total AUM:</span> <span class="kpi-value" id="kpiAUM">-</span></div>
-  <span class="scroll-hint">Alt+Scroll for horizontal</span>
+  <div class="h-scroll-controls">
+    <button class="h-scroll-btn" onclick="hScroll(-200)" title="Scroll left">&larr;</button>
+    <span class="scroll-hint">Alt+Scroll</span>
+    <button class="h-scroll-btn" onclick="hScroll(200)" title="Scroll right">&rarr;</button>
+  </div>
   <div class="page-controls">
     <button class="page-btn" id="pgFirst" onclick="goPage(0)" title="First">&laquo;</button>
     <button class="page-btn" id="pgPrev" onclick="prevPage()" title="Previous">&lsaquo;</button>
@@ -456,7 +449,8 @@ function setupDragDrop(){
 const _origRender=render;
 render=function(){_origRender();setupDragDrop();};
 
-// --- Alt+Scroll horizontal ---
+// --- Horizontal scroll ---
+function hScroll(delta){document.getElementById("tableWrap").scrollLeft+=delta;}
 document.getElementById("tableWrap").addEventListener("wheel",function(e){
   if(e.altKey){
     e.preventDefault();
@@ -472,8 +466,15 @@ document.getElementById("fSearch").addEventListener("input",function(){currentPa
 document.getElementById("fPageSize").addEventListener("change",function(){currentPage=0;render();});
 
 updateSuiteVisibility();
+
+// Hide site-level data-as-of (the one before market-header)
+document.querySelectorAll("div[style]").forEach(el=>{
+  if(el.textContent.includes("Data as of")&&!el.classList.contains("market-data-date")&&!el.classList.contains("kpi-bar")){
+    el.style.display="none";
+  }
+});
+
 init();
 </script>
 {% endif %}
 {% endblock %}
-
