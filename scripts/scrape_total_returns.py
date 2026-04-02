@@ -194,8 +194,29 @@ def parse_structured_stats(html: str, symbols: list[str]) -> dict:
     return result
 
 
+def _scrape_single(symbol: str, start: str = "", end: str = "") -> dict:
+    """Scrape a single symbol. Returns accurate IPO-to-date data."""
+    html = fetch_page([symbol], start, end)
+
+    dates = parse_dates(html)
+    if not dates:
+        return {"dates": [], "growth": [], "stats": {}}
+
+    all_series = parse_series(html, len(dates))
+    stats = parse_structured_stats(html, [symbol])
+    date_strs = [d.isoformat() for d in dates]
+
+    growth = all_series[0] if all_series else []
+
+    return {
+        "dates": date_strs,
+        "growth": growth,
+        "stats": stats.get(symbol, {}),
+    }
+
+
 def _scrape_batch(symbols: list[str], start: str = "", end: str = "") -> dict:
-    """Scrape a single batch (up to ~4 symbols) from TotalRealReturns."""
+    """Scrape a batch for combined chart data (may have normalization issues)."""
     html = fetch_page(symbols, start, end)
 
     dates = parse_dates(html)
@@ -219,17 +240,19 @@ def _scrape_batch(symbols: list[str], start: str = "", end: str = "") -> dict:
 def scrape(symbols: list[str], start: str = "", end: str = "") -> dict:
     """
     Scrape TotalRealReturns.com for given symbols.
-    Handles batching in pairs to get full stats for all symbols.
+    Fetches each symbol individually for accurate IPO-to-date data.
     Supports up to 10 symbols.
 
     Returns:
         {
             "symbols": ["NVII", "NVDY", ...],
-            "dates": ["2025-05-28", ...],
-            "growth_series": {"NVII": [1.0, 1.037, ...], ...},
-            "stats": {"NVII": {"overall_return": 40.3, ...}, ...},
-            "data_points": 213,
-            "date_range": ["2025-05-28", "2026-04-01"],
+            "per_symbol": {
+                "NVII": {"dates": [...], "growth": [...], "stats": {...}},
+                ...
+            },
+            "combined_dates": [...],  # union of all dates
+            "growth_series": {"NVII": [...], ...},  # aligned to combined_dates
+            "stats": {"NVII": {...}, ...},
         }
     """
     import time
@@ -237,41 +260,51 @@ def scrape(symbols: list[str], start: str = "", end: str = "") -> dict:
     if len(symbols) > 10:
         return {"error": "Max 10 symbols supported", "symbols": symbols}
 
-    # Batch in pairs for full stats coverage
-    # First request: all symbols together (gets chart data for all)
-    main_result = _scrape_batch(symbols, start, end)
-    if not main_result["dates"]:
-        return {"error": "No date data found", "symbols": symbols}
+    per_symbol = {}
+    for i, sym in enumerate(symbols):
+        try:
+            result = _scrape_single(sym, start, end)
+            per_symbol[sym] = result
+        except Exception as e:
+            per_symbol[sym] = {"dates": [], "growth": [], "stats": {}, "error": str(e)}
+        if i < len(symbols) - 1:
+            time.sleep(0.3)
 
-    all_growth = dict(main_result["growth_series"])
-    all_stats = dict(main_result["stats"])
+    # Build combined date axis (union of all dates, sorted)
+    all_dates_set = set()
+    for sym_data in per_symbol.values():
+        all_dates_set.update(sym_data.get("dates", []))
+    combined_dates = sorted(all_dates_set)
 
-    # For symbols missing stats, fetch in pairs
-    missing = [s for s in symbols if s not in all_stats or not all_stats[s].get("overall_return")]
-    if missing:
-        # Batch missing symbols in pairs
-        for i in range(0, len(missing), 2):
-            batch = missing[i:i+2]
-            if len(batch) == 1:
-                batch = batch + [symbols[0]]  # pair with first symbol for comparison
-            time.sleep(0.5)  # polite delay
-            try:
-                batch_result = _scrape_batch(batch, start, end)
-                for sym in batch:
-                    if sym in batch_result["stats"] and batch_result["stats"][sym].get("overall_return"):
-                        all_stats[sym] = batch_result["stats"][sym]
-                    if sym in batch_result["growth_series"] and sym not in all_growth:
-                        all_growth[sym] = batch_result["growth_series"][sym]
-            except Exception:
-                pass  # best effort for supplementary batches
+    # Align each symbol's growth series to the combined dates
+    growth_series = {}
+    stats = {}
+    for sym, sym_data in per_symbol.items():
+        if sym_data.get("growth") and sym_data.get("dates"):
+            # Build date->value lookup
+            date_vals = dict(zip(sym_data["dates"], sym_data["growth"]))
+            # Align to combined dates, forward-fill missing
+            aligned = []
+            last_val = None
+            for d in combined_dates:
+                if d in date_vals:
+                    last_val = date_vals[d]
+                aligned.append(last_val)
+            growth_series[sym] = aligned
+        stats[sym] = sym_data.get("stats", {})
+
+    # Find the common date range (where all symbols have data)
+    first_dates = [per_symbol[s]["dates"][0] for s in symbols if per_symbol[s].get("dates")]
+    last_dates = [per_symbol[s]["dates"][-1] for s in symbols if per_symbol[s].get("dates")]
 
     return {
-        "symbols": symbols,
-        "dates": main_result["dates"],
-        "growth_series": all_growth,
-        "stats": all_stats,
-        "data_points": len(main_result["dates"]),
-        "date_range": [main_result["dates"][0], main_result["dates"][-1]] if main_result["dates"] else [],
+        "symbols": [s for s in symbols if s in growth_series],
+        "dates": combined_dates,
+        "growth_series": growth_series,
+        "stats": stats,
+        "per_symbol": {s: {"dates": d.get("dates", []), "data_points": len(d.get("dates", []))} for s, d in per_symbol.items()},
+        "data_points": len(combined_dates),
+        "date_range": [min(first_dates) if first_dates else "", max(last_dates) if last_dates else ""],
     }
 
 
