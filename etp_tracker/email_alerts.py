@@ -1017,16 +1017,26 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
                 )
 
             # Build the summary line
+            other_funds = fg.get("other_funds", [])
             if is_rex or relevant:
                 # Show fund names for REX / relevant trusts
                 fund_names = [_esc(f) for f in relevant]
                 summary_parts = []
                 if fund_names:
                     summary_parts.append(", ".join(fund_names))
-                if overflow > 0:
-                    summary_parts.append(f"+{overflow} more relevant")
-                if other_count > 0:
-                    summary_parts.append(f"+{other_count} more")
+                    if overflow > 0:
+                        summary_parts.append(f"+{overflow} more relevant")
+                    if other_count > 0:
+                        summary_parts.append(f"+{other_count} more")
+                else:
+                    # No relevant funds classified -- fall back to showing
+                    # "other" fund names so the email isn't just "+N more"
+                    fallback_names = [_esc(f) for f in other_funds]
+                    if fallback_names:
+                        summary_parts.append(", ".join(fallback_names))
+                        remaining = other_count - len(fallback_names)
+                        if remaining > 0:
+                            summary_parts.append(f"+{remaining} more")
                 summary = "; ".join(summary_parts) if summary_parts else f"{total} funds filed"
 
                 # Category tags
@@ -1377,7 +1387,8 @@ def _gather_daily_data(db_session, since_date: str | None = None,
             categories[_classify_fund(f)].append(f)
 
         relevant = categories.get("leveraged", []) + categories.get("income", []) + categories.get("crypto", [])
-        other_count = len(categories.get("other", []))
+        other_funds = categories.get("other", [])
+        other_count = len(other_funds)
         cat_counts = {c: len(names) for c, names in categories.items() if names and c != "other"}
 
         # Sort score: REX=1000, then count of relevant funds
@@ -1391,6 +1402,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
             "total_funds": len(unique_funds),
             "relevant_funds": relevant[:5],
             "relevant_overflow": max(0, len(relevant) - 5),
+            "other_funds": other_funds[:5],
             "other_count": other_count,
             "categories": cat_counts,
             "_sort": sort_score,
