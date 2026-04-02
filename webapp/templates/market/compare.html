@@ -11,25 +11,108 @@
 </div>
 <h2 class="section-title">Fund Comparison</h2>
 
-<form class="timeline-controls" method="get" action="/market/compare" id="compareForm">
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <input type="text" name="tickers" id="tickerInput" class="select-sm" placeholder="Enter tickers (e.g. TQQQ,SQQQ,SPXL)" value="{{ tickers }}" style="min-width:280px;">
-    <button type="submit" class="btn btn-primary" style="padding:6px 16px;font-size:0.85rem;">Compare</button>
+<style>
+  .compare-input-wrap { display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap; margin-bottom:16px; position:relative; }
+  .compare-input { min-width:350px; padding:8px 12px; font-size:14px; border:1px solid #ccc; border-radius:6px; }
+  .compare-input:focus { border-color:#1F3864; outline:none; box-shadow:0 0 0 2px rgba(31,56,100,.15); }
+  .ac-dropdown { position:absolute; top:100%; left:0; width:500px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.12); z-index:100; display:none; }
+  .ac-item { display:flex; justify-content:space-between; padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid #f0f0f0; }
+  .ac-item:hover { background:#edf2fb; }
+  .ac-item .ac-ticker { font-weight:700; color:#1F3864; width:70px; }
+  .ac-item .ac-name { flex:1; color:#444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ac-item .ac-aum { color:#888; font-size:12px; width:80px; text-align:right; }
+  .ac-item .ac-rex { background:#059669; color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; margin-left:4px; }
+  .ticker-pills { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
+  .ticker-pill { display:inline-flex; align-items:center; gap:4px; background:#edf2fb; border:1px solid #c7d2e0; border-radius:4px; padding:3px 8px; font-size:13px; font-weight:600; color:#1F3864; }
+  .ticker-pill .remove { cursor:pointer; color:#999; font-size:16px; line-height:1; }
+  .ticker-pill .remove:hover { color:#dc2626; }
+  .range-pills { display:flex; gap:4px; margin-bottom:4px; }
+  .range-pill { padding:3px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; cursor:pointer; background:#fff; color:#444; }
+  .range-pill:hover { border-color:#1F3864; color:#1F3864; }
+  .range-pill.active { background:#1F3864; color:#fff; border-color:#1F3864; }
+</style>
+
+<form method="get" action="/market/compare" id="compareForm">
+  <input type="hidden" name="tickers" id="tickerHidden" value="{{ tickers }}">
+  <div class="ticker-pills" id="tickerPills"></div>
+  <div class="compare-input-wrap">
+    <div style="position:relative; flex:1; max-width:500px;">
+      <input type="text" id="tickerSearch" class="compare-input" placeholder="Search ticker or fund name... (up to 10)" autocomplete="off">
+      <div class="ac-dropdown" id="acDropdown"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="padding:8px 20px; font-size:14px;">Compare</button>
   </div>
-  <div style="font-size:0.75rem;color:#6B7280;margin-top:4px;">Up to 4 tickers, comma-separated</div>
 </form>
 
-{% if totalrealreturns_url is defined and totalrealreturns_url %}
-<div style="margin-bottom:20px;">
-  <a href="{{ totalrealreturns_url }}" target="_blank" rel="noopener"
-     class="btn compare-btn-external">
-    View Total Return Comparison &#8599;
-  </a>
-  <span style="font-size:0.75rem; color:#94A3B8; margin-left:8px;">
-    Opens totalrealreturns.com with selected tickers
-  </span>
-</div>
-{% endif %}
+<script>
+// Ticker management
+let selectedTickers = {{ ticker_list|tojson|safe }};
+
+function renderPills() {
+  const wrap = document.getElementById('tickerPills');
+  wrap.innerHTML = selectedTickers.map(t =>
+    `<span class="ticker-pill">${t} <span class="remove" onclick="removeTicker('${t}')">&times;</span></span>`
+  ).join('');
+  document.getElementById('tickerHidden').value = selectedTickers.join(',');
+}
+
+function addTicker(t) {
+  t = t.toUpperCase().replace(' US','').trim();
+  if (!t || selectedTickers.includes(t) || selectedTickers.length >= 10) return;
+  selectedTickers.push(t);
+  renderPills();
+  document.getElementById('tickerSearch').value = '';
+  document.getElementById('acDropdown').style.display = 'none';
+}
+
+function removeTicker(t) {
+  selectedTickers = selectedTickers.filter(x => x !== t);
+  renderPills();
+  // Auto-submit if we still have tickers
+  if (selectedTickers.length > 0) {
+    document.getElementById('compareForm').submit();
+  }
+}
+
+// Autocomplete
+let acTimer = null;
+document.getElementById('tickerSearch').addEventListener('input', function() {
+  clearTimeout(acTimer);
+  const q = this.value.trim();
+  if (q.length < 1) { document.getElementById('acDropdown').style.display = 'none'; return; }
+  acTimer = setTimeout(async () => {
+    const resp = await fetch(`/market/api/ticker-search?q=${encodeURIComponent(q)}`);
+    const data = await resp.json();
+    const dd = document.getElementById('acDropdown');
+    if (!data.results || data.results.length === 0) { dd.style.display = 'none'; return; }
+    dd.innerHTML = data.results.map(r =>
+      `<div class="ac-item" onclick="addTicker('${r.ticker}'); document.getElementById('compareForm').submit();">
+        <span class="ac-ticker">${r.ticker}${r.is_rex ? '<span class="ac-rex">REX</span>' : ''}</span>
+        <span class="ac-name">${r.name}</span>
+        <span class="ac-aum">$${r.aum >= 1000 ? (r.aum/1000).toFixed(1)+'B' : r.aum.toFixed(0)+'M'}</span>
+      </div>`
+    ).join('');
+    dd.style.display = 'block';
+  }, 200);
+});
+
+// Enter key adds first result
+document.getElementById('tickerSearch').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const first = document.querySelector('.ac-item');
+    if (first) first.click();
+    else if (this.value.trim()) { addTicker(this.value); document.getElementById('compareForm').submit(); }
+  }
+});
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.compare-input-wrap')) document.getElementById('acDropdown').style.display = 'none';
+});
+
+renderPills();
+</script>
 
 {% if not available %}
 <div class="alert alert-warning">Market data not yet available. Run the daily pipeline to sync Bloomberg data.</div>
@@ -64,8 +147,23 @@
 {# --- Total Returns Chart + Drawdown --- #}
 {% if total_returns and total_returns.series %}
 <div class="chart-box" style="margin-bottom:20px; margin-top:20px;">
-  <div class="chart-title">Total Return (Dividends Reinvested) — Growth of $10,000</div>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <div class="chart-title" style="margin:0;">Total Return (Dividends Reinvested) — Growth of $10,000</div>
+    <div class="range-pills" id="trRangePills">
+      <button class="range-pill" onclick="setTRRange('1m')">1M</button>
+      <button class="range-pill" onclick="setTRRange('3m')">3M</button>
+      <button class="range-pill" onclick="setTRRange('6m')">6M</button>
+      <button class="range-pill" onclick="setTRRange('1y')">1Y</button>
+      <button class="range-pill" onclick="setTRRange('ytd')">YTD</button>
+      <button class="range-pill active" onclick="setTRRange('max')">Max</button>
+    </div>
+  </div>
   <canvas id="totalReturnChart" height="220"></canvas>
+</div>
+
+<div class="chart-box" style="margin-bottom:20px;">
+  <div class="chart-title">Drawdown from Peak</div>
+  <canvas id="drawdownChart" height="160"></canvas>
 </div>
 
 <div class="chart-box" style="margin-bottom:20px;">
@@ -401,64 +499,117 @@ document.addEventListener('DOMContentLoaded', function() {
 {% if total_returns and total_returns.series %}
 <script>
 (function() {
-  const dates = {{ total_returns.dates_json|safe }};
-  const series = {{ total_returns.series_json|safe }};
+  const allDates = {{ total_returns.dates_json|safe }};
+  const allSeries = {{ total_returns.series_json|safe }};
   const colors = ['#1F3864', '#2E75B6', '#059669', '#d97706', '#9333ea', '#dc2626', '#0891b2', '#65a30d', '#be185d', '#6366f1'];
 
-  // Subsample dates for labels (every ~20th point)
-  const step = Math.max(1, Math.floor(dates.length / 20));
-  const labels = dates.map((d, i) => i % step === 0 ? d.slice(5) : '');
+  let trChart = null;
+  let ddChart = null;
 
-  // Build datasets — convert to $10K growth
-  const datasets = [];
-  let colorIdx = 0;
-  for (const [sym, vals] of Object.entries(series)) {
-    const baseVal = vals[0] || 1;
-    const data10k = vals.map(v => (v / baseVal) * 10000);
-    datasets.push({
-      label: sym,
-      data: data10k,
-      borderColor: colors[colorIdx % colors.length],
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0.1,
-    });
-    colorIdx++;
+  function getDateCutoff(range) {
+    if (range === 'max') return 0;
+    const now = new Date(allDates[allDates.length - 1]);
+    if (range === '1m') now.setMonth(now.getMonth() - 1);
+    else if (range === '3m') now.setMonth(now.getMonth() - 3);
+    else if (range === '6m') now.setMonth(now.getMonth() - 6);
+    else if (range === '1y') now.setFullYear(now.getFullYear() - 1);
+    else if (range === 'ytd') { now.setMonth(0); now.setDate(1); }
+    const cutoff = now.toISOString().slice(0, 10);
+    return allDates.findIndex(d => d >= cutoff);
   }
 
-  new Chart(document.getElementById('totalReturnChart'), {
-    type: 'line',
-    data: { labels: dates, datasets: datasets },
-    options: {
+  function buildCharts(range) {
+    const startIdx = Math.max(0, getDateCutoff(range));
+    const dates = allDates.slice(startIdx);
+
+    // Growth chart — normalize all series to start at $10K from cutoff
+    const growthDatasets = [];
+    let ci = 0;
+    for (const [sym, vals] of Object.entries(allSeries)) {
+      const sliced = vals.slice(startIdx);
+      const base = sliced[0] || 1;
+      growthDatasets.push({
+        label: sym,
+        data: sliced.map(v => (v / base) * 10000),
+        borderColor: colors[ci % colors.length],
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1,
+      });
+      ci++;
+    }
+
+    // Drawdown chart — compute from growth series
+    const ddDatasets = [];
+    ci = 0;
+    for (const [sym, vals] of Object.entries(allSeries)) {
+      const sliced = vals.slice(startIdx);
+      let peak = sliced[0] || 1;
+      const dd = sliced.map(v => {
+        if (v > peak) peak = v;
+        return peak > 0 ? ((v - peak) / peak) * 100 : 0;
+      });
+      ddDatasets.push({
+        label: sym,
+        data: dd,
+        borderColor: colors[ci % colors.length],
+        backgroundColor: colors[ci % colors.length] + '15',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.1,
+      });
+      ci++;
+    }
+
+    // Destroy existing charts
+    if (trChart) trChart.destroy();
+    if (ddChart) ddChart.destroy();
+
+    const chartOpts = (yCallback) => ({
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { position: 'top', labels: { usePointStyle: true, padding: 12, font: { size: 12 } } },
+        legend: { position: 'top', labels: { usePointStyle: true, padding: 10, font: { size: 12 } } },
         tooltip: {
           callbacks: {
             title: (items) => items[0].label,
-            label: (item) => `${item.dataset.label}: $${item.raw.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`
+            label: (item) => {
+              const v = item.raw;
+              return `${item.dataset.label}: ${yCallback(v)}`;
+            }
           }
         },
         datalabels: { display: false }
       },
       scales: {
-        x: {
-          ticks: { maxTicksLimit: 15, font: { size: 10 }, maxRotation: 0 },
-          grid: { display: false }
-        },
-        y: {
-          ticks: {
-            callback: (v) => '$' + (v >= 10000 ? (v/1000).toFixed(0) + 'K' : v.toLocaleString()),
-            font: { size: 11 }
-          },
-          grid: { color: 'rgba(0,0,0,0.05)' }
-        }
+        x: { ticks: { maxTicksLimit: 12, font: { size: 10 }, maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { callback: yCallback, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
       }
-    }
-  });
+    });
+
+    trChart = new Chart(document.getElementById('totalReturnChart'), {
+      type: 'line',
+      data: { labels: dates, datasets: growthDatasets },
+      options: chartOpts(v => '$' + (v >= 10000 ? (v/1000).toFixed(1) + 'K' : v.toLocaleString()))
+    });
+
+    ddChart = new Chart(document.getElementById('drawdownChart'), {
+      type: 'line',
+      data: { labels: dates, datasets: ddDatasets },
+      options: chartOpts(v => v.toFixed(1) + '%')
+    });
+  }
+
+  window.setTRRange = function(range) {
+    document.querySelectorAll('.range-pill').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    buildCharts(range);
+  };
+
+  buildCharts('max');
 })();
 </script>
 {% endif %}

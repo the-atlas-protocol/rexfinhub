@@ -190,19 +190,52 @@ def calendar_view(
     })
 
 
+@router.get("/api/ticker-search")
+def ticker_search_api(
+    q: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    """Autocomplete ticker search for compare page. Returns top 15 matches."""
+    if not q or len(q) < 1:
+        return {"results": []}
+
+    from sqlalchemy import text as sa_text
+    q_upper = q.upper().replace(" US", "").strip()
+
+    rows = db.execute(sa_text(
+        "SELECT ticker, fund_name, issuer_display, aum, is_rex "
+        "FROM mkt_master_data "
+        "WHERE market_status = 'ACTV' AND (fund_type = 'ETF' OR fund_type = 'ETN') "
+        "AND (UPPER(ticker) LIKE :q1 OR UPPER(fund_name) LIKE :q2) "
+        "ORDER BY CAST(aum AS REAL) DESC LIMIT 15"
+    ), {"q1": f"%{q_upper}%", "q2": f"%{q_upper}%"}).fetchall()
+
+    results = []
+    for r in rows:
+        ticker_clean = str(r[0]).replace(" US", "").strip()
+        results.append({
+            "ticker": ticker_clean,
+            "name": str(r[1] or "")[:60],
+            "issuer": str(r[2] or ""),
+            "aum": round(float(r[3] or 0), 1),
+            "is_rex": bool(r[4]),
+        })
+    return {"results": results}
+
+
 @router.get("/compare")
 def compare_view(
     request: Request,
     tickers: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
-    """Fund Comparison - side-by-side comparison of up to 4 tickers."""
+    """Fund Comparison - side-by-side comparison of up to 10 tickers."""
     import pandas as pd
     from webapp.services.market_data import get_master_data, data_available, _fmt_currency, _fmt_flow
 
     available = data_available(db)
     # Strip " US" from user-submitted tickers
-    ticker_list = [t.upper().replace(" US", "").strip() for t in tickers.split(",") if t.strip()][:4]
+    ticker_list = [t.upper().replace(" US", "").strip() for t in tickers.split(",") if t.strip()][:10]
 
     fund_data = []
     totalrealreturns_url = ""
