@@ -398,13 +398,19 @@ def screener_data_api(
         "total_return_3year, annualized_yield, "
         "expense_ratio, management_fee, average_vol_30day, open_interest, "
         "percent_short_interest, average_bidask_spread, nav_tracking_error, percentage_premium, "
+        "average_percent_premium_52week, "
         "fund_flow_1day, fund_flow_1week, fund_flow_1month, fund_flow_3month, "
         "fund_flow_6month, fund_flow_ytd, fund_flow_1year, "
         "inception_date, fund_type, asset_class_focus, underlying_index, "
         "is_singlestock, uses_leverage, leverage_amount, outcome_type, is_crypto, "
-        "strategy, underlier_type, cusip"
+        "strategy, underlier_type, cusip, listed_exchange, regulatory_structure, "
+        "map_li_direction, map_li_leverage_amount, map_li_underlier, "
+        "map_cc_underlier, map_crypto_underlier, map_defined_category, "
+        "map_thematic_category, cc_type, cc_category, strategy_confidence, "
+        "uses_derivatives, uses_swaps, is_40act, index_weighting_methodology"
     )
-    query = f"SELECT {cols} FROM mkt_master_data WHERE market_status = 'ACTV'"
+    # Only ETFs and ETNs (exclude Open-End Funds, SICAVs, etc.)
+    query = f"SELECT {cols} FROM mkt_master_data WHERE market_status = 'ACTV' AND (fund_type = 'ETF' OR fund_type = 'ETN')"
     if scope == "rex":
         query += " AND is_rex = 1"
     elif scope == "competitors":

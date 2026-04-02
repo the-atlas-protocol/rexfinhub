@@ -233,13 +233,9 @@ SHEET1_COLUMNS = [
     ("Fund Name", "fund_name", None),
     ("ISIN", "isin", None),
     ("Issuer", "issuer", None),
-    ("REX Suite Peer Group", "peer_suite", None),
+    ("REX Comparison", "peer_suite", None),
+    ("Underlier", "_underlier", None),
     ("AUM ($M)", "aum", AUM_FORMAT),
-    ("1D Return (%)", "return_1d", PCT_FORMAT),
-    ("1W Return (%)", "return_1w", PCT_FORMAT),
-    ("1M Return (%)", "return_1m", PCT_FORMAT),
-    ("YTD Return (%)", "return_ytd", PCT_FORMAT),
-    ("1Y Return (%)", "return_1y", PCT_FORMAT),
     ("30D Avg Volume", "avg_vol_30d", VOL_FORMAT),
 ]
 
@@ -265,8 +261,22 @@ def write_all_competitors(wb: Workbook, df: pd.DataFrame):
         "IncomeMax", "T-Bill",
     ]
 
-    return_cols = {"return_1d", "return_1w", "return_1m", "return_ytd", "return_1y"}
     current_row = 1
+
+    # Add _underlier column from is_singlestock / map_li_underlier
+    if "is_singlestock" not in df.columns:
+        # Load it from DB
+        _db = SessionLocal()
+        try:
+            ul_rows = _db.execute(text("SELECT ticker, is_singlestock FROM mkt_master_data")).fetchall()
+            ul_map = {r[0]: str(r[1] or "").replace(" US","").replace(" Equity","").replace(" Curncy","").strip() for r in ul_rows}
+        finally:
+            _db.close()
+        df["_underlier"] = df["ticker"].map(ul_map).fillna("")
+    else:
+        df["_underlier"] = df["is_singlestock"].astype(str).apply(
+            lambda x: x.replace(" US","").replace(" Equity","").replace(" Curncy","").strip() if x and x != "nan" else ""
+        )
 
     for suite in suite_order:
         group = df[df["peer_suite"] == suite].copy()
@@ -298,36 +308,17 @@ def write_all_competitors(wb: Workbook, df: pd.DataFrame):
 
         # Data rows
         for i, (_, row) in enumerate(group.iterrows()):
-            is_rex = row.get("is_rex", False)
             for col_idx, (_, field, fmt) in enumerate(SHEET1_COLUMNS, 1):
                 value = row.get(field)
                 if pd.isna(value):
                     value = None
-
-                # Convert returns to decimal for percent formatting
-                if field in return_cols and value is not None:
-                    value = value / 100.0
-
                 cell = ws.cell(row=current_row, column=col_idx, value=value)
-
                 if fmt:
                     cell.number_format = fmt
-
-                # Conditional formatting for returns
-                if field in return_cols:
-                    _apply_return_font(cell, row.get(field))
-
-                # Row styling
-                if is_rex:
-                    cell.fill = REX_HIGHLIGHT_FILL
-                elif i % 2 == 1:
+                if i % 2 == 1:
                     cell.fill = ALT_ROW_FILL
-
                 cell.border = THIN_BORDER
-                # Only set default font if no conditional font was applied
-                if field not in return_cols:
-                    cell.font = Font(name="Calibri", size=10)
-
+                cell.font = Font(name="Calibri", size=10)
             current_row += 1
 
         # Blank separator row
@@ -462,7 +453,7 @@ def write_summary(wb: Workbook, df: pd.DataFrame):
 # ---------------------------------------------------------------------------
 
 def write_key_comps(wb: Workbook, df_all: pd.DataFrame, comp_groups: pd.DataFrame):
-    """Write Key Comps as ONE flat table with section headers. Competitors only."""
+    """Write Key Comps as ONE flat table. No section separators. REX Comparison + Underlier columns."""
     ws = wb.create_sheet("Key Comps")
 
     db = SessionLocal()
@@ -473,7 +464,7 @@ def write_key_comps(wb: Workbook, df_all: pd.DataFrame, comp_groups: pd.DataFram
             "  total_return_1day, total_return_1week, total_return_1month, "
             "  total_return_3month, total_return_ytd, total_return_1year, "
             "  average_vol_30day, open_interest, is_singlestock, map_li_underlier, "
-            "  map_li_direction "
+            "  map_li_direction, map_crypto_underlier "
             "FROM mkt_master_data WHERE market_status = 'ACTV'"
         )).fetchall()
     finally:
@@ -484,11 +475,10 @@ def write_key_comps(wb: Workbook, df_all: pd.DataFrame, comp_groups: pd.DataFram
         "category_display", "etp_category", "is_rex", "rex_suite",
         "return_1d", "return_1w", "return_1m", "return_3m", "return_ytd", "return_1y",
         "avg_vol_30d", "open_interest", "is_singlestock", "map_li_underlier",
-        "map_li_direction",
+        "map_li_direction", "map_crypto_underlier",
     ])
     comp_df["aum"] = pd.to_numeric(comp_df["aum"], errors="coerce").fillna(0)
     comp_df["is_rex"] = comp_df["is_rex"].astype(bool)
-    # ISIN
     comp_df["cusip"] = comp_df["cusip"].astype(str).str.strip()
     comp_df["cusip"] = comp_df["cusip"].apply(lambda x: x.zfill(9) if x and x not in ("None","nan","") and len(x)<=9 else x)
     comp_df["isin"] = comp_df["cusip"].apply(lambda x: cusip_to_isin(x) if x and x not in ("None","nan","") else "")
@@ -496,136 +486,112 @@ def write_key_comps(wb: Workbook, df_all: pd.DataFrame, comp_groups: pd.DataFram
     rex_df = comp_df[comp_df["is_rex"]].copy()
     non_rex = comp_df[~comp_df["is_rex"]].copy()
 
-    return_cols = {"return_1d", "return_1w", "return_1m", "return_ytd", "return_1y"}
     ncols = len(SHEET1_COLUMNS)
 
-    # Write column headers once at top
+    # Write headers
     for col_idx, (header, _, _) in enumerate(SHEET1_COLUMNS, 1):
         cell = ws.cell(row=1, column=col_idx, value=header)
         cell.fill = HEADER_FILL
         cell.font = HEADER_FONT
         cell.alignment = Alignment(horizontal="center")
     current_row = 2
-    row_counter = 0  # for alternating colors
 
-    def _write_section(title):
-        nonlocal current_row, row_counter
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=ncols)
-        cell = ws.cell(row=current_row, column=1, value=title)
-        cell.fill = GROUP_FILL
-        cell.font = GROUP_FONT
-        cell.alignment = Alignment(horizontal="left", vertical="center")
-        ws.row_dimensions[current_row].height = 20
-        current_row += 1
-        row_counter = 0
-
-    def _write_row(r, label):
-        nonlocal current_row, row_counter
+    def _add(r, comparison, underlier):
+        nonlocal current_row
+        row_idx = current_row - 2  # for alternating
         for col_idx, (_, field, fmt) in enumerate(SHEET1_COLUMNS, 1):
-            value = r.get(field)
-            if value is not None and pd.notna(value):
-                pass
-            else:
-                value = None
             if field == "peer_suite":
-                value = label
-            if field in return_cols and value is not None:
-                value = float(value) / 100.0
+                value = comparison
+            elif field == "_underlier":
+                value = underlier
+            else:
+                value = r.get(field)
+                if value is not None and pd.notna(value):
+                    pass
+                else:
+                    value = None
             cell = ws.cell(row=current_row, column=col_idx, value=value)
             if fmt:
                 cell.number_format = fmt
-            if field in return_cols:
-                _apply_return_font(cell, r.get(field))
-            if row_counter % 2 == 1:
+            if row_idx % 2 == 1:
                 cell.fill = ALT_ROW_FILL
             cell.border = THIN_BORDER
-            if field not in return_cols:
-                cell.font = Font(name="Calibri", size=10)
+            cell.font = Font(name="Calibri", size=10)
         current_row += 1
-        row_counter += 1
 
-    # ── T-REX: 1 Long + 1 Short per underlier (highest AUM each) ──
+    # ── T-REX: 1 Long + 1 Short per underlier ──
     trex_rex = rex_df[rex_df["rex_suite"] == "T-REX"].sort_values("aum", ascending=False)
     li_ss = non_rex[non_rex["category_display"] == "Leverage & Inverse - Single Stock"].copy()
-
-    seen_underliers = set()
-    for _, rex_row in trex_rex.iterrows():
-        underlier = str(rex_row.get("is_singlestock") or "")
-        if not underlier or underlier == "nan":
+    seen_ul = set()
+    for _, rr in trex_rex.iterrows():
+        ul = str(rr.get("is_singlestock") or "")
+        if not ul or ul == "nan":
             continue
-        ul_clean = underlier.replace(" US","").replace(" Equity","").strip()
-        if ul_clean in seen_underliers:
+        ul_clean = ul.replace(" US","").replace(" Equity","").replace(" Curncy","").strip()
+        if ul_clean in seen_ul:
             continue
-        seen_underliers.add(ul_clean)
-
+        seen_ul.add(ul_clean)
         matches = li_ss[li_ss["is_singlestock"].astype(str).str.contains(ul_clean, na=False)]
         if matches.empty:
             continue
-
-        rex_t = rex_row["ticker"].replace(" US","")
-        _write_section(f"T-REX: {rex_t} ({ul_clean})")
-
-        # Top 1 Long by AUM
+        rex_t = rr["ticker"].replace(" US","")
         longs = matches[matches["map_li_direction"].astype(str).str.lower().str.contains("long", na=False)]
         if not longs.empty:
-            _write_row(longs.nlargest(1, "aum").iloc[0], f"L&I Long ({ul_clean})")
-        # Top 1 Short by AUM
+            _add(longs.nlargest(1,"aum").iloc[0], f"T-REX ({rex_t})", ul_clean)
         shorts = matches[matches["map_li_direction"].astype(str).str.lower().str.contains("short", na=False)]
         if not shorts.empty:
-            _write_row(shorts.nlargest(1, "aum").iloc[0], f"L&I Short ({ul_clean})")
-        # If no direction data, just top 1
+            _add(shorts.nlargest(1,"aum").iloc[0], f"T-REX ({rex_t})", ul_clean)
         if longs.empty and shorts.empty:
-            _write_row(matches.nlargest(1, "aum").iloc[0], f"L&I ({ul_clean})")
+            _add(matches.nlargest(1,"aum").iloc[0], f"T-REX ({rex_t})", ul_clean)
 
     # ── L&I Index/Basket: Top 20 ──
-    _write_section("L&I Index/Basket/ETF: Top 20")
     ms_comps = non_rex[non_rex["category_display"] == "Leverage & Inverse - Index/Basket/ETF Based"]
     for _, r in ms_comps.nlargest(20, "aum").iterrows():
-        _write_row(r, "L&I Index/Basket")
+        _add(r, "MicroSectors", str(r.get("is_singlestock") or r.get("map_li_underlier") or ""))
 
     # ── EPI: Top 20 ──
-    _write_section("Equity Premium Income: Top 20")
     epi_comps = non_rex[non_rex["category_display"].str.contains("Income", na=False)]
     for _, r in epi_comps.nlargest(20, "aum").iterrows():
-        _write_row(r, "EPI")
+        ul = str(r.get("is_singlestock") or "").replace(" US","").replace(" Equity","").strip()
+        _add(r, "EPI", ul or "Broad")
 
     # ── G&I: Top 5 per underlier ──
     gi_rex = rex_df[rex_df["rex_suite"] == "Growth & Income"].sort_values("aum", ascending=False)
     gi_comps = non_rex[non_rex["category_display"] == "Income - Single Stock"]
-    for _, rex_row in gi_rex.iterrows():
-        underlier = str(rex_row.get("is_singlestock") or "")
-        if not underlier or underlier == "nan":
+    for _, rr in gi_rex.iterrows():
+        ul = str(rr.get("is_singlestock") or "")
+        if not ul or ul == "nan":
             continue
-        ul_clean = underlier.replace(" US","").replace(" Equity","").strip()
+        ul_clean = ul.replace(" US","").replace(" Equity","").strip()
+        rex_t = rr["ticker"].replace(" US","")
         matches = gi_comps[gi_comps["is_singlestock"].astype(str).str.contains(ul_clean, na=False)]
-        if matches.empty:
-            continue
-        rex_t = rex_row["ticker"].replace(" US","")
-        _write_section(f"Growth & Income: {rex_t} ({ul_clean})")
         for _, r in matches.nlargest(5, "aum").iterrows():
-            _write_row(r, f"G&I ({ul_clean})")
+            _add(r, f"G&I ({rex_t})", ul_clean)
 
     # ── Autocallable: Top 5 ──
-    _write_section("Autocallable: Top 5")
     auto_comps = non_rex[non_rex["fund_name"].str.upper().str.contains("AUTOCALL", na=False)]
     for _, r in auto_comps.nlargest(5, "aum").iterrows():
-        _write_row(r, "Autocallable")
+        _add(r, "Autocallable (ATCL)", "")
 
-    # ── DRNZ Thematic: Defense/Aerospace + JEDI ──
-    _write_section("Thematic (DRNZ): Defense & Aerospace")
+    # ── DRNZ: Defense/Aerospace + JEDI ──
     defense_kw = "DEFENSE|DEFENCE|AEROSPACE|DRONE|MILITARY|WEAPON|ITA |PPA |XAR "
     drnz_comps = non_rex[
         non_rex["fund_name"].str.upper().str.contains(defense_kw, na=False, regex=True) |
         (non_rex["ticker"] == "JEDI US")
     ]
     for _, r in drnz_comps.nlargest(10, "aum").iterrows():
-        _write_row(r, "Thematic (Defense)")
+        _add(r, "Thematic (DRNZ)", "Defense/Aerospace")
 
-    # ── Crypto: Top 10 ──
-    _write_section("Crypto: Top 10")
+    # ── Crypto: by underlier (SOL, DOGE, XRP, BTC, ETH) ──
+    crypto_rex = {"SSK": "Solana", "DOJE": "Dogecoin", "XRPR": "XRP", "OBTC": "Bitcoin", "ESK": "Ethereum"}
     crypto_comps = non_rex[non_rex["etp_category"] == "Crypto"]
-    for _, r in crypto_comps.nlargest(10, "aum").iterrows():
-        _write_row(r, "Crypto")
+    for rex_t, coin in crypto_rex.items():
+        matches = crypto_comps[
+            crypto_comps["fund_name"].str.upper().str.contains(coin.upper(), na=False) |
+            crypto_comps["map_crypto_underlier"].astype(str).str.contains(coin, na=False, case=False)
+        ]
+        for _, r in matches.nlargest(5, "aum").iterrows():
+            _add(r, f"Crypto ({rex_t})", coin)
 
     _auto_fit_columns(ws, ncols, current_row)
     ws.freeze_panes = "A2"

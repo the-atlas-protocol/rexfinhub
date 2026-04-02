@@ -19,7 +19,7 @@
   .btn-sm:hover { background:#2E75B6; }
   .btn-sm.outline { background:transparent; color:#1F3864; }
   .btn-sm.outline:hover { background:#e8edf3; }
-  .screener-main { flex:1; overflow:auto; }
+  .screener-main { flex:1; overflow:auto; overflow-x:auto; }
   .screener-table { width:100%; border-collapse:collapse; font-size:12px; }
   .screener-table th { position:sticky; top:0; z-index:2; background:#1F3864; color:#fff; padding:5px 8px; text-align:right; cursor:pointer; white-space:nowrap; font-weight:600; font-size:11px; user-select:none; }
   .screener-table th:first-child, .screener-table th:nth-child(2) { text-align:left; }
@@ -46,6 +46,7 @@
 
 <div class="kpi-bar">
   <div class="kpi-item"><span class="kpi-label">Showing:</span> <span class="kpi-value" id="kpiCount">-</span></div>
+  <div class="kpi-item"><span class="kpi-label">Page:</span> <span class="kpi-value" id="kpiPage">-</span></div>
   <div class="kpi-item"><span class="kpi-label">Total AUM:</span> <span class="kpi-value" id="kpiAUM">-</span></div>
   <div class="kpi-item"><span class="kpi-label">Data:</span> <span class="kpi-value">{{ data_as_of or '-' }}</span></div>
 </div>
@@ -59,6 +60,10 @@
   <select id="fSuite"><option value="">All</option></select>
   <span class="filter-label">Search:</span>
   <input type="text" id="fSearch" placeholder="Ticker or name...">
+  <span class="filter-label">Per page:</span>
+  <select id="fPageSize" style="width:60px;"><option value="50">50</option><option value="100" selected>100</option><option value="250">250</option><option value="999999">All</option></select>
+  <button class="btn-sm outline" onclick="prevPage()">&lt;</button>
+  <button class="btn-sm outline" onclick="nextPage()">&gt;</button>
   <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
   <button class="btn-sm outline" onclick="resetFilters()">Reset</button>
 </div>
@@ -70,6 +75,9 @@
       <button class="preset-btn" onclick="selectPreset('performance')">Performance</button>
       <button class="preset-btn" onclick="selectPreset('flows')">Flows</button>
       <button class="preset-btn" onclick="selectPreset('trading')">Trading</button>
+      <button class="preset-btn" onclick="selectPreset('li')">L&I</button>
+      <button class="preset-btn" onclick="selectPreset('income')">Income</button>
+      <button class="preset-btn" onclick="selectPreset('crypto')">Crypto</button>
       <button class="preset-btn" onclick="selectPreset('all')">All</button>
     </div>
     <hr>
@@ -83,9 +91,11 @@
 <script>
 const COLUMNS=[
   ["ticker","Ticker","Core",null,true],["fund_name","Name","Core",null,true],
-  ["issuer_display","Issuer","Core",null,false],["rex_suite","Suite","Core",null,true],
+  ["issuer_display","Issuer","Core",null,true],["rex_suite","Suite","Core",null,true],
+  ["fund_type","Type","Core",null,false],["listed_exchange","Exchange","Core",null,false],
   ["strategy","Strategy","Classification",null,false],["etp_category","Category","Classification",null,false],
   ["category_display","Category Detail","Classification",null,false],["underlier_type","Underlier Type","Classification",null,false],
+  ["strategy_confidence","Confidence","Classification",null,false],
   ["aum","AUM ($M)","Size","aum",true],
   ["fund_flow_1day","1D Flow","Flows","flow",false],["fund_flow_1week","1W Flow","Flows","flow",false],
   ["fund_flow_1month","1M Flow","Flows","flow",false],["fund_flow_3month","3M Flow","Flows","flow",false],
@@ -97,22 +107,35 @@ const COLUMNS=[
   ["total_return_1year","1Y Rtn","Returns","pct",true],["total_return_3year","3Y Rtn","Returns","pct",false],
   ["annualized_yield","Yield","Returns","pct",false],
   ["average_vol_30day","30D Vol","Trading","vol",true],["open_interest","Open Int","Trading","vol",true],
-  ["percent_short_interest","Short Int","Trading","pct2",false],["average_bidask_spread","Bid-Ask","Trading","pct2",false],
-  ["percentage_premium","Prem/Disc","Trading","pct2",false],["nav_tracking_error","Track Err","Trading","pct2",false],
+  ["percent_short_interest","Short Int %","Trading","pct2",false],["average_bidask_spread","Bid-Ask","Trading","pct2",false],
+  ["percentage_premium","Prem/Disc","Trading","pct2",false],["average_percent_premium_52week","52W Avg Prem","Trading","pct2",false],
+  ["nav_tracking_error","Track Err","Trading","pct2",false],
   ["expense_ratio","Exp Ratio","Costs","pct2",false],["management_fee","Mgmt Fee","Costs","pct2",false],
+  ["is_singlestock","Underlier","L&I Detail",null,false],["map_li_direction","Direction","L&I Detail",null,false],
+  ["map_li_leverage_amount","Leverage","L&I Detail",null,false],["map_li_underlier","L&I Underlier","L&I Detail",null,false],
+  ["map_cc_underlier","CC Underlier","Income Detail",null,false],["cc_type","CC Type","Income Detail",null,false],
+  ["cc_category","CC Category","Income Detail",null,false],
+  ["map_crypto_underlier","Crypto Asset","Crypto Detail",null,false],
+  ["map_defined_category","Outcome Type","Defined Detail",null,false],
+  ["map_thematic_category","Theme","Thematic Detail",null,false],
   ["inception_date","Inception","Info",null,false],["underlying_index","Index","Info",null,false],
-  ["is_singlestock","Underlier","Info",null,false],["uses_leverage","Leveraged","Info",null,false],
-  ["leverage_amount","Lev Amt","Info",null,false],["cusip","CUSIP","Info",null,false],
+  ["asset_class_focus","Asset Class","Info",null,false],["regulatory_structure","Reg Structure","Info",null,false],
+  ["uses_leverage","Leveraged","Info",null,false],["leverage_amount","Lev Amt","Info",null,false],
+  ["uses_derivatives","Derivatives","Info",null,false],["uses_swaps","Swaps","Info",null,false],
+  ["is_40act","40 Act","Info",null,false],["cusip","CUSIP","Info",null,false],
 ];
 
 const PRESETS={
   performance:["ticker","fund_name","rex_suite","aum","total_return_1day","total_return_1week","total_return_1month","total_return_3month","total_return_ytd","total_return_1year","average_vol_30day","open_interest"],
   flows:["ticker","fund_name","rex_suite","aum","fund_flow_1day","fund_flow_1week","fund_flow_1month","fund_flow_3month","fund_flow_ytd","total_return_1day"],
-  trading:["ticker","fund_name","rex_suite","aum","average_vol_30day","open_interest","percent_short_interest","average_bidask_spread","percentage_premium","expense_ratio","management_fee"],
+  trading:["ticker","fund_name","rex_suite","aum","average_vol_30day","open_interest","percent_short_interest","average_bidask_spread","percentage_premium","average_percent_premium_52week","expense_ratio","management_fee"],
+  li:["ticker","fund_name","issuer_display","aum","is_singlestock","map_li_direction","map_li_leverage_amount","total_return_1day","total_return_1month","total_return_ytd","average_vol_30day"],
+  income:["ticker","fund_name","issuer_display","aum","map_cc_underlier","cc_type","cc_category","annualized_yield","total_return_1day","total_return_ytd","average_vol_30day"],
+  crypto:["ticker","fund_name","issuer_display","aum","map_crypto_underlier","total_return_1day","total_return_1week","total_return_1month","total_return_ytd","average_vol_30day"],
   all:COLUMNS.map(c=>c[0]),
 };
 
-let allData=[],visibleCols=new Set(COLUMNS.filter(c=>c[4]).map(c=>c[0])),sortKey="aum",sortAsc=false;
+let allData=[],visibleCols=new Set(COLUMNS.filter(c=>c[4]).map(c=>c[0])),sortKey="aum",sortAsc=false,currentPage=0;
 
 function buildSidebar(){
   let h="",lg="";
@@ -146,14 +169,22 @@ function getFiltered(){
   return d;
 }
 
+function getPageSize(){return parseInt(document.getElementById("fPageSize").value)||100;}
+function prevPage(){if(currentPage>0){currentPage--;render();}}
+function nextPage(){const filtered=getFiltered();const ps=getPageSize();if((currentPage+1)*ps<filtered.length){currentPage++;render();}}
+
 function render(){
   const cols=COLUMNS.filter(c=>visibleCols.has(c[0]));
   let hh="";
   for(const[key,label]of cols){const ar=key===sortKey?(sortAsc?"&#9650;":"&#9660;"):"&#8597;";hh+=`<th class="${key===sortKey?'sorted':''}" onclick="doSort('${key}')">${label} <span class="sort-arrow">${ar}</span></th>`;}
   document.getElementById("tableHead").innerHTML=hh;
   const filtered=getFiltered();
+  const ps=getPageSize();
+  const start=currentPage*ps;
+  const page=filtered.slice(start,start+ps);
+  const totalPages=Math.ceil(filtered.length/ps);
   let bh="";
-  for(const row of filtered){
+  for(const row of page){
     const isRex=row.is_rex===true||row.is_rex===1||row.is_rex==="1"||row.is_rex==="True";
     bh+=`<tr class="${isRex?'rex-row':''}">`;
     for(const[key,,,fmtType]of cols){let v=row[key];if(key==="ticker"&&isRex)v=`${v} <span class="rex-badge">REX</span>`;else if(fmtType)v=fmt(v,fmtType);else v=v||"-";bh+=`<td>${v}</td>`;}
@@ -163,10 +194,13 @@ function render(){
   const totalAUM=filtered.reduce((s,r)=>s+(parseFloat(r.aum)||0),0);
   document.getElementById("kpiCount").textContent=filtered.length.toLocaleString()+" funds";
   document.getElementById("kpiAUM").textContent="$"+(totalAUM>=1000?(totalAUM/1000).toFixed(1)+"B":totalAUM.toFixed(0)+"M");
+  document.getElementById("kpiPage").textContent=totalPages>1?`${currentPage+1}/${totalPages}`:"1/1";
 }
 
-function doSort(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=false;}render();}
-function resetFilters(){document.getElementById("fCategory").value="";document.getElementById("fSuite").value="";document.getElementById("fSearch").value="";render();}
+function doSort(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=false;}currentPage=0;render();}
+function resetFilters(){document.getElementById("fCategory").value="";document.getElementById("fSuite").value="";document.getElementById("fSearch").value="";currentPage=0;render();}
+
+document.getElementById("fPageSize").addEventListener("change",function(){currentPage=0;render();});
 
 function exportCSV(){
   const cols=COLUMNS.filter(c=>visibleCols.has(c[0])),filtered=getFiltered();
