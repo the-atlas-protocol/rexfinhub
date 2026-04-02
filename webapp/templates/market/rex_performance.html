@@ -1,5 +1,5 @@
 {% extends "market/base.html" %}
-{% block title %}ETP Screener - REX Financial{% endblock %}
+{% block title %}ETP Screener - REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
 <style>
@@ -52,7 +52,7 @@
 
 <div class="screener-filters">
   <span class="filter-label">Scope:</span>
-  <select id="fScope"><option value="rex" selected>REX Only</option><option value="all">All ETPs</option><option value="competitors">Competitors</option></select>
+  <select id="fScope"><option value="all" selected>All ETPs</option><option value="rex">REX Only</option><option value="competitors">Competitors</option></select>
   <span class="filter-label">Category:</span>
   <select id="fCategory"><option value="">All</option></select>
   <span class="filter-label">Suite:</span>
