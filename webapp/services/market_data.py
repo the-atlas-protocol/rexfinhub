@@ -1652,3 +1652,261 @@ def get_time_series(db: Session, category: str | None = None, is_rex: bool | Non
         "labels": json.dumps(labels),
         "values": json.dumps(values),
     }
+
+
+# ---------------------------------------------------------------------------
+# Suite -> category mapping for competitor detection
+# ---------------------------------------------------------------------------
+_SUITE_CATEGORY_MAP: dict[str, list[str]] = {
+    "T-REX": ["Leverage & Inverse - Single Stock"],
+    "MicroSectors": ["Leverage & Inverse - Index/Basket/ETF Based"],
+    "Equity Premium Income": [],  # uses explicit competitor tickers
+    "Growth & Income": ["Income - Single Stock"],
+    "IncomeMax": ["Income - Single Stock"],
+    "Autocallable": ["Income - Index/Basket/ETF Based"],
+    "Crypto": ["Crypto"],
+    "T-Bill": [],
+    "Thematic": ["Thematic", "Leverage & Inverse - Index/Basket/ETF Based"],
+}
+
+# Explicit competitor tickers for EPI suite (not category-matched)
+_EPI_COMPS = {
+    "JEPI US", "JEPQ US", "GPIX US", "QYLD US", "QQQI US", "IWMI US", "SPYI US",
+}
+
+
+def _load_competitor_groups() -> dict[str, set[str]]:
+    """Load competitor_groups.csv -> {rex_ticker: {peer_ticker, ...}}."""
+    import os
+    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    path = os.path.join(base, "config", "rules", "competitor_groups.csv")
+    result: dict[str, set[str]] = {}
+    try:
+        df = pd.read_csv(path, engine="python", on_bad_lines="skip")
+        for _, row in df.iterrows():
+            rex_t = str(row.get("rex_ticker", "")).strip()
+            peer_t = str(row.get("peer_ticker", "")).strip()
+            if not rex_t or not peer_t:
+                continue
+            if not rex_t.endswith(" US") and not rex_t.endswith(" LN"):
+                rex_t += " US"
+            if not peer_t.endswith(" US") and not peer_t.endswith(" LN"):
+                peer_t += " US"
+            result.setdefault(rex_t, set()).add(peer_t)
+    except Exception as e:
+        log.warning("Failed to load competitor_groups.csv: %s", e)
+    return result
+
+
+def _fmt_vol(val: float) -> str:
+    """Format volume with K/M suffix."""
+    if val is None or (isinstance(val, float) and math.isnan(val)):
+        return "-"
+    if abs(val) >= 1_000_000:
+        return f"{val / 1_000_000:,.1f}M"
+    if abs(val) >= 1_000:
+        return f"{val / 1_000:,.0f}K"
+    return f"{val:,.0f}"
+
+
+def _fmt_return(val) -> str:
+    """Format a return % with +/- prefix."""
+    if val is None:
+        return "-"
+    try:
+        f = float(val)
+        if math.isnan(f):
+            return "-"
+        return f"{f:+.2f}%"
+    except (ValueError, TypeError):
+        return "-"
+
+
+def _fund_row_dict(row, ticker_col: str, is_rex: bool, is_key_comp: bool) -> dict:
+    """Build a standardized fund dict from a DataFrame row."""
+    ticker = str(row.get("ticker_clean", row.get(ticker_col, "")))
+    aum_val = float(row.get("t_w4.aum", 0) or 0)
+    vol_val = float(row.get("t_w2.average_vol_30day", 0) or 0)
+    oi_val = row.get("t_w2.open_interest")
+    oi_float = float(oi_val) if oi_val is not None and not (isinstance(oi_val, float) and math.isnan(oi_val)) else 0.0
+
+    ret_1d = row.get("t_w3.total_return_1day")
+    ret_1w = row.get("t_w3.total_return_1week")
+    ret_1m = row.get("t_w3.total_return_1month")
+    ret_3m = row.get("t_w3.total_return_3month")
+    ret_ytd = row.get("t_w3.total_return_ytd")
+    ret_1y = row.get("t_w3.total_return_1year")
+
+    sparkline = []
+    for i in range(12, 0, -1):
+        col = f"t_w4.aum_{i}"
+        v = row.get(col)
+        if v is not None and not (isinstance(v, float) and math.isnan(v)):
+            sparkline.append(round(float(v), 2))
+        else:
+            sparkline.append(0.0)
+    sparkline.append(round(aum_val, 2))
+
+    def _safe_float(v):
+        if v is None:
+            return None
+        try:
+            f = float(v)
+            return None if math.isnan(f) else f
+        except (ValueError, TypeError):
+            return None
+
+    return {
+        "ticker": ticker,
+        "fund_name": str(row.get("fund_name", "")),
+        "issuer": str(row.get("issuer_display", row.get("issuer", ""))),
+        "aum": aum_val,
+        "aum_fmt": _fmt_currency(aum_val),
+        "vol_30d": vol_val,
+        "vol_30d_fmt": _fmt_vol(vol_val),
+        "open_interest": oi_float,
+        "open_interest_fmt": _fmt_vol(oi_float),
+        "ret_1d": _safe_float(ret_1d),
+        "ret_1d_fmt": _fmt_return(ret_1d),
+        "ret_1w": _safe_float(ret_1w),
+        "ret_1w_fmt": _fmt_return(ret_1w),
+        "ret_1m": _safe_float(ret_1m),
+        "ret_1m_fmt": _fmt_return(ret_1m),
+        "ret_3m": _safe_float(ret_3m),
+        "ret_3m_fmt": _fmt_return(ret_3m),
+        "ret_ytd": _safe_float(ret_ytd),
+        "ret_ytd_fmt": _fmt_return(ret_ytd),
+        "ret_1y": _safe_float(ret_1y),
+        "ret_1y_fmt": _fmt_return(ret_1y),
+        "sparkline": sparkline,
+        "is_rex": is_rex,
+        "is_key_comp": is_key_comp,
+    }
+
+
+def get_rex_performance(db: Session, suite: str | None = None) -> dict:
+    """Return REX performance data organized by suite with competitors."""
+    df = _load_master(db)
+    if df.empty:
+        return {"summary": {"total_aum": 0, "active_count": 0, "best_performer": None, "worst_performer": None}, "suites": []}
+
+    ticker_col = "ticker"
+    rex_mask = df["is_rex"] == True
+    rex_df = df[rex_mask].copy()
+    if "ticker_clean" in rex_df.columns:
+        rex_df = rex_df.drop_duplicates(subset=["ticker_clean"], keep="first")
+
+    comp_groups = _load_competitor_groups()
+    all_key_comp_tickers: set[str] = set()
+    for rex_t, peers in comp_groups.items():
+        all_key_comp_tickers.update(peers)
+
+    total_aum = float(rex_df["t_w4.aum"].sum()) if "t_w4.aum" in rex_df.columns else 0.0
+    active_count = int(_is_actv(rex_df).sum())
+
+    ret_1d_col = "t_w3.total_return_1day"
+    best_performer = None
+    worst_performer = None
+    if ret_1d_col in rex_df.columns and not rex_df.empty:
+        rex_df[ret_1d_col] = pd.to_numeric(rex_df[ret_1d_col], errors="coerce")
+        valid = rex_df[rex_df[ret_1d_col].notna()]
+        if not valid.empty:
+            best_idx = valid[ret_1d_col].idxmax()
+            worst_idx = valid[ret_1d_col].idxmin()
+            best_row = valid.loc[best_idx]
+            worst_row = valid.loc[worst_idx]
+            best_performer = {
+                "ticker": str(best_row.get("ticker_clean", best_row.get(ticker_col, ""))),
+                "ret_1d": round(float(best_row[ret_1d_col]), 2),
+                "ret_1d_fmt": _fmt_return(best_row[ret_1d_col]),
+            }
+            worst_performer = {
+                "ticker": str(worst_row.get("ticker_clean", worst_row.get(ticker_col, ""))),
+                "ret_1d": round(float(worst_row[ret_1d_col]), 2),
+                "ret_1d_fmt": _fmt_return(worst_row[ret_1d_col]),
+            }
+
+    summary = {
+        "total_aum": total_aum,
+        "total_aum_fmt": _fmt_currency(total_aum),
+        "active_count": active_count,
+        "best_performer": best_performer,
+        "worst_performer": worst_performer,
+    }
+
+    has_rex_suite = "rex_suite" in rex_df.columns and rex_df["rex_suite"].notna().any()
+    suites_list = []
+    suite_order = [suite] if suite and suite in _SUITE_ORDER else _SUITE_ORDER
+
+    for suite_name in suite_order:
+        if has_rex_suite:
+            suite_rex = rex_df[rex_df["rex_suite"].fillna("").str.strip() == suite_name.strip()]
+        else:
+            continue
+        if suite_rex.empty:
+            continue
+
+        rex_funds = []
+        rex_tickers_in_suite: set[str] = set()
+        for _, row in suite_rex.sort_values("t_w4.aum", ascending=False).iterrows():
+            fd = _fund_row_dict(row, ticker_col, is_rex=True, is_key_comp=False)
+            rex_funds.append(fd)
+            rex_tickers_in_suite.add(fd["ticker"])
+
+        key_comp_tickers: set[str] = set()
+        for rt in rex_tickers_in_suite:
+            for lookup in [rt, rt.replace(" US", "").strip() + " US"]:
+                if lookup in comp_groups:
+                    key_comp_tickers.update(comp_groups[lookup])
+
+        cat_comps_categories = _SUITE_CATEGORY_MAP.get(suite_name, [])
+        is_epi = suite_name == "Equity Premium Income"
+
+        comp_mask = pd.Series(False, index=df.index)
+        if is_epi:
+            if "ticker" in df.columns:
+                comp_mask = df["ticker"].isin(_EPI_COMPS)
+        elif cat_comps_categories and "category_display" in df.columns:
+            comp_mask = df["category_display"].isin(cat_comps_categories)
+
+        if suite_name == "Autocallable" and "fund_name" in df.columns:
+            comp_mask = comp_mask & df["fund_name"].fillna("").str.lower().str.contains("autocall")
+
+        if "is_rex" in df.columns:
+            comp_mask = comp_mask & ~df["is_rex"]
+
+        if key_comp_tickers:
+            key_comp_mask = df["ticker"].isin(key_comp_tickers) & ~df["is_rex"]
+            comp_mask = comp_mask | key_comp_mask
+
+        if "ticker_clean" in df.columns:
+            comp_mask = comp_mask & ~df["ticker_clean"].isin(rex_tickers_in_suite)
+        comp_df = df[comp_mask].copy()
+        if "ticker_clean" in comp_df.columns:
+            comp_df = comp_df.drop_duplicates(subset=["ticker_clean"], keep="first")
+
+        if len(comp_df) > 20:
+            comp_df = comp_df.nlargest(20, "t_w4.aum")
+
+        competitors = []
+        for _, row in comp_df.sort_values("t_w4.aum", ascending=False).iterrows():
+            t = str(row.get("ticker_clean", row.get(ticker_col, "")))
+            is_kc = t in key_comp_tickers or row.get("ticker", "") in key_comp_tickers
+            fd = _fund_row_dict(row, ticker_col, is_rex=False, is_key_comp=is_kc)
+            competitors.append(fd)
+
+        rex_aum = float(suite_rex["t_w4.aum"].sum())
+        peer_aum = float(comp_df["t_w4.aum"].sum()) if not comp_df.empty else 0.0
+
+        suites_list.append({
+            "name": suite_name,
+            "rex_funds": rex_funds,
+            "competitors": competitors,
+            "rex_aum": rex_aum,
+            "rex_aum_fmt": _fmt_currency(rex_aum),
+            "peer_aum": peer_aum,
+            "peer_aum_fmt": _fmt_currency(peer_aum),
+            "total_count": len(rex_funds) + len(competitors),
+        })
+
+    return {"summary": summary, "suites": suites_list}

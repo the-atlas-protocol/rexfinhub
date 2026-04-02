@@ -1,0 +1,321 @@
+{% set active_tab = 'rex-performance' %}
+{% extends base_template|default("market/base.html") %}
+
+{% block title %}REX Performance — REX Financial Intelligence Hub{% endblock %}
+
+{% block market_content %}
+<div class="market-breadcrumb">
+  <a href="/">Home</a><span class="sep">/</span>
+  <a href="/market/rex">Market</a><span class="sep">/</span>
+  <span>REX Performance</span>
+</div>
+
+{% if summary %}
+
+{# -- KPI Hero Cards -- #}
+<div class="kpi-row" style="margin-bottom:20px;">
+  <div class="kpi-card">
+    <div class="kpi-label">Total REX AUM</div>
+    <div class="kpi-value">{{ summary.total_aum_fmt }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Active Products</div>
+    <div class="kpi-value">{{ summary.active_count }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Best 1D Performer</div>
+    {% if summary.best_performer %}
+    <div class="kpi-value positive" style="font-size:var(--text-md);">
+      <a href="/market/compare?tickers={{ summary.best_performer.ticker|replace(' US','')|urlencode }}"
+         style="color:inherit; text-decoration:none; font-weight:600;">{{ summary.best_performer.ticker }}</a>
+    </div>
+    <div style="font-size:0.72rem;" class="positive">{{ summary.best_performer.ret_1d_fmt }}</div>
+    {% else %}
+    <div class="kpi-value" style="font-size:var(--text-md);">--</div>
+    {% endif %}
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Worst 1D Performer</div>
+    {% if summary.worst_performer %}
+    <div class="kpi-value negative" style="font-size:var(--text-md);">
+      <a href="/market/compare?tickers={{ summary.worst_performer.ticker|replace(' US','')|urlencode }}"
+         style="color:inherit; text-decoration:none; font-weight:600;">{{ summary.worst_performer.ticker }}</a>
+    </div>
+    <div style="font-size:0.72rem;" class="negative">{{ summary.worst_performer.ret_1d_fmt }}</div>
+    {% else %}
+    <div class="kpi-value" style="font-size:var(--text-md);">--</div>
+    {% endif %}
+  </div>
+</div>
+
+{# -- Suite Filter Pills -- #}
+<div class="filter-bar" style="display:flex; gap:8px; margin-bottom:20px; align-items:center; flex-wrap:wrap;">
+  <span class="filter-bar-label">Suite:</span>
+  <button class="pill suite-pill {% if not suite_filter or suite_filter == 'All' %}active{% endif %}"
+          data-suite="All" onclick="filterSuite('All')">All</button>
+  {% for sn in suite_names %}
+  {% set has_data = suites|selectattr('name', 'equalto', sn)|list|length > 0 %}
+  {% if has_data %}
+  <button class="pill suite-pill {% if suite_filter == sn %}active{% endif %}"
+          data-suite="{{ sn }}" onclick="filterSuite('{{ sn }}')">{{ sn }}</button>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{# -- Per-Suite Sections -- #}
+{% for suite in suites %}
+<div class="perf-suite-section" data-suite-name="{{ suite.name }}" style="margin-bottom:32px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+    <h2 class="section-title" style="border:none; margin:0; padding:0;">
+      {{ suite.name }}
+    </h2>
+    <div style="display:flex; gap:16px; align-items:center; font-size:0.82rem;">
+      <span style="color:var(--gray-500);">REX AUM: <strong style="color:var(--gray-900);">{{ suite.rex_aum_fmt }}</strong></span>
+      {% if suite.competitors %}
+      <span style="color:var(--gray-500);">Peer AUM: <strong style="color:var(--gray-900);">{{ suite.peer_aum_fmt }}</strong></span>
+      {% endif %}
+      <span style="color:var(--gray-500);">{{ suite.total_count }} products</span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+  <table class="data-table perf-table" data-suite="{{ suite.name }}">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="sortPerfTable(this, 0)" style="min-width:70px;">Ticker</th>
+        <th class="sortable" onclick="sortPerfTable(this, 1)" style="min-width:160px;">Name</th>
+        <th class="sortable" onclick="sortPerfTable(this, 2)" style="text-align:right;">AUM</th>
+        <th class="sortable" onclick="sortPerfTable(this, 3)" style="text-align:right;">30D Vol</th>
+        <th class="sortable" onclick="sortPerfTable(this, 4)" style="text-align:right;">OI</th>
+        <th class="sortable" onclick="sortPerfTable(this, 5)" style="text-align:right;">1D</th>
+        <th class="sortable" onclick="sortPerfTable(this, 6)" style="text-align:right;">1W</th>
+        <th class="sortable" onclick="sortPerfTable(this, 7)" style="text-align:right;">1M</th>
+        <th class="sortable" onclick="sortPerfTable(this, 8)" style="text-align:right;">3M</th>
+        <th class="sortable" onclick="sortPerfTable(this, 9)" style="text-align:right;">YTD</th>
+        <th class="sortable" onclick="sortPerfTable(this, 10)" style="text-align:right;">1Y</th>
+        <th style="text-align:center; min-width:90px;">AUM Trend</th>
+        <th style="text-align:center; min-width:60px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {# REX funds first #}
+      {% for f in suite.rex_funds %}
+      <tr class="rex-highlight" data-is-rex="1"
+          style="border-left:3px solid #1E40AF;">
+        <td class="ticker-cell">
+          <a href="/market/compare?tickers={{ f.ticker|replace(' US','')|urlencode }}"
+             style="color:var(--blue); text-decoration:none; font-weight:600;">{{ f.ticker }}</a>
+        </td>
+        <td class="name-cell" title="{{ f.fund_name }}">{{ f.fund_name|truncate(40, true) }}</td>
+        <td class="num-cell" data-sort="{{ f.aum }}">{{ f.aum_fmt }}</td>
+        <td class="num-cell" data-sort="{{ f.vol_30d }}">{{ f.vol_30d_fmt }}</td>
+        <td class="num-cell" data-sort="{{ f.open_interest }}">{{ f.open_interest_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1d is not none and f.ret_1d > 0 else 'negative' if f.ret_1d is not none and f.ret_1d < 0 else '' }}"
+            data-sort="{{ f.ret_1d if f.ret_1d is not none else '' }}">{{ f.ret_1d_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1w is not none and f.ret_1w > 0 else 'negative' if f.ret_1w is not none and f.ret_1w < 0 else '' }}"
+            data-sort="{{ f.ret_1w if f.ret_1w is not none else '' }}">{{ f.ret_1w_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1m is not none and f.ret_1m > 0 else 'negative' if f.ret_1m is not none and f.ret_1m < 0 else '' }}"
+            data-sort="{{ f.ret_1m if f.ret_1m is not none else '' }}">{{ f.ret_1m_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_3m is not none and f.ret_3m > 0 else 'negative' if f.ret_3m is not none and f.ret_3m < 0 else '' }}"
+            data-sort="{{ f.ret_3m if f.ret_3m is not none else '' }}">{{ f.ret_3m_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_ytd is not none and f.ret_ytd > 0 else 'negative' if f.ret_ytd is not none and f.ret_ytd < 0 else '' }}"
+            data-sort="{{ f.ret_ytd if f.ret_ytd is not none else '' }}">{{ f.ret_ytd_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1y is not none and f.ret_1y > 0 else 'negative' if f.ret_1y is not none and f.ret_1y < 0 else '' }}"
+            data-sort="{{ f.ret_1y if f.ret_1y is not none else '' }}">{{ f.ret_1y_fmt }}</td>
+        <td style="text-align:center; padding:4px;">
+          <canvas class="sparkline-canvas" width="80" height="25"
+                  data-values="{{ f.sparkline|tojson }}"></canvas>
+        </td>
+        <td style="text-align:center;">
+          <a href="/market/compare?tickers={{ f.ticker|replace(' US','')|urlencode }}"
+             style="font-size:0.72rem; color:var(--blue); text-decoration:none;">Compare</a>
+        </td>
+      </tr>
+      {% endfor %}
+      {# Competitor separator #}
+      {% if suite.competitors %}
+      <tr class="comp-separator">
+        <td colspan="13" style="padding:6px 8px; font-size:0.72rem; text-transform:uppercase;
+            letter-spacing:0.05em; color:var(--gray-500); background:var(--gray-50);
+            border-bottom:1px solid var(--gray-200); font-weight:600;">
+          Competitors ({{ suite.competitors|length }})
+        </td>
+      </tr>
+      {% endif %}
+      {# Competitor funds #}
+      {% for f in suite.competitors %}
+      <tr data-is-rex="0">
+        <td class="ticker-cell">
+          <a href="/market/compare?tickers={{ f.ticker|replace(' US','')|urlencode }}"
+             style="color:var(--gray-700); text-decoration:none; font-weight:500;">{{ f.ticker }}</a>
+          {% if f.is_key_comp %}
+          <span style="display:inline-block; font-size:0.6rem; background:#DBEAFE; color:#1E40AF;
+                padding:1px 4px; border-radius:3px; margin-left:4px; font-weight:600; vertical-align:middle;">KEY</span>
+          {% endif %}
+        </td>
+        <td class="name-cell" title="{{ f.fund_name }}">{{ f.fund_name|truncate(40, true) }}</td>
+        <td class="num-cell" data-sort="{{ f.aum }}">{{ f.aum_fmt }}</td>
+        <td class="num-cell" data-sort="{{ f.vol_30d }}">{{ f.vol_30d_fmt }}</td>
+        <td class="num-cell" data-sort="{{ f.open_interest }}">{{ f.open_interest_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1d is not none and f.ret_1d > 0 else 'negative' if f.ret_1d is not none and f.ret_1d < 0 else '' }}"
+            data-sort="{{ f.ret_1d if f.ret_1d is not none else '' }}">{{ f.ret_1d_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1w is not none and f.ret_1w > 0 else 'negative' if f.ret_1w is not none and f.ret_1w < 0 else '' }}"
+            data-sort="{{ f.ret_1w if f.ret_1w is not none else '' }}">{{ f.ret_1w_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1m is not none and f.ret_1m > 0 else 'negative' if f.ret_1m is not none and f.ret_1m < 0 else '' }}"
+            data-sort="{{ f.ret_1m if f.ret_1m is not none else '' }}">{{ f.ret_1m_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_3m is not none and f.ret_3m > 0 else 'negative' if f.ret_3m is not none and f.ret_3m < 0 else '' }}"
+            data-sort="{{ f.ret_3m if f.ret_3m is not none else '' }}">{{ f.ret_3m_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_ytd is not none and f.ret_ytd > 0 else 'negative' if f.ret_ytd is not none and f.ret_ytd < 0 else '' }}"
+            data-sort="{{ f.ret_ytd if f.ret_ytd is not none else '' }}">{{ f.ret_ytd_fmt }}</td>
+        <td class="num-cell {{ 'positive' if f.ret_1y is not none and f.ret_1y > 0 else 'negative' if f.ret_1y is not none and f.ret_1y < 0 else '' }}"
+            data-sort="{{ f.ret_1y if f.ret_1y is not none else '' }}">{{ f.ret_1y_fmt }}</td>
+        <td style="text-align:center; padding:4px;">
+          <canvas class="sparkline-canvas" width="80" height="25"
+                  data-values="{{ f.sparkline|tojson }}"></canvas>
+        </td>
+        <td style="text-align:center;">
+          {# Link to compare this comp vs the first REX fund in the suite #}
+          {% if suite.rex_funds %}
+          <a href="/market/compare?tickers={{ suite.rex_funds[0].ticker|replace(' US','')|urlencode }},{{ f.ticker|replace(' US','')|urlencode }}"
+             style="font-size:0.72rem; color:var(--blue); text-decoration:none;">Compare</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="alert alert-warning">No REX performance data available.</div>
+{% endif %}
+{% endblock %}
+
+{% block market_scripts %}
+<script>
+// Suite filter: show/hide sections
+function filterSuite(name) {
+  var pills = document.querySelectorAll('.suite-pill');
+  pills.forEach(function(p) {
+    p.classList.toggle('active', p.getAttribute('data-suite') === name);
+  });
+  var sections = document.querySelectorAll('.perf-suite-section');
+  sections.forEach(function(s) {
+    if (name === 'All') {
+      s.style.display = '';
+    } else {
+      s.style.display = s.getAttribute('data-suite-name') === name ? '' : 'none';
+    }
+  });
+}
+
+// Column sorting for performance tables
+function sortPerfTable(th, colIdx) {
+  var table = th.closest('table');
+  var tbody = table.querySelector('tbody');
+  // Collect rows, separating REX rows, separator, and comp rows
+  var allRows = Array.from(tbody.querySelectorAll('tr'));
+  var rexRows = [];
+  var compRows = [];
+  var sepRow = null;
+
+  allRows.forEach(function(r) {
+    if (r.classList.contains('comp-separator')) {
+      sepRow = r;
+    } else if (r.getAttribute('data-is-rex') === '1') {
+      rexRows.push(r);
+    } else if (r.getAttribute('data-is-rex') === '0') {
+      compRows.push(r);
+    }
+  });
+
+  // Determine sort direction
+  var current = th.getAttribute('data-sort-dir') || 'none';
+  var dir = current === 'asc' ? 'desc' : 'asc';
+
+  // Clear all sort indicators in this table
+  table.querySelectorAll('th').forEach(function(h) { h.removeAttribute('data-sort-dir'); });
+  th.setAttribute('data-sort-dir', dir);
+
+  function getSortVal(row) {
+    var cells = row.querySelectorAll('td');
+    if (colIdx >= cells.length) return '';
+    var cell = cells[colIdx];
+    var ds = cell.getAttribute('data-sort');
+    if (ds !== null && ds !== '') return parseFloat(ds) || 0;
+    return cell.textContent.trim().toLowerCase();
+  }
+
+  function compare(a, b) {
+    var va = getSortVal(a);
+    var vb = getSortVal(b);
+    if (typeof va === 'number' && typeof vb === 'number') {
+      return dir === 'asc' ? va - vb : vb - va;
+    }
+    var sa = String(va), sb = String(vb);
+    if (dir === 'asc') return sa.localeCompare(sb);
+    return sb.localeCompare(sa);
+  }
+
+  rexRows.sort(compare);
+  compRows.sort(compare);
+
+  // Reassemble: rex rows first, then separator, then comp rows
+  tbody.innerHTML = '';
+  rexRows.forEach(function(r) { tbody.appendChild(r); });
+  if (sepRow) tbody.appendChild(sepRow);
+  compRows.forEach(function(r) { tbody.appendChild(r); });
+}
+
+// Draw sparklines with Chart.js
+document.addEventListener('DOMContentLoaded', function() {
+  var canvases = document.querySelectorAll('.sparkline-canvas');
+  canvases.forEach(function(cvs) {
+    var raw = cvs.getAttribute('data-values');
+    if (!raw) return;
+    var values;
+    try { values = JSON.parse(raw); } catch(e) { return; }
+    // Filter out leading zeros (pre-inception)
+    var startIdx = 0;
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] > 0) { startIdx = i; break; }
+    }
+    values = values.slice(startIdx);
+    if (values.length < 2) return;
+
+    var ctx = cvs.getContext('2d');
+    var isUp = values[values.length - 1] >= values[0];
+    var lineColor = isUp ? '#059669' : '#F44336';
+    var fillColor = isUp ? 'rgba(5, 150, 105, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: values.map(function(_, i) { return ''; }),
+        datasets: [{
+          data: values,
+          borderColor: lineColor,
+          backgroundColor: fillColor,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { display: false }
+        },
+        animation: false
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

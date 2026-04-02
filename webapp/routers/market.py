@@ -366,6 +366,46 @@ def share_timeline_view(request: Request, cat: str = Query(default="")):
     return RedirectResponse(redirect_url, status_code=302)
 
 
+@router.get("/rex-performance")
+def rex_performance_view(
+    request: Request,
+    db: Session = Depends(get_db),
+    suite: str = Query(default="All"),
+):
+    """REX Performance -- per-suite fund tables with competitors and sparklines."""
+    svc = _svc()
+    available = svc.data_available(db)
+    if not available:
+        return templates.TemplateResponse("market/rex_performance.html", {
+            "request": request,
+            "available": False,
+            "active_tab": "rex-performance",
+            "data_as_of": svc.get_data_as_of(db),
+        })
+    try:
+        suite_arg = suite if suite != "All" else None
+        data = svc.get_rex_performance(db, suite=suite_arg)
+        return templates.TemplateResponse("market/rex_performance.html", {
+            "request": request,
+            "available": True,
+            "active_tab": "rex-performance",
+            "summary": data["summary"],
+            "suites": data["suites"],
+            "suite_filter": suite,
+            "suite_names": svc.REX_SUITES,
+            "data_as_of": svc.get_data_as_of(db),
+        })
+    except Exception as e:
+        log.error("REX Performance view error: %s", e, exc_info=True)
+        return templates.TemplateResponse("market/rex_performance.html", {
+            "request": request,
+            "available": False,
+            "active_tab": "rex-performance",
+            "error": str(e),
+            "data_as_of": svc.get_data_as_of(db),
+        })
+
+
 @router.get("/underlier")
 def underlier_view(request: Request, db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     svc = _svc()
