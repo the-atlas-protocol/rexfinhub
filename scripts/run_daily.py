@@ -320,6 +320,67 @@ def run_classification():
 
 
 # ===================================================================
+# Step 5b: Scrape Total Returns (TotalRealReturns.com)
+# ===================================================================
+def scrape_total_returns():
+    """Fetch total return data for all REX products + key competitors."""
+    try:
+        from scripts.scrape_total_returns import _scrape_single, save_to_disk
+        from webapp.database import init_db, SessionLocal
+        from sqlalchemy import text
+        import time
+
+        init_db()
+        db = SessionLocal()
+        try:
+            rex_rows = db.execute(text(
+                "SELECT ticker FROM mkt_master_data "
+                "WHERE is_rex = 1 AND market_status = 'ACTV' "
+                "AND (fund_type = 'ETF' OR fund_type = 'ETN') "
+                "ORDER BY aum DESC"
+            )).fetchall()
+        finally:
+            db.close()
+
+        tickers = [r[0].replace(" US", "") for r in rex_rows]
+        # Add key competitors
+        comps = ["JEPI", "JEPQ", "QYLD", "QQQI", "SPYI", "TSLL", "NVDL",
+                 "TQQQ", "SOXL", "ARKK", "IBIT", "BITO", "SPY", "QQQ"]
+        all_tickers = tickers + [c for c in comps if c not in tickers]
+
+        all_growth = {}
+        all_stats = {}
+        all_dates_set = set()
+
+        for i, sym in enumerate(all_tickers):
+            try:
+                result = _scrape_single(sym)
+                if result.get("growth"):
+                    all_growth[sym] = result["growth"]
+                    all_dates_set.update(result["dates"])
+                    all_stats[sym] = result.get("stats", {})
+            except Exception:
+                pass
+            if i < len(all_tickers) - 1:
+                time.sleep(0.3)
+
+        combined_dates = sorted(all_dates_set)
+        combined = {
+            "symbols": list(all_growth.keys()),
+            "dates": combined_dates,
+            "growth_series": all_growth,
+            "stats": all_stats,
+            "data_points": len(combined_dates),
+            "date_range": [combined_dates[0], combined_dates[-1]] if combined_dates else [],
+        }
+
+        save_to_disk(combined)
+        print(f"  Scraped {len(all_growth)} symbols, {len(combined_dates)} dates")
+    except Exception as e:
+        print(f"  Total returns scrape failed (non-fatal): {e}")
+
+
+# ===================================================================
 # Step 6: Compact DB
 # ===================================================================
 def compact_db():
@@ -560,8 +621,15 @@ def main():
         except Exception as e:
             print(f"  Classification failed: {e}")
 
+        # === Total Returns scrape ===
+        print("\n[8/12] Scraping total returns data...")
+        try:
+            scrape_total_returns()
+        except Exception as e:
+            print(f"  Total returns scrape failed: {e}")
+
         # === Upload phase ===
-        print("\n[8/10] Compacting DB...")
+        print("\n[9/12] Compacting DB...")
         try:
             compact_db()
         except Exception as e:

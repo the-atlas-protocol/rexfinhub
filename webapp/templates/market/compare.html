@@ -518,24 +518,44 @@ document.addEventListener('DOMContentLoaded', function() {
     return allDates.findIndex(d => d >= cutoff);
   }
 
+  // Find the latest inception index (where ALL symbols have data)
+  function getCommonStartIdx() {
+    let latest = 0;
+    for (const [sym, vals] of Object.entries(allSeries)) {
+      const firstReal = vals.findIndex(v => v !== null && v > 0);
+      if (firstReal > latest) latest = firstReal;
+    }
+    return latest;
+  }
+
+  const commonStartIdx = getCommonStartIdx();
+
   function buildCharts(range) {
-    const startIdx = Math.max(0, getDateCutoff(range));
+    let startIdx;
+    if (range === 'max') {
+      startIdx = commonStartIdx; // Start from latest fund inception
+    } else {
+      startIdx = Math.max(commonStartIdx, getDateCutoff(range));
+    }
     const dates = allDates.slice(startIdx);
 
-    // Growth chart — normalize all series to start at $10K from cutoff
+    // Growth chart — normalize all series to $10K from start
     const growthDatasets = [];
     let ci = 0;
     for (const [sym, vals] of Object.entries(allSeries)) {
       const sliced = vals.slice(startIdx);
-      const base = sliced[0] || 1;
+      // Find first non-null value as base
+      const firstReal = sliced.findIndex(v => v !== null && v > 0);
+      const base = firstReal >= 0 ? sliced[firstReal] : 1;
       growthDatasets.push({
         label: sym,
-        data: sliced.map(v => (v / base) * 10000),
+        data: sliced.map(v => v !== null && v > 0 ? (v / base) * 10000 : null),
         borderColor: colors[ci % colors.length],
         backgroundColor: 'transparent',
         borderWidth: 2,
         pointRadius: 0,
         tension: 0.1,
+        spanGaps: true,
       });
       ci++;
     }
@@ -545,9 +565,10 @@ document.addEventListener('DOMContentLoaded', function() {
     ci = 0;
     for (const [sym, vals] of Object.entries(allSeries)) {
       const sliced = vals.slice(startIdx);
-      let peak = sliced[0] || 1;
+      let peak = null;
       const dd = sliced.map(v => {
-        if (v > peak) peak = v;
+        if (v === null || v <= 0) return null;
+        if (peak === null || v > peak) peak = v;
         return peak > 0 ? ((v - peak) / peak) * 100 : 0;
       });
       ddDatasets.push({
