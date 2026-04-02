@@ -110,6 +110,21 @@
   /* Sidebar toggle */
   .sidebar-toggle { font-size:16px; cursor:pointer; padding:2px 6px; border:1px solid #ccc; border-radius:4px; background:#fff; color:#1F3864; line-height:1; }
   .sidebar-toggle:hover { background:#e8edf3; }
+
+  /* Drag-and-drop headers */
+  .screener-table th.dragging { opacity:.5; }
+  .screener-table th.drag-over { border-left:3px solid #fff; }
+
+  /* Full page override */
+  #tab-content, .container, main { max-width:none !important; padding-left:0 !important; padding-right:0 !important; }
+  .market-header { padding-left:14px; }
+
+  /* Suite filter hidden by default */
+  .suite-filter-wrap { display:none; }
+  .suite-filter-wrap.visible { display:contents; }
+
+  /* Hint text */
+  .scroll-hint { font-size:10px; color:#aaa; font-style:italic; }
 </style>
 
 {% if not available %}
@@ -121,6 +136,7 @@
   <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle columns panel">&#9776;</button>
   <div class="kpi-item"><span class="kpi-label">Showing:</span> <span class="kpi-value" id="kpiShowing">-</span></div>
   <div class="kpi-item"><span class="kpi-label">Total AUM:</span> <span class="kpi-value" id="kpiAUM">-</span></div>
+  <span class="scroll-hint">Alt+Scroll for horizontal</span>
   <div class="page-controls">
     <button class="page-btn" id="pgFirst" onclick="goPage(0)" title="First">&laquo;</button>
     <button class="page-btn" id="pgPrev" onclick="prevPage()" title="Previous">&lsaquo;</button>
@@ -136,8 +152,10 @@
   <select id="fScope"><option value="all" selected>All ETPs</option><option value="rex">REX Only</option><option value="competitors">Competitors</option></select>
   <span class="filter-label">Category:</span>
   <select id="fCategory"><option value="">All</option></select>
-  <span class="filter-label">Suite:</span>
-  <select id="fSuite"><option value="">All</option></select>
+  <span class="suite-filter-wrap" id="suiteFilterWrap">
+    <span class="filter-label">Suite:</span>
+    <select id="fSuite"><option value="">All</option></select>
+  </span>
   <span class="filter-label">Search:</span>
   <input type="text" id="fSearch" placeholder="Ticker or name...">
   <span class="filter-label">Per page:</span>
@@ -151,9 +169,7 @@
 <div class="screener-wrap">
   <!-- Column picker sidebar -->
   <div class="screener-sidebar" id="sidebar">
-    <h3>Columns</h3>
-    <div class="preset-wrap" id="presetWrap"></div>
-    <hr>
+    <h3>Toggle Columns</h3>
     <div id="colChecks"></div>
   </div>
 
@@ -220,7 +236,6 @@ function buildPresets(){
   for(const[k,v]of Object.entries(PRESETS)){
     h+=`<button class="preset-btn ${k===activePreset?'active':''}" onclick="selectPreset('${k}')">${v.label}</button>`;
   }
-  document.getElementById("presetWrap").innerHTML=h;
   document.getElementById("presetBar").innerHTML=h;
 }
 
@@ -400,13 +415,63 @@ async function init(){
   document.getElementById("loadingOverlay").classList.add("hidden");
 }
 
-// Event listeners
-document.getElementById("fScope").addEventListener("change",function(){currentPage=0;init();});
+// --- Suite filter visibility ---
+function updateSuiteVisibility(){
+  const scope=document.getElementById("fScope").value;
+  const wrap=document.getElementById("suiteFilterWrap");
+  if(scope==="rex")wrap.classList.add("visible");
+  else{wrap.classList.remove("visible");document.getElementById("fSuite").value="";}
+}
+
+// --- Drag and drop column reorder ---
+let dragColIdx=null;
+function setupDragDrop(){
+  const ths=document.querySelectorAll(".screener-table th");
+  ths.forEach((th,idx)=>{
+    th.draggable=true;
+    th.addEventListener("dragstart",e=>{dragColIdx=idx;th.classList.add("dragging");e.dataTransfer.effectAllowed="move";});
+    th.addEventListener("dragend",()=>{th.classList.remove("dragging");document.querySelectorAll(".drag-over").forEach(el=>el.classList.remove("drag-over"));});
+    th.addEventListener("dragover",e=>{e.preventDefault();th.classList.add("drag-over");});
+    th.addEventListener("dragleave",()=>th.classList.remove("drag-over"));
+    th.addEventListener("drop",e=>{
+      e.preventDefault();
+      th.classList.remove("drag-over");
+      if(dragColIdx===null||dragColIdx===idx)return;
+      // Reorder visibleCols
+      const visCols=COLUMNS.filter(c=>visibleCols.has(c[0]));
+      const moved=visCols.splice(dragColIdx,1)[0];
+      visCols.splice(idx,0,moved);
+      // Rebuild COLUMNS order to match
+      const newOrder=visCols.map(c=>c[0]);
+      const rest=COLUMNS.filter(c=>!visibleCols.has(c[0]));
+      const reordered=[...visCols.map(key=>COLUMNS.find(c=>c[0]===key[0])),...rest];
+      for(let i=0;i<reordered.length;i++)COLUMNS[i]=reordered[i];
+      activePreset="";buildPresets();
+      render();
+    });
+  });
+}
+
+// Override render to add drag setup after DOM update
+const _origRender=render;
+render=function(){_origRender();setupDragDrop();};
+
+// --- Alt+Scroll horizontal ---
+document.getElementById("tableWrap").addEventListener("wheel",function(e){
+  if(e.altKey){
+    e.preventDefault();
+    this.scrollLeft+=e.deltaY;
+  }
+},{passive:false});
+
+// --- Event listeners ---
+document.getElementById("fScope").addEventListener("change",function(){currentPage=0;updateSuiteVisibility();init();});
 document.getElementById("fCategory").addEventListener("change",function(){currentPage=0;render();});
 document.getElementById("fSuite").addEventListener("change",function(){currentPage=0;render();});
 document.getElementById("fSearch").addEventListener("input",function(){currentPage=0;render();});
 document.getElementById("fPageSize").addEventListener("change",function(){currentPage=0;render();});
 
+updateSuiteVisibility();
 init();
 </script>
 {% endif %}
