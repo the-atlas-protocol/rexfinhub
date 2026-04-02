@@ -1,14 +1,31 @@
-{% extends "market/base.html" %}
+{% extends "base.html" %}
 {% block title %}ETP Screener - REX Financial Intelligence Hub{% endblock %}
 
-{% block market_content %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/market.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="market-header">
+  <h1>Market Intelligence</h1>
+  <div class="market-nav-pills">
+    <a href="/market/rex" class="pill">REX View</a>
+    <a href="/market/category" class="pill">Category View</a>
+    <a href="/market/issuer" class="pill">Issuer Analysis</a>
+    <a href="/market/underlier" class="pill">Underlier</a>
+    <a href="/market/calendar" class="pill">Calendar</a>
+    <a href="/market/compare" class="pill">Compare</a>
+    <a href="/market/rex-performance" class="pill active">ETP Screener</a>
+  </div>
+</div>
 <style>
   /* Layout */
-  .screener-wrap { display:flex; gap:0; min-height:calc(100vh - 160px); }
+  .screener-wrap { display:flex; gap:0; height:calc(100vh - 200px); }
 
   /* Sidebar */
-  .screener-sidebar { width:230px; min-width:230px; background:#f8f9fa; border-right:1px solid #ddd; padding:12px; overflow-y:auto; font-size:12px; transition:margin-left .2s; }
-  .screener-sidebar.collapsed { margin-left:-230px; }
+  .screener-sidebar { width:230px; min-width:230px; background:#f8f9fa; border-right:1px solid #ddd; padding:12px; overflow-y:auto; font-size:12px; transition:width .2s, min-width .2s, padding .2s; }
+  .screener-sidebar.collapsed { width:0; min-width:0; padding:0; overflow:hidden; border:none; }
   .screener-sidebar h3 { font-size:12px; font-weight:700; margin:0 0 8px; color:#1F3864; text-transform:uppercase; letter-spacing:.5px; }
   .screener-sidebar hr { border:none; border-top:1px solid #ddd; margin:8px 0; }
   .col-group { margin-bottom:2px; }
@@ -104,7 +121,6 @@
   <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle columns panel">&#9776;</button>
   <div class="kpi-item"><span class="kpi-label">Showing:</span> <span class="kpi-value" id="kpiShowing">-</span></div>
   <div class="kpi-item"><span class="kpi-label">Total AUM:</span> <span class="kpi-value" id="kpiAUM">-</span></div>
-  <div class="kpi-item"><span class="kpi-label">Data:</span> <span class="kpi-value">{{ data_as_of or '-' }}</span></div>
   <div class="page-controls">
     <button class="page-btn" id="pgFirst" onclick="goPage(0)" title="First">&laquo;</button>
     <button class="page-btn" id="pgPrev" onclick="prevPage()" title="Previous">&lsaquo;</button>
@@ -126,6 +142,8 @@
   <input type="text" id="fSearch" placeholder="Ticker or name...">
   <span class="filter-label">Per page:</span>
   <select id="fPageSize" style="width:65px;"><option value="50">50</option><option value="100" selected>100</option><option value="250">250</option><option value="999999">All</option></select>
+  <span class="filter-label">View:</span>
+  <span id="presetBar"></span>
   <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
   <button class="btn-sm outline" onclick="resetFilters()">Reset</button>
 </div>
@@ -143,7 +161,7 @@
   <div class="screener-main" id="tableWrap">
     <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
     <table class="screener-table"><thead><tr id="tableHead"></tr></thead><tbody id="tableBody"></tbody></table>
-    <div class="empty-state hidden" id="emptyState">No funds match your filters.</div>
+    <div class="empty-state hidden" id="emptyState">No funds match your current filters. Try adjusting your search or category.</div>
   </div>
 </div>
 
@@ -200,9 +218,10 @@ let allData=[], visibleCols=new Set(COLUMNS.filter(c=>c[4]).map(c=>c[0])), sortK
 function buildPresets(){
   let h="";
   for(const[k,v]of Object.entries(PRESETS)){
-    h+=`<button class="preset-btn ${k===activePreset?'active':''}" data-preset="${k}" onclick="selectPreset('${k}')">${v.label}</button>`;
+    h+=`<button class="preset-btn ${k===activePreset?'active':''}" onclick="selectPreset('${k}')">${v.label}</button>`;
   }
   document.getElementById("presetWrap").innerHTML=h;
+  document.getElementById("presetBar").innerHTML=h;
 }
 
 function buildSidebar(){
@@ -308,7 +327,7 @@ function render(){
   const ps=getPageSize();
   const page=filtered.slice(currentPage*ps, currentPage*ps+ps);
 
-  if(filtered.length===0){
+  if(filtered.length===0 && allData.length>0){
     document.getElementById("tableBody").innerHTML="";
     document.getElementById("emptyState").classList.remove("hidden");
   } else {
@@ -392,3 +411,4 @@ init();
 </script>
 {% endif %}
 {% endblock %}
+
