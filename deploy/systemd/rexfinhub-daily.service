@@ -1,0 +1,15 @@
+[Unit]
+Description=REX FinHub Daily Pipeline (full sync + email reports)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rexfinhub
+WorkingDirectory=/home/rexfinhub/rexfinhub
+EnvironmentFile=/home/rexfinhub/rexfinhub/config/.env
+Environment=SEC_CACHE_DIR=/home/rexfinhub/rexfinhub/cache/sec
+ExecStart=/usr/bin/python3.13 scripts/run_daily.py
+TimeoutStartSec=7200
+StandardOutput=journal
+StandardError=journal

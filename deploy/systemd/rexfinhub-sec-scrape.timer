@@ -1,0 +1,13 @@
+[Unit]
+Description=REX FinHub SEC Scrape Timer (4x daily, weekdays)
+
+[Timer]
+# 8AM, 12PM, 4PM, 8PM Eastern = 12:00, 16:00, 20:00, 00:00 UTC
+OnCalendar=Mon..Fri 12:00 UTC
+OnCalendar=Mon..Fri 16:00 UTC
+OnCalendar=Mon..Fri 20:00 UTC
+OnCalendar=Tue..Sat 00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

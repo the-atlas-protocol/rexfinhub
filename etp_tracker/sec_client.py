@@ -10,8 +10,13 @@ except Exception:
     USER_AGENT_DEFAULT = "REX-ETP-FilingTracker/1.0 (contact: set USER_AGENT)"
     SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{CIK_PADDED}.json"
 
+import os
+
+_DEFAULT_CACHE_DIR = os.environ.get("SEC_CACHE_DIR", str(Path(__file__).resolve().parent.parent / "cache" / "sec"))
+
+
 class SECClient:
-    def __init__(self, user_agent: str = USER_AGENT_DEFAULT, request_timeout: int = 30, pause: float = 0.25, cache_dir: Path | str = "D:/sec-data/cache/rexfinhub"):
+    def __init__(self, user_agent: str = USER_AGENT_DEFAULT, request_timeout: int = 30, pause: float = 0.25, cache_dir: Path | str = _DEFAULT_CACHE_DIR):
         self.user_agent = user_agent or USER_AGENT_DEFAULT
         self.timeout = request_timeout
         self.pause = float(pause)

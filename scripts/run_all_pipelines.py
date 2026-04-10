@@ -257,22 +257,24 @@ def main():
     print(f"\nCompleted in {elapsed:.0f}s ({elapsed / 60:.1f}m)")
     print(f"Log: {log_file}")
 
-    # Windows popup notification
-    try:
-        import ctypes
-        failed = [s for s, v in results.items() if v == "FAILED"]
-        if failed:
-            title = "REX Pipeline - Errors"
-            msg = f"Finished in {elapsed:.0f}s\nFailed: {', '.join(failed)}"
-            icon = 0x30  # warning
-        else:
-            title = "REX Pipeline - Complete"
-            steps = [s for s, v in results.items() if v == "ok"]
-            msg = f"Finished in {elapsed:.0f}s\n{', '.join(steps)}"
-            icon = 0x40  # info
-        ctypes.windll.user32.MessageBoxW(0, msg, title, icon | 0x40000)
-    except Exception:
-        pass
+    # Desktop notification (Windows only — skipped on Linux/macOS)
+    import platform
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            failed = [s for s, v in results.items() if v == "FAILED"]
+            if failed:
+                title = "REX Pipeline - Errors"
+                msg = f"Finished in {elapsed:.0f}s\nFailed: {', '.join(failed)}"
+                icon = 0x30  # warning
+            else:
+                title = "REX Pipeline - Complete"
+                steps = [s for s, v in results.items() if v == "ok"]
+                msg = f"Finished in {elapsed:.0f}s\n{', '.join(steps)}"
+                icon = 0x40  # info
+            ctypes.windll.user32.MessageBoxW(0, msg, title, icon | 0x40000)
+        except Exception:
+            pass
 
     # Always exit 0 -- Task Scheduler shouldn't retry on partial failure
     sys.exit(0)

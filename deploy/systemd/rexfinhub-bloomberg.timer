@@ -1,0 +1,10 @@
+[Unit]
+Description=REX FinHub Bloomberg Pull Timer (every 15 min, 4-6 PM ET weekdays)
+
+[Timer]
+# 4-6 PM Eastern = 20:00-22:00 UTC, every 15 min
+OnCalendar=Mon..Fri 20:00..22:00/15:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

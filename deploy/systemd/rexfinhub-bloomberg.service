@@ -1,0 +1,14 @@
+[Unit]
+Description=REX FinHub Bloomberg Pull & Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rexfinhub
+WorkingDirectory=/home/rexfinhub/rexfinhub
+EnvironmentFile=/home/rexfinhub/rexfinhub/config/.env
+ExecStart=/usr/bin/python3.13 -c "from webapp.services.graph_files import download_bloomberg_from_sharepoint; from webapp.database import init_db, SessionLocal; from webapp.services.market_sync import sync_market_data; download_bloomberg_from_sharepoint(); init_db(); db=SessionLocal(); sync_market_data(db); db.close(); print('Bloomberg pull + sync complete')"
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal
