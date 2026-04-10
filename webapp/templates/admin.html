@@ -195,6 +195,115 @@
   {% endif %}
 </div>
 
+<!-- Classification Review Queue -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="margin:0; font-size:16px;">Classification Review Queue</h3>
+    <form method="post" action="/admin/classification/scan" style="display:inline;">
+      <button type="submit" class="btn btn-sm" style="background:var(--blue); color:#fff; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px;">
+        Scan for New Funds
+      </button>
+    </form>
+  </div>
+
+  {% if request.query_params.get('cls_scan') %}
+  <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
+    Scan complete. {{ request.query_params.get('cls_count', 0) }} new proposals added.
+  </div>
+  {% endif %}
+  {% if request.query_params.get('cls_approved') %}
+  <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
+    <strong>{{ request.query_params.get('cls_approved') }}</strong> classified and added to rules.
+  </div>
+  {% endif %}
+
+  {% if pending_proposals %}
+  <table style="width:100%; border-collapse:collapse; font-size:12px;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border);">
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Ticker</th>
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Fund Name</th>
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Category</th>
+        <th style="padding:8px 10px; text-align:center; font-weight:600; color:var(--muted);">Confidence</th>
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Reason</th>
+        <th style="padding:8px 10px; text-align:right; font-weight:600; color:var(--muted);">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pending_proposals %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px 10px; font-weight:600;">{{ p.ticker }}</td>
+        <td style="padding:8px 10px; font-size:11px;">{{ (p.fund_name or '')[:45] }}</td>
+        <td style="padding:8px 10px;">
+          <span style="background:var(--blue); color:#fff; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600;">{{ p.proposed_category }}</span>
+        </td>
+        <td style="padding:8px 10px; text-align:center;">
+          {% if p.confidence == 'HIGH' %}
+          <span style="color:var(--green); font-weight:600;">HIGH</span>
+          {% elif p.confidence == 'MEDIUM' %}
+          <span style="color:var(--orange); font-weight:600;">MED</span>
+          {% else %}
+          <span style="color:var(--red); font-weight:600;">LOW</span>
+          {% endif %}
+        </td>
+        <td style="padding:8px 10px; font-size:11px; color:var(--muted);">{{ (p.reason or '')[:60] }}</td>
+        <td style="padding:8px 10px; text-align:right; white-space:nowrap;">
+          <form method="post" action="/admin/classification/{{ p.id }}/approve" style="display:inline;">
+            <button type="submit" class="btn btn-sm" style="background:var(--green); color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;" onclick="return confirm('Approve {{ p.ticker }} as {{ p.proposed_category }}?')">Approve</button>
+          </form>
+          <form method="post" action="/admin/classification/{{ p.id }}/reject" style="display:inline; margin-left:4px;">
+            <button type="submit" class="btn btn-sm" style="background:var(--red); color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">Reject</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center; padding:16px; color:var(--muted); font-size:13px;">
+    No pending classification proposals. Click "Scan for New Funds" to check.
+  </div>
+  {% endif %}
+
+  {% if approved_proposals %}
+  <div style="margin-top:12px; font-size:11px; color:var(--muted);">
+    <strong>Recently Approved:</strong>
+    {% for a in approved_proposals[:5] %}
+    <span style="margin-left:8px;">{{ a.ticker }} ({{ a.proposed_category }})</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Validation Issues -->
+  {% if cls_validation.issues %}
+  <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+    <div style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+      Data Quality ({{ cls_validation.summary.issue_count }} issues)
+    </div>
+    {% for issue in cls_validation.issues %}
+    <div style="background:{% if issue.severity == 'error' %}var(--red-bg){% else %}var(--orange-bg){% endif %}; border-left:3px solid {% if issue.severity == 'error' %}var(--red){% else %}var(--orange){% endif %}; padding:8px 12px; border-radius:0 4px 4px 0; margin-bottom:6px; font-size:12px;">
+      <strong>{{ issue.type | replace('_', ' ') | title }}:</strong> {{ issue.message }}
+      {% if issue.tickers %}
+      <span style="color:var(--muted); margin-left:6px;">{{ issue.tickers[:5] | join(', ') }}{% if issue.tickers | length > 5 %}...{% endif %}</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+    <div style="font-size:12px; color:var(--green);">All classification data is clean.</div>
+  </div>
+  {% endif %}
+
+  <!-- Category Summary -->
+  <div style="margin-top:8px; font-size:11px; color:var(--muted);">
+    <strong>{{ cls_validation.summary.total_funds }} classified funds:</strong>
+    {% for cat, count in cls_validation.summary.categories.items() %}
+    {{ cat }}={{ count }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
 <!-- Pending Trust Requests -->
 <div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
   <h3 style="margin:0 0 4px; font-size:16px;">Pending Trust Requests</h3>
@@ -275,14 +384,64 @@
   {% endif %}
 </div>
 
-<!-- Email Reports — all reports are generated and sent locally, not through the webapp -->
-<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light); opacity:0.5;">
-  <h3 style="margin:0 0 4px; font-size:16px;">Email Reports
-    <span style="font-size:11px; color:var(--muted); background:#fff3cd; padding:2px 8px; border-radius:4px; margin-left:8px;">Local only</span>
-  </h3>
-  <p style="font-size:13px; color:var(--muted); margin:0;">
-    All reports (Daily, Weekly, L&I, Income, Flow) are generated and sent locally. Not available through the web admin.
-  </p>
+<!-- Report Dashboard -->
+<div style="border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; background:var(--light);">
+  <h3 style="margin:0 0 12px; font-size:16px;">Reports</h3>
+
+  <table style="width:100%; border-collapse:collapse; font-size:12px;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border);">
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Report</th>
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Frequency</th>
+        <th style="padding:8px 10px; text-align:left; font-weight:600; color:var(--muted);">Last Sent</th>
+        <th style="padding:8px 10px; text-align:right; font-weight:600; color:var(--muted);">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set reports = [
+        ("REX Daily ETP Report", "daily_filing", "Daily", "/admin/digest/preview-daily", "/admin/digest/send-test", "/admin/digest/send"),
+        ("REX Weekly ETP Report", "weekly_report", "Weekly", "/admin/digest/preview-weekly", "/admin/digest/send-test-weekly", "/admin/digest/send-weekly"),
+        ("L&I Report", "li_report", "Weekly", "/admin/reports/preview-li", "/admin/reports/send-test-li", "/admin/reports/send-li"),
+        ("Income Report", "income_report", "Weekly", "/admin/reports/preview-cc", "/admin/reports/send-test-cc", "/admin/reports/send-cc"),
+        ("Flow Report", "flow_report", "Weekly", "/admin/reports/preview-flow", "/admin/reports/send-test-flow", "/admin/reports/send-flow"),
+        ("Autocallable Update", "autocall_report", "Weekly", "", "", ""),
+      ] %}
+      {% for name, key, freq, preview_url, test_url, send_url in reports %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px 10px; font-weight:600;">{{ name }}</td>
+        <td style="padding:8px 10px;">
+          <span style="font-size:10px; padding:2px 6px; border-radius:8px; background:{% if freq == 'Daily' %}var(--blue){% else %}var(--green){% endif %}; color:#fff;">{{ freq }}</span>
+        </td>
+        <td style="padding:8px 10px; font-size:11px; color:var(--muted);">
+          {{ report_status.get(key, 'Never') or 'Never' }}
+        </td>
+        <td style="padding:8px 10px; text-align:right; white-space:nowrap;">
+          {% if preview_url %}
+          <a href="{{ preview_url }}" target="_blank" style="font-size:11px; color:var(--blue); text-decoration:none; margin-right:8px;">Preview</a>
+          {% endif %}
+          {% if test_url %}
+          <form method="post" action="{{ test_url }}" style="display:inline;">
+            <button type="submit" style="font-size:10px; padding:3px 8px; border:1px solid var(--border); border-radius:4px; background:var(--white); cursor:pointer; color:var(--text);" onclick="return confirm('Send test to relasmar@rexfin.com?')">Test</button>
+          </form>
+          {% endif %}
+          {% if send_url %}
+          <form method="post" action="{{ send_url }}" style="display:inline; margin-left:4px;">
+            <button type="submit" style="font-size:10px; padding:3px 8px; border:none; border-radius:4px; background:var(--green); color:#fff; cursor:pointer;" onclick="return confirm('Send to ALL recipients?')">Send</button>
+          </form>
+          {% elif key == 'autocall_report' %}
+          <span style="font-size:10px; color:var(--muted);">Preview only</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if not send_gate_open %}
+  <div style="margin-top:10px; background:var(--red-bg); border-left:3px solid var(--red); padding:8px 12px; border-radius:0 4px 4px 0; font-size:12px;">
+    <strong>Email gate is locked.</strong> All send/test buttons will be blocked. Enable via <code>config/.send_enabled</code>.
+  </div>
+  {% endif %}
 </div>
 
 <!-- Digest Subscribers -->

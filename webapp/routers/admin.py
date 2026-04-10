@@ -125,6 +125,48 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
     gate_file = _P(__file__).resolve().parent.parent.parent / "config" / ".send_enabled"
     send_gate_open = gate_file.exists() and gate_file.read_text().strip().lower() == "true"
 
+    # Classification proposals
+    from webapp.models import ClassificationProposal
+    pending_proposals = db.query(ClassificationProposal).filter(
+        ClassificationProposal.status == "pending"
+    ).order_by(ClassificationProposal.created_at.desc()).all()
+    approved_proposals = db.query(ClassificationProposal).filter(
+        ClassificationProposal.status == "approved"
+    ).order_by(ClassificationProposal.reviewed_at.desc()).limit(10).all()
+
+    # Report send history
+    import json as _json
+    send_log_path = _P(__file__).resolve().parent.parent.parent / "data" / ".send_log.json"
+    send_history = {}
+    if send_log_path.exists():
+        try:
+            send_history = _json.loads(send_log_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    # Find last sent time for each report
+    report_status = {}
+    for key in ["daily_filing", "weekly_report", "li_report", "income_report", "flow_report", "autocall_report"]:
+        last_sent = None
+        for date_str in sorted(send_history.keys(), reverse=True):
+            if key in send_history[date_str]:
+                val = send_history[date_str][key]
+                if isinstance(val, str) and val != "PAUSED":
+                    last_sent = f"{date_str} {val}"
+                    break
+                elif isinstance(val, dict) and val.get("sent_at"):
+                    last_sent = f"{date_str} {val['sent_at']}"
+                    break
+        report_status[key] = last_sent
+
+    # Classification validation
+    cls_validation = {"issues": [], "summary": {"total_funds": 0, "categories": {}, "issue_count": 0}}
+    try:
+        from webapp.services.classification_validator import validate_classifications
+        cls_validation = validate_classifications()
+    except Exception as e:
+        log.warning("Classification validation failed: %s", e)
+
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "pending_requests": pending_requests,
@@ -137,7 +179,117 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         "pipeline_runs": pipeline_runs,
         "bbg_status": bbg_status,
         "send_gate_open": send_gate_open,
+        "pending_proposals": pending_proposals,
+        "approved_proposals": approved_proposals,
+        "cls_validation": cls_validation,
+        "report_status": report_status,
     })
+
+
+# ---------------------------------------------------------------------------
+# Classification Review Queue
+# ---------------------------------------------------------------------------
+
+@router.post("/classification/scan")
+def classification_scan(request: Request, db: Session = Depends(get_db)):
+    """Scan for unmapped funds and populate the review queue."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        import json as _json
+        from tools.rules_editor.classify_engine import scan_unmapped
+        from webapp.models import ClassificationProposal
+
+        results = scan_unmapped(since_days=90)
+        candidates = results.get("candidates", [])
+        inserted = 0
+
+        # Get existing proposal tickers to avoid duplicates
+        existing = {
+            p.ticker for p in db.query(ClassificationProposal.ticker).filter(
+                ClassificationProposal.status.in_(["pending", "approved"])
+            ).all()
+        }
+
+        for c in candidates:
+            if c["ticker"] in existing:
+                continue
+            db.add(ClassificationProposal(
+                ticker=c["ticker"],
+                fund_name=c.get("fund_name"),
+                issuer=c.get("issuer"),
+                aum=c.get("aum"),
+                proposed_category=c.get("etp_category"),
+                proposed_strategy=c.get("strategy"),
+                confidence=c.get("confidence"),
+                reason=c.get("reason"),
+                attributes_json=_json.dumps(c.get("attributes", {})),
+                status="pending",
+            ))
+            inserted += 1
+
+        db.commit()
+        return RedirectResponse(f"/admin/?cls_scan=1&cls_count={inserted}", status_code=303)
+    except Exception as e:
+        log.error("Classification scan failed: %s", e)
+        return RedirectResponse(f"/admin/?cls_error=1", status_code=303)
+
+
+@router.post("/classification/{proposal_id}/approve")
+def classification_approve(
+    request: Request, proposal_id: int, db: Session = Depends(get_db)
+):
+    """Approve a classification proposal — writes to fund_mapping.csv + attributes CSV."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        import json as _json
+        from webapp.models import ClassificationProposal
+        from tools.rules_editor.classify_engine import apply_classifications
+
+        proposal = db.query(ClassificationProposal).filter(
+            ClassificationProposal.id == proposal_id
+        ).first()
+        if not proposal:
+            return RedirectResponse("/admin/?cls_error=missing", status_code=303)
+
+        # Build candidate dict matching apply_classifications() input format
+        candidate = {
+            "ticker": proposal.ticker,
+            "etp_category": proposal.proposed_category,
+            "attributes": _json.loads(proposal.attributes_json or "{}"),
+        }
+
+        apply_classifications([candidate])
+
+        proposal.status = "approved"
+        proposal.reviewed_at = datetime.utcnow()
+        db.commit()
+
+        return RedirectResponse(f"/admin/?cls_approved={proposal.ticker}", status_code=303)
+    except Exception as e:
+        log.error("Classification approve failed: %s", e)
+        return RedirectResponse(f"/admin/?cls_error=approve", status_code=303)
+
+
+@router.post("/classification/{proposal_id}/reject")
+def classification_reject(
+    request: Request, proposal_id: int, db: Session = Depends(get_db)
+):
+    """Reject a classification proposal."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    from webapp.models import ClassificationProposal
+
+    proposal = db.query(ClassificationProposal).filter(
+        ClassificationProposal.id == proposal_id
+    ).first()
+    if proposal:
+        proposal.status = "rejected"
+        proposal.reviewed_at = datetime.utcnow()
+        db.commit()
+
+    return RedirectResponse("/admin/?cls_rejected=1", status_code=303)
 
 
 @router.post("/login")
