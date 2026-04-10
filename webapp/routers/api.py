@@ -12,7 +12,7 @@ import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Header, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, Depends, Header, HTTPException, BackgroundTasks, Request, UploadFile, File
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -186,14 +186,8 @@ def trigger_pipeline(
     return {"status": "started", "message": "Pipeline run started in background"}
 
 
-@router.post("/digest/send")
-def send_digest(
-    _: None = Depends(verify_api_key),
-):
-    """Send the daily digest email."""
-    from etp_tracker.email_alerts import send_digest_email
-    sent = send_digest_email(Path("outputs"))
-    return {"sent": sent}
+# Legacy /digest/send removed (was CSV-based, dead code).
+# Use /admin/digest/send (DB-based) or scripts/send_email.py instead.
 
 
 @router.post("/db/upload")
@@ -518,3 +512,15 @@ def total_returns_api(
         raise HTTPException(status_code=404, detail=result["error"])
 
     return result
+
+
+@router.get("/docs", include_in_schema=False)
+def api_docs_page(request: Request):
+    """Public API documentation page."""
+    from fastapi.templating import Jinja2Templates
+    templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+    base_url = str(request.base_url).rstrip("/")
+    return templates.TemplateResponse("api_docs.html", {
+        "request": request,
+        "base_url": base_url,
+    })

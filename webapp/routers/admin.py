@@ -187,6 +187,42 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# Operational Actions (Run Now)
+# ---------------------------------------------------------------------------
+
+@router.post("/pull-bloomberg")
+def pull_bloomberg(request: Request):
+    """Pull fresh Bloomberg file from SharePoint via Graph API."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.graph_files import download_bloomberg_from_sharepoint
+        path = download_bloomberg_from_sharepoint()
+        if path:
+            return RedirectResponse("/admin/?bbg_pulled=1", status_code=303)
+        else:
+            return RedirectResponse("/admin/?bbg_error=1", status_code=303)
+    except Exception as e:
+        log.error("Bloomberg pull failed: %s", e)
+        return RedirectResponse("/admin/?bbg_error=1", status_code=303)
+
+
+@router.post("/sync-market")
+def sync_market(request: Request, db: Session = Depends(get_db)):
+    """Trigger market data sync from Bloomberg file."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+    try:
+        from webapp.services.market_sync import sync_market_data
+        result = sync_market_data(db)
+        count = result.get("master_rows", 0)
+        return RedirectResponse(f"/admin/?mkt_synced=1&mkt_count={count}", status_code=303)
+    except Exception as e:
+        log.error("Market sync failed: %s", e)
+        return RedirectResponse("/admin/?mkt_error=1", status_code=303)
+
+
+# ---------------------------------------------------------------------------
 # Classification Review Queue
 # ---------------------------------------------------------------------------
 
