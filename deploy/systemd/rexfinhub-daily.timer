@@ -2,9 +2,8 @@
 Description=REX FinHub Daily Pipeline Timer (weekdays 5:00 PM ET)
 
 [Timer]
-# 5:00 PM Eastern = 21:00 UTC (EST) or 22:00 UTC (EDT)
-# Using 21:00 UTC (EST). Adjust after DST change.
-OnCalendar=Mon..Fri 21:00 UTC
+# VPS timezone set to America/New_York — DST handled automatically
+OnCalendar=Mon..Fri 17:00:00
 Persistent=true
 
 [Install]

@@ -60,15 +60,21 @@ _state = {
     "last_result": None,
     "last_time": None,
 }
+_state_lock = threading.Lock()
+
+# Validate API key at startup
+if not API_KEY:
+    log.critical("API_KEY not set — pipeline API will reject all requests")
 
 
 def _run_in_background(name: str, fn):
     """Run a function in a background thread, tracking state."""
-    if _state["running"]:
-        return {"status": "busy", "running": _state["running"]}
+    with _state_lock:
+        if _state["running"]:
+            return {"status": "busy", "running": _state["running"]}
+        _state["running"] = name
 
     def _worker():
-        _state["running"] = name
         try:
             result = fn()
             _state["last_result"] = {"name": name, "status": "ok", "detail": str(result)}

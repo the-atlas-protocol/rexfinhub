@@ -2,15 +2,15 @@
 Description=REX FinHub Bloomberg Pull Timer (every 15 min, 4-6 PM ET weekdays)
 
 [Timer]
-# 4-6 PM Eastern = 20:00-22:00 UTC
-OnCalendar=Mon..Fri 20:00 UTC
-OnCalendar=Mon..Fri 20:15 UTC
-OnCalendar=Mon..Fri 20:30 UTC
-OnCalendar=Mon..Fri 20:45 UTC
-OnCalendar=Mon..Fri 21:00 UTC
-OnCalendar=Mon..Fri 21:15 UTC
-OnCalendar=Mon..Fri 21:30 UTC
-OnCalendar=Mon..Fri 21:45 UTC
+# VPS timezone set to America/New_York — DST handled automatically
+OnCalendar=Mon..Fri 16:00:00
+OnCalendar=Mon..Fri 16:15:00
+OnCalendar=Mon..Fri 16:30:00
+OnCalendar=Mon..Fri 16:45:00
+OnCalendar=Mon..Fri 17:00:00
+OnCalendar=Mon..Fri 17:15:00
+OnCalendar=Mon..Fri 17:30:00
+OnCalendar=Mon..Fri 17:45:00
 Persistent=true
 
 [Install]
