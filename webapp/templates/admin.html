@@ -311,8 +311,8 @@ document.getElementById('cls-search').addEventListener('keydown', function(e) { 
   <h3 style="margin:0 0 12px; font-size:16px;">Email Recipients</h3>
 
   <div style="display:flex; gap:16px; flex-wrap:wrap;">
-    {% for list_key, list_label in [("main", "Daily/Weekly (ETFUpdates)"), ("private", "Private (BCC)"), ("autocall", "Autocallable (External)")] %}
-    <div style="flex:1; min-width:200px;" data-list="{{ list_key }}">
+    {% for list_key, list_label in [("daily", "Daily"), ("weekly", "Weekly"), ("li", "L&I"), ("income", "Income"), ("flow", "Flow"), ("autocall", "Autocall (External)"), ("private", "Private (BCC)")] %}
+    <div style="flex:1; min-width:140px;" data-list="{{ list_key }}">
       <div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">{{ list_label }}</div>
       {% if all_recipients[list_key] %}
       {% for email in all_recipients[list_key] %}

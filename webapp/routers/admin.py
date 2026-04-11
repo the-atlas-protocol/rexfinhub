@@ -134,20 +134,9 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         ClassificationProposal.status == "approved"
     ).order_by(ClassificationProposal.reviewed_at.desc()).limit(10).all()
 
-    # All recipient lists (for email management section)
-    _config_dir = _P(__file__).resolve().parent.parent.parent / "config"
-    def _read_recipients(filename):
-        p = _config_dir / filename
-        if not p.exists():
-            return []
-        return [l.strip() for l in p.read_text(encoding="utf-8").splitlines()
-                if l.strip() and not l.startswith("#")]
-
-    all_recipients = {
-        "main": _read_recipients("email_recipients.txt"),
-        "private": _read_recipients("email_recipients_private.txt"),
-        "autocall": _read_recipients("autocall_recipients.txt"),
-    }
+    # All recipient lists from DB
+    from webapp.services.recipients import get_all_recipients_by_list
+    all_recipients = get_all_recipients_by_list(db)
 
     # SEC scrape metrics
     sec_metrics = {}
@@ -236,47 +225,24 @@ def toggle_gate(request: Request):
 
 
 @router.post("/recipients/add")
-def add_recipient(request: Request, list_name: str = Form(""), email: str = Form("")):
-    """Add an email to a recipient list."""
+def add_recipient_route(request: Request, list_name: str = Form(""), email: str = Form(""), db: Session = Depends(get_db)):
+    """Add an email to a recipient list (DB-based)."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
-    from pathlib import Path as _P
-    files = {
-        "main": _P(__file__).resolve().parent.parent.parent / "config" / "email_recipients.txt",
-        "private": _P(__file__).resolve().parent.parent.parent / "config" / "email_recipients_private.txt",
-        "autocall": _P(__file__).resolve().parent.parent.parent / "config" / "autocall_recipients.txt",
-    }
-    path = files.get(list_name)
-    if not path or not email.strip():
+    from webapp.services.recipients import add_recipient, VALID_LIST_TYPES
+    if list_name not in VALID_LIST_TYPES or not email.strip():
         return RedirectResponse("/admin/?recip_error=1", status_code=303)
-    # Append email (avoid duplicates)
-    existing = set()
-    if path.exists():
-        existing = {l.strip().lower() for l in path.read_text().splitlines() if l.strip() and not l.startswith("#")}
-    if email.strip().lower() not in existing:
-        with open(path, "a") as f:
-            f.write(f"\n{email.strip()}")
+    add_recipient(db, email.strip(), list_name, added_by="admin")
     return RedirectResponse(f"/admin/?recip_added={email.strip()}", status_code=303)
 
 
 @router.post("/recipients/remove")
-def remove_recipient(request: Request, list_name: str = Form(""), email: str = Form("")):
-    """Remove an email from a recipient list."""
+def remove_recipient_route(request: Request, list_name: str = Form(""), email: str = Form(""), db: Session = Depends(get_db)):
+    """Remove an email from a recipient list (DB-based)."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
-    from pathlib import Path as _P
-    files = {
-        "main": _P(__file__).resolve().parent.parent.parent / "config" / "email_recipients.txt",
-        "private": _P(__file__).resolve().parent.parent.parent / "config" / "email_recipients_private.txt",
-        "autocall": _P(__file__).resolve().parent.parent.parent / "config" / "autocall_recipients.txt",
-    }
-    path = files.get(list_name)
-    if not path or not email.strip():
-        return RedirectResponse("/admin/?recip_error=1", status_code=303)
-    if path.exists():
-        lines = path.read_text().splitlines()
-        new_lines = [l for l in lines if l.strip().lower() != email.strip().lower()]
-        path.write_text("\n".join(new_lines) + "\n")
+    from webapp.services.recipients import remove_recipient
+    remove_recipient(db, email.strip(), list_name)
     return RedirectResponse(f"/admin/?recip_removed={email.strip()}", status_code=303)
 
 

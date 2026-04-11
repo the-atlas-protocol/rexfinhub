@@ -728,6 +728,34 @@ class DigestSubscriber(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class EmailRecipient(Base):
+    """Per-report email recipients stored in DB (not text files).
+
+    list_type determines which reports this recipient receives:
+      - "daily"    → Daily ETP Report
+      - "weekly"   → Weekly Report
+      - "li"       → L&I Report
+      - "income"   → Income Report
+      - "flow"     → Flow Report
+      - "autocall" → Autocallable Update (external)
+      - "private"  → BCC on all sends
+    """
+    __tablename__ = "email_recipients"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(200), nullable=False)
+    list_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    added_by: Mapped[str | None] = mapped_column(String(100))
+
+    __table_args__ = (
+        UniqueConstraint("email", "list_type", name="uq_recipient_email_list"),
+        Index("idx_recipient_list", "list_type"),
+        Index("idx_recipient_active", "is_active"),
+    )
+
+
 
 # --- Filing Watcher Models ---
 
