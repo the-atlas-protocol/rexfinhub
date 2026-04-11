@@ -1,0 +1,19 @@
+[Unit]
+Description=REX FinHub Pipeline API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
+ExecStart=/home/jarvis/venv/bin/python deploy/pipeline_api.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

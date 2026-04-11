@@ -5,6 +5,7 @@ digest testing, and system status.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -250,20 +251,52 @@ def remove_recipient_route(request: Request, list_name: str = Form(""), email: s
 # Operational Actions (Run Now)
 # ---------------------------------------------------------------------------
 
+_VPS_API = "http://46.224.126.196:8001"
+_ON_RENDER = os.environ.get("RENDER", "") != ""
+
+
+def _call_vps(endpoint: str) -> dict | None:
+    """Call the pipeline API on the VPS. Returns response dict or None on failure."""
+    import requests as _req
+    api_key = os.environ.get("API_KEY", "")
+    if not api_key:
+        try:
+            from pathlib import Path as _P2
+            env = _P2(__file__).resolve().parent.parent.parent / "config" / ".env"
+            for line in env.read_text().splitlines():
+                if line.startswith("API_KEY="):
+                    api_key = line.split("=", 1)[1].strip()
+        except Exception:
+            pass
+    try:
+        resp = _req.post(f"{_VPS_API}{endpoint}",
+                         headers={"X-API-Key": api_key}, timeout=30)
+        return resp.json() if resp.status_code == 200 else None
+    except Exception as e:
+        log.error("VPS API call failed (%s): %s", endpoint, e)
+        return None
+
+
 @router.post("/pull-bloomberg")
 def pull_bloomberg(request: Request, db: Session = Depends(get_db)):
-    """Pull fresh Bloomberg from SharePoint + sync to DB in one step."""
+    """Pull fresh Bloomberg from SharePoint + sync to DB."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
+
+    if _ON_RENDER:
+        # On Render: call VPS to do the work
+        result = _call_vps("/pipeline/pull-sync")
+        if result and result.get("status") in ("started", "ok"):
+            return RedirectResponse("/admin/?bbg_pulled=1&mkt_synced=1&mkt_count=VPS", status_code=303)
+        return RedirectResponse("/admin/?bbg_error=1", status_code=303)
+
+    # Local: run directly
     try:
-        # Step 1: Download from SharePoint
         from webapp.services.graph_files import download_bloomberg_from_sharepoint
+        from webapp.services.market_sync import sync_market_data
         path = download_bloomberg_from_sharepoint()
         if not path:
             return RedirectResponse("/admin/?bbg_error=1", status_code=303)
-
-        # Step 2: Sync to DB
-        from webapp.services.market_sync import sync_market_data
         result = sync_market_data(db)
         count = result.get("master_rows", 0)
         return RedirectResponse(f"/admin/?bbg_pulled=1&mkt_synced=1&mkt_count={count}", status_code=303)
@@ -277,6 +310,13 @@ def upload_render(request: Request):
     """Upload lean DB to Render."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
+
+    if _ON_RENDER:
+        result = _call_vps("/pipeline/upload-render")
+        if result and result.get("status") in ("started", "ok"):
+            return RedirectResponse("/admin/?render_uploaded=1", status_code=303)
+        return RedirectResponse("/admin/?render_error=1", status_code=303)
+
     try:
         from scripts.run_daily import upload_db_to_render
         upload_db_to_render()
