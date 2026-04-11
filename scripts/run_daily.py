@@ -474,7 +474,7 @@ def upload_db_to_render():
 
         print("  Compressing...", end=" ", flush=True)
         with open(render_db, "rb") as f_in:
-            with gzip.open(gz_path, "wb", compresslevel=6) as f_out:
+            with gzip.open(gz_path, "wb", compresslevel=9) as f_out:
                 while True:
                     chunk = f_in.read(1024 * 1024)
                     if not chunk:
@@ -664,7 +664,7 @@ def main():
                 import requests as _req
                 _gz_path = str(notes_db) + ".upload.gz"
                 with open(notes_db, "rb") as _fin:
-                    with _gz.open(_gz_path, "wb", compresslevel=6) as _fout:
+                    with _gz.open(_gz_path, "wb", compresslevel=9) as _fout:
                         while True:
                             _chunk = _fin.read(1024 * 1024)
                             if not _chunk:
