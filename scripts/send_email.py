@@ -38,13 +38,13 @@ def _get_db():
     return SessionLocal()
 
 
-def _send_via_smtp(html: str, subject: str):
-    """Send HTML email to all configured recipients."""
+def _send_via_smtp(html: str, subject: str, list_type: str = "daily"):
+    """Send HTML email to recipients for a specific report type."""
     from etp_tracker.email_alerts import _load_recipients, _load_private_recipients, _send_html_digest
-    recipients = _load_recipients()
+    recipients = _load_recipients(list_type=list_type)
     private = _load_private_recipients()
     if not recipients and not private:
-        print(f"  SKIP {subject} (no recipients)")
+        print(f"  SKIP {subject} (no recipients for list_type={list_type})")
         return False
     ok = True
     if recipients:
@@ -142,15 +142,16 @@ def _data_date(db) -> str:
     return data.get("data_as_of_short", datetime.now().strftime("%m/%d/%Y"))
 
 
+# (title, filename, builder, list_type for DB recipients)
 DAILY_REPORTS = [
-    ("REX Daily ETP Report", "daily_filing", _build_daily_filing),
+    ("REX Daily ETP Report", "daily_filing", _build_daily_filing, "daily"),
 ]
 
 WEEKLY_REPORTS = [
-    ("REX Weekly ETP Report", "weekly_report", None),  # special handler
-    ("REX ETP Leverage & Inverse Report", "li_report", _build_li),
-    ("REX ETP Income Report", "income_report", _build_income),
-    ("REX ETP Flow Report", "flow_report", _build_flow),
+    ("REX Weekly ETP Report", "weekly_report", None, "weekly"),  # special handler
+    ("REX ETP Leverage & Inverse Report", "li_report", _build_li, "li"),
+    ("REX ETP Income Report", "income_report", _build_income, "income"),
+    ("REX ETP Flow Report", "flow_report", _build_flow, "flow"),
 ]
 
 # Autocall report has its own recipient list (external distribution)
@@ -168,7 +169,7 @@ def do_daily(preview: bool):
     force = "--force" in [a.lower() for a in sys.argv[1:]]
     try:
         date = _data_date(db)
-        for base_title, filename, builder in DAILY_REPORTS:
+        for base_title, filename, builder, list_type in DAILY_REPORTS:
             subject = f"{base_title}: {date}"
             if not preview and not force:
                 prev = _already_sent_today(filename)
@@ -180,7 +181,7 @@ def do_daily(preview: bool):
             if preview:
                 _save_and_open(html, filename)
             else:
-                ok = _send_via_smtp(html, subject)
+                ok = _send_via_smtp(html, subject, list_type=list_type)
                 print(f"  {'Sent' if ok else 'FAILED'}: {subject}")
                 if ok:
                     _record_send(filename)
@@ -218,7 +219,7 @@ def do_weekly(preview: bool):
             _save_and_open(html, "weekly_report")
 
         # Market reports (L&I, Income, Flow)
-        for base_title, filename, builder in WEEKLY_REPORTS:
+        for base_title, filename, builder, list_type in WEEKLY_REPORTS:
             if builder is None:
                 continue  # weekly_report handled above
             subject = f"{base_title}: {date}"
@@ -232,7 +233,7 @@ def do_weekly(preview: bool):
             if preview:
                 _save_and_open(html, filename)
             else:
-                ok = _send_via_smtp(html, subject)
+                ok = _send_via_smtp(html, subject, list_type=list_type)
                 print(f"  {'Sent' if ok else 'FAILED'}: {subject}")
                 if ok:
                     _record_send(filename)

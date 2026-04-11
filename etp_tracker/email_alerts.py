@@ -53,7 +53,27 @@ def _fmt_aum(val: float) -> str:
     return "$0"
 
 
-def _load_recipients(project_root: Path | None = None) -> list[str]:
+def _load_recipients(project_root: Path | None = None, list_type: str = "daily") -> list[str]:
+    """Load recipients from DB (primary) or text file (fallback).
+
+    Args:
+        list_type: Which report's recipients to load (daily, weekly, li, income, flow, autocall).
+    """
+    # Primary: read from DB
+    try:
+        from webapp.database import SessionLocal
+        from webapp.services.recipients import get_recipients
+        db = SessionLocal()
+        try:
+            recipients = get_recipients(db, list_type)
+            if recipients:
+                return recipients
+        finally:
+            db.close()
+    except Exception:
+        pass  # DB not available, fall back to text file
+
+    # Fallback: text file
     if project_root is None:
         project_root = Path(__file__).parent.parent
     recipients_file = project_root / "config" / "email_recipients.txt"
@@ -65,7 +85,20 @@ def _load_recipients(project_root: Path | None = None) -> list[str]:
 
 
 def _load_private_recipients(project_root: Path | None = None) -> list[str]:
-    """Load private recipient list (sent separately, not visible to main list)."""
+    """Load private (BCC) recipients from DB or text file."""
+    try:
+        from webapp.database import SessionLocal
+        from webapp.services.recipients import get_private_recipients
+        db = SessionLocal()
+        try:
+            recipients = get_private_recipients(db)
+            if recipients:
+                return recipients
+        finally:
+            db.close()
+    except Exception:
+        pass
+
     if project_root is None:
         project_root = Path(__file__).parent.parent
     private_file = project_root / "config" / "email_recipients_private.txt"
