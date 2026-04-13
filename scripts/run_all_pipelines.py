@@ -61,6 +61,8 @@ def run_sec_pipeline() -> bool:
     """Run the SEC filing pipeline via run_daily.main()."""
     print("\n--- SEC Pipeline ---")
     try:
+        saved_argv = sys.argv
+        sys.argv = [sys.argv[0]]  # Clear so run_daily's argparser doesn't see our flags
         from scripts.run_daily import main as run_daily_main
         run_daily_main()
         return True
@@ -69,6 +71,8 @@ def run_sec_pipeline() -> bool:
         import traceback
         traceback.print_exc()
         return False
+    finally:
+        sys.argv = saved_argv
 
 
 def run_market_pipeline(force: bool = False) -> bool:
