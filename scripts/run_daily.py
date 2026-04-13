@@ -513,10 +513,16 @@ def main():
     parser.add_argument("--notes", action="store_true", help="Structured notes only")
     parser.add_argument("--market", action="store_true", help="Market data + cache only")
     parser.add_argument("--upload", action="store_true", help="Upload to Render only")
+    parser.add_argument("--skip-sec", action="store_true",
+                        help="Run everything EXCEPT SEC scrape (SEC runs 4x/day via dedicated timer)")
+    parser.add_argument("--reports-only", action="store_true",
+                        help="Market sync + upload + email reports. Skips SEC + notes + classification.")
     args = parser.parse_args()
 
     # If no flags, run everything
-    run_all = not (args.sec or args.notes or args.market or args.upload)
+    run_all = not (args.sec or args.notes or args.market or args.upload or args.reports_only)
+    skip_sec = args.skip_sec or args.reports_only
+    reports_only = args.reports_only
 
     start = time.time()
     today = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -546,43 +552,51 @@ def main():
 
         # === PARALLEL PHASE: SEC scrape + Structured Notes simultaneously ===
         # These use different SEC endpoints and different databases — safe to run together
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        print("\n[1-2/10] SEC Pipeline + Structured Notes (parallel)...")
+        # SKIPPED when --skip-sec or --reports-only (SEC runs 4x/day via dedicated timer)
+        if skip_sec:
+            print("\n[1-2/10] SEC Pipeline + Structured Notes: SKIPPED (--skip-sec)")
+            print("         SEC scrape runs independently via rexfinhub-sec-scrape.timer (8am/12pm/4pm/8pm)")
+        else:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            print("\n[1-2/10] SEC Pipeline + Structured Notes (parallel)...")
 
-        sec_result = [None]  # mutable container for thread result
-        notes_ok = [False]
+            sec_result = [None]  # mutable container for thread result
+            notes_ok = [False]
 
-        def _run_sec():
-            nonlocal critical_ok
-            try:
-                sec_result[0] = run_sec_pipeline()
-            except Exception as e:
-                print(f"  CRITICAL: SEC pipeline failed: {e}")
-                critical_ok = False
-                errors.append(f"SEC pipeline: {e}")
+            def _run_sec():
+                nonlocal critical_ok
+                try:
+                    sec_result[0] = run_sec_pipeline()
+                except Exception as e:
+                    print(f"  CRITICAL: SEC pipeline failed: {e}")
+                    critical_ok = False
+                    errors.append(f"SEC pipeline: {e}")
 
-        def _run_notes():
-            try:
-                run_structured_notes()
-                notes_ok[0] = True
-            except Exception as e:
-                print(f"  Structured notes failed: {e}")
+            def _run_notes():
+                try:
+                    run_structured_notes()
+                    notes_ok[0] = True
+                except Exception as e:
+                    print(f"  Structured notes failed: {e}")
 
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            futures = [pool.submit(_run_sec), pool.submit(_run_notes)]
-            for f in as_completed(futures):
-                pass  # exceptions logged inside each function
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [pool.submit(_run_sec), pool.submit(_run_notes)]
+                for f in as_completed(futures):
+                    pass  # exceptions logged inside each function
 
-        changed_trusts = sec_result[0]
+            changed_trusts = sec_result[0]
 
         # === SEQUENTIAL PHASE: DB sync (needs SEC results) ===
-        print("\n[3/8] Syncing filings to DB...")
-        try:
-            run_db_sync(changed_trusts)
-        except Exception as e:
-            print(f"  CRITICAL: DB sync failed: {e}")
-            critical_ok = False
-            errors.append(f"DB sync: {e}")
+        if skip_sec:
+            print("\n[3/8] Filings DB sync: SKIPPED (no new SEC results to sync)")
+        else:
+            print("\n[3/8] Syncing filings to DB...")
+            try:
+                run_db_sync(changed_trusts)
+            except Exception as e:
+                print(f"  CRITICAL: DB sync failed: {e}")
+                critical_ok = False
+                errors.append(f"DB sync: {e}")
 
         # === Archive C: cache to D: ===
         print("\n[4/8] Archiving cache C: -> D:...")
@@ -630,18 +644,24 @@ def main():
             print(f"  Screener archive failed (non-fatal): {e}")
 
         # === Classification ===
-        print("\n[7/10] Classifying new funds...")
-        try:
-            run_classification()
-        except Exception as e:
-            print(f"  Classification failed: {e}")
+        if reports_only:
+            print("\n[7/10] Classification: SKIPPED (--reports-only)")
+        else:
+            print("\n[7/10] Classifying new funds...")
+            try:
+                run_classification()
+            except Exception as e:
+                print(f"  Classification failed: {e}")
 
         # === Total Returns scrape ===
-        print("\n[8/12] Scraping total returns data...")
-        try:
-            scrape_total_returns()
-        except Exception as e:
-            print(f"  Total returns scrape failed: {e}")
+        if reports_only:
+            print("\n[8/12] Total returns scrape: SKIPPED (--reports-only)")
+        else:
+            print("\n[8/12] Scraping total returns data...")
+            try:
+                scrape_total_returns()
+            except Exception as e:
+                print(f"  Total returns scrape failed: {e}")
 
         # === Upload phase ===
         print("\n[9/12] Compacting DB...")
