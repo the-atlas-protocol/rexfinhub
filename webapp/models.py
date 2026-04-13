@@ -757,6 +757,61 @@ class EmailRecipient(Base):
 
 
 
+# --- REX Product Pipeline ---
+
+class RexProduct(Base):
+    """REX product lifecycle tracker — from research to listing.
+
+    Replaces the Excel-based REX Master Product Development Tracker.
+    470 products across 8 suites, tracked through:
+      Research → Target List → Filed → Awaiting Effective → Listed → Delisted
+    """
+    __tablename__ = "rex_products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    trust: Mapped[str | None] = mapped_column(String(200))
+    product_suite: Mapped[str] = mapped_column(String(50), nullable=False)  # T-REX, IncomeMax, Premium Income, etc.
+    status: Mapped[str] = mapped_column(String(30), nullable=False)  # Research, Target List, Filed, Awaiting Effective, Listed, Delisted
+    ticker: Mapped[str | None] = mapped_column(String(20))
+    underlier: Mapped[str | None] = mapped_column(String(100))
+    direction: Mapped[str | None] = mapped_column(String(20))  # Long, Short, Both
+
+    # Filing lifecycle dates
+    initial_filing_date: Mapped[date | None] = mapped_column(Date)
+    estimated_effective_date: Mapped[date | None] = mapped_column(Date)
+    target_listing_date: Mapped[date | None] = mapped_column(Date)
+    seed_date: Mapped[date | None] = mapped_column(Date)
+    official_listed_date: Mapped[date | None] = mapped_column(Date)
+
+    # SEC identifiers
+    latest_form: Mapped[str | None] = mapped_column(String(20))
+    latest_prospectus_link: Mapped[str | None] = mapped_column(Text)
+    cik: Mapped[str | None] = mapped_column(String(20))
+    series_id: Mapped[str | None] = mapped_column(String(20))
+    class_contract_id: Mapped[str | None] = mapped_column(String(20))
+
+    # Operational details
+    lmm: Mapped[str | None] = mapped_column(String(100))  # Lead Market Maker
+    exchange: Mapped[str | None] = mapped_column(String(20))
+    mgt_fee: Mapped[float | None] = mapped_column(Float)
+    tracking_index: Mapped[str | None] = mapped_column(String(200))
+    fund_admin: Mapped[str | None] = mapped_column(String(100))
+    cu_size: Mapped[int | None] = mapped_column(Integer)
+    starting_nav: Mapped[float | None] = mapped_column(Float)
+
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("idx_rex_product_suite", "product_suite"),
+        Index("idx_rex_product_status", "status"),
+        Index("idx_rex_product_ticker", "ticker"),
+        Index("idx_rex_product_series", "series_id"),
+    )
+
+
 # --- Filing Watcher Models ---
 
 class FilingAlert(Base):

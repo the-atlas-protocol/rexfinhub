@@ -1,0 +1,68 @@
+FORK HANDOFF — Phase D/E Work (Admin + Classification)
+=======================================================
+Date: April 13, 2026
+Context: Main chat is building Reports + Product Tracker (Workstreams A-D).
+This fork handles independent platform work that doesn't touch report files.
+
+FILE OWNERSHIP (do NOT edit these — main chat owns them):
+  - scripts/send_email.py
+  - etp_tracker/intelligence_brief.py (new)
+  - etp_tracker/product_status_report.py (new)
+  - screener/report_filing_screener.py (new)
+  - scripts/import_product_tracker.py (new)
+  - webapp/services/recipients.py (adding list_types)
+  - webapp/models.py (adding RexProduct model)
+
+SAFE TO EDIT (fork owns these):
+  - webapp/routers/admin.py
+  - webapp/templates/admin.html
+  - webapp/services/classification_validator.py
+  - webapp/models.py — ClassificationProposal only (coordinate on shared file)
+  - deploy/pipeline_api.py (adding SEC scrape button endpoint)
+
+PHASE D: Admin Panel Completion
+-------------------------------
+1. SEC Scrape Button
+   - VPS API endpoint /pipeline/sec-scrape already exists (deploy/pipeline_api.py)
+   - Need: admin button that calls it + status polling (same pattern as Pull & Sync)
+   - Admin router: _call_vps("/pipeline/sec-scrape", method="POST")
+   - Template: add button in Data & Pipeline section
+
+2. Structured Notes Status
+   - Show count of structured notes scraped, last scrape date
+   - Data in structured_notes.db (separate DB, see memory/structured_notes.md)
+
+3. Trust CRUD
+   - Add/edit/delete trusts from admin panel
+   - Currently read from etp_tracker/trusts.py (TRUST_CIKS dict)
+   - On Render: falls back to DB-only (can't write to trusts.py)
+   - Approach: add Trust rows to DB, admin UI for add/edit/deactivate
+
+PHASE E: Classification Intelligence
+-------------------------------------
+1. Classification review queue already exists (admin panel)
+   - scan_unmapped() finds new funds
+   - approve/reject from admin
+   - classification_validator.py checks duplicates/orphans/missing
+
+2. Add batch classification (select multiple, apply same category)
+3. Add new category wizard (create category + auto-populate attributes)
+4. Thematic subcategory management
+
+CRITICAL RULES (from memory):
+- NEVER send email or call any send function
+- NEVER run destructive git commands
+- Gate file: config/.send_enabled must be "true" for sends
+- Graph API only, no SMTP
+- No emoji in console output (Windows cp1252)
+- Test changes locally before pushing
+
+VPS INFO:
+- jarvis@46.224.126.196 (SSH Ed25519)
+- API: https://46.224.126.196/pipeline/* (X-API-Key header)
+- Systemd timers: sec-scrape (4x daily), bloomberg (5 PM), daily (5:30 PM)
+
+GIT:
+- Branch: main
+- Push triggers Render auto-deploy
+- VPS needs manual git pull (or trigger from admin)
