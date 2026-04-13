@@ -135,6 +135,21 @@ def _build_autocall(db) -> str:
     return html
 
 
+def _build_intelligence_brief(db) -> str:
+    from etp_tracker.intelligence_brief import build_intelligence_brief
+    return build_intelligence_brief(db, lookback_days=1)
+
+
+def _build_filing_screener(db) -> str:
+    from screener.filing_screener_report import build_filing_screener_report
+    return build_filing_screener_report(top_n=30, min_score=50.0)
+
+
+def _build_product_status(db) -> str:
+    from etp_tracker.product_status_report import build_product_status_report
+    return build_product_status_report(db)
+
+
 def _data_date(db) -> str:
     """Get data date (MM/DD/YYYY) from report cache for email subjects."""
     from webapp.services.report_data import get_li_report
@@ -145,6 +160,7 @@ def _data_date(db) -> str:
 # (title, filename, builder, list_type for DB recipients)
 DAILY_REPORTS = [
     ("REX Daily ETP Report", "daily_filing", _build_daily_filing, "daily"),
+    ("REX Filing Intelligence Brief", "intelligence_brief", _build_intelligence_brief, "intelligence"),
 ]
 
 WEEKLY_REPORTS = [
@@ -152,6 +168,12 @@ WEEKLY_REPORTS = [
     ("REX ETP Leverage & Inverse Report", "li_report", _build_li, "li"),
     ("REX ETP Income Report", "income_report", _build_income, "income"),
     ("REX ETP Flow Report", "flow_report", _build_flow, "flow"),
+    ("T-REX Filing Candidate Screener", "filing_screener", _build_filing_screener, "screener"),
+]
+
+# Monday-only report (separate from weekly bundle)
+MONDAY_REPORTS = [
+    ("REX Product Pipeline", "product_status", _build_product_status, "pipeline"),
 ]
 
 # Autocall report has its own recipient list (external distribution)
@@ -237,6 +259,28 @@ def do_weekly(preview: bool):
                 print(f"  {'Sent' if ok else 'FAILED'}: {subject}")
                 if ok:
                     _record_send(filename)
+
+        # Monday-only: Product Status Report (separate email, own recipient list)
+        is_monday = datetime.now().weekday() == 0
+        if is_monday or preview:
+            for base_title, filename, builder, list_type in MONDAY_REPORTS:
+                subject = f"{base_title}: Week of {datetime.now().strftime('%b %d, %Y')}"
+                if not preview and not force:
+                    prev = _already_sent_this_week(filename)
+                    if prev:
+                        print(f"\n  BLOCKED: {filename} already sent this week ({prev})")
+                        continue
+                print(f"\n  Building {subject}...")
+                html = builder(db)
+                if preview:
+                    _save_and_open(html, filename)
+                else:
+                    ok = _send_via_smtp(html, subject, list_type=list_type)
+                    print(f"  {'Sent' if ok else 'FAILED'}: {subject}")
+                    if ok:
+                        _record_send(filename)
+        elif not preview:
+            print(f"\n  SKIP: Product Pipeline report (Monday only, today is {datetime.now().strftime('%A')})")
 
         # Autocall report — PREVIEW ONLY (never auto-send, external distribution)
         base_title, filename, builder = AUTOCALL_REPORT
