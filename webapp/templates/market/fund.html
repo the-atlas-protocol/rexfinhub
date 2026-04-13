@@ -1,0 +1,382 @@
+{% set active_tab = 'fund' %}
+{% extends base_template|default("market/base.html") %}
+
+{% block title %}{{ fund.name if fund else ticker }} — REX Financial Intelligence Hub{% endblock %}
+
+{% block market_content %}
+<div class="market-breadcrumb">
+  <a href="/">Home</a><span class="sep">/</span>
+  <a href="/market/rex">Market</a><span class="sep">/</span>
+  <span>{{ ticker }}</span>
+</div>
+
+{% if not available %}
+<div class="alert alert-warning">Market data not yet available. Run the daily pipeline to sync Bloomberg data.</div>
+{% elif not fund %}
+<div class="alert alert-warning">No market data found for <strong>{{ ticker }}</strong>. This ticker may not be in the Bloomberg universe.</div>
+{% else %}
+
+{# --- Header --- #}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+  <div>
+    <h2 style="margin:0 0 4px; font-size:22px; font-weight:700; color:#0f172a;">
+      {{ fund.ticker }}
+      {% if fund.is_rex %}<span style="background:#059669; color:#fff; padding:2px 8px; border-radius:4px; font-size:11px; vertical-align:middle; margin-left:6px;">REX</span>{% endif %}
+    </h2>
+    <div style="font-size:14px; color:#64748b;">{{ fund.name }}</div>
+    <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
+      {{ fund.issuer }}{% if fund.category %} &middot; {{ fund.category }}{% endif %}{% if fund.fund_type %} &middot; {{ fund.fund_type }}{% endif %}
+    </div>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    {% if series_id %}
+    <a href="/funds/{{ series_id }}" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">SEC Filings</a>
+    {% endif %}
+    <a href="/market/compare?tickers={{ ticker }}" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">Compare</a>
+  </div>
+</div>
+
+{# --- Key Metrics --- #}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:24px;">
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">AUM</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{{ fund.aum_fmt }}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Expense Ratio</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if fund.expense_ratio is not none %}{{ '{:.2f}'.format(fund.expense_ratio) }}%{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Spread</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if fund.spread is not none %}{{ '{:.2f}'.format(fund.spread) }}%{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Avg Vol 30D</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if fund.volume_30d is not none %}{{ '{:,.0f}'.format(fund.volume_30d) }}{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Short Interest</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if fund.short_interest is not none %}{{ '{:.2f}'.format(fund.short_interest) }}%{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Inception</div>
+    <div style="font-size:14px; font-weight:700; color:#0f172a;">{{ fund.inception or 'N/A' }}</div>
+  </div>
+</div>
+
+{# --- Returns Table --- #}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">Total Returns</h3>
+  <table class="data-table" style="font-variant-numeric:tabular-nums; font-size:13px;">
+    <thead>
+      <tr>
+        {% for period in ['1D','1W','1M','3M','6M','YTD','1Y','3Y'] %}
+        <th style="text-align:right;">{{ period }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for period in ['1D','1W','1M','3M','6M','YTD','1Y','3Y'] %}
+        {% set val = fund.returns.get(period) %}
+        <td class="num-cell {% if val is not none %}{{ 'positive' if val > 0 else 'negative' if val < 0 else '' }}{% endif %}">
+          {% if val is not none %}{{ '{:+.2f}'.format(val) }}%{% else %}N/A{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# --- Flows Table --- #}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">Fund Flows ($M)</h3>
+  <table class="data-table" style="font-variant-numeric:tabular-nums; font-size:13px;">
+    <thead>
+      <tr>
+        {% for period in ['1D','1W','1M','3M','6M','YTD','1Y'] %}
+        <th style="text-align:right;">{{ period }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for key in ['1d','1w','1m','3m','6m','ytd','1y'] %}
+        {% set val = flows.get(key, 0) %}
+        <td class="num-cell {% if val != 0 %}{{ 'positive' if val > 0 else 'negative' }}{% endif %}">
+          {{ flows_fmt.get(key, 'N/A') }}
+        </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# --- Additional Metrics --- #}
+{% if fund.premium_discount is not none or fund.nav_tracking_error is not none or fund.annualized_yield is not none or fund.open_interest is not none %}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">Additional Metrics</h3>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px;">
+    {% if fund.annualized_yield is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Annualized Yield</span>
+      <span style="font-weight:600;">{{ '{:.2f}'.format(fund.annualized_yield) }}%</span>
+    </div>
+    {% endif %}
+    {% if fund.premium_discount is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Premium/Discount</span>
+      <span style="font-weight:600; color:{{ '#059669' if fund.premium_discount >= 0 else '#dc2626' }};">{{ '{:+.2f}'.format(fund.premium_discount) }}%</span>
+    </div>
+    {% endif %}
+    {% if fund.nav_tracking_error is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">NAV Tracking Error</span>
+      <span style="font-weight:600;">{{ '{:.4f}'.format(fund.nav_tracking_error) }}</span>
+    </div>
+    {% endif %}
+    {% if fund.open_interest is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Open Interest</span>
+      <span style="font-weight:600;">{{ '{:,.0f}'.format(fund.open_interest) }}</span>
+    </div>
+    {% endif %}
+    {% if fund.leverage %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Leverage</span>
+      <span style="font-weight:600;">{{ fund.leverage }}x {{ fund.direction }}</span>
+    </div>
+    {% endif %}
+    {% if fund.underlier %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Underlier</span>
+      <span style="font-weight:600;">{{ fund.underlier }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{# --- AUM Chart --- #}
+{% if aum_history %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div class="chart-title">AUM Over Time — Last 12 Months ($M)</div>
+  <canvas id="aumChart" height="180"></canvas>
+</div>
+{% endif %}
+
+{# --- Total Returns Chart --- #}
+{% if total_returns and total_returns.stats %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <div class="chart-title" style="margin:0;">Total Return — Growth of $10,000</div>
+    <div class="range-pills" id="trRangePills">
+      <button class="range-pill" onclick="setTRRange('1m')">1M</button>
+      <button class="range-pill" onclick="setTRRange('3m')">3M</button>
+      <button class="range-pill" onclick="setTRRange('6m')">6M</button>
+      <button class="range-pill" onclick="setTRRange('1y')">1Y</button>
+      <button class="range-pill" onclick="setTRRange('ytd')">YTD</button>
+      <button class="range-pill active" onclick="setTRRange('max')">Max</button>
+    </div>
+  </div>
+  <canvas id="totalReturnChart" height="200"></canvas>
+</div>
+
+{# --- Return Stats --- #}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:24px;">
+  {% set s = total_returns.stats %}
+  {% if s.overall_return is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Overall Return</div>
+    <div style="font-size:18px; font-weight:700; color:{{ '#059669' if (s.overall_return or 0) >= 0 else '#dc2626' }};">{{ '{:+.2f}'.format(s.overall_return or 0) }}%</div>
+  </div>
+  {% endif %}
+  {% if s.annualized_return is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Annualized</div>
+    <div style="font-size:18px; font-weight:700;">{{ '{:+.2f}'.format(s.annualized_return or 0) }}%/yr</div>
+  </div>
+  {% endif %}
+  {% if s.growth_of_10k is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Growth of $10K</div>
+    <div style="font-size:18px; font-weight:700;">${{ '{:,.0f}'.format(s.growth_of_10k or 0) }}</div>
+  </div>
+  {% endif %}
+  {% if s.current_drawdown is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Current Drawdown</div>
+    <div style="font-size:18px; font-weight:700; color:#dc2626;">{{ '{:.2f}'.format(s.current_drawdown or 0) }}%</div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# --- Competitors --- #}
+{% if competitors %}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">
+    {% if fund.underlier %}Competitors ({{ fund.underlier }}){% else %}Category Peers{% endif %}
+  </h3>
+  <div class="table-responsive">
+    <table class="data-table" style="font-variant-numeric:tabular-nums; font-size:13px;">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Name</th>
+          <th>Issuer</th>
+          <th style="text-align:right;">AUM</th>
+          <th style="text-align:right;">Exp Ratio</th>
+          <th style="text-align:right;">1M Flow</th>
+          <th style="text-align:right;">YTD Return</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in competitors %}
+        <tr>
+          <td>
+            <a href="/market/fund/{{ c.ticker }}" style="font-weight:600; color:#1F3864;">{{ c.ticker }}</a>
+            {% if c.is_rex %}<span style="background:#059669; color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; margin-left:3px;">REX</span>{% endif %}
+          </td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.name }}</td>
+          <td>{{ c.issuer }}</td>
+          <td class="num-cell">{{ c.aum_fmt }}</td>
+          <td class="num-cell">{{ '{:.2f}'.format(c.expense_ratio) }}%</td>
+          <td class="num-cell {% if c.flow_1m > 0 %}positive{% elif c.flow_1m < 0 %}negative{% endif %}">
+            {{ '{:+,.1f}'.format(c.flow_1m) }}M
+          </td>
+          <td class="num-cell {% if c.return_ytd > 0 %}positive{% elif c.return_ytd < 0 %}negative{% endif %}">
+            {{ '{:+.2f}'.format(c.return_ytd) }}%
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block market_scripts %}
+{% if fund and aum_history %}
+<script>
+(function() {
+  var labels = (function() {
+    var l = [];
+    var now = new Date();
+    for (var i = 12; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      l.push(d.toLocaleDateString('en-US', {month:'short', year:'2-digit'}));
+    }
+    return l;
+  })();
+  MarketCharts.renderLineChart('aumChart', labels, [{
+    label: '{{ ticker }}',
+    data: {{ aum_history | tojson }},
+    color: '#1F3864'
+  }]);
+})();
+</script>
+{% endif %}
+
+{% if total_returns and total_returns.stats %}
+<script>
+(function() {
+  const allDates = {{ total_returns.dates_json|safe }};
+  const allSeries = {{ total_returns.series_json|safe }};
+  let trChart = null;
+
+  function getDateCutoff(range) {
+    if (range === 'max') return 0;
+    const now = new Date(allDates[allDates.length - 1]);
+    if (range === '1m') now.setMonth(now.getMonth() - 1);
+    else if (range === '3m') now.setMonth(now.getMonth() - 3);
+    else if (range === '6m') now.setMonth(now.getMonth() - 6);
+    else if (range === '1y') now.setFullYear(now.getFullYear() - 1);
+    else if (range === 'ytd') { now.setMonth(0); now.setDate(1); }
+    const cutoff = now.toISOString().slice(0, 10);
+    return allDates.findIndex(d => d >= cutoff);
+  }
+
+  function getStartIdx() {
+    const vals = allSeries['{{ ticker }}'] || [];
+    return vals.findIndex(v => v !== null && v > 0);
+  }
+
+  window.setTRRange = function(range) {
+    document.querySelectorAll('#trRangePills .range-pill').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    let startIdx = Math.max(getStartIdx(), 0);
+    const cutoff = getDateCutoff(range);
+    if (cutoff > startIdx) startIdx = cutoff;
+
+    const dates = allDates.slice(startIdx);
+    const vals = (allSeries['{{ ticker }}'] || []).slice(startIdx);
+
+    // Rebase to $10,000 from start of range
+    const baseVal = vals.find(v => v !== null && v > 0) || 1;
+    const rebased = vals.map(v => v !== null ? (v / baseVal) * 10000 : null);
+
+    if (trChart) trChart.destroy();
+    trChart = new Chart(document.getElementById('totalReturnChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: '{{ ticker }}',
+          data: rebased,
+          borderColor: '#1F3864',
+          backgroundColor: 'rgba(31,56,100,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.1,
+          spanGaps: true
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return '$' + ctx.parsed.y.toLocaleString(undefined, {maximumFractionDigits: 0});
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'category',
+            ticks: { maxTicksLimit: 8, font: { size: 10 } },
+            grid: { display: false }
+          },
+          y: {
+            ticks: {
+              callback: function(v) { return '$' + v.toLocaleString(); },
+              font: { size: 10 }
+            },
+            grid: { color: '#f0f0f0' }
+          }
+        }
+      }
+    });
+  };
+
+  setTRRange('max');
+})();
+</script>
+{% endif %}
+
+<style>
+  .range-pills { display:flex; gap:4px; }
+  .range-pill { padding:3px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; cursor:pointer; background:#fff; color:#444; }
+  .range-pill:hover { border-color:#1F3864; color:#1F3864; }
+  .range-pill.active { background:#1F3864; color:#fff; border-color:#1F3864; }
+</style>
+{% endblock %}
