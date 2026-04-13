@@ -32,35 +32,88 @@ STRATEGY_MAP = {
 
 
 # ---------------------------------------------------------------------------
+# Resilient file helpers — create empty CSVs if missing so code never
+# KeyErrors on a missing persistent disk mount.
+# ---------------------------------------------------------------------------
+
+def _ensure_rules_dir():
+    """Create the rules dir if it doesn't exist."""
+    RULES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _load_fund_mapping() -> pd.DataFrame:
+    """Load fund_mapping.csv, returning empty DataFrame if missing."""
+    _ensure_rules_dir()
+    path = RULES_DIR / "fund_mapping.csv"
+    if not path.exists():
+        df = pd.DataFrame(columns=["ticker", "etp_category", "is_primary", "source"])
+        df.to_csv(path, index=False)
+        return df
+    return pd.read_csv(path, engine="python", on_bad_lines="skip")
+
+
+def _load_attributes(etp_cat: str) -> pd.DataFrame:
+    """Load attributes CSV for a category, returning empty DataFrame if missing."""
+    _ensure_rules_dir()
+    name = {"LI": "attributes_LI.csv", "CC": "attributes_CC.csv",
+            "Crypto": "attributes_Crypto.csv", "Defined": "attributes_Defined.csv",
+            "Thematic": "attributes_Thematic.csv"}.get(etp_cat)
+    if not name:
+        return pd.DataFrame()
+    path = RULES_DIR / name
+    if not path.exists():
+        df = pd.DataFrame(columns=["ticker"])
+        df.to_csv(path, index=False)
+        return df
+    return pd.read_csv(path, engine="python", on_bad_lines="skip")
+
+
+def _load_issuer_mapping() -> pd.DataFrame:
+    """Load issuer_mapping.csv, returning empty DataFrame if missing."""
+    _ensure_rules_dir()
+    path = RULES_DIR / "issuer_mapping.csv"
+    if not path.exists():
+        df = pd.DataFrame(columns=["etp_category", "issuer", "issuer_nickname"])
+        df.to_csv(path, index=False)
+        return df
+    return pd.read_csv(path, engine="python", on_bad_lines="skip")
+
+
+# ---------------------------------------------------------------------------
 # Scan
 # ---------------------------------------------------------------------------
 
 def scan_unmapped(since_days: int = 14) -> dict:
     """Scan Bloomberg for unmapped funds and classify them.
 
+    Non-ACTV funds (PENDING/LIQUIDATED/DELISTED) are INCLUDED — they still have
+    historical AUM and should be classified for backfill accuracy. KPIs filter
+    to ACTV downstream; classification rules are status-agnostic.
+
     Returns dict with keys:
         candidates: list of dicts (funds that belong in 5 tracked categories)
-        outside: list of dicts (funds outside tracked categories)
-        stale: list of dicts (non-ACTV funds still in fund_mapping)
+        outside: list of dicts (funds outside tracked categories — LOW confidence)
+        stale: list of dicts (non-ACTV funds still in fund_mapping — info only)
         summary: dict with counts
     """
     from webapp.services.data_engine import build_master_data
 
     master = build_master_data()
-    fm = pd.read_csv(RULES_DIR / "fund_mapping.csv", engine="python", on_bad_lines="skip")
+    fm = _load_fund_mapping()
     mapped_tickers = set(fm["ticker"].astype(str).str.strip())
 
-    # Filter to ACTV ETF/ETN
-    if "market_status" in master.columns:
-        active = master[master["market_status"] == "ACTV"].copy()
-    else:
-        active = master.copy()
-    if "fund_type" in master.columns:
-        active = active[active["fund_type"].isin(["ETF", "ETN"])]
+    # Include all fund types (ETF/ETN) regardless of ACTV status.
+    # Non-ACTV funds (liquidated, pending, delisted) still need classification
+    # for historical AUM backfill. KPIs filter status downstream.
+    scope = master.copy()
+    if "fund_type" in scope.columns:
+        scope = scope[scope["fund_type"].isin(["ETF", "ETN"])]
 
     # Find unmapped tickers
-    active = active.drop_duplicates(subset=["ticker"], keep="first")
-    unmapped = active[~active["ticker"].isin(mapped_tickers)].copy()
+    scope = scope.drop_duplicates(subset=["ticker"], keep="first")
+    unmapped = scope[~scope["ticker"].isin(mapped_tickers)].copy()
+    # Keep reference to ACTV-filtered master for stale detection below
+    active = master[master.get("market_status", pd.Series(dtype=str)) == "ACTV"].copy() if "market_status" in master.columns else master.copy()
 
     # Optionally filter to recent launches
     if since_days and "inception_date" in unmapped.columns:
@@ -411,22 +464,16 @@ def _resolve_thematic_attrs(name: str, row: pd.Series, c: Classification) -> dic
 def apply_classifications(candidates: list[dict]) -> dict:
     """Write approved candidates to fund_mapping.csv and attributes CSVs.
 
+    Resilient to missing files (creates empty CSVs if the rules dir is empty).
+    Always deduplicates fund_mapping on ticker to clean up legacy duplicates.
+
     Returns dict with counts of what was written.
     """
     if not candidates:
         return {"fund_mapping": 0, "attributes": {}}
 
-    # Load existing
+    fm = _load_fund_mapping()
     fm_path = RULES_DIR / "fund_mapping.csv"
-    fm = pd.read_csv(fm_path, engine="python", on_bad_lines="skip")
-
-    attr_files = {
-        "LI": "attributes_LI.csv",
-        "CC": "attributes_CC.csv",
-        "Crypto": "attributes_Crypto.csv",
-        "Defined": "attributes_Defined.csv",
-        "Thematic": "attributes_Thematic.csv",
-    }
 
     attr_counts = {}
     fm_new_rows = []
@@ -436,9 +483,13 @@ def apply_classifications(candidates: list[dict]) -> dict:
         etp_cat = c["etp_category"]
         attrs = c.get("attributes", {})
 
-        # Skip if already mapped
-        if ticker in set(fm["ticker"].astype(str).str.strip()):
-            continue
+        # Skip if already mapped to the same category
+        existing_tickers = set(fm["ticker"].astype(str).str.strip())
+        if ticker in existing_tickers:
+            # Already mapped — only add if category differs
+            existing_cats = set(fm[fm["ticker"].astype(str).str.strip() == ticker]["etp_category"].astype(str))
+            if etp_cat in existing_cats:
+                continue
 
         # Add to fund_mapping
         fm_new_rows.append({
@@ -449,31 +500,30 @@ def apply_classifications(candidates: list[dict]) -> dict:
         })
 
         # Add to attributes CSV
-        attr_file = attr_files.get(etp_cat)
-        if attr_file and attrs:
-            attr_path = RULES_DIR / attr_file
-            if attr_path.exists():
-                attr_df = pd.read_csv(attr_path, engine="python", on_bad_lines="skip")
-            else:
-                attr_df = pd.DataFrame()
+        if attrs and etp_cat in ("LI", "CC", "Crypto", "Defined", "Thematic"):
+            attr_df = _load_attributes(etp_cat)
+            attr_file_map = {"LI": "attributes_LI.csv", "CC": "attributes_CC.csv",
+                             "Crypto": "attributes_Crypto.csv", "Defined": "attributes_Defined.csv",
+                             "Thematic": "attributes_Thematic.csv"}
+            attr_path = RULES_DIR / attr_file_map[etp_cat]
 
             # Skip if already in attributes
             if not attr_df.empty and "ticker" in attr_df.columns:
                 if ticker in set(attr_df["ticker"].astype(str).str.strip()):
                     continue
 
-            # Build new row
             new_row = {"ticker": ticker}
             new_row.update(attrs)
             attr_df = pd.concat([attr_df, pd.DataFrame([new_row])], ignore_index=True)
             attr_df.to_csv(attr_path, index=False)
             attr_counts[etp_cat] = attr_counts.get(etp_cat, 0) + 1
 
-    # Write fund_mapping
+    # Write fund_mapping — always dedupe (fixes legacy duplicates like ODTE x2)
     if fm_new_rows:
         fm = pd.concat([fm, pd.DataFrame(fm_new_rows)], ignore_index=True)
-        fm = fm.drop_duplicates(subset=["ticker", "etp_category"], keep="first")
-        fm.to_csv(fm_path, index=False)
+    # Dedupe on (ticker, etp_category) — keeps one row per category assignment
+    fm = fm.drop_duplicates(subset=["ticker", "etp_category"], keep="first")
+    fm.to_csv(fm_path, index=False)
 
     # Also check issuer_mapping for new issuers
     _update_issuer_mapping(candidates)
@@ -486,11 +536,8 @@ def apply_classifications(candidates: list[dict]) -> dict:
 
 def _update_issuer_mapping(candidates: list[dict]) -> int:
     """Add any new (etp_category, issuer) pairs to issuer_mapping.csv."""
+    im = _load_issuer_mapping()
     im_path = RULES_DIR / "issuer_mapping.csv"
-    if im_path.exists():
-        im = pd.read_csv(im_path, engine="python", on_bad_lines="skip")
-    else:
-        im = pd.DataFrame(columns=["etp_category", "issuer", "issuer_nickname"])
 
     known = set()
     if not im.empty:

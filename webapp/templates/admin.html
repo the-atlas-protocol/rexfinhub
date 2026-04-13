@@ -100,7 +100,8 @@
 {% for err_key in ['bbg_error', 'mkt_error', 'cls_error', 'recip_error', 'render_error', 'sec_scrape_error'] %}
 {% if request.query_params.get(err_key) %}
 <div style="background:var(--red-bg); border-left:4px solid var(--red); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
-  Operation failed. Check logs for details.
+  <strong>{{ err_key.replace('_', ' ').title() }}:</strong> {{ request.query_params.get(err_key) }}
+  {% if request.query_params.get('msg') %}<br><span style="color:var(--muted); font-size:12px;">{{ request.query_params.get('msg') }}</span>{% endif %}
 </div>
 {% endif %}
 {% endfor %}

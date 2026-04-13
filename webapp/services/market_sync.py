@@ -298,14 +298,62 @@ def _sync_market_data_locked(
     # Step 8: Update .last_market_run.json marker
     _update_last_run_marker(run_id, master_rows)
 
-    log.info("Market sync complete: %d master, %d TS, %d reports",
-             master_rows, ts_rows, len(report_keys))
+    # Step 9: Auto-scan unmapped classifications (non-fatal if it fails)
+    cls_inserted = 0
+    try:
+        cls_inserted = _auto_scan_classifications(db)
+    except Exception as e:
+        log.error("Classification auto-scan failed (non-fatal): %s", e, exc_info=True)
+
+    log.info("Market sync complete: %d master, %d TS, %d reports, %d new cls proposals",
+             master_rows, ts_rows, len(report_keys), cls_inserted)
 
     return {
         "master_rows": master_rows,
         "ts_rows": ts_rows,
         "report_keys": report_keys,
+        "cls_inserted": cls_inserted,
     }
+
+
+def _auto_scan_classifications(db: Session) -> int:
+    """After a successful Bloomberg sync, scan for new unmapped funds
+    and insert pending proposals. Returns count inserted."""
+    import json as _json
+    from tools.rules_editor.classify_engine import scan_unmapped
+    from webapp.models import ClassificationProposal
+
+    results = scan_unmapped(since_days=365)
+    candidates = results.get("candidates", [])
+    if not candidates:
+        return 0
+
+    existing = {
+        p.ticker for p in db.query(ClassificationProposal.ticker).filter(
+            ClassificationProposal.status.in_(["pending", "approved"])
+        ).all()
+    }
+
+    inserted = 0
+    for c in candidates:
+        if c["ticker"] in existing:
+            continue
+        db.add(ClassificationProposal(
+            ticker=c["ticker"],
+            fund_name=c.get("fund_name"),
+            issuer=c.get("issuer"),
+            aum=c.get("aum"),
+            proposed_category=c.get("etp_category"),
+            proposed_strategy=c.get("strategy"),
+            confidence=c.get("confidence"),
+            reason=c.get("reason"),
+            attributes_json=_json.dumps(c.get("attributes", {})),
+            status="pending",
+        ))
+        inserted += 1
+
+    db.commit()
+    return inserted
 
 
 # ---------------------------------------------------------------------------

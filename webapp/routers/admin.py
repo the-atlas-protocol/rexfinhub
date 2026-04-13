@@ -343,13 +343,26 @@ def pull_bloomberg(request: Request, db: Session = Depends(get_db)):
         from webapp.services.market_sync import sync_market_data
         path = download_bloomberg_from_sharepoint()
         if not path:
-            return RedirectResponse("/admin/?bbg_error=1", status_code=303)
+            return RedirectResponse("/admin/?bbg_error=download_failed", status_code=303)
         result = sync_market_data(db)
         count = result.get("master_rows", 0)
-        return RedirectResponse(f"/admin/?bbg_pulled=1&mkt_synced=1&mkt_count={count}", status_code=303)
+
+        # Auto-scan classifications for new unmapped funds
+        cls_inserted = 0
+        try:
+            scan = _run_classification_scan(db, since_days=365)
+            cls_inserted = scan.get("inserted", 0)
+        except Exception as scan_err:
+            log.error("Auto-scan after pull failed (non-fatal): %s", scan_err, exc_info=True)
+
+        return RedirectResponse(
+            f"/admin/?bbg_pulled=1&mkt_synced=1&mkt_count={count}&cls_auto={cls_inserted}",
+            status_code=303,
+        )
     except Exception as e:
-        log.error("Pull & Sync failed: %s", e)
-        return RedirectResponse("/admin/?bbg_error=1", status_code=303)
+        log.error("Pull & Sync failed: %s", e, exc_info=True)
+        from urllib.parse import quote
+        return RedirectResponse(f"/admin/?bbg_error=sync_failed&msg={quote(str(e)[:120])}", status_code=303)
 
 
 @router.post("/upload-render")
@@ -537,49 +550,68 @@ def classification_update(request: Request):
     return RedirectResponse(f"/admin/?cls_updated={ticker}", status_code=303)
 
 
+def _run_classification_scan(db: Session, since_days: int = 365) -> dict:
+    """Shared helper: run scan_unmapped and upsert new proposals.
+
+    Returns dict with counts: inserted, total_candidates, outside, stale.
+    Safe to call from the pull-sync flow (no HTTP context).
+    """
+    import json as _json
+    from tools.rules_editor.classify_engine import scan_unmapped
+    from webapp.models import ClassificationProposal
+
+    results = scan_unmapped(since_days=since_days)
+    candidates = results.get("candidates", [])
+    summary = results.get("summary", {})
+
+    existing = {
+        p.ticker for p in db.query(ClassificationProposal.ticker).filter(
+            ClassificationProposal.status.in_(["pending", "approved"])
+        ).all()
+    }
+
+    inserted = 0
+    for c in candidates:
+        if c["ticker"] in existing:
+            continue
+        db.add(ClassificationProposal(
+            ticker=c["ticker"],
+            fund_name=c.get("fund_name"),
+            issuer=c.get("issuer"),
+            aum=c.get("aum"),
+            proposed_category=c.get("etp_category"),
+            proposed_strategy=c.get("strategy"),
+            confidence=c.get("confidence"),
+            reason=c.get("reason"),
+            attributes_json=_json.dumps(c.get("attributes", {})),
+            status="pending",
+        ))
+        inserted += 1
+
+    db.commit()
+    return {
+        "inserted": inserted,
+        "total_candidates": summary.get("candidates", 0),
+        "outside": summary.get("outside", 0),
+        "stale": summary.get("stale", 0),
+    }
+
+
 @router.post("/classification/scan")
 def classification_scan(request: Request, db: Session = Depends(get_db)):
     """Scan for unmapped funds and populate the review queue."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
     try:
-        import json as _json
-        from tools.rules_editor.classify_engine import scan_unmapped
-        from webapp.models import ClassificationProposal
-
-        results = scan_unmapped(since_days=90)
-        candidates = results.get("candidates", [])
-        inserted = 0
-
-        # Get existing proposal tickers to avoid duplicates
-        existing = {
-            p.ticker for p in db.query(ClassificationProposal.ticker).filter(
-                ClassificationProposal.status.in_(["pending", "approved"])
-            ).all()
-        }
-
-        for c in candidates:
-            if c["ticker"] in existing:
-                continue
-            db.add(ClassificationProposal(
-                ticker=c["ticker"],
-                fund_name=c.get("fund_name"),
-                issuer=c.get("issuer"),
-                aum=c.get("aum"),
-                proposed_category=c.get("etp_category"),
-                proposed_strategy=c.get("strategy"),
-                confidence=c.get("confidence"),
-                reason=c.get("reason"),
-                attributes_json=_json.dumps(c.get("attributes", {})),
-                status="pending",
-            ))
-            inserted += 1
-
-        db.commit()
-        return RedirectResponse(f"/admin/?cls_scan=1&cls_count={inserted}", status_code=303)
+        result = _run_classification_scan(db, since_days=365)
+        return RedirectResponse(
+            f"/admin/?cls_scan=1&cls_count={result['inserted']}",
+            status_code=303,
+        )
     except Exception as e:
-        log.error("Classification scan failed: %s", e)
-        return RedirectResponse(f"/admin/?cls_error=1", status_code=303)
+        log.error("Classification scan failed: %s", e, exc_info=True)
+        from urllib.parse import quote
+        return RedirectResponse(f"/admin/?cls_error=scan&msg={quote(str(e)[:120])}", status_code=303)
 
 
 @router.post("/classification/{proposal_id}/approve")
@@ -617,8 +649,9 @@ def classification_approve(
 
         return RedirectResponse(f"/admin/?cls_approved={proposal.ticker}", status_code=303)
     except Exception as e:
-        log.error("Classification approve failed: %s", e)
-        return RedirectResponse(f"/admin/?cls_error=approve", status_code=303)
+        log.error("Classification approve failed: %s", e, exc_info=True)
+        from urllib.parse import quote
+        return RedirectResponse(f"/admin/?cls_error=approve&msg={quote(str(e)[:120])}", status_code=303)
 
 
 @router.post("/classification/{proposal_id}/reject")
@@ -628,17 +661,23 @@ def classification_reject(
     """Reject a classification proposal."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
-    from webapp.models import ClassificationProposal
 
-    proposal = db.query(ClassificationProposal).filter(
-        ClassificationProposal.id == proposal_id
-    ).first()
-    if proposal:
-        proposal.status = "rejected"
-        proposal.reviewed_at = datetime.utcnow()
-        db.commit()
+    try:
+        from webapp.models import ClassificationProposal
 
-    return RedirectResponse("/admin/?cls_rejected=1", status_code=303)
+        proposal = db.query(ClassificationProposal).filter(
+            ClassificationProposal.id == proposal_id
+        ).first()
+        if proposal:
+            proposal.status = "rejected"
+            proposal.reviewed_at = datetime.utcnow()
+            db.commit()
+            return RedirectResponse(f"/admin/?cls_rejected={proposal.ticker}", status_code=303)
+        return RedirectResponse("/admin/?cls_error=missing_reject", status_code=303)
+    except Exception as e:
+        log.error("Classification reject failed: %s", e, exc_info=True)
+        from urllib.parse import quote
+        return RedirectResponse(f"/admin/?cls_error=reject&msg={quote(str(e)[:120])}", status_code=303)
 
 
 @router.post("/classification/batch")
