@@ -1,0 +1,10 @@
+[Unit]
+Description=Run rexfinhub reconciler daily at 04:00 ET (08:00 UTC)
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+Unit=rexfinhub-reconciler.service
+
+[Install]
+WantedBy=timers.target
