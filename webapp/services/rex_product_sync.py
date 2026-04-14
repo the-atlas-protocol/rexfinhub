@@ -110,20 +110,39 @@ def sync_rex_products_from_sec(db: Session, *, update_existing: bool = True) -> 
         dict with counts: added, updated, total_rex_funds
     """
     from webapp.models import RexProduct, FundStatus, Trust
+    from sqlalchemy import or_
 
-    # Find all REX funds in SEC pipeline
+    # Find all REX funds in SEC pipeline. REX funds live in two places:
+    #   1. Trusts marked is_rex=1 (REX ETF Trust + ETF Opportunities Trust)
+    #   2. Funds with REX-branded names in OTHER trusts (e.g., T-REX Bitcoin
+    #      products are issued via "World Funds Trust" with REX as sub-advisor)
     rex_trusts = db.execute(
         select(Trust.id, Trust.name).where(Trust.is_rex == True)
     ).all()
 
-    if not rex_trusts:
-        log.info("No REX trusts found in DB")
-        return {"added": 0, "updated": 0, "total_rex_funds": 0}
+    trust_ids = [t.id for t in rex_trusts] if rex_trusts else []
+    trust_name_by_id = {t.id: t.name for t in rex_trusts} if rex_trusts else {}
 
-    trust_ids = [t.id for t in rex_trusts]
-    trust_name_by_id = {t.id: t.name for t in rex_trusts}
+    # Also pull all trusts so we can resolve trust names for cross-trust REX funds
+    all_trusts = db.execute(select(Trust.id, Trust.name)).all()
+    all_trust_name_by_id = {t.id: t.name for t in all_trusts}
 
-    # Pull all REX funds from FundStatus
+    # REX name patterns — case-insensitive substring matches
+    rex_name_filters = [
+        FundStatus.fund_name.ilike("T-REX %"),
+        FundStatus.fund_name.ilike("T-Rex %"),
+        FundStatus.fund_name.ilike("REX %"),
+        FundStatus.fund_name.ilike("REX-Osprey%"),
+        FundStatus.fund_name.ilike("REX-OSPREY%"),
+        FundStatus.fund_name.ilike("Rex %"),
+    ]
+
+    # Combined query: REX trusts UNION REX-branded names anywhere
+    where_clauses = []
+    if trust_ids:
+        where_clauses.append(FundStatus.trust_id.in_(trust_ids))
+    where_clauses.append(or_(*rex_name_filters))
+
     rex_funds = db.execute(
         select(
             FundStatus.series_id,
@@ -137,7 +156,7 @@ def sync_rex_products_from_sec(db: Session, *, update_existing: bool = True) -> 
             FundStatus.prospectus_link,
             FundStatus.trust_id,
         )
-        .where(FundStatus.trust_id.in_(trust_ids))
+        .where(or_(*where_clauses))
     ).all()
 
     if not rex_funds:
@@ -170,7 +189,7 @@ def sync_rex_products_from_sec(db: Session, *, update_existing: bool = True) -> 
             existing = existing_by_name.get(_norm_name(f.fund_name))
 
         new_status = _status_from_sec(f.status)
-        trust_name = trust_name_by_id.get(f.trust_id, "")
+        trust_name = all_trust_name_by_id.get(f.trust_id, "")
 
         if existing:
             if not update_existing:
