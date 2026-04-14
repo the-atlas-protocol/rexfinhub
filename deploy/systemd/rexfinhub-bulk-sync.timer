@@ -1,0 +1,9 @@
+[Unit]
+Description=Run rexfinhub bulk sync Sundays at 03:00 ET (07:00 UTC)
+
+[Timer]
+OnCalendar=Sun *-*-* 07:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=rexfinhub weekly SEC bulk trust discovery
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/etc/rexfinhub/env
+Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
+ExecStart=/home/jarvis/venv/bin/python -m etp_tracker.bulk_sync
+TimeoutStartSec=1800
+StandardOutput=journal
+StandardError=journal
