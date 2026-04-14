@@ -27,6 +27,11 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA foreign_keys=ON")
+    # busy_timeout: when the DB is briefly locked (e.g. during the final
+    # commit of Connection.backup() in the upload endpoint), readers retry
+    # for up to 30s instead of raising SQLITE_BUSY. This keeps the webapp
+    # serving normally during in-place DB swaps.
+    cursor.execute("PRAGMA busy_timeout=30000")
     cursor.close()
 
 
@@ -52,6 +57,7 @@ def _set_holdings_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA busy_timeout=30000")
     # Attach main site DB read-only so cross-DB joins work
     # (e.g. Holding JOIN MktMasterData, Trust, FundStatus)
     main_path = str(DB_PATH).replace("\\", "/")

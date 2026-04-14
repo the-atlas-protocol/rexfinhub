@@ -195,27 +195,32 @@ async def upload_db(
     file: UploadFile = File(...),
     _: None = Depends(verify_api_key),
 ):
-    """Replace the database file with an uploaded copy.
+    """Replace the database CONTENTS with an uploaded copy via in-place page copy.
 
-    Accepts raw or gzipped (.gz) SQLite DB files.
-    Streams to disk in 64KB chunks to stay under Render's 512MB RAM.
-    Gzipped uploads decompress in streaming chunks (never buffers full file).
-    After replacement, re-initializes DB and re-warms caches so the app
-    continues serving without a redeploy.
+    Uses sqlite3.Connection.backup() to copy pages from the uploaded DB into
+    the live DB without changing the file inode. SQLAlchemy's connection pool
+    stays warm — no engine.dispose(), no init_db(), no _prewarm_caches() rerun.
+
+    During the copy, readers see the OLD snapshot (WAL mode keeps them
+    unblocked). At the final commit, a brief EXCLUSIVE lock takes ~ms; readers
+    caught at that moment retry via PRAGMA busy_timeout=30000 (set in
+    webapp/database.py). No 5xx, no cache thrash, ~zero downtime.
+
+    Accepts raw or gzipped (.gz) SQLite DB files. Streams to disk in 64KB
+    chunks to stay under Render's 512MB RAM cap.
     """
     import gzip as _gzip
-    from webapp.database import DB_PATH, engine, init_db
+    import sqlite3
+    from webapp.database import DB_PATH
 
     is_gzipped = (file.filename or "").endswith(".gz") or file.content_type == "application/gzip"
     tmp_path = str(DB_PATH) + ".uploading"
+    gz_tmp = tmp_path + ".gz"
     try:
         total_in = 0
         total_out = 0
         if is_gzipped:
-            # Render disk is 1GB. Old DB (~455MB) + gz (~63MB) + decompressed (~455MB) = 973MB.
-            # To stay under limit: stream gz to disk, delete old DB, then decompress.
-            gz_tmp = tmp_path + ".gz"
-            # Step 1: Stream compressed data to disk (455MB existing + 63MB gz = 518MB)
+            # Stream gz to disk
             with open(gz_tmp, "wb") as f:
                 while True:
                     chunk = await file.read(65536)
@@ -223,7 +228,7 @@ async def upload_db(
                         break
                     f.write(chunk)
                     total_in += len(chunk)
-            # Step 2: Decompress gz -> temp DB (keeps old DB live during decompression)
+            # Decompress gz -> tmp DB (live DB stays untouched)
             with _gzip.open(gz_tmp, "rb") as gz_in:
                 with open(tmp_path, "wb") as f_out:
                     while True:
@@ -236,14 +241,6 @@ async def upload_db(
                 os.unlink(gz_tmp)
             except OSError:
                 pass
-            # Step 3: Atomic swap — dispose engine, swap files, re-init
-            # Gap is <1 second (just a file rename)
-            engine.dispose()
-            for suffix in ("-wal", "-shm"):
-                try:
-                    os.unlink(str(DB_PATH) + suffix)
-                except OSError:
-                    pass
         else:
             with open(tmp_path, "wb") as f:
                 while True:
@@ -253,41 +250,54 @@ async def upload_db(
                     f.write(chunk)
                     total_out += len(chunk)
             total_in = total_out
-            # Dispose existing connections and clean up stale WAL/SHM files
-            engine.dispose()
-            for suffix in ("-wal", "-shm"):
-                try:
-                    os.unlink(str(DB_PATH) + suffix)
-                except OSError:
-                    pass
 
-        # Move new DB into place
-        shutil.move(tmp_path, str(DB_PATH))
-
-        # Re-initialize: migrate schema + re-warm caches
-        init_db()
+        # Validate the uploaded DB before touching the live one
         try:
-            from webapp.main import _prewarm_caches
-            _prewarm_caches()
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning("Cache re-warm after DB upload failed (non-fatal): %s", e)
+            check = sqlite3.connect(tmp_path)
+            integrity = check.execute("PRAGMA quick_check").fetchone()
+            check.close()
+            if integrity[0] != "ok":
+                raise ValueError(f"Uploaded DB failed integrity check: {integrity[0]}")
+        except sqlite3.DatabaseError as e:
+            raise ValueError(f"Uploaded file is not a valid SQLite database: {e}")
+
+        # In-place page copy via SQLite Online Backup API.
+        # - Source: the uploaded tmp DB (read)
+        # - Dest:   the live DB (write, in-place — same inode)
+        # SQLAlchemy's connection pool keeps reading from the live DB throughout;
+        # in WAL mode they see the old snapshot until the final commit, then the new.
+        src = sqlite3.connect(tmp_path)
+        dst = sqlite3.connect(str(DB_PATH), isolation_level=None)
+        try:
+            dst.execute("PRAGMA busy_timeout=30000")
+            # pages=200 + sleep=0.005 yields every ~200 pages so concurrent
+            # readers/writers can interleave. Total copy time for 500MB ≈ 30s.
+            src.backup(dst, pages=200, sleep=0.005)
+        finally:
+            src.close()
+            dst.close()
+
+        # Clean up tmp file
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
         in_mb = total_in / 1_000_000
         out_mb = total_out / 1_000_000
-        msg = f"Database replaced ({out_mb:.1f} MB)"
+        msg = f"Database updated ({out_mb:.1f} MB via in-place backup)"
         if is_gzipped:
-            msg = f"Database replaced ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB)"
+            msg = f"Database updated ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB via in-place backup)"
         return {"status": "ok", "message": msg}
     except Exception as e:
-        for p in [tmp_path, tmp_path + ".gz"]:
+        for p in [tmp_path, gz_tmp]:
             try:
                 os.unlink(p)
             except OSError:
                 pass
         import logging
         logging.getLogger(__name__).error("DB upload failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=f"DB upload failed: {str(e)[:200]}")
 
 
 @router.post("/db/upload-notes")
@@ -363,6 +373,113 @@ async def upload_notes_db(
         import logging
         logging.getLogger(__name__).error("Notes DB upload failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ---------------------------------------------------------------------------
+# Pre-baked reports — VPS generates HTML, uploads here, admin reads static file
+# ---------------------------------------------------------------------------
+
+PREBAKED_REPORTS_DIR = Path("data/prebaked_reports")
+
+# Allowed report keys — prevents path traversal and restricts to known reports
+ALLOWED_REPORT_KEYS = {
+    "daily_filing", "weekly_report", "li_report", "income_report", "flow_report",
+    "autocall_report", "intelligence_brief", "filing_screener", "product_status",
+}
+
+
+@router.post("/reports/upload/{report_key}")
+async def upload_prebaked_report(
+    report_key: str,
+    file: UploadFile = File(...),
+    _: None = Depends(verify_api_key),
+):
+    """Upload a pre-baked report HTML. VPS builds it; Render just serves it.
+
+    The file is written to data/prebaked_reports/{report_key}.html with an
+    atomic temp-file-then-rename. A sidecar .meta.json records baked_at.
+    """
+    import json as _json
+    from datetime import datetime as _dt
+
+    if report_key not in ALLOWED_REPORT_KEYS:
+        raise HTTPException(status_code=400, detail=f"Unknown report key: {report_key}")
+
+    PREBAKED_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    target = PREBAKED_REPORTS_DIR / f"{report_key}.html"
+    tmp = target.with_suffix(".html.uploading")
+    meta = PREBAKED_REPORTS_DIR / f"{report_key}.meta.json"
+
+    try:
+        total = 0
+        with open(tmp, "wb") as f:
+            while True:
+                chunk = await file.read(65536)
+                if not chunk:
+                    break
+                f.write(chunk)
+                total += len(chunk)
+
+        if total < 100:  # reject empty / tiny files
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise HTTPException(status_code=400, detail=f"Report too small: {total} bytes")
+
+        shutil.move(str(tmp), str(target))
+
+        meta.write_text(_json.dumps({
+            "report_key": report_key,
+            "size_bytes": total,
+            "baked_at": _dt.utcnow().isoformat() + "Z",
+        }))
+
+        return {
+            "status": "ok",
+            "report_key": report_key,
+            "size_bytes": total,
+            "path": str(target),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        import logging
+        logging.getLogger(__name__).error("Report upload failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)[:200]}")
+
+
+@router.get("/reports/list")
+def list_prebaked_reports(_: None = Depends(verify_api_key)):
+    """List all pre-baked reports with metadata."""
+    import json as _json
+
+    if not PREBAKED_REPORTS_DIR.exists():
+        return {"reports": []}
+
+    reports = []
+    for key in sorted(ALLOWED_REPORT_KEYS):
+        html_path = PREBAKED_REPORTS_DIR / f"{key}.html"
+        meta_path = PREBAKED_REPORTS_DIR / f"{key}.meta.json"
+        if not html_path.exists():
+            continue
+        meta = {}
+        if meta_path.exists():
+            try:
+                meta = _json.loads(meta_path.read_text())
+            except Exception:
+                pass
+        reports.append({
+            "report_key": key,
+            "size_bytes": html_path.stat().st_size,
+            "baked_at": meta.get("baked_at"),
+            "exists": True,
+        })
+    return {"reports": reports}
 
 
 # ---------------------------------------------------------------------------

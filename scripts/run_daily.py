@@ -447,26 +447,32 @@ def upload_db_to_render():
     gz_path = str(render_db) + ".upload.gz"
 
     try:
-        print("  Stripping tables for lean Render upload...", end=" ", flush=True)
+        print("  Preparing lean Render upload...", end=" ", flush=True)
         shutil.copy2(db_path, render_db)
         conn = sqlite3.connect(str(render_db), isolation_level=None)
-        # Drop large tables not needed on Render website
+        # MINIMAL drop list — only tables the live webapp NEVER queries.
+        # Anything that any /webapp route touches stays. We keep the full row
+        # history (no more 90-day filings trim, no more 12-month time-series
+        # trim) so fund detail pages, filing explorer, and historical charts
+        # all populate correctly on Render.
+        #
+        # Verified safe to drop:
+        #   - analysis_results: empty, Claude analysis output (not yet wired in)
+        #   - pipeline_runs:    local SEC pipeline run tracking, only queried locally
+        #   - screener_uploads: local upload audit log
+        # Note: holdings/institutions/cusip_mappings live in the SEPARATE
+        # data/13f_holdings.db file, not in etp_tracker.db. The DROP IF EXISTS
+        # statements below are no-ops here but kept defensively.
         drop_tables = [
-            "holdings", "institutions", "cusip_mappings",  # 13F (3.5M rows)
-            "fund_extractions",  # 651K rows (regenerable from pipeline)
-            "name_history",  # 51K rows (regenerable)
-            "filing_alerts",  # 514 rows (watcher internal)
-            "trust_candidates",  # 59 rows (watcher internal)
-            "analysis_results",  # Claude analysis (not needed on Render)
-            "pipeline_runs",  # Local pipeline tracking
-            "screener_uploads",  # Local upload tracking
+            "holdings", "institutions", "cusip_mappings",  # 13F (separate DB, no-op here)
+            "analysis_results",   # empty, not wired in yet
+            "pipeline_runs",      # local SEC pipeline tracking
+            "screener_uploads",   # local upload audit log
         ]
         for table in drop_tables:
             conn.execute(f"DROP TABLE IF EXISTS [{table}]")
-        # Trim filings to last 90 days
-        conn.execute("DELETE FROM filings WHERE filing_date < date('now', '-90 days')")
-        # Trim time series to last 12 months
-        conn.execute("DELETE FROM mkt_time_series WHERE months_ago > 12")
+        # NO row trimming. Either the table is dropped entirely or it's kept
+        # in full. Half-trimmed tables created the "missing data on Render" bugs.
         conn.execute("VACUUM")
         conn.close()
         raw_mb = render_db.stat().st_size / 1e6
