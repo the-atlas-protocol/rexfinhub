@@ -21,12 +21,19 @@ log = logging.getLogger(__name__)
 _DEFAULT_WORKERS = 3
 
 
-def load_ciks_from_db(universe: str = "all") -> tuple[list[str], dict[str, str]]:
+def load_ciks_from_db(universe: str = "curated") -> tuple[list[str], dict[str, str]]:
     """Load CIKs and name overrides from the trusts database table.
 
     Args:
-        universe: "all" (every active trust), "curated" (source=curated only),
-                  "discovered" (source=bulk_discovery only)
+        universe: "curated" (source=curated, DEFAULT — the ~290 trusts we actively
+                  monitor for reports), "all" (every active trust — use only for
+                  full bulk re-scrapes, slow), "discovered" (source=bulk_discovery only).
+
+    The default was changed from "all" to "curated" on 2026-04-13 because
+    "all" was making every daily scrape iterate ~15,630 trusts from the
+    sec_universe trust discovery — timing out the pipeline and blocking
+    the evening reports. Use run_bulk_scrape.py with --universe all when
+    you genuinely need a full rescrape.
 
     Returns:
         (cik_list, overrides_dict) ready for run_pipeline().
