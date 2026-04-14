@@ -195,32 +195,26 @@ async def upload_db(
     file: UploadFile = File(...),
     _: None = Depends(verify_api_key),
 ):
-    """Replace the database CONTENTS with an uploaded copy via in-place page copy.
+    """Replace the database file with an uploaded copy.
 
-    Uses sqlite3.Connection.backup() to copy pages from the uploaded DB into
-    the live DB without changing the file inode. SQLAlchemy's connection pool
-    stays warm — no engine.dispose(), no init_db(), no _prewarm_caches() rerun.
-
-    During the copy, readers see the OLD snapshot (WAL mode keeps them
-    unblocked). At the final commit, a brief EXCLUSIVE lock takes ~ms; readers
-    caught at that moment retry via PRAGMA busy_timeout=30000 (set in
-    webapp/database.py). No 5xx, no cache thrash, ~zero downtime.
+    Reverted to the file-rename approach after Connection.backup() crashed
+    Render mid-upload (likely contention with SQLAlchemy's pool during page
+    copy under load). The brief engine.dispose() + rename window is known
+    to work; the in-place backup approach needs more investigation.
 
     Accepts raw or gzipped (.gz) SQLite DB files. Streams to disk in 64KB
     chunks to stay under Render's 512MB RAM cap.
     """
     import gzip as _gzip
-    import sqlite3
-    from webapp.database import DB_PATH
+    from webapp.database import DB_PATH, engine, init_db
 
     is_gzipped = (file.filename or "").endswith(".gz") or file.content_type == "application/gzip"
     tmp_path = str(DB_PATH) + ".uploading"
-    gz_tmp = tmp_path + ".gz"
     try:
         total_in = 0
         total_out = 0
         if is_gzipped:
-            # Stream gz to disk
+            gz_tmp = tmp_path + ".gz"
             with open(gz_tmp, "wb") as f:
                 while True:
                     chunk = await file.read(65536)
@@ -228,7 +222,6 @@ async def upload_db(
                         break
                     f.write(chunk)
                     total_in += len(chunk)
-            # Decompress gz -> tmp DB (live DB stays untouched)
             with _gzip.open(gz_tmp, "rb") as gz_in:
                 with open(tmp_path, "wb") as f_out:
                     while True:
@@ -241,6 +234,12 @@ async def upload_db(
                 os.unlink(gz_tmp)
             except OSError:
                 pass
+            engine.dispose()
+            for suffix in ("-wal", "-shm"):
+                try:
+                    os.unlink(str(DB_PATH) + suffix)
+                except OSError:
+                    pass
         else:
             with open(tmp_path, "wb") as f:
                 while True:
@@ -250,54 +249,38 @@ async def upload_db(
                     f.write(chunk)
                     total_out += len(chunk)
             total_in = total_out
+            engine.dispose()
+            for suffix in ("-wal", "-shm"):
+                try:
+                    os.unlink(str(DB_PATH) + suffix)
+                except OSError:
+                    pass
 
-        # Validate the uploaded DB before touching the live one
-        try:
-            check = sqlite3.connect(tmp_path)
-            integrity = check.execute("PRAGMA quick_check").fetchone()
-            check.close()
-            if integrity[0] != "ok":
-                raise ValueError(f"Uploaded DB failed integrity check: {integrity[0]}")
-        except sqlite3.DatabaseError as e:
-            raise ValueError(f"Uploaded file is not a valid SQLite database: {e}")
+        shutil.move(tmp_path, str(DB_PATH))
 
-        # In-place page copy via SQLite Online Backup API.
-        # - Source: the uploaded tmp DB (read)
-        # - Dest:   the live DB (write, in-place — same inode)
-        # SQLAlchemy's connection pool keeps reading from the live DB throughout;
-        # in WAL mode they see the old snapshot until the final commit, then the new.
-        src = sqlite3.connect(tmp_path)
-        dst = sqlite3.connect(str(DB_PATH), isolation_level=None)
+        init_db()
         try:
-            dst.execute("PRAGMA busy_timeout=30000")
-            # pages=200 + sleep=0.005 yields every ~200 pages so concurrent
-            # readers/writers can interleave. Total copy time for 500MB ≈ 30s.
-            src.backup(dst, pages=200, sleep=0.005)
-        finally:
-            src.close()
-            dst.close()
-
-        # Clean up tmp file
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
+            from webapp.main import _prewarm_caches
+            _prewarm_caches()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Cache re-warm after DB upload failed (non-fatal): %s", e)
 
         in_mb = total_in / 1_000_000
         out_mb = total_out / 1_000_000
-        msg = f"Database updated ({out_mb:.1f} MB via in-place backup)"
+        msg = f"Database replaced ({out_mb:.1f} MB)"
         if is_gzipped:
-            msg = f"Database updated ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB via in-place backup)"
+            msg = f"Database replaced ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB)"
         return {"status": "ok", "message": msg}
     except Exception as e:
-        for p in [tmp_path, gz_tmp]:
+        for p in [tmp_path, tmp_path + ".gz"]:
             try:
                 os.unlink(p)
             except OSError:
                 pass
         import logging
         logging.getLogger(__name__).error("DB upload failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"DB upload failed: {str(e)[:200]}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/db/upload-notes")
