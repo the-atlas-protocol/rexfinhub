@@ -363,6 +363,21 @@ def insert_new_alerts(entries: Iterable[AtomEntry]) -> tuple[int, int]:
             ).all()
         }
 
+        # Parse size "39 MB" / "1 MB" -> bytes
+        def _size_bytes(s: str) -> int | None:
+            if not s:
+                return None
+            parts = s.strip().split()
+            if len(parts) != 2:
+                return None
+            try:
+                n = float(parts[0])
+            except ValueError:
+                return None
+            unit = parts[1].upper()
+            mult = {"KB": 1024, "MB": 1024**2, "GB": 1024**3}.get(unit, 1)
+            return int(n * mult)
+
         for e in entries_list:
             if e.accession_number in existing_set:
                 skipped_count += 1
@@ -371,30 +386,26 @@ def insert_new_alerts(entries: Iterable[AtomEntry]) -> tuple[int, int]:
             filed_dt = None
             if e.filed_date:
                 try:
-                    # filed_date is full ISO timestamp; we only need the date part
                     filed_dt = _date.fromisoformat(e.filed_date[:10])
                 except (ValueError, TypeError):
                     pass
 
+            # Tier 1 writes the alert regardless of CIK-known status. Tier 2
+            # (single_filing_worker) resolves trust_id and runs step3
+            # extraction asynchronously by polling enrichment_status=0 rows.
             trust_id = cik_to_trust.get(e.cik)
-            # FilingAlert requires trust_id NOT NULL — for unknown CIKs we
-            # need to either (a) skip them and let single_filing.py handle
-            # later, or (b) create a placeholder trust row immediately.
-            # Going with (a) for now — Tier 2 enrichment will create the
-            # trust row when it processes the unknown accession.
-            if not trust_id:
-                # Skip for now. Insert into a separate queue for Tier 2 to handle.
-                # TODO Phase 2.5: queue table for unknown-CIK accessions
-                log.info("Skipping unknown CIK %s for accession %s (form %s) — Tier 2 will pick up",
-                         e.cik, e.accession_number, e.form)
-                skipped_count += 1
-                continue
 
             alert = FilingAlert(
-                trust_id=trust_id,
+                trust_id=trust_id,  # may be None for unknown CIK
+                cik=e.cik,
                 accession_number=e.accession_number,
                 form_type=e.form,
                 filed_date=filed_dt,
+                source="atom",
+                enrichment_status=0,  # pending Tier 2 enrichment
+                primary_doc_url=e.primary_doc_url or None,
+                size_bytes=_size_bytes(e.size_str),
+                company_name=e.company_name or None,
             )
             db.add(alert)
             new_count += 1

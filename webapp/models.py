@@ -818,19 +818,32 @@ class FilingAlert(Base):
     __tablename__ = "filing_alerts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    trust_id: Mapped[int] = mapped_column(Integer, ForeignKey("trusts.id"), nullable=False)
+    # trust_id is nullable: Tier 1 atom watcher inserts alerts for unknown
+    # CIKs (every SEC filer, not just curated trusts). Tier 2 enricher
+    # resolves CIK -> trust, auto-creating trusts as needed.
+    trust_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("trusts.id"), nullable=True)
+    cik: Mapped[str | None] = mapped_column(String(20))
     accession_number: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     form_type: Mapped[str] = mapped_column(String(20), nullable=False)
     filed_date: Mapped[date | None] = mapped_column(Date)
     detected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     processed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Tier 1 -> Tier 2 handoff fields
+    source: Mapped[str | None] = mapped_column(String(30))  # atom | reconciler | bulk | manual
+    enrichment_status: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # 0=pending, 1=done, 2=failed, 3=skipped
+    enrichment_error: Mapped[str | None] = mapped_column(Text)
+    primary_doc_url: Mapped[str | None] = mapped_column(Text)
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    company_name: Mapped[str | None] = mapped_column(String(200))
 
-    trust: Mapped["Trust"] = relationship()
+    trust: Mapped["Trust | None"] = relationship()
 
     __table_args__ = (
         Index("idx_filing_alerts_trust", "trust_id"),
         Index("idx_filing_alerts_processed", "processed"),
         Index("idx_filing_alerts_filed", "filed_date"),
+        Index("idx_filing_alerts_cik", "cik"),
+        Index("idx_filing_alerts_enrichment", "enrichment_status"),
     )
 
 
