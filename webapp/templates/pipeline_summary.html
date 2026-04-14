@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Pipeline Summary — REX Financial{% endblock %}
+
+{% block head %}
+<style>
+.page-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+.subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+.breadcrumb { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+.breadcrumb a { color: #1F3864; text-decoration: none; }
+
+h2 { font-size: 13px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; margin: 28px 0 12px; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { background: #f8fafc; border: 1px solid #e5e7eb; border-left: 3px solid #0f172a; border-radius: 6px; padding: 12px 16px; }
+.kpi .num { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; }
+.kpi .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 5px; }
+.kpi.green  { border-left-color: #059669; } .kpi.green  .num { color: #059669; }
+.kpi.blue   { border-left-color: #2563eb; } .kpi.blue   .num { color: #2563eb; }
+.kpi.amber  { border-left-color: #d97706; } .kpi.amber  .num { color: #d97706; }
+.kpi.red    { border-left-color: #dc2626; } .kpi.red    .num { color: #dc2626; }
+.kpi.cyan   { border-left-color: #0891b2; } .kpi.cyan   .num { color: #0891b2; }
+
+/* Two-column */
+.row-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+
+/* Cards */
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+.card-header { padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em; }
+.card-count { font-size: 11px; color: #64748b; }
+.card-body { padding: 0; }
+
+/* Tables */
+table.pipe { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.pipe th { padding: 6px 10px; text-align: left; font-size: 10px; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; font-weight: 600; letter-spacing: 0.03em; }
+table.pipe td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+table.pipe tr:hover { background: #fafbfc; }
+.ticker { font-family: monospace; font-weight: 700; color: #1F3864; }
+.suite-pill { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; background: #f1f5f9; color: #475569; }
+.days-badge { font-weight: 700; font-size: 12px; }
+.days-badge.urgent { color: #dc2626; }
+.days-badge.soon   { color: #d97706; }
+.days-badge.ok     { color: #64748b; }
+
+.cycle-block {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 18px;
+  display: flex; gap: 24px; flex-wrap: wrap;
+}
+.cycle-metric { font-size: 24px; font-weight: 800; color: #0f172a; }
+.cycle-metric-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+.suite-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.suite-row:last-child { border-bottom: none; }
+.suite-row .suite-name { flex: 1; font-size: 13px; font-weight: 600; color: #0f172a; }
+.suite-row .suite-counts { font-size: 11px; color: #64748b; font-family: monospace; }
+.suite-row .suite-bar { width: 150px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; position: relative; }
+.suite-row .suite-bar-fill { height: 100%; background: #059669; }
+
+.empty { padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; font-style: italic; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="breadcrumb">
+    <a href="/pipeline">Pipeline Calendar</a> / <span>Summary</span>
+  </div>
+  <h1>Pipeline Summary</h1>
+  <div class="subtitle">Activity snapshot — {{ today.strftime('%B %d, %Y') }}</div>
+
+  <h2>Lifecycle</h2>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="num">{{ total }}</div><div class="label">Total Products</div></div>
+    <div class="kpi green"><div class="num">{{ listed }}</div><div class="label">Live</div></div>
+    <div class="kpi cyan"><div class="num">{{ awaiting }}</div><div class="label">Awaiting Effective</div></div>
+    <div class="kpi blue"><div class="num">{{ filed }}</div><div class="label">Filed</div></div>
+    <div class="kpi amber"><div class="num">{{ research }}</div><div class="label">Research / Target</div></div>
+  </div>
+
+  <h2>Activity</h2>
+  <div class="kpi-grid">
+    <div class="kpi blue"><div class="num">{{ filings_last_7d }}</div><div class="label">Filings · Last 7d</div></div>
+    <div class="kpi green"><div class="num">{{ launches_last_30d }}</div><div class="label">Launches · Last 30d</div></div>
+    <div class="kpi cyan"><div class="num">{{ effectives_next_30d }}</div><div class="label">Effectives · Next 30d</div></div>
+    <div class="kpi cyan"><div class="num">{{ effectives_next_90d }}</div><div class="label">Effectives · Next 90d</div></div>
+  </div>
+
+  {% if avg_cycle is not none %}
+  <h2>Filing → Launch Cycle Time</h2>
+  <div class="cycle-block">
+    <div>
+      <div class="cycle-metric">{{ avg_cycle }}d</div>
+      <div class="cycle-metric-label">Average</div>
+    </div>
+    <div>
+      <div class="cycle-metric">{{ min_cycle }}d</div>
+      <div class="cycle-metric-label">Fastest</div>
+    </div>
+    <div>
+      <div class="cycle-metric">{{ max_cycle }}d</div>
+      <div class="cycle-metric-label">Slowest</div>
+    </div>
+    <div>
+      <div class="cycle-metric">{{ cycle_sample }}</div>
+      <div class="cycle-metric-label">Sample Size</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row-2" style="margin-top:20px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Urgent · Effective in Next 14 Days</span>
+        <span class="card-count">{{ urgent_pending|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if urgent_pending %}
+        <table class="pipe">
+          <thead>
+            <tr><th>In</th><th>Date</th><th>Ticker</th><th>Name</th><th>Suite</th></tr>
+          </thead>
+          <tbody>
+            {% for p in urgent_pending %}
+            {% set days_left = (p.estimated_effective_date - today).days %}
+            <tr>
+              <td><span class="days-badge {% if days_left <= 3 %}urgent{% elif days_left <= 7 %}soon{% else %}ok{% endif %}">{{ days_left }}d</span></td>
+              <td>{{ p.estimated_effective_date.strftime('%b %d') }}</td>
+              <td class="ticker">{{ p.ticker or '—' }}</td>
+              <td>{{ (p.name or '')[:40] }}</td>
+              <td><span class="suite-pill">{{ p.product_suite }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Nothing in the next 14 days.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Overdue · Target Date Passed</span>
+        <span class="card-count">{{ overdue|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if overdue %}
+        <table class="pipe">
+          <thead>
+            <tr><th>Late By</th><th>Target</th><th>Ticker</th><th>Name</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for p in overdue %}
+            {% set days_over = (today - p.target_listing_date).days %}
+            <tr>
+              <td><span class="days-badge urgent">{{ days_over }}d</span></td>
+              <td>{{ p.target_listing_date.strftime('%b %d') }}</td>
+              <td class="ticker">{{ p.ticker or '—' }}</td>
+              <td>{{ (p.name or '')[:38] }}</td>
+              <td><span class="suite-pill">{{ p.status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Nothing overdue.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-top:16px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Filings · Last 14 Days</span>
+        <span class="card-count">{{ recent_filings|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if recent_filings %}
+        <table class="pipe">
+          <thead>
+            <tr><th>Date</th><th>Ticker</th><th>Name</th><th>Form</th><th>Suite</th></tr>
+          </thead>
+          <tbody>
+            {% for p in recent_filings %}
+            <tr>
+              <td>{{ p.initial_filing_date.strftime('%b %d') }}</td>
+              <td class="ticker">{{ p.ticker or '—' }}</td>
+              <td>{{ (p.name or '')[:36] }}</td>
+              <td style="font-family:monospace; font-size:11px;">{{ p.latest_form or '' }}</td>
+              <td><span class="suite-pill">{{ p.product_suite }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No filings in the last 14 days.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Upcoming Distributions · Next 14 Days</span>
+        <span class="card-count">{{ upcoming_dists|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if upcoming_dists %}
+        <table class="pipe">
+          <thead>
+            <tr><th>Ex Date</th><th>Ticker</th><th>Fund</th><th>Payable</th></tr>
+          </thead>
+          <tbody>
+            {% for d in upcoming_dists[:20] %}
+            <tr>
+              <td>{{ d.ex_date.strftime('%b %d') }}</td>
+              <td class="ticker">{{ d.ticker }}</td>
+              <td>{{ (d.fund_name or '')[:38] }}</td>
+              <td>{% if d.payable_date %}{{ d.payable_date.strftime('%b %d') }}{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No distributions in the next 14 days.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <h2>By Suite</h2>
+  <div class="card">
+    {% for suite, stats in suite_breakdown.items() | sort(attribute='1.total', reverse=true) %}
+    <div class="suite-row">
+      <div class="suite-name" style="border-left: 3px solid {{ suite_colors.get(suite, '#64748b') }}; padding-left: 8px;">{{ suite }}</div>
+      <div class="suite-counts">
+        {{ stats.listed }} live ·
+        {{ stats.filed }} filed ·
+        {{ stats.total }} total
+      </div>
+      <div class="suite-bar">
+        <div class="suite-bar-fill" style="width: {{ (100 * stats.listed / stats.total) | round }}%;"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

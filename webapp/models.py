@@ -757,6 +757,53 @@ class EmailRecipient(Base):
 
 
 
+# --- Fund Distribution Schedule ---
+
+class FundDistribution(Base):
+    """Distribution schedule for a REX fund.
+
+    Sourced from the master REX_Distribution_Calendar_2026.xlsx + per-fund
+    Excel files. One row per distribution event (declaration/ex/record/payable).
+    Used by the pipeline calendar to show dividend events.
+    """
+    __tablename__ = "fund_distributions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False)
+    fund_name: Mapped[str | None] = mapped_column(String(200))
+    declaration_date: Mapped[date | None] = mapped_column(Date)
+    ex_date: Mapped[date] = mapped_column(Date, nullable=False)
+    record_date: Mapped[date | None] = mapped_column(Date)
+    payable_date: Mapped[date | None] = mapped_column(Date)
+    amount: Mapped[float | None] = mapped_column(Float)  # optional $ amount (not in current Excel)
+    source_file: Mapped[str | None] = mapped_column(String(200))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("ticker", "ex_date", name="uq_fund_dist_ticker_ex"),
+        Index("idx_fund_dist_ticker", "ticker"),
+        Index("idx_fund_dist_ex", "ex_date"),
+        Index("idx_fund_dist_payable", "payable_date"),
+    )
+
+
+class NyseHoliday(Base):
+    """NYSE holiday calendar. Highlights market-closed days on the pipeline calendar."""
+    __tablename__ = "nyse_holidays"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    holiday_date: Mapped[date] = mapped_column(Date, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        UniqueConstraint("holiday_date", name="uq_nyse_holiday_date"),
+        Index("idx_nyse_holiday_date", "holiday_date"),
+    )
+
+
 # --- REX Product Pipeline ---
 
 class RexProduct(Base):
