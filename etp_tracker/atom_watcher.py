@@ -414,6 +414,30 @@ def insert_new_alerts(entries: Iterable[AtomEntry]) -> tuple[int, int]:
             db.add(alert)
             new_count += 1
         db.commit()
+
+        # Push raw detections to Render live feed. This is the user-visible
+        # "a new filing just happened" moment — even before Tier 2 enrichment,
+        # so browsers see it within seconds of SEC acceptance. Tier 2 will
+        # UPSERT the same row later with trust_slug/trust_name once known.
+        try:
+            from .live_push import push_alert
+            for e in entries_list:
+                if e.accession_number in existing_set:
+                    continue
+                trust_id_val = cik_to_trust.get(e.cik)
+                push_alert(
+                    accession_number=e.accession_number,
+                    form=e.form,
+                    cik=e.cik,
+                    company_name=e.company_name,
+                    trust_id=trust_id_val,
+                    trust_name=e.company_name,  # best guess until Tier 2 resolves
+                    filed_date=e.filed_date[:10] if e.filed_date else None,
+                    primary_doc_url=e.primary_doc_url,
+                    source="atom",
+                )
+        except Exception as push_exc:
+            log.warning("live push batch failed: %s", push_exc)
     finally:
         db.close()
     return (new_count, skipped_count)

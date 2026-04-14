@@ -50,7 +50,8 @@ USER_AGENT = os.environ.get(
 def run_cycle(batch_size: int, client: SECClient) -> dict:
     """Enrich up to batch_size pending alerts. Returns a summary dict."""
     from webapp.database import SessionLocal
-    from webapp.models import FilingAlert
+    from webapp.models import FilingAlert, Trust
+    from .live_push import push_alert
 
     summary = {
         "processed": 0,
@@ -83,6 +84,27 @@ def run_cycle(batch_size: int, client: SECClient) -> dict:
                     summary["ok"] += 1
                     if result.trust_created:
                         summary["new_trusts"] += 1
+                    # Push enriched metadata to Render live feed so the UI
+                    # widget shows trust_slug/trust_name (not just CIK).
+                    # UPSERTs the row the atom watcher inserted earlier.
+                    try:
+                        trust = None
+                        if result.trust_id:
+                            trust = db.get(Trust, result.trust_id)
+                        push_alert(
+                            accession_number=alert.accession_number,
+                            form=alert.form_type,
+                            cik=alert.cik,
+                            company_name=alert.company_name,
+                            trust_id=result.trust_id,
+                            trust_slug=trust.slug if trust else None,
+                            trust_name=trust.name if trust else None,
+                            filed_date=alert.filed_date,
+                            primary_doc_url=alert.primary_doc_url,
+                            source=alert.source or "atom",
+                        )
+                    except Exception:
+                        pass  # fire-and-forget, never block enrichment
                 else:
                     if result.skipped_reason:
                         summary["skipped"] += 1

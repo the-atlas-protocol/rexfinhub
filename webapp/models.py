@@ -914,3 +914,42 @@ class TrustCandidate(Base):
         Index("idx_trust_candidates_status", "status"),
         Index("idx_trust_candidates_score", "etf_trust_score"),
     )
+
+
+class LiveFeedItem(Base):
+    """Rolling real-time feed of new filings surfaced by the atom watcher.
+
+    Separate from filing_alerts because:
+      1. Written via a lightweight per-row POST that bypasses the Render
+         DB-swap restart (which takes ~4 minutes and 502s every page).
+      2. Pruned to a rolling window (last 500 rows / 48 hours) so reads
+         are cheap and the table never grows unbounded.
+      3. Not included in the daily DB upload — live data flows through a
+         separate code path so the daily upload can't clobber fresh rows.
+
+    VPS single_filing_worker POSTs each successful enrichment to
+    /api/v1/live/push on Render, which UPSERTs one row here.
+    Browsers poll /api/v1/live/recent?since=<ts> every 30s and toast
+    any new items.
+    """
+    __tablename__ = "live_feed"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False,
+    )
+    accession_number: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
+    cik: Mapped[str | None] = mapped_column(String(20))
+    form: Mapped[str] = mapped_column(String(20), nullable=False)
+    company_name: Mapped[str | None] = mapped_column(String(200))
+    trust_id: Mapped[int | None] = mapped_column(Integer)  # no FK — trust may live in Render DB only, or not at all
+    trust_slug: Mapped[str | None] = mapped_column(String(100))
+    trust_name: Mapped[str | None] = mapped_column(String(200))
+    filed_date: Mapped[date | None] = mapped_column(Date)
+    primary_doc_url: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str | None] = mapped_column(String(30))  # atom | reconciler | bulk
+
+    __table_args__ = (
+        Index("idx_live_feed_detected", "detected_at"),
+        Index("idx_live_feed_trust", "trust_id"),
+    )

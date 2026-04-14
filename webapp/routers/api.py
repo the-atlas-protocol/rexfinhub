@@ -615,6 +615,189 @@ def total_returns_api(
     return result
 
 
+# ---------------------------------------------------------------------------
+# Live feed — real-time filing notifications
+# ---------------------------------------------------------------------------
+#
+# Why a separate code path: the full /db/upload endpoint does engine.dispose()
+# + file-rename + init_db() + prewarm, which takes Render offline for ~4
+# minutes. That's unacceptable for "breaking-news filing detected" UX.
+#
+# These endpoints do single-row inserts and single-row reads against a
+# dedicated `live_feed` table. No engine dispose, no swap, no restart. The
+# VPS atom watcher + single_filing_worker POST here every time they see
+# something new. Browsers poll /live/recent every 30s and toast new rows.
+
+@router.post("/live/push")
+async def live_push(
+    request: Request,
+    _: None = Depends(verify_api_key),
+    db: Session = Depends(get_db),
+):
+    """Push a single filing into the live feed.
+
+    Body (JSON):
+      {
+        "accession_number": "0001234567-26-000123",  # required, unique
+        "form": "485BPOS",                            # required
+        "cik": "1683471",                             # optional
+        "company_name": "ETF Opportunities Trust",    # optional
+        "trust_id": 42,                               # optional
+        "trust_slug": "etf-opportunities-trust",      # optional
+        "trust_name": "ETF Opportunities Trust",      # optional
+        "filed_date": "2026-04-14",                   # optional, ISO date
+        "primary_doc_url": "https://www.sec.gov/...", # optional
+        "source": "atom"                              # optional: atom|reconciler|bulk
+      }
+
+    Upsert by accession_number — safe to call multiple times for the same
+    filing (idempotent). Returns {"status": "ok", "id": N, "created": bool}.
+
+    Also opportunistically prunes the table to the last 500 rows to keep
+    the feed tight and queries O(1).
+    """
+    from datetime import datetime as _dt, date as _date
+    from webapp.models import LiveFeedItem
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    accession = (body.get("accession_number") or "").strip()
+    form = (body.get("form") or "").strip()
+    if not accession or not form:
+        raise HTTPException(
+            status_code=400,
+            detail="accession_number and form are required",
+        )
+
+    filed_date = None
+    fd_raw = body.get("filed_date")
+    if fd_raw:
+        try:
+            filed_date = _date.fromisoformat(str(fd_raw)[:10])
+        except (ValueError, TypeError):
+            pass
+
+    existing = db.execute(
+        select(LiveFeedItem).where(LiveFeedItem.accession_number == accession)
+    ).scalar_one_or_none()
+
+    created = False
+    if existing:
+        existing.form = form
+        existing.cik = body.get("cik") or existing.cik
+        existing.company_name = body.get("company_name") or existing.company_name
+        existing.trust_id = body.get("trust_id") or existing.trust_id
+        existing.trust_slug = body.get("trust_slug") or existing.trust_slug
+        existing.trust_name = body.get("trust_name") or existing.trust_name
+        existing.filed_date = filed_date or existing.filed_date
+        existing.primary_doc_url = body.get("primary_doc_url") or existing.primary_doc_url
+        existing.source = body.get("source") or existing.source
+        row = existing
+    else:
+        row = LiveFeedItem(
+            detected_at=_dt.utcnow(),
+            accession_number=accession,
+            cik=body.get("cik"),
+            form=form,
+            company_name=body.get("company_name"),
+            trust_id=body.get("trust_id"),
+            trust_slug=body.get("trust_slug"),
+            trust_name=body.get("trust_name"),
+            filed_date=filed_date,
+            primary_doc_url=body.get("primary_doc_url"),
+            source=body.get("source"),
+        )
+        db.add(row)
+        created = True
+
+    db.commit()
+    db.refresh(row)
+
+    # Prune: keep only the most recent 500 rows. Cheap, bounded.
+    # Only run on create (not every update).
+    if created:
+        total = db.execute(select(func.count()).select_from(LiveFeedItem)).scalar() or 0
+        if total > 500:
+            from sqlalchemy import delete
+            # Find the 500th newest id, delete anything older
+            cutoff_id = db.execute(
+                select(LiveFeedItem.id)
+                .order_by(LiveFeedItem.detected_at.desc())
+                .offset(500)
+                .limit(1)
+            ).scalar()
+            if cutoff_id:
+                db.execute(delete(LiveFeedItem).where(LiveFeedItem.id < cutoff_id))
+                db.commit()
+
+    return {"status": "ok", "id": row.id, "created": created}
+
+
+@router.get("/live/recent")
+def live_recent(
+    since: str = "",
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """Poll for filings newer than `since`. No auth — this is a public feed.
+
+    Query params:
+      since: ISO datetime (UTC). If empty, returns the most recent `limit`
+        rows regardless of age.
+      limit: max rows to return (default 50, capped at 200).
+
+    Returns:
+      {
+        "items": [ {...}, ... ],
+        "latest": "2026-04-14T19:42:06",   # ISO UTC of newest row in response
+        "count": N
+      }
+    """
+    from datetime import datetime as _dt
+    from webapp.models import LiveFeedItem
+
+    if limit < 1:
+        limit = 1
+    if limit > 200:
+        limit = 200
+
+    q = select(LiveFeedItem)
+    if since:
+        try:
+            since_dt = _dt.fromisoformat(since.replace("Z", ""))
+            q = q.where(LiveFeedItem.detected_at > since_dt)
+        except (ValueError, TypeError):
+            pass  # ignore malformed since, return most recent
+
+    q = q.order_by(LiveFeedItem.detected_at.desc()).limit(limit)
+    rows = db.execute(q).scalars().all()
+
+    items = []
+    latest = None
+    for r in rows:
+        items.append({
+            "id": r.id,
+            "detected_at": r.detected_at.isoformat() if r.detected_at else None,
+            "accession_number": r.accession_number,
+            "form": r.form,
+            "cik": r.cik,
+            "company_name": r.company_name,
+            "trust_id": r.trust_id,
+            "trust_slug": r.trust_slug,
+            "trust_name": r.trust_name,
+            "filed_date": r.filed_date.isoformat() if r.filed_date else None,
+            "primary_doc_url": r.primary_doc_url,
+            "source": r.source,
+        })
+        if latest is None and r.detected_at:
+            latest = r.detected_at.isoformat()
+
+    return {"items": items, "latest": latest, "count": len(items)}
+
+
 @router.get("/docs", include_in_schema=False)
 def api_docs_page(request: Request):
     """Public API documentation page."""

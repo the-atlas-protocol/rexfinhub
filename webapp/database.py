@@ -113,7 +113,7 @@ def init_db():
         MktMasterData, MktTimeSeries, MktReportCache, MktStockData,
         MktFundClassification, MktMarketStatus, MktGlobalEtp,
         TrustRequest, DigestSubscriber,
-        FilingAlert, TrustCandidate,
+        FilingAlert, TrustCandidate, LiveFeedItem,
     )
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()
