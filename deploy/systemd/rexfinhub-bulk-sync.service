@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
-EnvironmentFile=/etc/rexfinhub/env
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
 Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
 ExecStart=/home/jarvis/venv/bin/python -m etp_tracker.bulk_sync
 TimeoutStartSec=1800
