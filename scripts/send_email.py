@@ -226,9 +226,16 @@ def do_weekly(preview: bool):
         date = _data_date(db)
 
         # Weekly report
+        # Previous structure had a bug: `if not preview and not force` + `elif preview`
+        # skipped the entire block when both preview=False AND force=True. Restructure
+        # so --force correctly bypasses the dedup check but still sends.
         weekly_subject = f"REX Weekly ETP Report: {date}"
-        if not preview and not force:
-            prev = _already_sent_this_week("weekly_report")
+        if preview:
+            print(f"\n  Building {weekly_subject}...")
+            html = build_weekly_digest_html(db, DASHBOARD_URL)
+            _save_and_open(html, "weekly_report")
+        else:
+            prev = None if force else _already_sent_this_week("weekly_report")
             if prev:
                 print(f"\n  BLOCKED: weekly_report already sent this week ({prev})")
             else:
@@ -237,10 +244,6 @@ def do_weekly(preview: bool):
                 print(f"  {'Sent' if ok else 'FAILED'}: {weekly_subject}")
                 if ok:
                     _record_send("weekly_report")
-        elif preview:
-            print(f"\n  Building {weekly_subject}...")
-            html = build_weekly_digest_html(db, DASHBOARD_URL)
-            _save_and_open(html, "weekly_report")
 
         # Market reports (L&I, Income, Flow)
         for base_title, filename, builder, list_type in WEEKLY_REPORTS:
