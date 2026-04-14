@@ -128,6 +128,28 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
         .order_by(Filing.filing_date.desc())
     ).all()
 
+    # Pick the best prospectus link from the full history:
+    # 485BPOS > POS AM > S-3 > 485APOS > S-1 > latest. Prefer the most recent
+    # match at each tier. Overrides fund_status.prospectus_link which is
+    # computed per-pipeline-batch and falls through to the wrong link when
+    # the authoritative filing is older than the current batch.
+    def _pick_prospectus_link(exts):
+        def latest(predicate):
+            for row in exts:
+                form = (row.form or "").upper()
+                if predicate(form) and row.primary_link:
+                    return row.primary_link
+            return None
+        return (
+            latest(lambda f: f.startswith("485B") and "BXT" not in f)
+            or latest(lambda f: f == "POS AM")
+            or latest(lambda f: f.startswith("S-3"))
+            or latest(lambda f: f.startswith("485A"))
+            or latest(lambda f: f.startswith("S-1"))
+            or (exts[0].primary_link if exts else None)
+        )
+    best_prospectus_link = _pick_prospectus_link(extractions) or fund.prospectus_link
+
     # 13F disabled on production — always empty
     holders_13f = []
     holders_count = 0
@@ -141,6 +163,7 @@ def fund_detail(series_id: str, request: Request, db: Session = Depends(get_db))
         "trust": trust,
         "names": names,
         "extractions": extractions,
+        "best_prospectus_link": best_prospectus_link,
         "holders_13f": holders_13f,
         "holders_count": holders_count,
         "holders_total_value": holders_total_value,

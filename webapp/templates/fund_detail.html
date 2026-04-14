@@ -44,10 +44,10 @@
     <div class="meta-value" style="font-size:13px; font-weight:normal;">{{ fund.status_reason }}</div>
   </div>
   {% endif %}
-  {% if fund.prospectus_link %}
+  {% if best_prospectus_link %}
   <div class="meta-item">
     <div class="meta-label">Prospectus</div>
-    <div class="meta-value"><a href="{{ fund.prospectus_link }}" target="_blank">View on SEC</a></div>
+    <div class="meta-value"><a href="{{ best_prospectus_link }}" target="_blank">View on SEC</a></div>
   </div>
   {% endif %}
 </div>
