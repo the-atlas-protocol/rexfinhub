@@ -757,6 +757,60 @@ class EmailRecipient(Base):
 
 
 
+# --- Universal Fund Taxonomy ---
+
+class FundTaxonomy(Base):
+    """Universal Morningstar/Bloomberg-style classification for every fund.
+
+    Independent of the 5 tracked categories (LI/CC/Crypto/Defined/Thematic)
+    which drive existing REX reports. This table provides a granular,
+    screener-ready taxonomy over the entire Bloomberg universe regardless
+    of market status — liquidated and delisted funds included, so history
+    attributes correctly.
+
+    Populated by tools/rules_editor/ai_classify.py using Claude Haiku.
+    Each fund has one primary category; sub_category narrows within it.
+    Asset tags, region, sector, and factor tags are stored as JSON lists
+    for flexible screening.
+    """
+    __tablename__ = "fund_taxonomy"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(30), nullable=False)
+    fund_name: Mapped[str | None] = mapped_column(String(300))
+    issuer: Mapped[str | None] = mapped_column(String(200))
+    market_status: Mapped[str | None] = mapped_column(String(20))  # ACTV, LIQU, DLST, etc
+
+    # Core classification
+    primary_category: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., "Equity", "Fixed Income"
+    sub_category: Mapped[str | None] = mapped_column(String(100))               # e.g., "Large Cap Value"
+    asset_class: Mapped[str | None] = mapped_column(String(50))                 # Equity, Bond, Commodity, etc
+    region: Mapped[str | None] = mapped_column(String(50))                      # US, Intl Developed, EM, Global
+    sector: Mapped[str | None] = mapped_column(String(50))                      # Tech, Financials, etc (if applicable)
+
+    # Screener-friendly tags (JSON arrays)
+    style_tags: Mapped[str | None] = mapped_column(Text)        # ["Value", "High Dividend"]
+    factor_tags: Mapped[str | None] = mapped_column(Text)       # ["Low Vol", "Momentum"]
+    thematic_tags: Mapped[str | None] = mapped_column(Text)     # ["AI", "Robotics"]
+
+    # Provenance
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="ai")  # ai, manual, rule
+    model: Mapped[str | None] = mapped_column(String(50))       # claude-haiku-4-5-20251001
+    confidence: Mapped[str | None] = mapped_column(String(10))  # HIGH, MEDIUM, LOW
+    rationale: Mapped[str | None] = mapped_column(Text)         # One-sentence why
+
+    # Timestamps
+    classified_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("ticker", name="uq_fund_taxonomy_ticker"),
+        Index("idx_fund_taxonomy_primary", "primary_category"),
+        Index("idx_fund_taxonomy_status", "market_status"),
+        Index("idx_fund_taxonomy_asset", "asset_class"),
+    )
+
+
 # --- REX Product Pipeline ---
 
 class RexProduct(Base):
