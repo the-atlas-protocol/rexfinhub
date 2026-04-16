@@ -290,6 +290,8 @@ def create_app() -> FastAPI:
     app.include_router(global_search.router)
     app.include_router(analytics.router)
     app.include_router(reports.router)
+    from webapp.routers import capm
+    app.include_router(capm.router)
 
     # Health check -- Render uses this for zero-downtime deploys.
     # Returns 503 until caches are warm so Render keeps the old instance

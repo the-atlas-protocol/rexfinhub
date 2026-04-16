@@ -4,6 +4,9 @@
 {% block head %}
 <style>
 .page-wrap { max-width: 1320px; margin: 0 auto; padding: 20px; }
+.breadcrumb { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+.breadcrumb a { color: #1F3864; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
 h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
 .subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
 
@@ -87,7 +90,11 @@ h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
 
 {% block content %}
 <div class="page-wrap">
-  <h1>REX Product Pipeline</h1>
+  <div class="breadcrumb">
+    <span>Pipeline Calendar</span>
+    &middot; <a href="/pipeline/products">Products</a>
+  </div>
+  <h1>Pipeline Calendar</h1>
   <div class="subtitle">Filings, effectives, launches, distributions, and market holidays.</div>
 
   <div class="kpi-row">

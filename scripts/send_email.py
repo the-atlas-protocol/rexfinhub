@@ -376,6 +376,20 @@ def main():
         print(f"  Market sync failed (non-fatal): {e}")
         import traceback; traceback.print_exc()
 
+    # Bloomberg staleness guard — abort if data is too old
+    if not preview:
+        try:
+            from webapp.services.bbg_file import get_bloomberg_file
+            bbg_path = get_bloomberg_file()
+            bbg_age_hours = (datetime.now().timestamp() - bbg_path.stat().st_mtime) / 3600
+            if bbg_age_hours > 26:
+                print(f"\n  ABORT: Bloomberg file is {bbg_age_hours:.0f}h old (max 26h). Not sending stale reports.")
+                print(f"  File: {bbg_path}")
+                print(f"  Update Bloomberg data and retry.")
+                sys.exit(1)
+        except Exception as e:
+            print(f"  Bloomberg freshness check failed (non-fatal): {e}")
+
     # Per-report duplicate guards are inside do_daily/do_weekly.
     # Daily: blocks same-day resend per report.
     # Weekly: blocks same-week resend per report.

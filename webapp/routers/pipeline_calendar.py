@@ -1,4 +1,4 @@
-"""REX Product Pipeline Calendar — public, every-person-at-REX view.
+"""REX Product Pipeline Calendar + Products — public, every-person-at-REX view.
 
 Shows multiple event types on a single month calendar:
   - Filings (new 485APOS or similar from SEC pipeline)
@@ -10,20 +10,26 @@ Shows multiple event types on a single month calendar:
 All events are colored by type. Day cells show event counts. Click a day
 to see a side panel with everything happening that day.
 
+The /pipeline/products page is the "home of operations" combining summary
+KPIs with the full product table, sortable columns, and CSV export.
+
 No admin auth — intentionally public so the whole REX team can see it.
 """
 from __future__ import annotations
 
 import calendar as cal_mod
+import csv
+import io
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
+from starlette.responses import StreamingResponse
 
 from webapp.dependencies import get_db
 
@@ -67,12 +73,30 @@ def pipeline_home(
     return _render_month(request, db, today.year, today.month, types)
 
 
-@router.get("/summary", response_class=HTMLResponse)
-def pipeline_summary(request: Request, db: Session = Depends(get_db)):
-    """Pipeline activity summary — KPIs + recent-activity tables.
+VALID_STATUSES = ["Research", "Target List", "Filed", "Awaiting Effective", "Listed", "Delisted"]
+VALID_SUITES = list(SUITE_COLORS.keys())
 
-    Focused on "what's happening this month / next month" so the team
-    can see T-REX launch urgency at a glance.
+
+@router.get("/summary")
+def pipeline_summary(request: Request):
+    """Redirect old summary URL to the new products page."""
+    return RedirectResponse(url="/pipeline/products", status_code=301)
+
+
+@router.get("/products", response_class=HTMLResponse)
+def pipeline_products(
+    request: Request,
+    status: str | None = None,
+    suite: str | None = None,
+    q: str | None = None,
+    urgency: str | None = None,
+    sort: str | None = None,
+    dir: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Pipeline Home of Operations — KPIs + full product table.
+
+    Public (no admin auth). Edit controls hidden for non-admins.
     """
     from webapp.models import RexProduct, FundDistribution
 
@@ -112,47 +136,17 @@ def pipeline_summary(request: Request, db: Session = Depends(get_db)):
         .count()
     )
 
-    # Urgent: effectives within 14 days
-    urgent_cutoff = today + timedelta(days=14)
-    urgent_pending = (
+    # Next launches — Filed/Awaiting with effective date in next 90 days
+    next_launches = (
         db.query(RexProduct)
         .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
-        .filter(RexProduct.estimated_effective_date.between(today, urgent_cutoff))
-        .order_by(RexProduct.estimated_effective_date)
-        .limit(20)
+        .filter(RexProduct.estimated_effective_date.between(today, quarter_ahead))
+        .order_by(RexProduct.estimated_effective_date.asc())
+        .limit(5)
         .all()
     )
 
-    # Overdue: target_listing_date passed but not yet Listed
-    overdue = (
-        db.query(RexProduct)
-        .filter(RexProduct.status != "Listed")
-        .filter(RexProduct.status != "Delisted")
-        .filter(RexProduct.target_listing_date.isnot(None))
-        .filter(RexProduct.target_listing_date < today)
-        .order_by(RexProduct.target_listing_date)
-        .limit(20)
-        .all()
-    )
-
-    # Recent filings (last 14 days)
-    recent_filings = (
-        db.query(RexProduct)
-        .filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
-        .order_by(RexProduct.initial_filing_date.desc())
-        .limit(30)
-        .all()
-    )
-
-    # Upcoming distributions (next 14 days)
-    upcoming_dists = (
-        db.query(FundDistribution)
-        .filter(FundDistribution.ex_date.between(today, today + timedelta(days=14)))
-        .order_by(FundDistribution.ex_date, FundDistribution.ticker)
-        .all()
-    )
-
-    # Cycle time stats — for already-listed products
+    # Cycle time stats
     listed_products = (
         db.query(RexProduct)
         .filter(RexProduct.status == "Listed")
@@ -165,39 +159,136 @@ def pipeline_summary(request: Request, db: Session = Depends(get_db)):
         for p in listed_products
         if p.official_listed_date and p.initial_filing_date
     ]
-    cycle_days = [d for d in cycle_days if 0 <= d <= 400]  # filter outliers
+    cycle_days = [d for d in cycle_days if 0 <= d <= 400]
     avg_cycle = int(sum(cycle_days) / len(cycle_days)) if cycle_days else None
     min_cycle = min(cycle_days) if cycle_days else None
     max_cycle = max(cycle_days) if cycle_days else None
 
-    # By-suite activity
-    from sqlalchemy import func as _func
+    # ---- Urgency counts (unfiltered, for pill badges) ----
+    urgency_counts = {
+        "urgent": db.query(RexProduct)
+            .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+            .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=14)))
+            .count(),
+        "upcoming": db.query(RexProduct)
+            .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+            .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=60)))
+            .count(),
+        "overdue": db.query(RexProduct)
+            .filter(RexProduct.status.notin_(["Listed", "Delisted"]))
+            .filter(RexProduct.target_listing_date.isnot(None))
+            .filter(RexProduct.target_listing_date < today)
+            .count(),
+        "recent_filings": db.query(RexProduct)
+            .filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
+            .count(),
+        "recent_launches": db.query(RexProduct)
+            .filter(RexProduct.official_listed_date >= today - timedelta(days=30))
+            .count(),
+    }
+
+    # Status/suite counts (unfiltered)
+    status_counts = dict(
+        db.query(RexProduct.status, func.count(RexProduct.id))
+        .group_by(RexProduct.status).all()
+    )
+    suite_counts = dict(
+        db.query(RexProduct.product_suite, func.count(RexProduct.id))
+        .group_by(RexProduct.product_suite).all()
+    )
+
+    # ---- By-suite breakdown ----
     suite_breakdown = {}
-    for suite, cnt in (
-        db.query(RexProduct.product_suite, _func.count(RexProduct.id))
-        .group_by(RexProduct.product_suite)
-        .all()
+    for s, cnt in (
+        db.query(RexProduct.product_suite, func.count(RexProduct.id))
+        .group_by(RexProduct.product_suite).all()
     ):
-        if not suite:
+        if not s:
             continue
-        suite_breakdown[suite] = {"total": cnt}
-    for suite in suite_breakdown:
-        suite_breakdown[suite]["listed"] = (
+        suite_breakdown[s] = {"total": cnt}
+    for s in suite_breakdown:
+        suite_breakdown[s]["listed"] = (
             db.query(RexProduct)
-            .filter(RexProduct.product_suite == suite)
-            .filter(RexProduct.status == "Listed")
+            .filter(RexProduct.product_suite == s, RexProduct.status == "Listed")
             .count()
         )
-        suite_breakdown[suite]["filed"] = (
+        suite_breakdown[s]["filed"] = (
             db.query(RexProduct)
-            .filter(RexProduct.product_suite == suite)
-            .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+            .filter(RexProduct.product_suite == s, RexProduct.status.in_(["Filed", "Awaiting Effective"]))
             .count()
         )
 
-    return templates.TemplateResponse("pipeline_summary.html", {
+    # ---- Build filtered product query ----
+    query = db.query(RexProduct)
+
+    if status:
+        query = query.filter(RexProduct.status == status)
+    if suite:
+        query = query.filter(RexProduct.product_suite == suite)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(
+            RexProduct.name.ilike(like),
+            RexProduct.ticker.ilike(like),
+            RexProduct.underlier.ilike(like),
+            RexProduct.trust.ilike(like),
+        ))
+
+    if urgency == "urgent":
+        cutoff = today + timedelta(days=14)
+        query = query.filter(
+            RexProduct.status.in_(["Filed", "Awaiting Effective"]),
+            RexProduct.estimated_effective_date.between(today, cutoff),
+        )
+    elif urgency == "upcoming":
+        cutoff = today + timedelta(days=60)
+        query = query.filter(
+            RexProduct.status.in_(["Filed", "Awaiting Effective"]),
+            RexProduct.estimated_effective_date.between(today, cutoff),
+        )
+    elif urgency == "overdue":
+        query = query.filter(
+            RexProduct.status != "Listed",
+            RexProduct.status != "Delisted",
+            RexProduct.target_listing_date.isnot(None),
+            RexProduct.target_listing_date < today,
+        )
+    elif urgency == "recent_filings":
+        query = query.filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
+    elif urgency == "recent_launches":
+        query = query.filter(RexProduct.official_listed_date >= today - timedelta(days=30))
+
+    # ---- Server-side sort (default: status asc, effective asc, name asc) ----
+    sort_col = sort or "status"
+    sort_dir = dir or "asc"
+    _asc = sort_dir != "desc"
+    sort_map = {
+        "status": RexProduct.status,
+        "effective": RexProduct.estimated_effective_date,
+        "name": RexProduct.name,
+        "ticker": RexProduct.ticker,
+        "suite": RexProduct.product_suite,
+        "filed": RexProduct.initial_filing_date,
+        "listed": RexProduct.official_listed_date,
+    }
+    col = sort_map.get(sort_col)
+    if col is not None:
+        query = query.order_by(col.asc().nulls_last() if _asc else col.desc().nulls_last())
+    else:
+        query = query.order_by(
+            RexProduct.status.asc(),
+            RexProduct.estimated_effective_date.asc().nulls_last(),
+            RexProduct.name.asc(),
+        )
+
+    products = query.limit(1000).all()
+
+    is_admin = request.session.get("is_admin", False)
+
+    return templates.TemplateResponse("pipeline_products.html", {
         "request": request,
         "today": today,
+        "is_admin": is_admin,
         # KPIs
         "total": total,
         "listed": listed,
@@ -208,20 +299,91 @@ def pipeline_summary(request: Request, db: Session = Depends(get_db)):
         "launches_last_30d": launches_last_30d,
         "effectives_next_30d": effectives_next_30d,
         "effectives_next_90d": effectives_next_90d,
-        # Lists
-        "urgent_pending": urgent_pending,
-        "overdue": overdue,
-        "recent_filings": recent_filings,
-        "upcoming_dists": upcoming_dists,
+        "next_launches": next_launches,
         # Cycle time
         "avg_cycle": avg_cycle,
         "min_cycle": min_cycle,
         "max_cycle": max_cycle,
         "cycle_sample": len(cycle_days),
-        # By suite
+        # Counts
+        "urgency_counts": urgency_counts,
+        "status_counts": status_counts,
+        "suite_counts": suite_counts,
+        # Suite breakdown
         "suite_breakdown": suite_breakdown,
         "suite_colors": SUITE_COLORS,
+        # Products
+        "products": products,
+        "filtered_count": len(products),
+        # Filter state
+        "valid_statuses": VALID_STATUSES,
+        "valid_suites": VALID_SUITES,
+        "filter_status": status or "",
+        "filter_suite": suite or "",
+        "filter_q": q or "",
+        "filter_urgency": urgency or "",
+        "sort_col": sort_col,
+        "sort_dir": sort_dir,
     })
+
+
+@router.get("/distributions/export.csv")
+def distributions_csv(
+    request: Request,
+    year: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """Export distribution schedule as CSV, optionally filtered by year.
+
+    Joins FundDistribution with MktMasterData (on normalized ticker) to
+    include CUSIP.
+    """
+    from webapp.models import FundDistribution, MktMasterData
+
+    query = db.query(FundDistribution)
+    if year:
+        start = date(year, 1, 1)
+        end = date(year, 12, 31)
+        query = query.filter(FundDistribution.ex_date.between(start, end))
+    query = query.order_by(FundDistribution.ex_date, FundDistribution.ticker)
+    dists = query.all()
+
+    # Build ticker -> CUSIP lookup from MktMasterData (strip " US" suffix)
+    all_mkt = db.query(MktMasterData.ticker, MktMasterData.cusip).all()
+    cusip_map: dict[str, str] = {}
+    for mkt_ticker, mkt_cusip in all_mkt:
+        if not mkt_ticker:
+            continue
+        normalized = mkt_ticker.replace(" US", "").replace(" us", "").strip()
+        if mkt_cusip:
+            cusip_map[normalized] = mkt_cusip
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Fund Name", "Ticker", "CUSIP", "Declaration Date",
+        "Ex Date", "Record Date", "Payable Date",
+    ])
+    for d in dists:
+        dist_ticker_norm = (d.ticker or "").replace(" US", "").replace(" us", "").strip()
+        cusip = cusip_map.get(dist_ticker_norm, "")
+        writer.writerow([
+            d.fund_name or "",
+            d.ticker or "",
+            cusip,
+            d.declaration_date.isoformat() if d.declaration_date else "",
+            d.ex_date.isoformat() if d.ex_date else "",
+            d.record_date.isoformat() if d.record_date else "",
+            d.payable_date.isoformat() if d.payable_date else "",
+        ])
+
+    output.seek(0)
+    filename = f"rex_distributions_{year or 'all'}.csv"
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/{year}/{month}", response_class=HTMLResponse)

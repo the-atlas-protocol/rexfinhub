@@ -1904,3 +1904,155 @@ def get_rex_performance(db: Session, suite: str | None = None) -> dict:
         })
 
     return {"summary": summary, "suites": suites_list}
+
+
+# ---------------------------------------------------------------------------
+# AUM Goal Tracker
+# ---------------------------------------------------------------------------
+
+def get_aum_goals(db: Session) -> dict | None:
+    """Load AUM goals from config and compute progress vs. current DB data.
+
+    Returns a dict with ``suites`` list and ``total`` dict, each entry having:
+    label, ye_2025, ye_2026_target, current_aum, progress_pct, growth_pct, on_track.
+
+    Returns None on any failure so the homepage degrades gracefully.
+    """
+    from datetime import date as _date
+    from pathlib import Path as _Path
+
+    try:
+        # 1. Load goals config
+        config_path = _Path(__file__).resolve().parent.parent.parent / "config" / "aum_goals.json"
+        if not config_path.exists():
+            log.warning("aum_goals.json not found at %s", config_path)
+            return None
+        goals = json.loads(config_path.read_text(encoding="utf-8"))
+
+        # 2. Query current AUM per suite (all REX products)
+        results = (
+            db.query(
+                MktMasterData.rex_suite,
+                func.sum(MktMasterData.aum).label("total_aum"),
+            )
+            .filter(
+                MktMasterData.is_rex == True,
+                MktMasterData.aum.isnot(None),
+            )
+            .group_by(MktMasterData.rex_suite)
+            .all()
+        )
+        suite_aum: dict[str, float] = {}
+        for row in results:
+            if row.rex_suite:
+                suite_aum[row.rex_suite.strip()] = float(row.total_aum or 0)
+
+        # 3. EPI US/EU split: query by ticker suffix within "Equity Premium Income"
+        epi_us_aum = 0.0
+        epi_eu_aum = 0.0
+        try:
+            epi_rows = (
+                db.query(
+                    MktMasterData.ticker,
+                    MktMasterData.aum,
+                )
+                .filter(
+                    MktMasterData.is_rex == True,
+                    MktMasterData.aum.isnot(None),
+                    MktMasterData.rex_suite == "Equity Premium Income",
+                )
+                .all()
+            )
+            for r in epi_rows:
+                ticker = (r.ticker or "").strip()
+                aum_val = float(r.aum or 0)
+                if ticker.endswith(" LN"):
+                    epi_eu_aum += aum_val
+                else:
+                    epi_us_aum += aum_val
+        except Exception:
+            # Fall back to total EPI if split fails
+            total_epi = suite_aum.get("Equity Premium Income", 0.0)
+            epi_us_aum = total_epi
+            epi_eu_aum = 0.0
+
+        # 4. Date progress for on_track calculation
+        today = _date.today()
+        jan1 = _date(today.year, 1, 1)
+        days_elapsed = (today - jan1).days
+        year_fraction = days_elapsed / 365.0
+
+        # 5. Build per-suite results
+        def _resolve_current_aum(entry: dict) -> float:
+            """Determine current AUM for a goal entry."""
+            key = entry["suite_key"]
+            region = entry.get("region")
+            if key == "Equity Premium Income":
+                if region == "EU":
+                    return epi_eu_aum
+                return epi_us_aum
+            return suite_aum.get(key, 0.0)
+
+        def _build_entry(entry: dict, current: float) -> dict:
+            ye25 = entry["ye_2025"]
+            target = entry["ye_2026_target"]
+            progress_pct = (current / target * 100) if target > 0 else 0.0
+            growth_pct = ((current - ye25) / ye25 * 100) if ye25 > 0 and current > 0 else None
+            expected = ye25 + year_fraction * (target - ye25)
+            on_track = current >= expected
+            return {
+                "label": entry["label"],
+                "ye_2025": ye25,
+                "ye_2026_target": target,
+                "current_aum": round(current, 1),
+                "progress_pct": round(progress_pct, 1),
+                "growth_pct": round(growth_pct, 1) if growth_pct is not None else None,
+                "on_track": on_track,
+            }
+
+        suite_entries = []
+        total_current = 0.0
+        for entry in goals["suites"]:
+            current = _resolve_current_aum(entry)
+            total_current += current
+            suite_entries.append(_build_entry(entry, current))
+
+        # 6. Total row
+        t = goals["total"]
+        total_progress = (total_current / t["ye_2026_target"] * 100) if t["ye_2026_target"] > 0 else 0.0
+        total_growth = ((total_current - t["ye_2025"]) / t["ye_2025"] * 100) if t["ye_2025"] > 0 else None
+        total_expected = t["ye_2025"] + year_fraction * (t["ye_2026_target"] - t["ye_2025"])
+        total_on_track = total_current >= total_expected
+
+        # Market data date for subtitle
+        market_date = None
+        try:
+            market_date = db.execute(
+                select(func.max(MktMasterData.pipeline_run_id))
+            ).scalar()
+            if market_date:
+                run_date = db.execute(
+                    select(MktPipelineRun.finished_at)
+                    .where(MktPipelineRun.id == market_date)
+                ).scalar()
+                market_date = run_date.strftime("%Y-%m-%d") if run_date else None
+        except Exception:
+            pass
+
+        return {
+            "suites": suite_entries,
+            "total": {
+                "label": "Total REX AUM",
+                "ye_2025": t["ye_2025"],
+                "ye_2026_target": t["ye_2026_target"],
+                "current_aum": round(total_current, 1),
+                "progress_pct": round(total_progress, 1),
+                "growth_pct": round(total_growth, 1) if total_growth is not None else None,
+                "on_track": total_on_track,
+            },
+            "data_date": market_date,
+        }
+
+    except Exception as e:
+        log.warning("get_aum_goals failed: %s", e)
+        return None

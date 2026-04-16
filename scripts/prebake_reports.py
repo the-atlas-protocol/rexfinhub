@@ -150,10 +150,18 @@ def _bake_one(report_key: str, builder, db) -> tuple[bytes | None, str | None]:
 
 
 def _save_local(report_key: str, html_bytes: bytes) -> Path:
-    """Write the baked HTML to the local prebaked_reports/ dir."""
+    """Write the baked HTML and meta.json sidecar to the local prebaked_reports/ dir."""
+    import json as _json
     LOCAL_BAKE_DIR.mkdir(parents=True, exist_ok=True)
     out = LOCAL_BAKE_DIR / f"{report_key}.html"
     out.write_bytes(html_bytes)
+    meta = {
+        "baked_at": datetime.now().isoformat(),
+        "size_bytes": len(html_bytes),
+        "report_key": report_key,
+    }
+    meta_path = LOCAL_BAKE_DIR / f"{report_key}.meta.json"
+    meta_path.write_text(_json.dumps(meta, indent=2), encoding="utf-8")
     return out
 
 

@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block title %}Pipeline Products — REX Financial{% endblock %}
+
+{% block head %}
+<style>
+.page-wrap { max-width:1500px; margin:0 auto; padding:20px; }
+.breadcrumb { font-size:12px; color:#94a3b8; margin-bottom:8px; }
+.breadcrumb a { color:#1F3864; text-decoration:none; }
+.breadcrumb a:hover { text-decoration:underline; }
+h1 { font-size:22px; font-weight:700; color:#0f172a; margin:0 0 4px; }
+.subtitle { font-size:13px; color:#64748b; margin-bottom:20px; }
+h2 { font-size:13px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.05em; margin:28px 0 12px; }
+
+/* KPI Grid */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:12px; }
+.kpi { background:#f8fafc; border:1px solid #e5e7eb; border-left:3px solid #0f172a; border-radius:6px; padding:12px 16px; }
+.kpi .num { font-size:28px; font-weight:800; color:#0f172a; line-height:1; }
+.kpi .label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:5px; }
+.kpi.green  { border-left-color:#059669; } .kpi.green  .num { color:#059669; }
+.kpi.blue   { border-left-color:#2563eb; } .kpi.blue   .num { color:#2563eb; }
+.kpi.amber  { border-left-color:#d97706; } .kpi.amber  .num { color:#d97706; }
+.kpi.red    { border-left-color:#dc2626; } .kpi.red    .num { color:#dc2626; }
+.kpi.cyan   { border-left-color:#0891b2; } .kpi.cyan   .num { color:#0891b2; }
+
+/* Next Launches card */
+.next-launches-card {
+  background:#fff; border:1px solid #e5e7eb; border-left:3px solid #059669;
+  border-radius:6px; padding:14px 18px; margin-bottom:12px;
+}
+.next-launches-card .card-title {
+  font-size:11px; font-weight:700; color:#059669; text-transform:uppercase;
+  letter-spacing:0.05em; margin-bottom:10px;
+}
+.nl-row { display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #f1f5f9; }
+.nl-row:last-child { border-bottom:none; }
+.nl-ticker { font-family:monospace; font-weight:700; color:#1F3864; min-width:60px; }
+.nl-name { flex:1; font-size:12px; color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nl-date { font-size:11px; color:#64748b; font-family:monospace; min-width:80px; text-align:right; }
+.nl-countdown { font-size:11px; font-weight:700; min-width:50px; text-align:right; }
+.nl-countdown.urgent { color:#dc2626; }
+.nl-countdown.soon { color:#d97706; }
+.nl-countdown.ok { color:#64748b; }
+
+/* Cycle time */
+.cycle-block {
+  background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:14px 18px;
+  display:flex; gap:24px; flex-wrap:wrap; margin-bottom:12px;
+}
+.cycle-metric { font-size:24px; font-weight:800; color:#0f172a; }
+.cycle-metric-label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:2px; }
+
+/* Filter panel */
+.filter-panel { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:14px 18px; margin-bottom:14px; }
+.filter-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+.filter-row:last-child { margin-bottom:0; }
+.filter-row label { font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:600; letter-spacing:0.04em; }
+.filter-row input, .filter-row select { padding:6px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; font-family:inherit; }
+
+.urgency-pills { display:flex; gap:6px; flex-wrap:wrap; }
+.urgency-pill {
+  padding:5px 10px; border:1px solid #e5e7eb; border-radius:15px; font-size:11px;
+  background:#fff; color:#64748b; cursor:pointer; text-decoration:none; font-weight:500;
+}
+.urgency-pill:hover { border-color:#1F3864; }
+.urgency-pill.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+.urgency-pill .count { opacity:0.7; margin-left:4px; }
+
+/* Action bar */
+.action-bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+.btn { padding:7px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; cursor:pointer; background:#fff; color:#0f172a; text-decoration:none; font-weight:500; }
+.btn:hover { background:#f8fafc; border-color:#1F3864; }
+.btn-primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+.btn-primary:hover { background:#1e293b; }
+.btn-sm { padding:4px 8px; font-size:11px; }
+
+/* Table */
+.table-scroll { overflow-x:auto; background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
+table.pipeline-table { width:100%; border-collapse:collapse; font-size:12px; }
+table.pipeline-table th {
+  background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px;
+  text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb;
+  letter-spacing:0.04em; white-space:nowrap; cursor:pointer; user-select:none;
+  position:relative;
+}
+table.pipeline-table th:hover { color:#0f172a; }
+table.pipeline-table th .sort-arrow { font-size:9px; margin-left:3px; opacity:0.3; }
+table.pipeline-table th.sort-asc .sort-arrow { opacity:1; }
+table.pipeline-table th.sort-desc .sort-arrow { opacity:1; }
+table.pipeline-table td { padding:6px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; white-space:nowrap; }
+table.pipeline-table tr:hover { background:#fafbfc; }
+
+.ticker-col { font-family:monospace; font-weight:700; color:#1F3864; }
+.name-col { max-width:280px; overflow:hidden; text-overflow:ellipsis; }
+
+.status-pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; text-transform:uppercase; }
+.status-Listed { background:#ecfdf5; color:#059669; }
+.status-Filed { background:#eff6ff; color:#2563eb; }
+.status-Research, .status-Target-List { background:#fffbeb; color:#d97706; }
+.status-Delisted { background:#fef2f2; color:#dc2626; }
+.status-Awaiting-Effective { background:#fef3c7; color:#b45309; }
+
+.suite-pill { display:inline-block; padding:2px 6px; border-radius:3px; font-size:10px; font-weight:600; }
+
+.days-badge { font-size:11px; font-weight:700; padding:1px 6px; border-radius:3px; }
+.days-badge.urgent { background:#fef2f2; color:#dc2626; }
+.days-badge.soon { background:#fffbeb; color:#d97706; }
+.days-badge.ok { background:#f1f5f9; color:#64748b; }
+
+.prospect-link { font-size:11px; color:#2563eb; text-decoration:none; }
+.prospect-link:hover { text-decoration:underline; }
+
+/* Suite breakdown */
+.suite-breakdown { background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; margin-top:20px; }
+.suite-breakdown-header {
+  padding:10px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb;
+  display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+}
+.suite-breakdown-header:hover { background:#f1f5f9; }
+.suite-breakdown-title { font-size:12px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.04em; }
+.suite-breakdown-toggle { font-size:11px; color:#64748b; }
+.suite-breakdown-body { display:none; }
+.suite-breakdown-body.open { display:block; }
+.suite-row {
+  display:flex; align-items:center; gap:10px; padding:8px 14px;
+  border-bottom:1px solid #f1f5f9;
+}
+.suite-row:last-child { border-bottom:none; }
+.suite-row .suite-name { flex:1; font-size:13px; font-weight:600; color:#0f172a; border-left:3px solid #64748b; padding-left:8px; }
+.suite-row .suite-counts { font-size:11px; color:#64748b; font-family:monospace; min-width:160px; }
+.suite-row .suite-bar { width:150px; height:6px; background:#e5e7eb; border-radius:3px; overflow:hidden; }
+.suite-row .suite-bar-fill { height:100%; border-radius:3px; }
+
+/* Edit modal (admin only) */
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; align-items:flex-start; justify-content:center; padding-top:40px; }
+.modal.open { display:flex; }
+.modal-box { background:#fff; border-radius:8px; padding:24px 28px; max-width:680px; width:95%; max-height:90vh; overflow-y:auto; }
+.modal h2 { margin:0 0 16px; font-size:16px; color:#0f172a; }
+.modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal-grid .span-2 { grid-column:1 / -1; }
+.modal label { display:block; font-size:10px; color:#64748b; text-transform:uppercase; margin-top:6px; margin-bottom:3px; font-weight:600; letter-spacing:0.04em; }
+.modal input, .modal select, .modal textarea { width:100%; padding:7px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; font-family:inherit; box-sizing:border-box; }
+.modal textarea { min-height:60px; resize:vertical; }
+.modal-actions { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="breadcrumb">
+    <a href="/pipeline">Pipeline Calendar</a> / <span>Products</span>
+  </div>
+  <h1>Pipeline Home of Operations</h1>
+  <div class="subtitle">Product lifecycle, KPIs, and operational status — {{ today.strftime('%B %d, %Y') }}</div>
+
+  {# ---- KPI Section ---- #}
+  <h2>Lifecycle</h2>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="num">{{ total }}</div><div class="label">Total Products</div></div>
+    <div class="kpi green"><div class="num">{{ listed }}</div><div class="label">Live (Listed)</div></div>
+    <div class="kpi blue"><div class="num">{{ filed }}</div><div class="label">Filed</div></div>
+    <div class="kpi cyan"><div class="num">{{ awaiting }}</div><div class="label">Awaiting Effective</div></div>
+    <div class="kpi amber"><div class="num">{{ research }}</div><div class="label">Research / Target</div></div>
+  </div>
+
+  <h2>Activity</h2>
+  <div class="kpi-grid">
+    <div class="kpi blue"><div class="num">{{ filings_last_7d }}</div><div class="label">Filings - Last 7d</div></div>
+    <div class="kpi green"><div class="num">{{ launches_last_30d }}</div><div class="label">Launches - Last 30d</div></div>
+    <div class="kpi cyan"><div class="num">{{ effectives_next_30d }}</div><div class="label">Effectives - Next 30d</div></div>
+    <div class="kpi cyan"><div class="num">{{ effectives_next_90d }}</div><div class="label">Effectives - Next 90d</div></div>
+  </div>
+
+  {# ---- Next Launches Card ---- #}
+  {% if next_launches %}
+  <div class="next-launches-card">
+    <div class="card-title">Next Launches (90-Day Window)</div>
+    {% for p in next_launches %}
+    {% set days_left = (p.estimated_effective_date - today).days %}
+    <div class="nl-row">
+      <span class="nl-ticker">{{ p.ticker or 'TBD' }}</span>
+      <span class="nl-name" title="{{ p.name }}">{{ p.name[:60] }}</span>
+      <span class="nl-date">{{ p.estimated_effective_date.strftime('%b %d, %Y') }}</span>
+      <span class="nl-countdown {% if days_left <= 7 %}urgent{% elif days_left <= 21 %}soon{% else %}ok{% endif %}">{{ days_left }}d</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ---- Cycle Time ---- #}
+  {% if avg_cycle is not none %}
+  <h2>Filing to Launch Cycle Time</h2>
+  <div class="cycle-block">
+    <div>
+      <div class="cycle-metric">{{ avg_cycle }}d</div>
+      <div class="cycle-metric-label">Average</div>
+    </div>
+    <div>
+      <div class="cycle-metric">{{ min_cycle }}d</div>
+      <div class="cycle-metric-label">Fastest</div>
+    </div>
+    <div>
+      <div class="cycle-metric">{{ max_cycle }}d</div>
+      <div class="cycle-metric-label">Slowest</div>
+    </div>
+    <div>
+      <div class="cycle-metric">{{ cycle_sample }}</div>
+      <div class="cycle-metric-label">Sample Size</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---- Filter Bar ---- #}
+  <h2>Products</h2>
+  <form method="get" action="/pipeline/products" class="filter-panel">
+    <div class="filter-row">
+      <label>Search</label>
+      <input type="text" name="q" placeholder="Ticker, name, underlier, trust..." value="{{ filter_q }}" style="flex:1; min-width:220px;">
+
+      <label>Status</label>
+      <select name="status">
+        <option value="">All</option>
+        {% for s in valid_statuses %}
+        <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }} ({{ status_counts.get(s, 0) }})</option>
+        {% endfor %}
+      </select>
+
+      <label>Suite</label>
+      <select name="suite">
+        <option value="">All</option>
+        {% for s in valid_suites %}
+        <option value="{{ s }}" {% if filter_suite == s %}selected{% endif %}>{{ s }} ({{ suite_counts.get(s, 0) }})</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-primary">Apply</button>
+      <a href="/pipeline/products" class="btn">Clear</a>
+    </div>
+
+    <div class="filter-row">
+      <label>Quick</label>
+      <div class="urgency-pills">
+        <a href="/pipeline/products" class="urgency-pill {% if not filter_urgency %}active{% endif %}">All</a>
+        <a href="/pipeline/products?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}">Urgent &lt;14d <span class="count">{{ urgency_counts.urgent }}</span></a>
+        <a href="/pipeline/products?urgency=upcoming" class="urgency-pill {% if filter_urgency == 'upcoming' %}active{% endif %}">Next 60d <span class="count">{{ urgency_counts.upcoming }}</span></a>
+        <a href="/pipeline/products?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}">Overdue <span class="count">{{ urgency_counts.overdue }}</span></a>
+        <a href="/pipeline/products?urgency=recent_filings" class="urgency-pill {% if filter_urgency == 'recent_filings' %}active{% endif %}">Recent Filings <span class="count">{{ urgency_counts.recent_filings }}</span></a>
+        <a href="/pipeline/products?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
+      </div>
+    </div>
+  </form>
+
+  {# ---- Action Bar ---- #}
+  <div class="action-bar">
+    {% if is_admin %}
+    <button onclick="openAddModal()" class="btn btn-primary">+ Add Product</button>
+    {% endif %}
+    <a href="/pipeline/distributions/export.csv?year={{ today.year }}" class="btn">Export Distributions CSV</a>
+    <a href="/pipeline" class="btn">Pipeline Calendar</a>
+    <span style="flex:1;"></span>
+    <span style="font-size:12px; color:#64748b;">Showing {{ filtered_count }} of {{ total }}</span>
+  </div>
+
+  {# ---- Products Table ---- #}
+  <div class="table-scroll">
+    <table class="pipeline-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0, 'text')">Ticker <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(1, 'text')">Name <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(2, 'text')">Suite <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(3, 'text')">Status <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(4, 'text')">Underlier <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(5, 'date')">Filed <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(6, 'date')">Est. Effective <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(7, 'number')">In <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(8, 'date')">Listed <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(9, 'text')">Form <span class="sort-arrow">&#9650;&#9660;</span></th>
+          {% if is_admin %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
+        <tr>
+          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}">{{ p.ticker or '---' }}</td>
+          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}">{{ p.name[:55] }}</td>
+          <td data-sort="{{ (p.product_suite or '').lower() }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
+          <td data-sort="{{ p.status }}"><span class="status-pill status-{{ p.status.replace(' ', '-') }}">{{ p.status }}</span></td>
+          <td data-sort="{{ (p.underlier or '').lower() }}">{{ p.underlier or '---' }}</td>
+          <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
+          <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
+          <td data-sort="{% if p.estimated_effective_date and p.status in ['Filed', 'Awaiting Effective'] %}{{ (p.estimated_effective_date - today).days }}{% else %}9999{% endif %}">
+            {% if p.estimated_effective_date and p.status in ['Filed', 'Awaiting Effective'] %}
+              {% set days_left = (p.estimated_effective_date - today).days %}
+              {% if days_left >= 0 %}
+                <span class="days-badge {% if days_left <= 3 %}urgent{% elif days_left <= 14 %}soon{% else %}ok{% endif %}">{{ days_left }}d</span>
+              {% else %}
+                <span class="days-badge urgent">{{ days_left }}d</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td data-sort="{{ p.official_listed_date.isoformat() if p.official_listed_date else '' }}">{{ p.official_listed_date.strftime('%Y-%m-%d') if p.official_listed_date else '---' }}</td>
+          <td data-sort="{{ (p.latest_form or '').lower() }}">
+            {% if p.latest_prospectus_link %}
+              <a href="{{ p.latest_prospectus_link }}" target="_blank" class="prospect-link">{{ p.latest_form or 'link' }}</a>
+            {% else %}
+              <span style="color:#cbd5e1;">{{ p.latest_form or '---' }}</span>
+            {% endif %}
+          </td>
+          {% if is_admin %}
+          <td>
+            <button type="button" onclick='openEditModal({{ p.id }}, {{ {
+              "name": p.name,
+              "status": p.status,
+              "product_suite": p.product_suite,
+              "ticker": p.ticker or "",
+              "underlier": p.underlier or "",
+              "direction": p.direction or "",
+              "trust": p.trust or "",
+              "initial_filing_date": (p.initial_filing_date.isoformat() if p.initial_filing_date else ""),
+              "estimated_effective_date": (p.estimated_effective_date.isoformat() if p.estimated_effective_date else ""),
+              "target_listing_date": (p.target_listing_date.isoformat() if p.target_listing_date else ""),
+              "seed_date": (p.seed_date.isoformat() if p.seed_date else ""),
+              "official_listed_date": (p.official_listed_date.isoformat() if p.official_listed_date else ""),
+              "mgt_fee": (p.mgt_fee if p.mgt_fee is not none else ""),
+              "lmm": p.lmm or "",
+              "exchange": p.exchange or "",
+              "notes": p.notes or ""
+            } | tojson }})' class="btn btn-sm">Edit</button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ---- Per-Suite Breakdown ---- #}
+  <div class="suite-breakdown">
+    <div class="suite-breakdown-header" onclick="toggleSuiteBreakdown()">
+      <span class="suite-breakdown-title">Breakdown by Suite</span>
+      <span class="suite-breakdown-toggle" id="suiteToggleLabel">Show</span>
+    </div>
+    <div class="suite-breakdown-body" id="suiteBreakdownBody">
+      {% for s, stats in suite_breakdown.items() | sort(attribute='1.total', reverse=true) %}
+      <div class="suite-row">
+        <div class="suite-name" style="border-left-color:{{ suite_colors.get(s, '#64748b') }};">{{ s }}</div>
+        <div class="suite-counts">
+          {{ stats.listed }} live &middot;
+          {{ stats.filed }} filed &middot;
+          {{ stats.total }} total
+        </div>
+        <div class="suite-bar">
+          <div class="suite-bar-fill" style="width:{{ (100 * stats.listed / stats.total) | round if stats.total else 0 }}%; background:{{ suite_colors.get(s, '#64748b') }};"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{# ---- Edit Modal (admin only) ---- #}
+{% if is_admin %}
+<div id="editModal" class="modal">
+  <div class="modal-box">
+    <h2 id="editModalTitle">Edit Product</h2>
+    <form id="editForm" method="post">
+      <div class="modal-grid">
+        <div class="span-2">
+          <label>Name</label>
+          <input type="text" name="name" id="edit_name" required>
+        </div>
+        <div>
+          <label>Suite</label>
+          <select name="product_suite" id="edit_suite">
+            {% for s in valid_suites %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status" id="edit_status">
+            {% for s in valid_statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Ticker</label>
+          <input type="text" name="ticker" id="edit_ticker">
+        </div>
+        <div>
+          <label>Underlier</label>
+          <input type="text" name="underlier" id="edit_underlier">
+        </div>
+        <div>
+          <label>Direction</label>
+          <input type="text" name="direction" id="edit_direction" placeholder="Long / Short / Both">
+        </div>
+        <div>
+          <label>Trust</label>
+          <input type="text" name="trust" id="edit_trust">
+        </div>
+        <div>
+          <label>Initial Filing Date</label>
+          <input type="date" name="initial_filing_date" id="edit_initial_filing_date">
+        </div>
+        <div>
+          <label>Estimated Effective</label>
+          <input type="date" name="estimated_effective_date" id="edit_estimated_effective_date">
+        </div>
+        <div>
+          <label>Target Listing Date</label>
+          <input type="date" name="target_listing_date" id="edit_target_listing_date">
+        </div>
+        <div>
+          <label>Seed Date</label>
+          <input type="date" name="seed_date" id="edit_seed_date">
+        </div>
+        <div>
+          <label>Official Listed Date</label>
+          <input type="date" name="official_listed_date" id="edit_official_listed_date">
+        </div>
+        <div>
+          <label>Mgt Fee (%)</label>
+          <input type="number" step="0.01" name="mgt_fee" id="edit_mgt_fee">
+        </div>
+        <div>
+          <label>LMM</label>
+          <input type="text" name="lmm" id="edit_lmm">
+        </div>
+        <div>
+          <label>Exchange</label>
+          <input type="text" name="exchange" id="edit_exchange">
+        </div>
+        <div class="span-2">
+          <label>Notes</label>
+          <textarea name="notes" id="edit_notes"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="addModal" class="modal">
+  <div class="modal-box">
+    <h2>Add New Product</h2>
+    <form method="post" action="/admin/products/add">
+      <div class="modal-grid">
+        <div class="span-2">
+          <label>Name</label>
+          <input type="text" name="name" required>
+        </div>
+        <div>
+          <label>Suite</label>
+          <select name="product_suite">
+            {% for s in valid_suites %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status">
+            {% for s in valid_statuses %}<option value="{{ s }}" {% if s == 'Research' %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Ticker</label>
+          <input type="text" name="ticker">
+        </div>
+        <div>
+          <label>Underlier</label>
+          <input type="text" name="underlier">
+        </div>
+        <div>
+          <label>Direction</label>
+          <input type="text" name="direction">
+        </div>
+        <div>
+          <label>Trust</label>
+          <input type="text" name="trust">
+        </div>
+        <div class="span-2">
+          <label>Notes</label>
+          <textarea name="notes"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+/* Client-side column sort */
+function sortTable(colIdx, type) {
+    var table = document.querySelector('.pipeline-table');
+    var tbody = table.querySelector('tbody');
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    var header = table.querySelectorAll('th')[colIdx];
+    var asc = !header.classList.contains('sort-asc');
+
+    table.querySelectorAll('th').forEach(function(th) { th.classList.remove('sort-asc', 'sort-desc'); });
+    header.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+    rows.sort(function(a, b) {
+        var va = a.cells[colIdx].getAttribute('data-sort') || a.cells[colIdx].textContent.trim();
+        var vb = b.cells[colIdx].getAttribute('data-sort') || b.cells[colIdx].textContent.trim();
+        if (type === 'number') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+        if (type === 'date') { va = va ? new Date(va) : new Date(0); vb = vb ? new Date(vb) : new Date(0); }
+        if (va < vb) return asc ? -1 : 1;
+        if (va > vb) return asc ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(function(r) { tbody.appendChild(r); });
+}
+
+/* Suite breakdown toggle */
+function toggleSuiteBreakdown() {
+    var body = document.getElementById('suiteBreakdownBody');
+    var label = document.getElementById('suiteToggleLabel');
+    if (body.classList.contains('open')) {
+        body.classList.remove('open');
+        label.textContent = 'Show';
+    } else {
+        body.classList.add('open');
+        label.textContent = 'Hide';
+    }
+}
+
+{% if is_admin %}
+/* Edit modal (admin) */
+function openEditModal(id, data) {
+    document.getElementById('editForm').action = '/admin/products/update/' + id;
+    var fields = ['name', 'suite', 'status', 'ticker', 'underlier', 'direction', 'trust',
+                  'initial_filing_date', 'estimated_effective_date', 'target_listing_date',
+                  'seed_date', 'official_listed_date', 'mgt_fee', 'lmm', 'exchange', 'notes'];
+    for (var i = 0; i < fields.length; i++) {
+        var key = fields[i];
+        var fieldKey = key === 'suite' ? 'product_suite' : key;
+        var el = document.getElementById('edit_' + key);
+        if (el) el.value = data[fieldKey] || '';
+    }
+    document.getElementById('editModal').classList.add('open');
+}
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function closeModal() {
+    document.getElementById('editModal').classList.remove('open');
+    document.getElementById('addModal').classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal')) closeModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Capital Markets — REX Financial{% endblock %}
+
+{% block head %}
+<style>
+.page-wrap { max-width:1500px; margin:0 auto; padding:20px; }
+h1 { font-size:22px; font-weight:700; color:#0f172a; margin:0 0 4px; }
+.subtitle { font-size:13px; color:#64748b; margin-bottom:16px; }
+
+.kpi-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; }
+.kpi { background:#f8fafc; border:1px solid #e5e7eb; border-left:3px solid #0f172a; border-radius:6px; padding:10px 14px; }
+.kpi .num { font-size:22px; font-weight:800; color:#0f172a; line-height:1; }
+.kpi .label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:4px; }
+.kpi .sub { font-size:11px; color:#64748b; margin-top:2px; }
+.kpi.teal  { border-left-color:#0d9488; } .kpi.teal .num { color:#0d9488; }
+.kpi.blue  { border-left-color:#2563eb; } .kpi.blue .num { color:#2563eb; }
+.kpi.amber { border-left-color:#d97706; } .kpi.amber .num { color:#d97706; }
+.kpi.green { border-left-color:#059669; } .kpi.green .num { color:#059669; }
+
+.action-bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+.btn { padding:7px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; cursor:pointer; background:#fff; color:#0f172a; text-decoration:none; font-weight:500; }
+.btn:hover { background:#f8fafc; border-color:#1F3864; }
+
+.filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.filter-bar input, .filter-bar select { padding:6px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; font-family:inherit; }
+
+.suite-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.suite-tab {
+  padding:6px 14px; border:1px solid #e5e7eb; border-radius:100px; font-size:12px;
+  background:#fff; color:#64748b; cursor:pointer; text-decoration:none; font-weight:500;
+  transition: all 0.15s;
+}
+.suite-tab:hover { border-color:#1F3864; color:#0f172a; }
+.suite-tab.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+.suite-tab .count { opacity:0.7; margin-left:4px; font-size:11px; }
+
+.table-scroll { overflow-x:auto; background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
+table.capm { width:100%; border-collapse:collapse; font-size:12px; }
+table.capm th {
+  background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px;
+  text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb;
+  letter-spacing:0.04em; white-space:nowrap; cursor:pointer; user-select:none;
+}
+table.capm td { padding:6px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; white-space:nowrap; }
+table.capm tr:hover { background:#fafbfc; }
+
+.ticker-col { font-family:var(--font-mono, monospace); font-weight:700; color:#1F3864; }
+.name-col { max-width:320px; overflow:hidden; text-overflow:ellipsis; }
+.suite-pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; }
+.suite-T-REX     { background:#eff6ff; color:#2563eb; }
+.suite-REX       { background:#f0fdf4; color:#059669; }
+.suite-REX-OSPREY { background:#faf5ff; color:#7c3aed; }
+.suite-BMO       { background:#fffbeb; color:#d97706; }
+.suite-none      { background:#f1f5f9; color:#94a3b8; }
+
+.dir-Long    { color:#059669; }
+.dir-Inverse { color:#dc2626; }
+.dir-Short   { color:#dc2626; }
+
+.prospect-icon { color:#2563eb; text-decoration:none; font-size:13px; }
+.prospect-icon:hover { color:#1d4ed8; text-decoration:underline; }
+
+.btn-edit {
+  padding:3px 8px; border:1px solid #e5e7eb; border-radius:3px; font-size:10px;
+  background:#fff; color:#64748b; cursor:pointer; font-weight:500;
+}
+.btn-edit:hover { background:#f8fafc; border-color:#1F3864; color:#0f172a; }
+
+.msg-banner { background:#ecfdf5; border:1px solid #10b981; border-left:3px solid #059669; border-radius:4px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:#047857; }
+
+/* Edit modal */
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; align-items:flex-start; justify-content:center; padding-top:40px; }
+.modal.open { display:flex; }
+.modal-box { background:#fff; border-radius:8px; padding:24px 28px; max-width:600px; width:95%; max-height:90vh; overflow-y:auto; }
+.modal h2 { margin:0 0 16px; font-size:16px; color:#0f172a; }
+.modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal-grid .span-2 { grid-column:1 / -1; }
+.modal label { display:block; font-size:10px; color:#64748b; text-transform:uppercase; margin-top:6px; margin-bottom:3px; font-weight:600; letter-spacing:0.04em; }
+.modal input, .modal select, .modal textarea { width:100%; padding:7px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; font-family:inherit; box-sizing:border-box; }
+.modal textarea { min-height:60px; resize:vertical; }
+.modal-actions { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+.btn-primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+.btn-primary:hover { background:#1e293b; }
+
+.empty-state { text-align:center; padding:60px 20px; color:#94a3b8; }
+.empty-state h3 { color:#64748b; font-size:16px; margin-bottom:4px; }
+
+/* Dark mode overrides */
+[data-theme="dark"] .kpi { background:var(--card-bg); border-color:var(--border-subtle); }
+[data-theme="dark"] .kpi .num { color:var(--text-primary); }
+[data-theme="dark"] h1 { color:var(--text-primary); }
+[data-theme="dark"] table.capm th { background:var(--bg-secondary); color:var(--text-secondary); border-color:var(--border-subtle); }
+[data-theme="dark"] table.capm td { border-color:var(--border-subtle); }
+[data-theme="dark"] table.capm tr:hover { background:var(--bg-secondary); }
+[data-theme="dark"] .table-scroll { background:var(--card-bg); border-color:var(--border-subtle); }
+[data-theme="dark"] .suite-tab { background:var(--card-bg); border-color:var(--border-subtle); color:var(--text-secondary); }
+[data-theme="dark"] .suite-tab.active { background:var(--text-primary); color:var(--bg-primary); }
+[data-theme="dark"] .modal-box { background:var(--card-bg); }
+[data-theme="dark"] .modal h2 { color:var(--text-primary); }
+[data-theme="dark"] .filter-bar input, [data-theme="dark"] .filter-bar select { background:var(--bg-secondary); border-color:var(--border-subtle); color:var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <h1>Capital Markets</h1>
+  <div class="subtitle">REX product list — operational data, fees, service providers, and classification</div>
+
+  {% set msg = request.query_params.get('msg', '') %}
+  {% if msg == 'updated' %}
+    <div class="msg-banner">Product updated.</div>
+  {% endif %}
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="num">{{ total }}</div><div class="label">Total Products</div></div>
+    <div class="kpi teal">
+      <div class="num">{{ suite_counts.get('T-REX', 0) }}</div>
+      <div class="label">T-REX</div>
+      {% if avg_fees.get('T-REX') %}<div class="sub">Avg fee: ${{ avg_fees['T-REX']|int }}</div>{% endif %}
+    </div>
+    <div class="kpi blue">
+      <div class="num">{{ suite_counts.get('REX', 0) }}</div>
+      <div class="label">REX</div>
+      {% if avg_fees.get('REX') %}<div class="sub">Avg fee: ${{ avg_fees['REX']|int }}</div>{% endif %}
+    </div>
+    <div class="kpi green">
+      <div class="num">{{ suite_counts.get('REX-OSPREY', 0) }}</div>
+      <div class="label">REX-OSPREY</div>
+      {% if avg_fees.get('REX-OSPREY') %}<div class="sub">Avg fee: ${{ avg_fees['REX-OSPREY']|int }}</div>{% endif %}
+    </div>
+    <div class="kpi amber">
+      <div class="num">{{ suite_counts.get('BMO', 0) }}</div>
+      <div class="label">BMO</div>
+    </div>
+  </div>
+
+  <!-- Suite tabs -->
+  <div class="suite-tabs">
+    <a href="/capm/{% if filter_q %}?q={{ filter_q }}{% endif %}" class="suite-tab {% if not filter_suite %}active{% endif %}">All <span class="count">{{ total }}</span></a>
+    {% for s in valid_suites %}
+    <a href="/capm/?suite={{ s }}{% if filter_q %}&q={{ filter_q }}{% endif %}" class="suite-tab {% if filter_suite == s %}active{% endif %}">
+      {{ s }} <span class="count">{{ suite_counts.get(s, 0) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Filter + actions bar -->
+  <div class="action-bar">
+    <form method="get" class="filter-bar" style="flex:1;">
+      {% if filter_suite %}<input type="hidden" name="suite" value="{{ filter_suite }}">{% endif %}
+      <input type="text" name="q" placeholder="Search ticker, fund name, underlier, LMM..." value="{{ filter_q }}" style="min-width:280px; flex:1;">
+      <button type="submit" class="btn">Search</button>
+      {% if filter_q or filter_suite %}
+        <a href="/capm/" class="btn" style="color:#dc2626;">Clear</a>
+      {% endif %}
+    </form>
+    <a href="/capm/export.csv?{{ request.url.query }}" class="btn">Export CSV</a>
+    <span style="font-size:12px; color:#64748b;">{{ filtered_count }} of {{ total }}</span>
+  </div>
+
+  {% if products %}
+  <div class="table-scroll">
+    <table class="capm rt-table" id="capmTable">
+      <thead>
+        <tr>
+          <th class="rt-sortable" data-sort-col="0" data-sort-type="text">Ticker</th>
+          <th class="rt-sortable" data-sort-col="1" data-sort-type="text">Fund Name</th>
+          <th class="rt-sortable" data-sort-col="2" data-sort-type="text">Suite</th>
+          <th class="rt-sortable" data-sort-col="3" data-sort-type="date">Inception</th>
+          <th class="rt-sortable" data-sort-col="4" data-sort-type="text">Exchange</th>
+          <th class="rt-sortable" data-sort-col="5" data-sort-type="num">CU Size</th>
+          <th class="rt-sortable" data-sort-col="6" data-sort-type="num">Fixed Fee</th>
+          <th class="rt-sortable" data-sort-col="7" data-sort-type="text">LMM</th>
+          <th class="rt-sortable" data-sort-col="8" data-sort-type="text">Custodian</th>
+          <th class="rt-sortable" data-sort-col="9" data-sort-type="text">Leverage</th>
+          <th class="rt-sortable" data-sort-col="10" data-sort-type="text">Direction</th>
+          <th class="rt-sortable" data-sort-col="11" data-sort-type="text">Underlier</th>
+          <th>Prospectus</th>
+          {% if is_admin %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td class="ticker-col">{{ p.ticker or '--' }}</td>
+          <td class="name-col" title="{{ p.fund_name }}">{{ p.fund_name[:55] }}{% if p.fund_name|length > 55 %}...{% endif %}</td>
+          <td>
+            {% if p.suite_source %}
+              <span class="suite-pill suite-{{ p.suite_source }}">{{ p.suite_source }}</span>
+            {% else %}
+              <span class="suite-pill suite-none">--</span>
+            {% endif %}
+          </td>
+          <td>{{ p.inception_date.strftime('%Y-%m-%d') if p.inception_date else '--' }}</td>
+          <td>{{ p.exchange or '--' }}</td>
+          <td data-sort="{{ p.cu_size or '' }}">{{ p.cu_size or '--' }}</td>
+          <td data-sort="{{ p.fixed_fee or '' }}">{{ p.fixed_fee or '--' }}</td>
+          <td>{{ p.lmm or '--' }}</td>
+          <td>{{ p.custodian or '--' }}</td>
+          <td>{{ p.leverage or '--' }}</td>
+          <td>
+            {% if p.direction %}
+              <span class="dir-{{ p.direction }}">{{ p.direction }}</span>
+            {% else %}
+              --
+            {% endif %}
+          </td>
+          <td title="{{ p.underlying_name or '' }}">{{ (p.underlying_ticker or p.underlying_name or '--')[:20] }}</td>
+          <td>
+            {% if p.prospectus_link %}
+              <a href="{{ p.prospectus_link }}" target="_blank" rel="noopener" class="prospect-icon" title="View prospectus">PDF</a>
+            {% else %}
+              --
+            {% endif %}
+          </td>
+          {% if is_admin %}
+          <td>
+            <button class="btn-edit" onclick='openEditModal({{ p.id }}, {{ {
+              "fund_name": p.fund_name or "",
+              "ticker": p.ticker or "",
+              "suite_source": p.suite_source or "",
+              "exchange": p.exchange or "",
+              "cu_size": p.cu_size or "",
+              "fixed_fee": p.fixed_fee or "",
+              "variable_fee": p.variable_fee or "",
+              "custodian": p.custodian or "",
+              "lmm": p.lmm or "",
+              "direction": p.direction or "",
+              "leverage": p.leverage or "",
+              "underlying_ticker": p.underlying_ticker or "",
+              "notes": p.notes or ""
+            } | tojson }})'>Edit</button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No products found</h3>
+    <p>{% if filter_q or filter_suite %}Try adjusting your filters.{% else %}Run the import script to populate data.{% endif %}</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Edit Modal (admin only) -->
+{% if is_admin %}
+<div class="modal" id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal-box">
+    <h2 id="editTitle">Edit Product</h2>
+    <form id="editForm" method="post">
+      <div class="modal-grid">
+        <div class="span-2">
+          <label>Fund Name</label>
+          <input type="text" name="fund_name" id="ef_fund_name" required>
+        </div>
+        <div>
+          <label>Ticker</label>
+          <input type="text" name="ticker" id="ef_ticker">
+        </div>
+        <div>
+          <label>Suite</label>
+          <select name="suite_source" id="ef_suite_source">
+            <option value="">--</option>
+            {% for s in valid_suites %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Exchange</label>
+          <input type="text" name="exchange" id="ef_exchange">
+        </div>
+        <div>
+          <label>CU Size</label>
+          <input type="text" name="cu_size" id="ef_cu_size">
+        </div>
+        <div>
+          <label>Fixed Fee</label>
+          <input type="text" name="fixed_fee" id="ef_fixed_fee">
+        </div>
+        <div>
+          <label>Variable Fee</label>
+          <input type="text" name="variable_fee" id="ef_variable_fee">
+        </div>
+        <div>
+          <label>Custodian</label>
+          <input type="text" name="custodian" id="ef_custodian">
+        </div>
+        <div>
+          <label>LMM</label>
+          <input type="text" name="lmm" id="ef_lmm">
+        </div>
+        <div>
+          <label>Direction</label>
+          <select name="direction" id="ef_direction">
+            <option value="">--</option>
+            <option value="Long">Long</option>
+            <option value="Short">Short</option>
+            <option value="Inverse">Inverse</option>
+          </select>
+        </div>
+        <div>
+          <label>Leverage</label>
+          <input type="text" name="leverage" id="ef_leverage" placeholder="2X, 3X...">
+        </div>
+        <div>
+          <label>Underlying Ticker</label>
+          <input type="text" name="underlying_ticker" id="ef_underlying_ticker">
+        </div>
+        <div class="span-2">
+          <label>Notes</label>
+          <textarea name="notes" id="ef_notes"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_admin %}
+<script>
+function openEditModal(id, product) {
+  var form = document.getElementById('editForm');
+  form.action = '/capm/update/' + id;
+  document.getElementById('editTitle').textContent = 'Edit: ' + (product.ticker || product.fund_name);
+  document.getElementById('ef_fund_name').value = product.fund_name || '';
+  document.getElementById('ef_ticker').value = product.ticker || '';
+  document.getElementById('ef_suite_source').value = product.suite_source || '';
+  document.getElementById('ef_exchange').value = product.exchange || '';
+  document.getElementById('ef_cu_size').value = product.cu_size || '';
+  document.getElementById('ef_fixed_fee').value = product.fixed_fee || '';
+  document.getElementById('ef_variable_fee').value = product.variable_fee || '';
+  document.getElementById('ef_custodian').value = product.custodian || '';
+  document.getElementById('ef_lmm').value = product.lmm || '';
+  document.getElementById('ef_direction').value = product.direction || '';
+  document.getElementById('ef_leverage').value = product.leverage || '';
+  document.getElementById('ef_underlying_ticker').value = product.underlying_ticker || '';
+  document.getElementById('ef_notes').value = product.notes || '';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeEditModal();
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -206,19 +206,40 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     # KPI: structured notes filed this week
     weekly_notes_count = sum(n["count"] for n in weekly_notes_filings)
 
+    # AUM goal tracker
+    aum_goals = None
+    try:
+        from webapp.services.market_data import get_aum_goals
+        aum_goals = get_aum_goals(db)
+    except Exception:
+        pass
+
+    # Capital Markets product count
+    capm_product_count = 0
+    try:
+        from webapp.models import CapMProduct
+        capm_product_count = db.query(CapMProduct).count()
+    except Exception:
+        pass
+
+    enable_13f = os.environ.get("ENABLE_13F", "0") == "1"
+
     return templates.TemplateResponse("home.html", {
         "request": request,
         "brief_text": brief_text,
         "market_date": market_date,
         "filing_date": filing_date,
         "ownership_date": "Q4 2025",
+        "enable_13f": enable_13f,
         "notes_date": notes_date,
         "notes_product_count": notes_product_count,
+        "capm_product_count": capm_product_count,
         "last_sync_date": last_sync_date,
         "weekly_fund_filings": weekly_fund_filings,
         "weekly_notes_filings": weekly_notes_filings,
         "weekly_new_fund_count": weekly_new_fund_count,
         "weekly_notes_count": weekly_notes_count,
+        "aum_goals": aum_goals,
     })
 
 

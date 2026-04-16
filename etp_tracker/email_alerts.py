@@ -1666,39 +1666,6 @@ def _send_html_digest(html_body: str, recipients: list[str],
         log.error("graph_email module not available. Email not sent: %s", subject)
         return False
 
-    # SMTP fallback DISABLED — never send from personal email
-    # If Graph fails, the email simply doesn't go out.
-    config = _get_smtp_config()
-    if not config["user"] or not config["password"] or not config["from_addr"]:
-        return False
-
-    if images:
-        from email.mime.image import MIMEImage
-        msg = MIMEMultipart("related")
-        msg.attach(MIMEText(html_body, "html"))
-        for cid, png_bytes, filename in images:
-            img = MIMEImage(png_bytes, _subtype="png")
-            img.add_header("Content-ID", f"<{cid}>")
-            img.add_header("Content-Disposition", "inline", filename=filename)
-            msg.attach(img)
-    else:
-        msg = MIMEMultipart("alternative")
-        msg.attach(MIMEText(html_body, "html"))
-
-    msg["Subject"] = subject
-    msg["From"] = config["from_addr"]
-    msg["To"] = ", ".join(recipients)
-
-    try:
-        with smtplib.SMTP(config["host"], config["port"]) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(config["user"], config["password"])
-            server.sendmail(config["from_addr"], recipients, msg.as_string())
-        return True
-    except Exception:
-        return False
 
 
 def send_digest_from_db(

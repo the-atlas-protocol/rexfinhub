@@ -1,1 +1,1 @@
-# Recipients removed — send gate active. Restore from .bak when ready.
+# Recipients removed -- send gate active. Restore from .bak when ready.

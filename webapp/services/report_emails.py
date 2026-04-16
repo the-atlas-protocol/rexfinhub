@@ -187,8 +187,6 @@ def _date_mm_dd(data: dict) -> str:
 # ---------------------------------------------------------------------------
 def _wrap_email(title: str, accent: str, body: str,
                 dashboard_url: str = "", date_str: str = "") -> str:
-    # Always show today's date in the report header (not the data sync date)
-    date_str = datetime.now().strftime("%B %d, %Y")
     dash_link = _esc(dashboard_url) if dashboard_url else ""
 
     cta = ""

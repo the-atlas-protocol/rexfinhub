@@ -286,15 +286,29 @@ def run_classification():
         finally:
             db.close()
     except ImportError as e:
-        print(f"  Unified classify not available ({e}), skipping")
+        msg = f"Unified classify import failed: {e}. New funds will go unclassified."
+        print(f"  CRITICAL: {msg}")
+        errors.append(msg)
+        try:
+            from etp_tracker.email_alerts import send_critical_alert
+            send_critical_alert("Classification Engine Missing", msg)
+        except Exception:
+            pass
     except Exception as e:
         print(f"  Unified classify failed: {e}")
 
     # Phase 2: Scan for NEW unmapped funds and auto-approve HIGH/MEDIUM to CSVs
     try:
         from tools.rules_editor.classify_engine import scan_unmapped, apply_classifications
-    except ImportError:
-        print("  classify_engine not available, skipping CSV scan.")
+    except ImportError as e:
+        msg = f"classify_engine import failed: {e}. New funds will go unclassified."
+        print(f"  CRITICAL: {msg}")
+        errors.append(msg)
+        try:
+            from etp_tracker.email_alerts import send_critical_alert
+            send_critical_alert("Classification Engine Missing", msg)
+        except Exception:
+            pass
         return 0
 
     result = scan_unmapped(since_days=30)

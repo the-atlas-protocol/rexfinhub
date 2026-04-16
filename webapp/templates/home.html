@@ -266,6 +266,141 @@
   </div>
 </div>
 
+{% if aum_goals %}
+<!-- ===== 2026 AUM GOAL TRACKER ===== -->
+<style>
+.ha-goals {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 20px 24px;
+  margin-bottom: 32px;
+}
+.ha-goals-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.ha-goals-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+.ha-goals-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.ha-goals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ha-goals-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.ha-goals-table th:not(:first-child) {
+  text-align: right;
+}
+.ha-goals-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+.ha-goals-table td:not(:first-child) {
+  text-align: right;
+}
+.ha-goals-table tr.ha-goals-total td {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+  border-top: 2px solid #e5e7eb;
+  border-bottom: none;
+  padding-top: 12px;
+}
+.ha-goals-bar {
+  width: 100%;
+  min-width: 80px;
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.ha-goals-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+.ha-goals-fill-on-track { background: #059669; }
+.ha-goals-fill-behind   { background: #d97706; }
+.ha-goals-growth-pos { color: #059669; font-weight: 600; }
+.ha-goals-growth-neg { color: #dc2626; font-weight: 600; }
+.ha-goals-growth-na  { color: #94a3b8; }
+@media (max-width: 600px) {
+  .ha-goals-table { font-size: 11px; }
+  .ha-goals-bar { min-width: 50px; }
+}
+</style>
+
+<div class="ha-goals">
+  <div class="ha-goals-header">
+    <h3 class="ha-goals-title">2026 AUM Goals</h3>
+    <span class="ha-goals-subtitle">Data: {{ aum_goals.data_date or 'latest' }}</span>
+  </div>
+  <table class="ha-goals-table">
+    <thead>
+      <tr>
+        <th>Suite</th>
+        <th>YE 2025</th>
+        <th>Current</th>
+        <th>YE 2026 Target</th>
+        <th>Growth</th>
+        <th style="text-align:left;padding-left:12px;">Progress</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in aum_goals.suites %}
+      <tr>
+        <td style="font-weight:500;">{{ s.label }}</td>
+        <td>{% if s.ye_2025 >= 1000000 %}${{ "%.1f"|format(s.ye_2025 / 1000000) }}B{% elif s.ye_2025 >= 1000 %}${{ "%.1f"|format(s.ye_2025 / 1000) }}M{% elif s.ye_2025 > 0 %}${{ s.ye_2025|int }}K{% else %}--{% endif %}</td>
+        <td>{% if s.current_aum >= 1000000 %}${{ "%.1f"|format(s.current_aum / 1000000) }}B{% elif s.current_aum >= 1000 %}${{ "%.1f"|format(s.current_aum / 1000) }}M{% elif s.current_aum > 0 %}${{ s.current_aum|int }}K{% else %}--{% endif %}</td>
+        <td>{% if s.ye_2026_target >= 1000000 %}${{ "%.1f"|format(s.ye_2026_target / 1000000) }}B{% elif s.ye_2026_target >= 1000 %}${{ "%.1f"|format(s.ye_2026_target / 1000) }}M{% else %}${{ s.ye_2026_target|int }}K{% endif %}</td>
+        <td>{% if s.growth_pct is not none %}<span class="{{ 'ha-goals-growth-pos' if s.growth_pct >= 0 else 'ha-goals-growth-neg' }}">{{ "+" if s.growth_pct >= 0 }}{{ "%.1f"|format(s.growth_pct) }}%</span>{% else %}<span class="ha-goals-growth-na">--</span>{% endif %}</td>
+        <td style="text-align:left;padding-left:12px;">
+          <div class="ha-goals-bar">
+            <div class="ha-goals-fill {{ 'ha-goals-fill-on-track' if s.on_track else 'ha-goals-fill-behind' }}" style="width:{{ [s.progress_pct, 100]|min }}%"></div>
+          </div>
+          <span style="font-size:11px;color:#64748b;">{{ "%.0f"|format(s.progress_pct) }}%</span>
+        </td>
+      </tr>
+      {% endfor %}
+      <tr class="ha-goals-total">
+        <td>{{ aum_goals.total.label }}</td>
+        <td>{% if aum_goals.total.ye_2025 >= 1000000 %}${{ "%.1f"|format(aum_goals.total.ye_2025 / 1000000) }}B{% else %}${{ "%.1f"|format(aum_goals.total.ye_2025 / 1000) }}M{% endif %}</td>
+        <td>{% if aum_goals.total.current_aum >= 1000000 %}${{ "%.1f"|format(aum_goals.total.current_aum / 1000000) }}B{% else %}${{ "%.1f"|format(aum_goals.total.current_aum / 1000) }}M{% endif %}</td>
+        <td>{% if aum_goals.total.ye_2026_target >= 1000000 %}${{ "%.1f"|format(aum_goals.total.ye_2026_target / 1000000) }}B{% else %}${{ "%.1f"|format(aum_goals.total.ye_2026_target / 1000) }}M{% endif %}</td>
+        <td>{% if aum_goals.total.growth_pct is not none %}<span class="{{ 'ha-goals-growth-pos' if aum_goals.total.growth_pct >= 0 else 'ha-goals-growth-neg' }}">{{ "+" if aum_goals.total.growth_pct >= 0 }}{{ "%.1f"|format(aum_goals.total.growth_pct) }}%</span>{% else %}<span class="ha-goals-growth-na">--</span>{% endif %}</td>
+        <td style="text-align:left;padding-left:12px;">
+          <div class="ha-goals-bar" style="height:12px;">
+            <div class="ha-goals-fill {{ 'ha-goals-fill-on-track' if aum_goals.total.on_track else 'ha-goals-fill-behind' }}" style="width:{{ [aum_goals.total.progress_pct, 100]|min }}%"></div>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:#0f172a;">{{ "%.0f"|format(aum_goals.total.progress_pct) }}%</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 <hr class="ha-divider">
 
 <!-- ===== MORNING BRIEF ===== -->
@@ -353,6 +488,22 @@
       <li><a href="/notes/">Market Overview</a><span class="ha-link-desc">Aggregate issuance and trends</span></li>
       <li><a href="/notes/issuers">Issuer Dashboard</a><span class="ha-link-desc">19 issuers, market share</span></li>
       <li><a href="/notes/search">Product Search</a><span class="ha-link-desc">CUSIP and term search</span></li>
+    </ul>
+  </div>
+
+  <!-- Capital Markets -->
+  <div class="ha-pillar-card">
+    <div class="ha-pillar-header">
+      <div class="ha-pillar-title">
+        <span class="ha-pillar-dot" style="background:#0d9488;"></span>
+        Capital Markets
+      </div>
+      <span class="ha-pillar-badge">{{ capm_product_count|default(0) }} products</span>
+    </div>
+    <ul class="ha-pillar-links">
+      <li><a href="/capm/">Product List</a><span class="ha-link-desc">Fees, LMMs, custodians by suite</span></li>
+      <li><a href="/capm/?suite=T-REX">T-REX Suite</a><span class="ha-link-desc">2x leveraged single-stock ETFs</span></li>
+      <li><a href="/capm/?suite=BMO">BMO MicroSectors</a><span class="ha-link-desc">ETN products</span></li>
     </ul>
   </div>
 
