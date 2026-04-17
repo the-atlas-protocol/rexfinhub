@@ -7,6 +7,7 @@ This module retains the home page, API routes, and a 301 redirect.
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
