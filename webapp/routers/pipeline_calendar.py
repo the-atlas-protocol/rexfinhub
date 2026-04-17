@@ -27,7 +27,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, not_, or_, select
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
@@ -77,6 +77,46 @@ VALID_STATUSES = ["Research", "Target List", "Filed", "Awaiting Effective", "Lis
 VALID_SUITES = list(SUITE_COLORS.keys())
 
 
+def _rex_only_filter(query):
+    """Restrict a RexProduct query to REX-branded products only.
+
+    The rex_products table includes non-REX filings that share the same
+    trust (e.g. ETF Opportunities Trust hosts Tuttle, GSR, Hedgeye funds
+    alongside REX). Filter by name prefix + trust, and explicitly drop
+    known non-REX issuers.
+    """
+    from webapp.models import RexProduct
+
+    return (
+        query.filter(or_(
+            RexProduct.name.ilike("REX %"),
+            RexProduct.name.ilike("T-REX %"),
+            RexProduct.name.ilike("REX-OSPREY%"),
+            RexProduct.name.ilike("REX-Osprey%"),
+            RexProduct.name.ilike("REX- Osprey%"),  # some records have hyphen-space
+            RexProduct.name.ilike("MICROSECTORS%"),
+            RexProduct.name.ilike("MicroSectors%"),
+            RexProduct.trust.ilike("%REX%"),
+        ))
+        .filter(not_(or_(
+            RexProduct.trust.ilike("%tuttle%"),
+            RexProduct.trust.ilike("%defiance%"),
+            RexProduct.trust.ilike("%osprey bitcoin%"),
+            RexProduct.name.ilike("Osprey Bitcoin%"),
+            RexProduct.name.ilike("Tuttle%"),
+            RexProduct.name.ilike("TUTTLE%"),
+            RexProduct.name.ilike("Defiance%"),
+            RexProduct.name.ilike("GSR %"),
+            RexProduct.name.ilike("Hedgeye%"),
+            RexProduct.name.ilike("GRANOLA%"),
+            RexProduct.name.ilike("Gold Miners%"),
+            RexProduct.name.ilike("Nuclear Equity%"),
+            RexProduct.name.ilike("Nasdaq Dorsey%"),
+            RexProduct.name.ilike("The Laddered%"),
+        )))
+    )
+
+
 @router.get("/summary")
 def pipeline_summary(request: Request):
     """Redirect old summary URL to the new products page."""
@@ -105,32 +145,32 @@ def pipeline_products(
     month_ahead = today + timedelta(days=30)
     quarter_ahead = today + timedelta(days=90)
 
-    # ---- KPIs ----
-    total = db.query(RexProduct).count()
-    listed = db.query(RexProduct).filter(RexProduct.status == "Listed").count()
-    filed = db.query(RexProduct).filter(RexProduct.status == "Filed").count()
-    awaiting = db.query(RexProduct).filter(RexProduct.status == "Awaiting Effective").count()
-    research = db.query(RexProduct).filter(RexProduct.status.in_(["Research", "Target List"])).count()
+    # ---- KPIs (REX-branded products only) ----
+    total = _rex_only_filter(db.query(RexProduct)).count()
+    listed = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Listed").count()
+    filed = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Filed").count()
+    awaiting = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Awaiting Effective").count()
+    research = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Research", "Target List"])).count()
 
     # Activity metrics
     filings_last_7d = (
-        db.query(RexProduct)
+        _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.initial_filing_date.between(week_ago, today))
         .count()
     )
     launches_last_30d = (
-        db.query(RexProduct)
+        _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.official_listed_date.between(today - timedelta(days=30), today))
         .count()
     )
     effectives_next_30d = (
-        db.query(RexProduct)
+        _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
         .filter(RexProduct.estimated_effective_date.between(today, month_ahead))
         .count()
     )
     effectives_next_90d = (
-        db.query(RexProduct)
+        _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
         .filter(RexProduct.estimated_effective_date.between(today, quarter_ahead))
         .count()
@@ -138,7 +178,7 @@ def pipeline_products(
 
     # Next launches — Filed/Awaiting with effective date in next 90 days
     next_launches = (
-        db.query(RexProduct)
+        _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
         .filter(RexProduct.estimated_effective_date.between(today, quarter_ahead))
         .order_by(RexProduct.estimated_effective_date.asc())
@@ -148,7 +188,7 @@ def pipeline_products(
 
     # Cycle time stats
     listed_products = (
-        db.query(RexProduct)
+        _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status == "Listed")
         .filter(RexProduct.initial_filing_date.isnot(None))
         .filter(RexProduct.official_listed_date.isnot(None))
@@ -166,41 +206,41 @@ def pipeline_products(
 
     # ---- Urgency counts (unfiltered, for pill badges) ----
     urgency_counts = {
-        "urgent": db.query(RexProduct)
+        "urgent": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
             .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=14)))
             .count(),
-        "upcoming": db.query(RexProduct)
+        "upcoming": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
             .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=60)))
             .count(),
-        "overdue": db.query(RexProduct)
+        "overdue": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.status.notin_(["Listed", "Delisted"]))
             .filter(RexProduct.target_listing_date.isnot(None))
             .filter(RexProduct.target_listing_date < today)
             .count(),
-        "recent_filings": db.query(RexProduct)
+        "recent_filings": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
             .count(),
-        "recent_launches": db.query(RexProduct)
+        "recent_launches": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.official_listed_date >= today - timedelta(days=30))
             .count(),
     }
 
-    # Status/suite counts (unfiltered)
+    # Status/suite counts (REX-branded only)
     status_counts = dict(
-        db.query(RexProduct.status, func.count(RexProduct.id))
+        _rex_only_filter(db.query(RexProduct.status, func.count(RexProduct.id)))
         .group_by(RexProduct.status).all()
     )
     suite_counts = dict(
-        db.query(RexProduct.product_suite, func.count(RexProduct.id))
+        _rex_only_filter(db.query(RexProduct.product_suite, func.count(RexProduct.id)))
         .group_by(RexProduct.product_suite).all()
     )
 
     # ---- By-suite breakdown ----
     suite_breakdown = {}
     for s, cnt in (
-        db.query(RexProduct.product_suite, func.count(RexProduct.id))
+        _rex_only_filter(db.query(RexProduct.product_suite, func.count(RexProduct.id)))
         .group_by(RexProduct.product_suite).all()
     ):
         if not s:
@@ -208,18 +248,18 @@ def pipeline_products(
         suite_breakdown[s] = {"total": cnt}
     for s in suite_breakdown:
         suite_breakdown[s]["listed"] = (
-            db.query(RexProduct)
+            _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.product_suite == s, RexProduct.status == "Listed")
             .count()
         )
         suite_breakdown[s]["filed"] = (
-            db.query(RexProduct)
+            _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.product_suite == s, RexProduct.status.in_(["Filed", "Awaiting Effective"]))
             .count()
         )
 
-    # ---- Build filtered product query ----
-    query = db.query(RexProduct)
+    # ---- Build filtered product query (REX-branded only) ----
+    query = _rex_only_filter(db.query(RexProduct))
 
     if status:
         query = query.filter(RexProduct.status == status)

@@ -41,14 +41,6 @@ h2 { font-size:13px; font-weight:700; color:#0f172a; text-transform:uppercase; l
 .nl-countdown.soon { color:#d97706; }
 .nl-countdown.ok { color:#64748b; }
 
-/* Cycle time */
-.cycle-block {
-  background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:14px 18px;
-  display:flex; gap:24px; flex-wrap:wrap; margin-bottom:12px;
-}
-.cycle-metric { font-size:24px; font-weight:800; color:#0f172a; }
-.cycle-metric-label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:2px; }
-
 /* Filter panel */
 .filter-panel { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:14px 18px; margin-bottom:14px; }
 .filter-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
@@ -75,6 +67,20 @@ h2 { font-size:13px; font-weight:700; color:#0f172a; text-transform:uppercase; l
 
 /* Table */
 .table-scroll { overflow-x:auto; background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
+.scroll-hint { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#64748b; padding:6px 10px; background:#f8fafc; border:1px solid #e5e7eb; border-bottom:none; border-radius:6px 6px 0 0; }
+.scroll-hint .hint-text { font-weight:500; letter-spacing:0.02em; }
+.scroll-hint button { background:#fff; border:1px solid #e5e7eb; border-radius:3px; font-size:11px; padding:3px 8px; cursor:pointer; color:#0f172a; font-weight:600; }
+.scroll-hint button:hover { background:#eef2ff; border-color:#1F3864; }
+.scroll-hint .arrows { display:flex; gap:4px; }
+.table-scroll.has-hint { border-radius:0 0 6px 6px; }
+/* Inline edit affordance (admin only) */
+.admin-edit td[data-field] { cursor:pointer; position:relative; }
+.admin-edit td[data-field]:hover { background:#eef2ff; outline:1px dashed #6366f1; outline-offset:-1px; }
+.admin-edit td[data-field] input,
+.admin-edit td[data-field] select { width:100%; box-sizing:border-box; padding:3px 6px; font-size:12px; font-family:inherit; border:1px solid #1F3864; border-radius:3px; background:#fff; color:#0f172a; }
+.edit-toast { position:fixed; bottom:20px; right:20px; background:#059669; color:#fff; padding:10px 16px; border-radius:4px; font-size:13px; font-weight:500; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:2000; opacity:0; transition:opacity 0.2s; }
+.edit-toast.show { opacity:1; }
+.edit-toast.error { background:#dc2626; }
 table.pipeline-table { width:100%; border-collapse:collapse; font-size:12px; }
 table.pipeline-table th {
   background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px;
@@ -186,29 +192,6 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   </div>
   {% endif %}
 
-  {# ---- Cycle Time ---- #}
-  {% if avg_cycle is not none %}
-  <h2>Filing to Launch Cycle Time</h2>
-  <div class="cycle-block">
-    <div>
-      <div class="cycle-metric">{{ avg_cycle }}d</div>
-      <div class="cycle-metric-label">Average</div>
-    </div>
-    <div>
-      <div class="cycle-metric">{{ min_cycle }}d</div>
-      <div class="cycle-metric-label">Fastest</div>
-    </div>
-    <div>
-      <div class="cycle-metric">{{ max_cycle }}d</div>
-      <div class="cycle-metric-label">Slowest</div>
-    </div>
-    <div>
-      <div class="cycle-metric">{{ cycle_sample }}</div>
-      <div class="cycle-metric-label">Sample Size</div>
-    </div>
-  </div>
-  {% endif %}
-
   {# ---- Filter Bar ---- #}
   <h2>Products</h2>
   <form method="get" action="/pipeline/products" class="filter-panel">
@@ -261,8 +244,25 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   </div>
 
   {# ---- Products Table ---- #}
-  <div class="table-scroll">
-    <table class="pipeline-table">
+  {% if is_admin %}
+  <div class="scroll-hint">
+    <span class="hint-text">Click any cell to edit &middot; Enter to save &middot; Esc to cancel</span>
+    <span class="arrows">
+      <button type="button" onclick="scrollPipelineTable(-200)" title="Scroll left">&larr; scroll</button>
+      <button type="button" onclick="scrollPipelineTable(200)" title="Scroll right">scroll &rarr;</button>
+    </span>
+  </div>
+  {% else %}
+  <div class="scroll-hint">
+    <span class="hint-text">&larr; scroll horizontally to see all columns &rarr;</span>
+    <span class="arrows">
+      <button type="button" onclick="scrollPipelineTable(-200)" title="Scroll left">&larr;</button>
+      <button type="button" onclick="scrollPipelineTable(200)" title="Scroll right">&rarr;</button>
+    </span>
+  </div>
+  {% endif %}
+  <div class="table-scroll has-hint" id="pipelineTableScroll">
+    <table class="pipeline-table {% if is_admin %}admin-edit{% endif %}" id="pipelineTable">
       <thead>
         <tr>
           <th onclick="sortTable(0, 'text')">Ticker <span class="sort-arrow">&#9650;&#9660;</span></th>
@@ -275,20 +275,19 @@ table.pipeline-table tr:hover { background:#fafbfc; }
           <th onclick="sortTable(7, 'number')">In <span class="sort-arrow">&#9650;&#9660;</span></th>
           <th onclick="sortTable(8, 'date')">Listed <span class="sort-arrow">&#9650;&#9660;</span></th>
           <th onclick="sortTable(9, 'text')">Form <span class="sort-arrow">&#9650;&#9660;</span></th>
-          {% if is_admin %}<th>Actions</th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for p in products %}
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
-        <tr>
-          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}">{{ p.ticker or '---' }}</td>
-          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}">{{ p.name[:55] }}</td>
-          <td data-sort="{{ (p.product_suite or '').lower() }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
-          <td data-sort="{{ p.status }}"><span class="status-pill status-{{ p.status.replace(' ', '-') }}">{{ p.status }}</span></td>
-          <td data-sort="{{ (p.underlier or '').lower() }}">{{ p.underlier or '---' }}</td>
-          <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
-          <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
+        <tr data-id="{{ p.id }}">
+          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{{ p.ticker or '---' }}</td>
+          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:55] }}</td>
+          <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
+          <td data-sort="{{ p.status }}" data-field="status" data-field-type="select" data-field-options="{{ valid_statuses|join('|') }}"><span class="status-pill status-{{ p.status.replace(' ', '-') }}">{{ p.status }}</span></td>
+          <td data-sort="{{ (p.underlier or '').lower() }}" data-field="underlier">{{ p.underlier or '---' }}</td>
+          <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
+          <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}" data-field="estimated_effective_date" data-field-type="date">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
           <td data-sort="{% if p.estimated_effective_date and p.status in ['Filed', 'Awaiting Effective'] %}{{ (p.estimated_effective_date - today).days }}{% else %}9999{% endif %}">
             {% if p.estimated_effective_date and p.status in ['Filed', 'Awaiting Effective'] %}
               {% set days_left = (p.estimated_effective_date - today).days %}
@@ -299,7 +298,7 @@ table.pipeline-table tr:hover { background:#fafbfc; }
               {% endif %}
             {% endif %}
           </td>
-          <td data-sort="{{ p.official_listed_date.isoformat() if p.official_listed_date else '' }}">{{ p.official_listed_date.strftime('%Y-%m-%d') if p.official_listed_date else '---' }}</td>
+          <td data-sort="{{ p.official_listed_date.isoformat() if p.official_listed_date else '' }}" data-field="official_listed_date" data-field-type="date">{{ p.official_listed_date.strftime('%Y-%m-%d') if p.official_listed_date else '---' }}</td>
           <td data-sort="{{ (p.latest_form or '').lower() }}">
             {% if p.latest_prospectus_link %}
               <a href="{{ p.latest_prospectus_link }}" target="_blank" class="prospect-link">{{ p.latest_form or 'link' }}</a>
@@ -307,28 +306,6 @@ table.pipeline-table tr:hover { background:#fafbfc; }
               <span style="color:#cbd5e1;">{{ p.latest_form or '---' }}</span>
             {% endif %}
           </td>
-          {% if is_admin %}
-          <td>
-            <button type="button" onclick='openEditModal({{ p.id }}, {{ {
-              "name": p.name,
-              "status": p.status,
-              "product_suite": p.product_suite,
-              "ticker": p.ticker or "",
-              "underlier": p.underlier or "",
-              "direction": p.direction or "",
-              "trust": p.trust or "",
-              "initial_filing_date": (p.initial_filing_date.isoformat() if p.initial_filing_date else ""),
-              "estimated_effective_date": (p.estimated_effective_date.isoformat() if p.estimated_effective_date else ""),
-              "target_listing_date": (p.target_listing_date.isoformat() if p.target_listing_date else ""),
-              "seed_date": (p.seed_date.isoformat() if p.seed_date else ""),
-              "official_listed_date": (p.official_listed_date.isoformat() if p.official_listed_date else ""),
-              "mgt_fee": (p.mgt_fee if p.mgt_fee is not none else ""),
-              "lmm": p.lmm or "",
-              "exchange": p.exchange or "",
-              "notes": p.notes or ""
-            } | tojson }})' class="btn btn-sm">Edit</button>
-          </td>
-          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -359,90 +336,8 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   </div>
 </div>
 
-{# ---- Edit Modal (admin only) ---- #}
+{# ---- Add Modal (admin only — edits happen inline) ---- #}
 {% if is_admin %}
-<div id="editModal" class="modal">
-  <div class="modal-box">
-    <h2 id="editModalTitle">Edit Product</h2>
-    <form id="editForm" method="post">
-      <div class="modal-grid">
-        <div class="span-2">
-          <label>Name</label>
-          <input type="text" name="name" id="edit_name" required>
-        </div>
-        <div>
-          <label>Suite</label>
-          <select name="product_suite" id="edit_suite">
-            {% for s in valid_suites %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-          </select>
-        </div>
-        <div>
-          <label>Status</label>
-          <select name="status" id="edit_status">
-            {% for s in valid_statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-          </select>
-        </div>
-        <div>
-          <label>Ticker</label>
-          <input type="text" name="ticker" id="edit_ticker">
-        </div>
-        <div>
-          <label>Underlier</label>
-          <input type="text" name="underlier" id="edit_underlier">
-        </div>
-        <div>
-          <label>Direction</label>
-          <input type="text" name="direction" id="edit_direction" placeholder="Long / Short / Both">
-        </div>
-        <div>
-          <label>Trust</label>
-          <input type="text" name="trust" id="edit_trust">
-        </div>
-        <div>
-          <label>Initial Filing Date</label>
-          <input type="date" name="initial_filing_date" id="edit_initial_filing_date">
-        </div>
-        <div>
-          <label>Estimated Effective</label>
-          <input type="date" name="estimated_effective_date" id="edit_estimated_effective_date">
-        </div>
-        <div>
-          <label>Target Listing Date</label>
-          <input type="date" name="target_listing_date" id="edit_target_listing_date">
-        </div>
-        <div>
-          <label>Seed Date</label>
-          <input type="date" name="seed_date" id="edit_seed_date">
-        </div>
-        <div>
-          <label>Official Listed Date</label>
-          <input type="date" name="official_listed_date" id="edit_official_listed_date">
-        </div>
-        <div>
-          <label>Mgt Fee (%)</label>
-          <input type="number" step="0.01" name="mgt_fee" id="edit_mgt_fee">
-        </div>
-        <div>
-          <label>LMM</label>
-          <input type="text" name="lmm" id="edit_lmm">
-        </div>
-        <div>
-          <label>Exchange</label>
-          <input type="text" name="exchange" id="edit_exchange">
-        </div>
-        <div class="span-2">
-          <label>Notes</label>
-          <textarea name="notes" id="edit_notes"></textarea>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <div id="addModal" class="modal">
   <div class="modal-box">
     <h2>Add New Product</h2>
@@ -531,32 +426,126 @@ function toggleSuiteBreakdown() {
     }
 }
 
+/* Horizontal table scroll helper */
+function scrollPipelineTable(delta) {
+    var s = document.getElementById('pipelineTableScroll');
+    if (s) s.scrollBy({ left: delta, behavior: 'smooth' });
+}
+
 {% if is_admin %}
-/* Edit modal (admin) */
-function openEditModal(id, data) {
-    document.getElementById('editForm').action = '/admin/products/update/' + id;
-    var fields = ['name', 'suite', 'status', 'ticker', 'underlier', 'direction', 'trust',
-                  'initial_filing_date', 'estimated_effective_date', 'target_listing_date',
-                  'seed_date', 'official_listed_date', 'mgt_fee', 'lmm', 'exchange', 'notes'];
-    for (var i = 0; i < fields.length; i++) {
-        var key = fields[i];
-        var fieldKey = key === 'suite' ? 'product_suite' : key;
-        var el = document.getElementById('edit_' + key);
-        if (el) el.value = data[fieldKey] || '';
-    }
-    document.getElementById('editModal').classList.add('open');
-}
+/* Add-product modal (kept as fallback for creating new rows) */
 function openAddModal() { document.getElementById('addModal').classList.add('open'); }
-function closeModal() {
-    document.getElementById('editModal').classList.remove('open');
-    document.getElementById('addModal').classList.remove('open');
-}
+function closeModal() { document.getElementById('addModal').classList.remove('open'); }
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) closeModal();
 });
+
+/* ---- Inline-editable table (admin only) ---- */
+window._isAdmin = true;
+
+function showToast(msg, isError) {
+    var t = document.createElement('div');
+    t.className = 'edit-toast' + (isError ? ' error' : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function() { t.classList.add('show'); });
+    setTimeout(function() {
+        t.classList.remove('show');
+        setTimeout(function() { t.remove(); }, 300);
+    }, 1800);
+}
+
+function makeInlineEditable(tableSelector, updateUrl) {
+    if (!window._isAdmin) return;
+    document.querySelectorAll(tableSelector + ' tbody td[data-field]').forEach(function(td) {
+        td.addEventListener('click', function() {
+            if (td.querySelector('input, select')) return;
+            var field = td.dataset.field;
+            var fieldType = td.dataset.fieldType || 'text';
+            var rowId = td.closest('tr').dataset.id;
+            // Extract raw text (stripping pills, etc.)
+            var oldDisplay = td.textContent.trim();
+            var oldVal = oldDisplay === '---' ? '' : oldDisplay;
+
+            var input;
+            if (fieldType === 'select') {
+                input = document.createElement('select');
+                var opts = (td.dataset.fieldOptions || '').split('|');
+                var blank = document.createElement('option');
+                blank.value = ''; blank.textContent = '(none)';
+                input.appendChild(blank);
+                opts.forEach(function(o) {
+                    if (!o) return;
+                    var op = document.createElement('option');
+                    op.value = o; op.textContent = o;
+                    if (o === oldVal) op.selected = true;
+                    input.appendChild(op);
+                });
+            } else if (fieldType === 'date') {
+                input = document.createElement('input');
+                input.type = 'date';
+                input.value = oldVal;
+            } else {
+                input = document.createElement('input');
+                input.type = 'text';
+                input.value = oldVal;
+            }
+
+            var originalHTML = td.innerHTML;
+            td.innerHTML = '';
+            td.appendChild(input);
+            input.focus();
+            if (input.select) try { input.select(); } catch(e) {}
+
+            var saved = false;
+            var save = function() {
+                if (saved) return; saved = true;
+                var newVal = (input.value || '').trim();
+                if (newVal === oldVal) {
+                    td.innerHTML = originalHTML;
+                    return;
+                }
+                var body = new FormData();
+                body.append(field, newVal);
+                fetch(updateUrl.replace('{id}', rowId), { method: 'POST', body: body, credentials: 'same-origin' })
+                    .then(function(res) {
+                        if (res.ok) {
+                            td.textContent = newVal || '---';
+                            td.style.background = '#ecfdf5';
+                            setTimeout(function() { td.style.background = ''; }, 1200);
+                            showToast('Saved');
+                        } else {
+                            td.innerHTML = originalHTML;
+                            showToast('Save failed (' + res.status + ')', true);
+                        }
+                    })
+                    .catch(function(err) {
+                        td.innerHTML = originalHTML;
+                        showToast('Error: ' + err, true);
+                    });
+            };
+            var cancel = function() {
+                if (saved) return; saved = true;
+                td.innerHTML = originalHTML;
+            };
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+            });
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    makeInlineEditable('#pipelineTable', '/admin/products/update/{id}');
+});
+
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeModal();
 });
+{% else %}
+window._isAdmin = false;
 {% endif %}
 </script>
 {% endblock %}
