@@ -935,7 +935,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     launches = data.get("launches", [])
     if launches:
         launch_rows = []
-        for f in launches[:15]:
+        for f in launches:
             ticker = _esc(f.get("ticker", ""))
             name = _esc(f.get("fund_name", ""))
             if len(name) > 55:
@@ -964,11 +964,6 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
                 f'</tr>'
             )
         more_html = ""
-        if len(launches) > 15:
-            more_html = (
-                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
-                f'+ {len(launches) - 15} more on dashboard</div>'
-            )
         _col = (
             f"padding:4px 8px;font-size:9px;color:{_GRAY};text-transform:uppercase;"
             f"border-bottom:1px solid {_BORDER};"
@@ -1038,51 +1033,29 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
             )
 
         other_funds = fg.get("other_funds", [])
-        if is_rex or relevant:
-            fund_names = [_esc(f) for f in relevant]
-            summary_parts = []
-            if fund_names:
-                summary_parts.append(", ".join(fund_names))
-                if overflow > 0:
-                    summary_parts.append(f"+{overflow} more relevant")
-                if other_count > 0:
-                    summary_parts.append(f"+{other_count} more")
-            else:
-                fallback_names = [_esc(f) for f in other_funds]
-                if fallback_names:
-                    summary_parts.append(", ".join(fallback_names))
-                    remaining = other_count - len(fallback_names)
-                    if remaining > 0:
-                        summary_parts.append(f"+{remaining} more")
-            summary = "; ".join(summary_parts) if summary_parts else f"{total} funds filed"
+        # Concatenate ALL fund names for this trust — relevant first, then others.
+        all_names = [_esc(f) for f in relevant] + [_esc(f) for f in other_funds]
+        summary = ", ".join(all_names) if all_names else f"{total} funds filed"
 
-            cat_tags = ""
-            for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
-                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
-                cat_tags += (
-                    f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
-                    f'font-size:9px;color:{_WHITE};background:{cat_color};'
-                    f'margin-left:2px;">{cnt} {cat}</span>'
-                )
-
-            return (
-                f'<tr><td style="{row_style}">'
-                f'<div style="font-weight:600;margin-bottom:2px;">'
-                f'{trust_label} <span style="font-weight:400;color:{_GRAY};font-size:10px;">{form}</span>'
-                f'{cat_tags}</div>'
-                f'<div style="font-size:11px;color:{_GRAY};">{summary}</div>'
-                f'</td></tr>'
+        cat_tags = ""
+        for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
+            cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
+            cat_tags += (
+                f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
+                f'font-size:9px;color:{_WHITE};background:{cat_color};'
+                f'margin-left:2px;">{cnt} {cat}</span>'
             )
+
         return (
             f'<tr><td style="{row_style}">'
-            f'{trust_label} '
-            f'<span style="color:{_GRAY};font-size:10px;">{form}</span> '
-            f'<span style="color:{_GRAY};font-size:11px;">'
-            f'&ndash; {total} funds (+{total} more)</span>'
+            f'<div style="font-weight:600;margin-bottom:2px;">'
+            f'{trust_label} <span style="font-weight:400;color:{_GRAY};font-size:10px;">{form}</span>'
+            f'{cat_tags}</div>'
+            f'<div style="font-size:11px;color:{_GRAY};">{summary}</div>'
             f'</td></tr>'
         )
 
-    def _render_filings_block(title: str, groups: list, accent_color: str, limit: int, empty_msg: str | None) -> str:
+    def _render_filings_block(title: str, groups: list, accent_color: str, empty_msg: str | None) -> str:
         if not groups:
             if empty_msg is None:
                 return ""
@@ -1098,13 +1071,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
   </div>
 </td></tr>"""
 
-        items = "".join(_render_filing_group_row(fg) for fg in groups[:limit])
-        more_html = ""
-        if len(groups) > limit:
-            more_html = (
-                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
-                f'+ {len(groups) - limit} more trusts</div>'
-            )
+        items = "".join(_render_filing_group_row(fg) for fg in groups)
         return f"""
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
@@ -1114,7 +1081,6 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     {items}
   </table>
-  {more_html}
 </td></tr>"""
 
     new_groups = [fg for fg in filing_groups if fg.get("is_new")]
@@ -1123,12 +1089,12 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     # Show empty state if NEITHER section has anything (all-quiet day).
     if not new_groups and not updated_groups:
         filings_section = _render_filings_block(
-            "Today's 485 Filings", [], _BLUE, 25, "No 485 filings today."
+            "Today's 485 Filings", [], _BLUE, "No 485 filings today."
         )
     else:
         filings_section = (
-            _render_filings_block("New Fund Filings", new_groups, _GREEN, 25, None)
-            + _render_filings_block("Updated Fund Filings", updated_groups, _BLUE, 25, None)
+            _render_filings_block("New Fund Filings", new_groups, _GREEN, None)
+            + _render_filings_block("Updated Fund Filings", updated_groups, _BLUE, None)
         )
 
     # --- Upcoming Effectiveness ---
@@ -1139,7 +1105,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
         from collections import OrderedDict
         rex_trusts = OrderedDict()
         other_trusts = OrderedDict()
-        for p in pending[:15]:
+        for p in pending:
             trust = p.get("trust_name", "Unknown")
             is_rex = p.get("is_rex", False)
             target = rex_trusts if is_rex else other_trusts
@@ -1181,25 +1147,15 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
                         f'</tr>'
                     )
 
-        more_html = ""
-        total_p = data.get("total_pending", len(pending))
-        if total_p > 15:
-            more_html = (
-                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
-                f'+ {total_p - 15} more on '
-                f'{"<a href=\"" + dash_link + "/dashboard?status=PENDING\" style=\"color:" + _BLUE + ";\">dashboard</a>" if dash_link else "dashboard"}'
-                f'</div>'
-            )
         pending_section = f"""
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_ORANGE};">
-    Upcoming Effectiveness
+    Upcoming Effectiveness <span style="font-weight:400;color:{_GRAY};font-size:11px;">({len(pending)})</span>
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     {''.join(pending_html_parts)}
   </table>
-  {more_html}
 </td></tr>"""
 
     # --- Bloomberg-backed sections (graceful skip if unavailable) ---
@@ -1258,14 +1214,16 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     # 1. Market Pulse (SPY, QQQ, BTC, ETP 1D Flow)
     # 2. ETP Market Overview (market-wide KPIs only)
     # 3. Market Landscape (5-category AUM/flow matrix — sits near the overview)
-    # 4. Filing Activity (today's 485 filings)
-    # 5. Launches, Pending, CTA, Footer
+    # 4. New Fund Launches (newly-listed products from the last 7 days)
+    # 5. Filing Activity (New vs Updated fund filings, today only)
+    # 6. Upcoming Effectiveness, CTA, Footer
     body = (
         header + msg_html + highlights_html
         + market_pulse_section + etp_overview_section
         + landscape_section
+        + launches_section
         + filings_section
-        + launches_section + pending_section
+        + pending_section
         + cta_section + footer
     )
 
@@ -1450,9 +1408,9 @@ def _gather_daily_data(db_session, since_date: str | None = None,
             "is_rex": g["is_rex"],
             "is_new": g["is_new"],
             "total_funds": len(unique_funds),
-            "relevant_funds": relevant[:5],
-            "relevant_overflow": max(0, len(relevant) - 5),
-            "other_funds": other_funds[:5],
+            "relevant_funds": relevant,
+            "relevant_overflow": 0,
+            "other_funds": other_funds,
             "other_count": other_count,
             "categories": cat_counts,
             "_sort": sort_score,
@@ -1473,7 +1431,6 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         .where(FundStatus.effective_date >= date_type.today())
         .where(Trust.id.in_(select(_etf_trust_ids.c.trust_id)))
         .order_by(Trust.is_rex.desc(), FundStatus.effective_date.asc())
-        .limit(15)
     ).all()
 
     pending = []
