@@ -844,50 +844,36 @@ def _daily_highlights_box(bullets: list[str]) -> str:
 
 
 def _daily_highlights(data: dict) -> list[str]:
-    """Generate 3-5 executive highlights for the daily filing report."""
+    """Generate 3-5 executive highlights for the daily filing report.
+
+    Focused on market-wide ETP activity; REX-specific KPIs live on the REX dashboard.
+    """
     bullets = []
     snapshot = data.get("market_snapshot")
 
-    # 1. REX AUM + flow headline
+    # 1. Market-wide ETP headline
     if snapshot:
-        kpis = snapshot.get("kpis", {})
-        aum = kpis.get("aum", "")
-        flow_1d = kpis.get("flow_1d_fmt", "")
-        products = kpis.get("products", 0)
-        if aum:
-            bullets.append(f"REX AUM: {aum} across {products} products ({flow_1d} 1D net flow)")
+        pulse = snapshot.get("market_pulse", {})
+        ind = pulse.get("_industry", {}) if pulse else {}
+        count = ind.get("count", 0)
+        aum_fmt = ind.get("aum_fmt", "")
+        flow_1d = ind.get("flow_1d_fmt", "")
+        if aum_fmt:
+            bullets.append(f"ETP market: {count:,} active products, {aum_fmt} AUM ({flow_1d} 1D net flow)")
 
-    # 2. Top REX flow mover
-    if snapshot:
-        dm = snapshot.get("daily_movers", {})
-        inflows = dm.get("inflows", [])
-        if inflows:
-            top = inflows[0]
-            bullets.append(f"{top['ticker']}: {top['flow_1d_fmt']} 1D flow -- top REX mover")
-
-    # 3. New launches (7d) — name the issuers, not "(None)"
+    # 2. New launches (7d)
     launches = data.get("launches", [])
     if launches:
-        rex_launches = [l for l in launches if l.get("is_rex")]
-        if rex_launches:
-            tickers = ", ".join(l["ticker"] for l in rex_launches[:3])
-            bullets.append(f"{len(launches)} new ETP launches this week -- REX: {tickers}")
-        else:
-            # Show actual ticker examples, not trust names
-            tickers = ", ".join(l.get("ticker", "?") for l in launches[:3] if l.get("ticker"))
-            bullets.append(f"{len(launches)} new ETP launches this week ({tickers})")
+        tickers = ", ".join(l.get("ticker", "?") for l in launches[:4] if l.get("ticker"))
+        bullets.append(f"{len(launches)} new ETP launches this week ({tickers})")
 
-    # 4. Filing activity
+    # 3. Filing activity
     filing_groups = data.get("filing_groups", [])
-    if filing_groups:
-        rex_filings = [f for f in filing_groups if f.get("is_rex")]
-        total_trusts = len(filing_groups)
-        if rex_filings:
-            bullets.append(f"{total_trusts} trusts filed 485 forms -- includes REX filings")
-        elif total_trusts > 0:
-            bullets.append(f"{total_trusts} trusts filed 485 forms today")
+    total_trusts = len(filing_groups)
+    if total_trusts > 0:
+        bullets.append(f"{total_trusts} trusts filed 485 forms today")
 
-    # 5. Effective / Pending status
+    # 4. Effective / Pending status
     newly_effective = data.get("newly_effective_1d", 0)
     total_pending = data.get("total_pending", 0)
     if newly_effective > 0 or total_pending > 0:
@@ -1030,7 +1016,8 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
             f"background:{_REX_ROW_BG};"
         )
         filing_items = []
-        for fg in filing_groups[:8]:
+        _FILING_LIMIT = 25
+        for fg in filing_groups[:_FILING_LIMIT]:
             trust = _esc(fg.get("trust_name", ""))
             if len(trust) > 35:
                 trust = trust[:32] + "..."
@@ -1105,16 +1092,16 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
                 )
 
         more_html = ""
-        if len(filing_groups) > 8:
+        if len(filing_groups) > _FILING_LIMIT:
             more_html = (
                 f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
-                f'+ {len(filing_groups) - 8} more trusts filed</div>'
+                f'+ {len(filing_groups) - _FILING_LIMIT} more trusts filed</div>'
             )
         filings_section = f"""
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_BLUE};">
-    New Filings
+    Today's 485 Filings
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     {''.join(filing_items)}
@@ -1126,7 +1113,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_BLUE};">
-    New Filings
+    Today's 485 Filings
   </div>
   <div style="padding:12px;background:{_LIGHT};border-radius:6px;
     font-size:13px;color:{_GRAY};text-align:center;">
@@ -1215,9 +1202,8 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
         pulse = snapshot.get("market_pulse", {})
         if pulse:
             market_pulse_section = _render_market_pulse(pulse)
-        # ETP Market Overview (dual KPI: market + REX)
+        # ETP Market Overview (market-wide KPIs only; REX metrics live on the REX dashboard)
         ind = pulse.get("_industry", {}) if pulse else {}
-        kpis = snapshot["kpis"]
         etp_overview_section = (
             f'<tr><td style="padding:15px 30px 5px;">'
             f'<div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;'
@@ -1230,19 +1216,10 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
                     ("1D Flow", ind.get("flow_1d_fmt", "--"), ind.get("flow_1d_positive", True)),
                     ("1W Flow", ind.get("flow_1w_fmt", "--"), ind.get("flow_1w_positive", True)),
                 ],
-                rex_row=[
-                    ("REX Funds", str(kpis.get("products", 0))),
-                    ("REX AUM", kpis.get("aum", "--")),
-                    ("REX 1D Flow", kpis.get("flow_1d_fmt", "--"), kpis.get("flow_1d_positive", True)),
-                    ("REX 1W Flow", kpis.get("flow_1w_fmt", "--"), kpis.get("flow_1w_positive", True)),
-                ],
+                rex_row=None,
             )
         )
-        # Daily REX Movers (by 1D flow)
-        dm = snapshot.get("daily_movers", {})
-        if dm and (dm.get("inflows") or dm.get("outflows")):
-            daily_movers_section = _render_daily_movers(dm)
-        # Market Landscape (5 categories)
+        # Market Landscape (5 categories) — shown immediately after ETP Market Overview
         ls = snapshot.get("landscape", [])
         if ls:
             landscape_section = _render_landscape_compact(ls)
@@ -1269,17 +1246,16 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 
     # --- Assemble (executive order) ---
     # 1. Market Pulse (SPY, QQQ, BTC, ETP 1D Flow)
-    # 2. ETP Market Overview (dual-row KPI: market + REX)
-    # 3. Filing Activity (new 485 filings)
-    # 4. REX Daily Movers (which products are moving money)
-    # 5. Launches, Pending, Landscape, CTA, Footer
+    # 2. ETP Market Overview (market-wide KPIs only)
+    # 3. Market Landscape (5-category AUM/flow matrix — sits near the overview)
+    # 4. Filing Activity (today's 485 filings)
+    # 5. Launches, Pending, CTA, Footer
     body = (
         header + msg_html + highlights_html
         + market_pulse_section + etp_overview_section
-        + filings_section
-        + daily_movers_section
-        + launches_section + pending_section
         + landscape_section
+        + filings_section
+        + launches_section + pending_section
         + cta_section + footer
     )
 
@@ -1314,10 +1290,9 @@ def _gather_daily_data(db_session, since_date: str | None = None,
 
     today = datetime.now()
     if not since_date:
-        if edition == "evening":
-            since_date = today.strftime("%Y-%m-%d")  # today only
-        else:  # "daily" or "morning"
-            since_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")  # last 24h
+        # Daily report covers TODAY's filings only — matches user expectation that
+        # "today's report" means filings dated today, not a rolling 24h window.
+        since_date = today.strftime("%Y-%m-%d")
     since_dt = date_type.fromisoformat(since_date)
     yesterday = date_type.today() - timedelta(days=1)
 
