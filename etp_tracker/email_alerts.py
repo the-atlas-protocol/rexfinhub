@@ -1003,123 +1003,133 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
   </div>
 </td></tr>"""
 
-    # --- New Filings (relevance-sorted, fund-level detail) ---
+    # --- Today's 485 Filings: split into New Fund Filings vs Updated Fund Filings ---
     filing_groups = data.get("filing_groups", [])
-    if filing_groups:
-        _row_base = (
-            f"padding:8px 10px;border-bottom:1px solid {_BORDER};"
-            f"font-size:12px;color:{_NAVY};"
-        )
-        _row_rex = (
-            f"padding:8px 10px;border-bottom:1px solid {_BORDER};"
-            f"font-size:12px;color:{_NAVY};"
-            f"background:{_REX_ROW_BG};"
-        )
-        filing_items = []
-        _FILING_LIMIT = 25
-        for fg in filing_groups[:_FILING_LIMIT]:
-            trust = _esc(fg.get("trust_name", ""))
-            if len(trust) > 35:
-                trust = trust[:32] + "..."
-            form = _esc(fg.get("form", ""))
-            is_rex = fg.get("is_rex", False)
-            total = fg.get("total_funds", 0)
-            relevant = fg.get("relevant_funds", [])
-            overflow = fg.get("relevant_overflow", 0)
-            other_count = fg.get("other_count", 0)
-            cats = fg.get("categories", {})
-            row_style = _row_rex if is_rex else _row_base
 
-            # Build the trust label with optional REX badge
-            trust_label = trust
-            if is_rex:
-                trust_label = (
-                    f'{trust} <span style="background:{_BLUE};color:{_WHITE};'
-                    f'padding:1px 6px;border-radius:3px;font-size:9px;'
-                    f'font-weight:700;vertical-align:middle;">REX</span>'
-                )
+    _row_base = (
+        f"padding:8px 10px;border-bottom:1px solid {_BORDER};"
+        f"font-size:12px;color:{_NAVY};"
+    )
+    _row_rex = (
+        f"padding:8px 10px;border-bottom:1px solid {_BORDER};"
+        f"font-size:12px;color:{_NAVY};"
+        f"background:{_REX_ROW_BG};"
+    )
 
-            # Build the summary line
-            other_funds = fg.get("other_funds", [])
-            if is_rex or relevant:
-                # Show fund names for REX / relevant trusts
-                fund_names = [_esc(f) for f in relevant]
-                summary_parts = []
-                if fund_names:
-                    summary_parts.append(", ".join(fund_names))
-                    if overflow > 0:
-                        summary_parts.append(f"+{overflow} more relevant")
-                    if other_count > 0:
-                        summary_parts.append(f"+{other_count} more")
-                else:
-                    # No relevant funds classified -- fall back to showing
-                    # "other" fund names so the email isn't just "+N more"
-                    fallback_names = [_esc(f) for f in other_funds]
-                    if fallback_names:
-                        summary_parts.append(", ".join(fallback_names))
-                        remaining = other_count - len(fallback_names)
-                        if remaining > 0:
-                            summary_parts.append(f"+{remaining} more")
-                summary = "; ".join(summary_parts) if summary_parts else f"{total} funds filed"
+    def _render_filing_group_row(fg: dict) -> str:
+        trust = _esc(fg.get("trust_name", ""))
+        if len(trust) > 35:
+            trust = trust[:32] + "..."
+        form = _esc(fg.get("form", ""))
+        is_rex = fg.get("is_rex", False)
+        total = fg.get("total_funds", 0)
+        relevant = fg.get("relevant_funds", [])
+        overflow = fg.get("relevant_overflow", 0)
+        other_count = fg.get("other_count", 0)
+        cats = fg.get("categories", {})
+        row_style = _row_rex if is_rex else _row_base
 
-                # Category tags
-                cat_tags = ""
-                for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
-                    cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
-                    cat_tags += (
-                        f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
-                        f'font-size:9px;color:{_WHITE};background:{cat_color};'
-                        f'margin-left:2px;">{cnt} {cat}</span>'
-                    )
-
-                filing_items.append(
-                    f'<tr><td style="{row_style}">'
-                    f'<div style="font-weight:600;margin-bottom:2px;">'
-                    f'{trust_label} <span style="font-weight:400;color:{_GRAY};font-size:10px;">{form}</span>'
-                    f'{cat_tags}</div>'
-                    f'<div style="font-size:11px;color:{_GRAY};">{summary}</div>'
-                    f'</td></tr>'
-                )
-            else:
-                # Non-relevant trust — collapsed single line
-                filing_items.append(
-                    f'<tr><td style="{row_style}">'
-                    f'{trust_label} '
-                    f'<span style="color:{_GRAY};font-size:10px;">{form}</span> '
-                    f'<span style="color:{_GRAY};font-size:11px;">'
-                    f'&ndash; {total} funds (+{total} more)</span>'
-                    f'</td></tr>'
-                )
-
-        more_html = ""
-        if len(filing_groups) > _FILING_LIMIT:
-            more_html = (
-                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
-                f'+ {len(filing_groups) - _FILING_LIMIT} more trusts filed</div>'
+        trust_label = trust
+        if is_rex:
+            trust_label = (
+                f'{trust} <span style="background:{_BLUE};color:{_WHITE};'
+                f'padding:1px 6px;border-radius:3px;font-size:9px;'
+                f'font-weight:700;vertical-align:middle;">REX</span>'
             )
-        filings_section = f"""
+
+        other_funds = fg.get("other_funds", [])
+        if is_rex or relevant:
+            fund_names = [_esc(f) for f in relevant]
+            summary_parts = []
+            if fund_names:
+                summary_parts.append(", ".join(fund_names))
+                if overflow > 0:
+                    summary_parts.append(f"+{overflow} more relevant")
+                if other_count > 0:
+                    summary_parts.append(f"+{other_count} more")
+            else:
+                fallback_names = [_esc(f) for f in other_funds]
+                if fallback_names:
+                    summary_parts.append(", ".join(fallback_names))
+                    remaining = other_count - len(fallback_names)
+                    if remaining > 0:
+                        summary_parts.append(f"+{remaining} more")
+            summary = "; ".join(summary_parts) if summary_parts else f"{total} funds filed"
+
+            cat_tags = ""
+            for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
+                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
+                cat_tags += (
+                    f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
+                    f'font-size:9px;color:{_WHITE};background:{cat_color};'
+                    f'margin-left:2px;">{cnt} {cat}</span>'
+                )
+
+            return (
+                f'<tr><td style="{row_style}">'
+                f'<div style="font-weight:600;margin-bottom:2px;">'
+                f'{trust_label} <span style="font-weight:400;color:{_GRAY};font-size:10px;">{form}</span>'
+                f'{cat_tags}</div>'
+                f'<div style="font-size:11px;color:{_GRAY};">{summary}</div>'
+                f'</td></tr>'
+            )
+        return (
+            f'<tr><td style="{row_style}">'
+            f'{trust_label} '
+            f'<span style="color:{_GRAY};font-size:10px;">{form}</span> '
+            f'<span style="color:{_GRAY};font-size:11px;">'
+            f'&ndash; {total} funds (+{total} more)</span>'
+            f'</td></tr>'
+        )
+
+    def _render_filings_block(title: str, groups: list, accent_color: str, limit: int, empty_msg: str | None) -> str:
+        if not groups:
+            if empty_msg is None:
+                return ""
+            return f"""
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
-    padding-bottom:6px;border-bottom:2px solid {_BLUE};">
-    Today's 485 Filings
-  </div>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-    {''.join(filing_items)}
-  </table>
-  {more_html}
-</td></tr>"""
-    else:
-        filings_section = f"""
-<tr><td style="padding:15px 30px 10px;">
-  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
-    padding-bottom:6px;border-bottom:2px solid {_BLUE};">
-    Today's 485 Filings
+    padding-bottom:6px;border-bottom:2px solid {accent_color};">
+    {title}
   </div>
   <div style="padding:12px;background:{_LIGHT};border-radius:6px;
     font-size:13px;color:{_GRAY};text-align:center;">
-    No new 485 filings today.
+    {empty_msg}
   </div>
 </td></tr>"""
+
+        items = "".join(_render_filing_group_row(fg) for fg in groups[:limit])
+        more_html = ""
+        if len(groups) > limit:
+            more_html = (
+                f'<div style="font-size:10px;color:{_GRAY};margin-top:4px;">'
+                f'+ {len(groups) - limit} more trusts</div>'
+            )
+        return f"""
+<tr><td style="padding:15px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {accent_color};">
+    {title} <span style="font-weight:400;color:{_GRAY};font-size:11px;">({len(groups)})</span>
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    {items}
+  </table>
+  {more_html}
+</td></tr>"""
+
+    new_groups = [fg for fg in filing_groups if fg.get("is_new")]
+    updated_groups = [fg for fg in filing_groups if not fg.get("is_new")]
+
+    # Show empty state if NEITHER section has anything (all-quiet day).
+    if not new_groups and not updated_groups:
+        filings_section = _render_filings_block(
+            "Today's 485 Filings", [], _BLUE, 25, "No 485 filings today."
+        )
+    else:
+        filings_section = (
+            _render_filings_block("New Fund Filings", new_groups, _GREEN, 25, None)
+            + _render_filings_block("Updated Fund Filings", updated_groups, _BLUE, 25, None)
+        )
 
     # --- Upcoming Effectiveness ---
     pending = data.get("pending", [])
@@ -1351,7 +1361,9 @@ def _gather_daily_data(db_session, since_date: str | None = None,
     filing_rows = db_session.execute(
         select(
             Trust.name.label("trust_name"), Trust.is_rex,
+            Filing.id.label("filing_id"),
             Filing.form, Filing.filing_date,
+            FundExtraction.series_id,
             FundExtraction.series_name,
         )
         .join(Trust, Trust.id == Filing.trust_id)
@@ -1362,22 +1374,42 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         .order_by(Trust.is_rex.desc(), Filing.filing_date.desc())
     ).all()
 
-    # Group by trust (one entry per trust, all forms combined)
+    # Build the set of series_ids that have ANY prior 485-series filing before
+    # today. Anything in today's filings NOT in this set is a brand-new fund.
+    todays_series_ids = {r.series_id for r in filing_rows if r.series_id}
+    prior_series_ids: set[str] = set()
+    if todays_series_ids:
+        prior_rows = db_session.execute(
+            select(FundExtraction.series_id)
+            .join(Filing, Filing.id == FundExtraction.filing_id)
+            .where(Filing.filing_date < since_dt)
+            .where(FundExtraction.series_id.in_(todays_series_ids))
+            .distinct()
+        ).all()
+        prior_series_ids = {r.series_id for r in prior_rows if r.series_id}
+
+    # Group by (trust, is_new) so a trust that filed both a new fund AND an
+    # update for an existing fund shows up in both sections with the right funds.
     from collections import defaultdict
-    _fg_map: dict[str, dict] = {}
+    _fg_map: dict[tuple, dict] = {}
     for r in filing_rows:
-        key = r.trust_name or ""
+        sid = r.series_id
+        sname = (r.series_name or "").strip()
+        # An extraction with no series_id is treated as an update (can't prove
+        # it's new). Extractions with no series_name are skipped entirely.
+        is_new = bool(sid) and sid not in prior_series_ids
+        key = (r.trust_name or "", is_new)
         if key not in _fg_map:
             _fg_map[key] = {
-                "trust_name": key,
+                "trust_name": r.trust_name or "",
                 "forms": set(),
                 "filing_date": str(r.filing_date) if r.filing_date else "",
                 "is_rex": r.is_rex,
+                "is_new": is_new,
                 "funds": [],
             }
         if r.form:
             _fg_map[key]["forms"].add(r.form)
-        sname = (r.series_name or "").strip()
         if sname:
             _fg_map[key]["funds"].append(sname)
 
@@ -1392,6 +1424,8 @@ def _gather_daily_data(db_session, since_date: str | None = None,
             if fl not in seen:
                 seen.add(fl)
                 unique_funds.append(f)
+        if not unique_funds:
+            continue
 
         categories: dict[str, list[str]] = defaultdict(list)
         for f in unique_funds:
@@ -1402,14 +1436,19 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         other_count = len(other_funds)
         cat_counts = {c: len(names) for c, names in categories.items() if names and c != "other"}
 
-        # Sort score: REX=1000, then count of relevant funds
-        sort_score = (1000 if g["is_rex"] else 0) + len(relevant)
+        # Sort score: NEW funds rank highest, then REX, then relevance count
+        sort_score = (
+            (2000 if g["is_new"] else 0)
+            + (1000 if g["is_rex"] else 0)
+            + len(relevant)
+        )
 
         filing_groups.append({
             "trust_name": g["trust_name"],
             "form": ", ".join(sorted(g["forms"])) if isinstance(g.get("forms"), set) else g.get("form", ""),
             "filing_date": g["filing_date"],
             "is_rex": g["is_rex"],
+            "is_new": g["is_new"],
             "total_funds": len(unique_funds),
             "relevant_funds": relevant[:5],
             "relevant_overflow": max(0, len(relevant) - 5),
