@@ -1,13 +1,20 @@
 [Unit]
-Description=REX FinHub Bloomberg Pull Timer (once weekdays, 17:15 ET)
+Description=REX FinHub Bloomberg Pull Timer (2x weekdays: 17:15 + 21:00 ET)
 
 [Timer]
 # VPS timezone set to America/New_York — DST handled automatically.
-# 17:15 gives the Bloomberg xlsm file ~13 minutes past its typical 17:02
-# save time to fully populate. Reading at 17:00 was racing the file saver
-# and picking up NaN values for tickers like FNGU, causing a silent
-# fallback to yesterday's AUM (seen 2026-04-14, $274M under-report).
+#
+# 17:15 — primary pull after the typical 17:02 xlsm save. Reading at 17:00
+# was racing the file saver and picking up NaN values for tickers like
+# FNGU, causing a silent fallback to yesterday's AUM (seen 2026-04-14,
+# $274M under-report).
+#
+# 21:00 — late-evening catch. Bloomberg can be updated well after 17:15
+# (observed 8:50 PM ET on 2026-04-17). Without this second pull the DB
+# keeps the 17:15 snapshot and any manual send after ~22:00 ships stale
+# numbers.
 OnCalendar=Mon..Fri 17:15:00
+OnCalendar=Mon..Fri 21:00:00
 Persistent=true
 
 [Install]

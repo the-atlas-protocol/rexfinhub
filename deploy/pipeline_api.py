@@ -106,22 +106,63 @@ def status(_: None = Depends(verify_key)):
 
 @app.post("/pipeline/pull-sync")
 def pull_sync(_: None = Depends(verify_key)):
-    """Pull Bloomberg from SharePoint + sync to DB."""
+    """Pull Bloomberg + market sync + prebake reports + upload to Render.
+
+    This endpoint runs the full publish chain so a manual trigger from admin
+    updates both VPS state AND what Render serves. Before this fix, pull-sync
+    only updated the VPS DB, leaving Render with stale prebaked HTML and a
+    stale DB snapshot until the next daily timer (~24h later).
+    """
     def _do():
+        import subprocess
         os.environ["SEC_CACHE_DIR"] = str(PROJECT_ROOT / "cache" / "sec")
         from webapp.services.graph_files import download_bloomberg_from_sharepoint
         from webapp.database import init_db, SessionLocal
         from webapp.services.market_sync import sync_market_data
 
+        # 1. Pull latest Bloomberg from SharePoint via Graph API
         path = download_bloomberg_from_sharepoint()
         if not path:
             return "Bloomberg pull failed"
 
+        # 2. Sync master/time_series/report_cache tables
         init_db()
         db = SessionLocal()
-        r = sync_market_data(db)
-        db.close()
-        return f"Synced {r.get('master_rows', 0)} rows"
+        try:
+            r = sync_market_data(db)
+            master_rows = r.get("master_rows", 0)
+        finally:
+            db.close()
+
+        # 3. Prebake all 9 reports and push static HTML to Render.
+        # Use the same Python that's running the API — it's already the venv.
+        import sys as _sys
+        prebake_log = ""
+        try:
+            proc = subprocess.run(
+                [_sys.executable, str(PROJECT_ROOT / "scripts" / "prebake_reports.py")],
+                cwd=str(PROJECT_ROOT),
+                capture_output=True, text=True, timeout=1200,
+            )
+            last_line = ""
+            combined = (proc.stdout or "") + (proc.stderr or "")
+            lines = [l for l in combined.splitlines() if l.strip()]
+            if lines:
+                last_line = lines[-1][:120]
+            prebake_log = f"prebake rc={proc.returncode}; {last_line}"
+        except Exception as e:
+            prebake_log = f"prebake ERROR: {e}"
+
+        # 4. Upload the freshly-synced DB to Render (lean, gzipped, atomic swap)
+        upload_log = ""
+        try:
+            from scripts.run_daily import upload_db_to_render
+            upload_db_to_render()
+            upload_log = "db uploaded"
+        except Exception as e:
+            upload_log = f"db upload ERROR: {e}"
+
+        return f"Synced {master_rows} rows | {prebake_log} | {upload_log}"
 
     return _run_in_background("pull-sync", _do)
 

@@ -763,7 +763,7 @@ RSJN US,Defined,1,manual
 RSMR US,Defined,1,manual
 RSSE US,Defined,1,manual
 SAUG US,Defined,1,manual
-SBAR US,Defined,1,manual
+SBAR US,CC,1,manual
 SEPM US,Defined,1,manual
 SEPP US,Defined,1,manual
 SEPT US,Defined,1,manual

@@ -415,7 +415,11 @@ def compact_db():
 # Step 6: Upload to Render
 # ===================================================================
 def upload_screener_cache_to_render():
-    """Upload screener cache JSON (~500KB) to Render."""
+    """Upload screener cache JSON (~500KB) to Render.
+
+    Raises RuntimeError on failure so the caller can surface it in the
+    pipeline critical alert (was silently swallowed before).
+    """
     import requests
 
     cache_path = PROJECT_ROOT / "temp" / "screener_cache.json"
@@ -447,9 +451,13 @@ def upload_screener_cache_to_render():
             keys = resp.json().get("keys", [])
             print(f"  Uploaded {cache_path.stat().st_size / 1024:.0f} KB ({len(keys)} keys)")
         else:
-            print(f"  Upload failed: {resp.status_code}")
+            raise RuntimeError(
+                f"Screener cache upload to Render failed: HTTP {resp.status_code}"
+            )
+    except RuntimeError:
+        raise
     except Exception as e:
-        print(f"  Screener cache upload failed (non-fatal): {e}")
+        raise RuntimeError(f"Screener cache upload error: {e}") from e
 
 
 def upload_db_to_render():
@@ -530,9 +538,13 @@ def upload_db_to_render():
         if resp.status_code == 200:
             print(f"  Uploaded to Render ({gz_mb:.0f} MB compressed)")
         else:
-            print(f"  Upload failed: {resp.status_code} {resp.text[:200]}")
+            raise RuntimeError(
+                f"Render DB upload failed: HTTP {resp.status_code} {resp.text[:200]}"
+            )
+    except RuntimeError:
+        raise
     except Exception as e:
-        print(f"  Upload failed (non-fatal): {e}")
+        raise RuntimeError(f"Render DB upload error: {e}") from e
     finally:
         for p in (gz_path, str(render_db)):
             try:
@@ -767,10 +779,18 @@ def main():
             print(f"  Compact failed: {e}")
 
         print("\n[9/10] Uploading screener cache to Render...")
-        upload_screener_cache_to_render()
+        try:
+            upload_screener_cache_to_render()
+        except Exception as e:
+            errors.append(f"Screener cache upload: {e}")
+            print(f"  FAILED: {e}")
 
         print("\n[10/12] Uploading DB to Render...")
-        upload_db_to_render()
+        try:
+            upload_db_to_render()
+        except Exception as e:
+            errors.append(f"Render DB upload: {e}")
+            print(f"  FAILED: {e}")
 
         print("\n[11/12] Uploading structured notes DB to Render...")
         try:
@@ -901,9 +921,17 @@ def main():
             except Exception as e:
                 print(f"  Compact failed: {e}")
             print("\n[2] Uploading screener cache...")
-            upload_screener_cache_to_render()
+            try:
+                upload_screener_cache_to_render()
+            except Exception as e:
+                errors.append(f"Screener cache upload: {e}")
+                print(f"  FAILED: {e}")
             print("\n[3] Uploading DB...")
-            upload_db_to_render()
+            try:
+                upload_db_to_render()
+            except Exception as e:
+                errors.append(f"Render DB upload: {e}")
+                print(f"  FAILED: {e}")
 
     elapsed = time.time() - start
     print(f"\n=== Done in {elapsed:.0f}s ({elapsed / 60:.1f}m) ===")

@@ -467,7 +467,6 @@ PMSE US,Buffer
 QB US,Buffer
 RB US,Buffer
 FB US,Buffer
-SBAR US,Barrier
 THEQ US,Hedged Equity
 QBER US,Hedged Equity
 QBUL US,Hedged Equity

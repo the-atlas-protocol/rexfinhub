@@ -376,19 +376,44 @@ def main():
         print(f"  Market sync failed (non-fatal): {e}")
         import traceback; traceback.print_exc()
 
-    # Bloomberg staleness guard — abort if data is too old
+    # Bloomberg staleness guard — abort (and alert) if data is too old.
+    # Graph API failures now raise BloombergGraphError, which we treat as a
+    # hard abort too so we never send with stale/uncertain data.
     if not preview:
+        def _fire_alert(subject: str, body: str) -> None:
+            try:
+                from etp_tracker.email_alerts import send_critical_alert
+                send_critical_alert(subject, body)
+            except Exception:
+                pass
+
         try:
+            from webapp.services.bbg_file import get_bloomberg_file, BloombergGraphError
+        except ImportError:
             from webapp.services.bbg_file import get_bloomberg_file
+            BloombergGraphError = Exception  # type: ignore
+
+        try:
             bbg_path = get_bloomberg_file()
             bbg_age_hours = (datetime.now().timestamp() - bbg_path.stat().st_mtime) / 3600
             if bbg_age_hours > 12:
-                print(f"\n  ABORT: Bloomberg file is {bbg_age_hours:.0f}h old (max 12h). Not sending stale reports.")
-                print(f"  File: {bbg_path}")
-                print(f"  Update Bloomberg data and retry.")
+                msg = (
+                    f"Bloomberg file is {bbg_age_hours:.0f}h old (max 12h). "
+                    f"Daily send was ABORTED. File: {bbg_path}."
+                )
+                print(f"\n  ABORT: {msg}")
+                _fire_alert("Daily Email ABORTED: Stale Bloomberg Data", msg)
                 sys.exit(1)
+        except BloombergGraphError as e:
+            msg = f"Graph API failed: {e}. Cannot verify Bloomberg freshness — daily send ABORTED."
+            print(f"\n  ABORT: {msg}")
+            _fire_alert("Daily Email ABORTED: Graph API Failure", msg)
+            sys.exit(1)
         except Exception as e:
-            print(f"  Bloomberg freshness check failed (non-fatal): {e}")
+            msg = f"Bloomberg freshness check crashed: {e}. Daily send ABORTED."
+            print(f"\n  ABORT: {msg}")
+            _fire_alert("Daily Email ABORTED: Freshness Check Crashed", msg)
+            sys.exit(1)
 
     # Per-report duplicate guards are inside do_daily/do_weekly.
     # Daily: blocks same-day resend per report.

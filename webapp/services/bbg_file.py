@@ -3,15 +3,14 @@
 Every data module must import get_bloomberg_file() from here.
 No other module should hardcode OneDrive or local paths.
 
-Resolution:
-  1. Graph API (SharePoint) — pull fresh if newer than local cache
-  2. Local cache (data/DASHBOARD/) — last successful Graph download
-  No OneDrive dependency. No silent fallback to stale data.
+Policy: Graph API is the ONLY source of truth. If it fails, we terminate.
+The local file on disk is a byproduct of a successful Graph API download —
+never a fallback for reads. This prevents silent use of yesterday's data
+when auth/network/SharePoint breaks.
 """
 from __future__ import annotations
 
 import logging
-import time
 from datetime import datetime
 from pathlib import Path
 
@@ -24,61 +23,75 @@ _LOCAL_CACHE = (
     / "bloomberg_daily_file.xlsm"
 )
 
-_STALENESS_HOURS = 24  # Error if local cache older than this and Graph fails
 
+class BloombergGraphError(RuntimeError):
+    """Raised when the Graph API path cannot produce an up-to-date Bloomberg file.
 
-def _file_age_hours(path: Path) -> float:
-    """Return file age in hours, or 999 if file doesn't exist."""
-    if not path.exists():
-        return 999
-    return (time.time() - path.stat().st_mtime) / 3600
+    This is a hard-stop. Do NOT catch and fall back to any local file.
+    """
 
 
 def get_bloomberg_file() -> Path:
-    """Return the Bloomberg daily file path.
+    """Return the Bloomberg daily file, guaranteed to be today's SharePoint copy.
 
-    Resolution:
-        1. Check SharePoint via Graph API. If newer than local cache, download.
-        2. Use local cache (from last successful Graph download).
-        3. If local cache is >24h old and Graph failed, log ERROR.
+    Behavior:
+        - If SharePoint is newer than local, download it.
+        - If local is already current (matches SharePoint mtime), use it as-is.
+        - If ANY step fails (auth, network, SharePoint unreachable, download
+          too small, metadata unreadable), raise BloombergGraphError. No
+          fallback to stale local data.
 
-    Raises FileNotFoundError if no file available.
+    Raises:
+        BloombergGraphError: Any Graph API failure. The pipeline should
+            abort and surface this error rather than proceed with stale data.
     """
-    # --- Try Graph API: download if newer than local cache ---
     try:
         from webapp.services.graph_files import (
             is_sharepoint_newer_than_local,
             download_bloomberg_from_sharepoint,
+            get_sharepoint_file_metadata,
+        )
+    except ImportError as e:
+        raise BloombergGraphError(
+            f"graph_files module not available: {e}. Cannot verify Bloomberg freshness."
+        ) from e
+
+    # Confirm Graph API is reachable BEFORE deciding whether to download.
+    try:
+        meta = get_sharepoint_file_metadata()
+    except Exception as e:
+        raise BloombergGraphError(f"Graph API metadata fetch failed: {e}") from e
+    if not meta or not meta.get("lastModifiedDateTime"):
+        raise BloombergGraphError(
+            "Graph API returned no metadata for Bloomberg file. "
+            "Cannot verify freshness — aborting."
         )
 
-        if not _LOCAL_CACHE.exists() or is_sharepoint_newer_than_local(_LOCAL_CACHE):
+    # Either SharePoint is newer or local is missing — in both cases download.
+    needs_download = not _LOCAL_CACHE.exists()
+    if not needs_download:
+        try:
+            needs_download = is_sharepoint_newer_than_local(_LOCAL_CACHE)
+        except Exception as e:
+            raise BloombergGraphError(f"Graph API freshness check failed: {e}") from e
+
+    if needs_download:
+        try:
             downloaded = download_bloomberg_from_sharepoint()
-            if downloaded and downloaded.exists() and downloaded.stat().st_size > 1_000_000:
-                mtime = datetime.fromtimestamp(downloaded.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-                log.info("Bloomberg file: Graph API (modified %s)", mtime)
-                return downloaded
-            else:
-                log.warning("Bloomberg file: Graph API download failed")
-        else:
-            age = _file_age_hours(_LOCAL_CACHE)
-            log.info("Bloomberg file: local cache is current (%.1fh old)", age)
-    except ImportError:
-        log.warning("Bloomberg file: graph_files module not available")
-    except Exception as e:
-        log.warning("Bloomberg file: Graph API error: %s", e)
-
-    # --- Use local cache (last successful download) ---
-    if _LOCAL_CACHE.exists():
-        age = _file_age_hours(_LOCAL_CACHE)
-        if age > _STALENESS_HOURS:
-            log.error(
-                "Bloomberg file: local cache is %.0fh old and Graph API failed. "
-                "Data is STALE. Check SharePoint connectivity.", age
+        except Exception as e:
+            raise BloombergGraphError(f"Graph API download failed: {e}") from e
+        if not downloaded or not downloaded.exists():
+            raise BloombergGraphError("Graph API download returned no file.")
+        if downloaded.stat().st_size < 1_000_000:
+            raise BloombergGraphError(
+                f"Graph API download too small ({downloaded.stat().st_size} bytes). "
+                f"Expected full Bloomberg xlsm."
             )
-        else:
-            log.info("Bloomberg file: using local cache (%.1fh old)", age)
-        return _LOCAL_CACHE
+        mtime = datetime.fromtimestamp(downloaded.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        log.info("Bloomberg file: Graph API download (modified %s)", mtime)
+        return downloaded
 
-    raise FileNotFoundError(
-        f"Bloomberg file not available. Graph API failed and no local cache at {_LOCAL_CACHE}"
-    )
+    # Local cache matches SharePoint — safe to use (Graph API confirmed freshness).
+    age_hours = (datetime.now().timestamp() - _LOCAL_CACHE.stat().st_mtime) / 3600
+    log.info("Bloomberg file: local cache matches SharePoint (%.1fh old)", age_hours)
+    return _LOCAL_CACHE
