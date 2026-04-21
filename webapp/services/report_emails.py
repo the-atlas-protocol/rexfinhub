@@ -225,25 +225,15 @@ def _wrap_email(title: str, accent: str, body: str,
   <div style="font-size:22px;font-weight:700;color:{_WHITE};letter-spacing:-0.5px;">{_esc(title)} | {_esc(date_str)}</div>
 </td></tr>
 
-<!-- Top-of-report data disclosure -->
-<tr><td style="padding:10px 30px 0 30px;">
-  <div style="background:#fffbeb;border-left:3px solid #d97706;border-radius:0 4px 4px 0;
-    padding:10px 14px;font-size:11px;color:#1f2937;line-height:1.5;">
-    <span style="font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.04em;font-size:10px;">
-      Data Disclosure</span><br>
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design.
-    Today's report reflects T-1 values. Certain metrics &mdash; particularly for very recent
-    launches, distributions, or corporate actions &mdash; may be over- or under-stated until
-    the next Bloomberg refresh.
-  </div>
-</td></tr>
-
 {body}
 {cta}
 
 <!-- Footer -->
 <tr><td style="padding:16px 30px;border-top:1px solid {_BORDER};text-align:center;">
 {branding_html}  <div style="font-size:10px;color:{_GRAY};margin-top:4px;font-style:italic;">
+    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
+  </div>
+  <div style="font-size:10px;color:{_GRAY};margin-top:4px;font-style:italic;">
     Note: ETN data reflects proprietary share/price data where available. Bloomberg-reported ETN figures may differ.
   </div>
 </td></tr>

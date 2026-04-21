@@ -173,17 +173,6 @@ def _render(*, total, listed_count, rex_aum, new_this_week_count, upcoming_count
   <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:{_GRAY}; font-weight:600;">REX Financial</div>
   <div style="font-size:22px; font-weight:700; color:{_NAVY}; margin-top:4px;">Product Pipeline</div>
   <div style="font-size:13px; color:{_GRAY}; margin-top:2px;">Week of {week_start.strftime('%B %d, %Y')}</div>
-</div>
-<div style="padding:10px 24px 0;">
-  <div style="background:#fffbeb;border-left:3px solid #d97706;border-radius:0 4px 4px 0;
-    padding:10px 14px;font-size:11px;color:#1f2937;line-height:1.5;">
-    <span style="font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.04em;font-size:10px;">
-      Data Disclosure</span><br>
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design.
-    This report reflects T-1 values. Certain metrics &mdash; particularly for very recent
-    launches, distributions, or corporate actions &mdash; may be over- or under-stated until
-    the next Bloomberg refresh.
-  </div>
 </div>"""
 
     # KPIs — all same width (table layout, not flex)
@@ -226,7 +215,7 @@ def _render(*, total, listed_count, rex_aum, new_this_week_count, upcoming_count
 {body}
 <div style="padding:12px 20px; border-top:1px solid {_BORDER}; background:#f8fafc;">
   <div style="font-size:10px; color:{_GRAY}; text-align:center; font-style:italic;">
-    Note: AUM figures are 1 business day lagged (Bloomberg reports T-1 AUM).
+    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
   </div>
 </div>
 </div></body></html>"""

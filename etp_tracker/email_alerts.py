@@ -936,18 +936,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 <tr><td style="background:{_header_bg};padding:24px 30px;">
   <div style="color:{_WHITE};font-size:22px;font-weight:700;letter-spacing:-0.5px;">{_title} | {_data_date_str}</div>
 </td></tr>
-<!-- Top-of-report data disclosure -->
-<tr><td style="padding:10px 30px 0 30px;">
-  <div style="background:#fffbeb;border-left:3px solid #d97706;border-radius:0 4px 4px 0;
-    padding:10px 14px;font-size:11px;color:#1f2937;line-height:1.5;">
-    <span style="font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.04em;font-size:10px;">
-      Data Disclosure</span><br>
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design.
-    Today's report reflects T-1 values. Certain metrics &mdash; particularly for very recent
-    launches, distributions, or corporate actions &mdash; may be over- or under-stated until
-    the next Bloomberg refresh.
-  </div>
-</td></tr>"""
+"""
 
     # (Old 3-card scorecard removed — data now in highlights + REX Market Snapshot)
 
@@ -1237,7 +1226,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     Data sourced from SEC EDGAR &amp; Bloomberg | To unsubscribe, contact relasmar@rexfin.com
   </div>
   <div style="font-size:9px;color:{_GRAY};text-align:center;margin-top:3px;font-style:italic;">
-    Note: AUM figures are 1 business day lagged (Bloomberg reports T-1 AUM).
+    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
   </div>
   <div style="font-size:9px;color:{_GRAY};text-align:center;margin-top:3px;font-style:italic;">
     Note: ETN data reflects proprietary share/price data where available. Bloomberg-reported ETN figures may differ.
