@@ -248,6 +248,18 @@ def _render_header(week_ending: str, data_as_of: str = "") -> str:
   <div style="color:{_WHITE};font-size:22px;font-weight:700;letter-spacing:-0.5px;">
     REX Weekly ETP Report | {_esc(week_ending)}
   </div>
+</td></tr>
+<!-- Top-of-report data disclosure -->
+<tr><td style="padding:10px 30px 0 30px;">
+  <div style="background:#fffbeb;border-left:3px solid #d97706;border-radius:0 4px 4px 0;
+    padding:10px 14px;font-size:11px;color:#1f2937;line-height:1.5;">
+    <span style="font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.04em;font-size:10px;">
+      Data Disclosure</span><br>
+    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design.
+    This report reflects T-1 values. Certain metrics &mdash; particularly for very recent
+    launches, distributions, or corporate actions &mdash; may be over- or under-stated until
+    the next Bloomberg refresh.
+  </div>
 </td></tr>"""
 
 
