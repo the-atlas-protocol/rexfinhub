@@ -346,14 +346,27 @@ def prepare_daily(_: None = Depends(verify_key)):
                 init_db()
                 _db = SessionLocal()
                 try:
+                    # Test-send only the reports actually scheduled for today.
+                    # Daily ships Mon-Fri. Weekly bundle + Autocall ship Monday.
+                    # Weekday: Mon=0, Tue=1, ..., Sun=6.
+                    _weekday = datetime.now().weekday()
                     reports = [
-                        ("REX Daily ETP Report",            "daily",    lambda: (build_digest_html_from_db(_db, dashboard_url=dash, edition="daily"), [])),
-                        ("REX Weekly ETP Report",           "weekly",   lambda: (build_weekly_digest_html(_db, dashboard_url=dash), [])),
-                        ("REX ETP Leverage & Inverse Report","li",      lambda: build_li_email(dashboard_url=dash, db=_db)),
-                        ("REX ETP Income Report",           "income",   lambda: build_cc_email(dashboard_url=dash, db=_db)),
-                        ("REX ETP Flow Report",             "flow",     lambda: build_flow_email(dashboard_url=dash, db=_db)),
-                        ("Autocallable ETF Weekly Update",  "autocall", lambda: build_autocall_email(dashboard_url=dash, db=_db)),
+                        ("REX Daily ETP Report", "daily",
+                         lambda: (build_digest_html_from_db(_db, dashboard_url=dash, edition="daily"), [])),
                     ]
+                    if _weekday == 0:  # Monday — also ship weekly bundle + autocall
+                        reports += [
+                            ("REX Weekly ETP Report",            "weekly",
+                             lambda: (build_weekly_digest_html(_db, dashboard_url=dash), [])),
+                            ("REX ETP Leverage & Inverse Report","li",
+                             lambda: build_li_email(dashboard_url=dash, db=_db)),
+                            ("REX ETP Income Report",            "income",
+                             lambda: build_cc_email(dashboard_url=dash, db=_db)),
+                            ("REX ETP Flow Report",              "flow",
+                             lambda: build_flow_email(dashboard_url=dash, db=_db)),
+                            ("Autocallable ETF Weekly Update",   "autocall",
+                             lambda: build_autocall_email(dashboard_url=dash, db=_db)),
+                        ]
                     sent = 0
                     failed: list[str] = []
                     for title, edition, builder in reports:
