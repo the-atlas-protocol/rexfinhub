@@ -600,13 +600,35 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
     """Unified flow bar chart — one chart, inflows right of zero, outflows left.
 
     Zero line is consistent across all rows. Bar sizes are proportional to
-    the absolute max flow. No minimum bar size override — truly proportional.
+    the absolute max flow. Shows every fund with a numeric flow value —
+    zero-flow funds render as a tiny neutral mark so they still appear in
+    the list (important for small universes like autocallables).
     """
-    top_in = sorted([f for f in inflows[:n] if f.get("flow_1w", 0) > 0],
-                    key=lambda f: f["flow_1w"], reverse=True)
-    top_out = sorted([f for f in outflows[:n] if f.get("flow_1w", 0) < 0],
-                     key=lambda f: abs(f["flow_1w"]), reverse=True)
-    if not top_in and not top_out:
+    def _flow_val(f: dict):
+        v = f.get("flow_1w", 0) or 0
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.0
+
+    # Dedupe by ticker across in/out lists — the same fund can appear in both
+    # if upstream grouping is lax. Prefer the row with the bigger absolute flow.
+    seen: dict[str, dict] = {}
+    for f in (inflows[:n] + outflows[:n]):
+        t = f.get("ticker", "")
+        if not t:
+            continue
+        if t not in seen or abs(_flow_val(f)) > abs(_flow_val(seen[t])):
+            seen[t] = f
+    all_rows = list(seen.values())
+
+    top_in = sorted([f for f in all_rows if _flow_val(f) > 0],
+                    key=lambda f: _flow_val(f), reverse=True)
+    top_out = sorted([f for f in all_rows if _flow_val(f) < 0],
+                     key=lambda f: abs(_flow_val(f)), reverse=True)
+    zero_flow = sorted([f for f in all_rows if _flow_val(f) == 0],
+                       key=lambda f: f.get("ticker", ""))
+    if not top_in and not top_out and not zero_flow:
         return ""
 
     max_pos = max((f["flow_1w"] for f in top_in), default=0)
@@ -676,6 +698,29 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
                  f'letter-spacing:0.5px;">Outflows</td></tr>')
         for f in top_out:
             rows += _bar_row(f)
+    # Zero-flow funds — ensure small-universe reports (e.g. autocall) still
+    # list every peer even when some funds had no flow in the period.
+    if zero_flow:
+        rows += (f'<tr><td colspan="3" style="padding:4px 0 2px;font-size:10px;'
+                 f'font-weight:600;color:{_GRAY};text-transform:uppercase;'
+                 f'letter-spacing:0.5px;">No Flow</td></tr>')
+        for f in zero_flow:
+            ticker = _esc(f.get("ticker", ""))
+            fmt = _esc(f.get("flow_1w_fmt", "--"))
+            rows += (
+                f'<tr>'
+                f'<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;'
+                f'white-space:nowrap;overflow:hidden;">{ticker}</td>'
+                f'<td style="padding:2px 4px;">'
+                f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+                f'style="border-collapse:collapse;"><tr>'
+                f'<td style="width:{zero_pct:.1f}%;font-size:0;">&nbsp;</td>'
+                f'<td style="width:2px;background:{_BORDER};height:14px;font-size:0;">&nbsp;</td>'
+                f'<td style="width:{100 - zero_pct:.1f}%;font-size:0;">&nbsp;</td>'
+                f'</tr></table></td>'
+                f'<td style="padding:2px 4px;font-size:11px;color:{_GRAY};text-align:right;'
+                f'white-space:nowrap;width:70px;">{fmt}</td></tr>'
+            )
 
     return (
         f'<tr><td style="padding:8px 30px 10px;">'
@@ -1698,11 +1743,11 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         body += _table(headers, iss_rows, aligns, highlight_col=3,
                         rex_rows=rex_idxs, col_widths=widths)
 
-    # Flow bars
-    top10 = auto_suite.get("top10", [])[:10]
-    bot10 = auto_suite.get("bottom10", [])[:10]
-    if top10 or bot10:
-        body += _flow_bars(top10, bot10, n=10)
+    # Flow bars — show full lists for the small autocall universe (~10 funds)
+    top_full = auto_suite.get("top10", [])
+    bot_full = auto_suite.get("bottom10", [])
+    if top_full or bot_full:
+        body += _flow_bars(top_full, bot_full, n=max(len(top_full), len(bot_full), 10))
 
     # Market share line chart — ON HOLD
     # To re-enable: see git commit e2b5ae1 for the full chart code.
