@@ -2093,10 +2093,18 @@ def get_flow_report(db: Session | None = None) -> dict:
                 )
             # OR override: a fund tagged with peer_cc_category (e.g. Autocallable)
             # should qualify even if its name doesn't match the text filter.
+            # The cc_category column comes through prefixed as
+            # "q_category_attributes.cc_category" in the master dataframe.
             cc_cat = suite_cfg.get("peer_cc_category")
-            if cc_cat and "cc_category" in master.columns:
-                cc_mask = (master["cc_category"] == cc_cat) & active_etf_mask
-                peer_mask = peer_mask | cc_mask
+            if cc_cat:
+                cc_col = (
+                    "q_category_attributes.cc_category"
+                    if "q_category_attributes.cc_category" in master.columns
+                    else ("cc_category" if "cc_category" in master.columns else None)
+                )
+                if cc_col:
+                    cc_mask = (master[cc_col] == cc_cat) & active_etf_mask
+                    peer_mask = peer_mask | cc_mask
         else:
             peer_mask = rex_suite_mask  # fallback: just REX funds
         peer_df = master[peer_mask]
