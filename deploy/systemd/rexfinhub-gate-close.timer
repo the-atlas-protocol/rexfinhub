@@ -1,0 +1,12 @@
+[Unit]
+Description=Close send gate weekdays 18:15 ET — ~30 min after daily pipeline finishes
+
+[Timer]
+# Daily timer runs run_daily.py at 17:45. Prebake + upload + send takes
+# 10-20 min. 18:15 gives a safe buffer. Any send attempt after this hits
+# the closed gate until the next 17:15.
+OnCalendar=Mon..Fri 18:15:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

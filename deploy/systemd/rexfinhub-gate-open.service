@@ -1,0 +1,7 @@
+[Unit]
+Description=REX FinHub Send Gate Auto-Open (for the 5:45 PM scheduled send)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'echo true > /home/jarvis/rexfinhub/config/.send_enabled && logger -t rexfinhub-gate "gate opened by timer"'
+User=jarvis

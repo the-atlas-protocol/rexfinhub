@@ -1,0 +1,11 @@
+[Unit]
+Description=Open send gate weekdays 17:15 ET so the 17:45 daily timer can actually send
+
+[Timer]
+# Same start as the bloomberg timer — gate is open by the time the daily
+# timer at 17:45 finishes prebake and calls send_email.py.
+OnCalendar=Mon..Fri 17:15:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

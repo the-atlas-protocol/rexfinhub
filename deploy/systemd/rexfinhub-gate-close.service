@@ -1,0 +1,7 @@
+[Unit]
+Description=REX FinHub Send Gate Auto-Close (lockdown after scheduled send)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'echo false > /home/jarvis/rexfinhub/config/.send_enabled && logger -t rexfinhub-gate "gate closed by timer"'
+User=jarvis
