@@ -9,11 +9,13 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-// ── Config: update these each month ──
-const MONTH = '2026-02';
-const MONTH_LABEL = 'Feb26';
+// ── Config: pass via CLI args, e.g.: node build_reports.js 2026-03 Mar26 ──
+const MONTH = process.argv[2] || '2026-03';
+const MONTH_LABEL = process.argv[3] || 'Mar26';
+const ENRICHED_JSON = process.argv[4] || 'enriched_report_data.json';
 const HTML_SOURCE = 'C:/Projects/rex-asia/report_v15.html';
 // ─────────────────────────────────────
+console.log(`Building reports for ${MONTH} (${MONTH_LABEL}), source=${ENRICHED_JSON}`);
 
 const OUT_DIR = path.join('C:/Projects/rex-asia/reports', MONTH);
 const TEMP_DIR = 'C:/Projects/rex-asia/temp';
@@ -37,7 +39,7 @@ const BUILDS = [
 
     let html = htmlSource;
     // Inject enriched report data
-    const enrichedPath = path.join(path.dirname(HTML_SOURCE), 'enriched_report_data.json');
+    const enrichedPath = path.resolve(ENRICHED_JSON);
     if (fs.existsSync(enrichedPath)) {
       const enrichedData = fs.readFileSync(enrichedPath, 'utf8');
       html = html.replace(

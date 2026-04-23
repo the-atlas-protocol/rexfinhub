@@ -1,7 +1,21 @@
 """
-Fix all flow/market move values in report_v15.html using correct database calculations.
-Also fixes NVDQ and OILU MoM values.
+[RETIRED 2026-04-22]
+
+DO NOT RUN.
+
+This script is a regex patcher that mutates report_v15.html directly.
+The current pipeline uses:
+  generate_report_data.py  -> report_data.json
+  enrich_report_data.py    -> enriched_report_data.json
+  build_reports.js         -> injects REPORT_DATA into HTML at render time
+
+Running this script will OVERWRITE cleanly-injected data with regex substitutions,
+re-creating the Feb 2026 post-ship incident where shipped HTML had mixed sources.
+Kept for historical reference only.
 """
+import sys
+sys.exit("fix_flows.py is RETIRED — use enrich_report_data.py + build_reports.js pipeline")
+
 import psycopg2
 import re
 import json
