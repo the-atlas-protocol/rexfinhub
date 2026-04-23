@@ -170,6 +170,38 @@ class AnalysisResult(Base):
     )
 
 
+class FilingAnalysis(Base):
+    """Cached LLM analysis of a new fund filing ("Top Filings of the Day").
+
+    One row per filing. Re-runs of the daily pipeline pull from this cache
+    instead of making fresh LLM calls.
+    """
+    __tablename__ = "filing_analyses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    filing_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("filings.id"), nullable=False, unique=True, index=True,
+    )
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    prospectus_url: Mapped[str | None] = mapped_column(String)
+    objective_excerpt: Mapped[str | None] = mapped_column(Text)
+    strategy_excerpt: Mapped[str | None] = mapped_column(Text)
+    filing_title: Mapped[str | None] = mapped_column(String)
+    strategy_type: Mapped[str | None] = mapped_column(String)
+    underlying: Mapped[str | None] = mapped_column(String)
+    structure: Mapped[str | None] = mapped_column(String)
+    portfolio_holding: Mapped[str | None] = mapped_column(String)
+    distribution: Mapped[str | None] = mapped_column(String)
+    narrative: Mapped[str | None] = mapped_column(Text)
+    interestingness: Mapped[float | None] = mapped_column(Float)
+    selector_reason: Mapped[str | None] = mapped_column(String)
+    selector_model: Mapped[str | None] = mapped_column(String)
+    writer_model: Mapped[str | None] = mapped_column(String)
+    tokens_in: Mapped[int | None] = mapped_column(Integer)
+    tokens_out: Mapped[int | None] = mapped_column(Integer)
+    cost_usd: Mapped[float | None] = mapped_column(Float)
+
+
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
 

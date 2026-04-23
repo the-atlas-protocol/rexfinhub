@@ -153,7 +153,7 @@ def init_db():
             _log.error("Database integrity check error: %s", e)
     from webapp.models import (  # noqa: F401 - import to register models
         Trust, Filing, FundExtraction, FundStatus,
-        NameHistory, AnalysisResult, PipelineRun,
+        NameHistory, AnalysisResult, FilingAnalysis, PipelineRun,
         MktPipelineRun, MktFundMapping, MktIssuerMapping,
         MktCategoryAttributes, MktExclusion, MktRexFund,
         MktMasterData, MktTimeSeries, MktReportCache, MktStockData,

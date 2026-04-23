@@ -209,6 +209,7 @@ _FUND_PATTERNS = {
         r"BTC|BITCOIN|ETHER|ETH(?:EREUM)?|CRYPTO|BONK|TRUMP|SOLANA|DOGE|XRP",
         _re.IGNORECASE,
     ),
+    "buffer": _re.compile(r"BUFFER", _re.IGNORECASE),
 }
 
 
@@ -895,6 +896,69 @@ def _daily_highlights(data: dict) -> list[str]:
     return bullets[:5]
 
 
+def _render_top_filings_section(top_filings: list[dict]) -> str:
+    """Render the "Top Filings of the Day" section — LLM-picked, structured
+    analysis of up to 3 new fund filings. Returns empty string if empty."""
+    if not top_filings:
+        return ""
+
+    def _block(a: dict) -> str:
+        title = (
+            a.get("filing_title")
+            or (a.get("fund_names") or [None])[0]
+            or a.get("trust_name", "")
+        )
+        return f"""
+<tr><td style="padding:0 30px 18px;">
+  <div style="font-size:17px;font-weight:700;color:{_NAVY};margin-bottom:3px;line-height:1.25;">
+    {_esc(title)}
+  </div>
+  <div style="font-size:11.5px;color:{_GRAY};margin-bottom:10px;">
+    {_esc(a.get('trust_name', ''))} &middot; {_esc(a.get('form', ''))} &middot;
+    <a href="{_esc(a.get('primary_link', ''))}" style="color:{_BLUE};text-decoration:none;">Prospectus &rarr;</a>
+  </div>
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;border:1px solid {_BORDER};border-radius:4px;">
+    <tr style="background:{_LIGHT};">
+      <td colspan="2" style="padding:5px 10px;font-size:9.5px;font-weight:700;color:{_GRAY};text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid {_BORDER};">At a glance</td>
+    </tr>
+    <tr><td style="padding:5px 10px;font-size:11px;color:{_GRAY};width:38%;border-bottom:1px solid {_BORDER};">Strategy type</td><td style="padding:5px 10px;font-size:12px;color:{_NAVY};font-weight:600;border-bottom:1px solid {_BORDER};">{_esc(a.get('strategy_type', ''))}</td></tr>
+    <tr><td style="padding:5px 10px;font-size:11px;color:{_GRAY};border-bottom:1px solid {_BORDER};">Underlying</td><td style="padding:5px 10px;font-size:12px;color:{_NAVY};font-weight:600;border-bottom:1px solid {_BORDER};">{_esc(a.get('underlying', ''))}</td></tr>
+    <tr><td style="padding:5px 10px;font-size:11px;color:{_GRAY};border-bottom:1px solid {_BORDER};">Structure</td><td style="padding:5px 10px;font-size:12px;color:{_NAVY};font-weight:600;border-bottom:1px solid {_BORDER};">{_esc(a.get('structure', ''))}</td></tr>
+    <tr><td style="padding:5px 10px;font-size:11px;color:{_GRAY};border-bottom:1px solid {_BORDER};">Portfolio Holding</td><td style="padding:5px 10px;font-size:12px;color:{_NAVY};font-weight:600;border-bottom:1px solid {_BORDER};">{_esc(a.get('portfolio_holding', ''))}</td></tr>
+    <tr><td style="padding:5px 10px;font-size:11px;color:{_GRAY};">Distribution</td><td style="padding:5px 10px;font-size:12px;color:{_NAVY};font-weight:600;">{_esc(a.get('distribution', ''))}</td></tr>
+  </table>
+
+  <div style="font-size:12.5px;color:{_NAVY};line-height:1.6;">
+    {_esc(a.get('narrative', ''))}
+  </div>
+</td></tr>
+"""
+
+    heading_row = f"""
+<tr><td style="padding:15px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 4px 0;
+    padding-bottom:6px;border-bottom:2px solid {_RED};">
+    Top Filings of the Day
+  </div>
+  <div style="font-size:11px;color:{_GRAY};font-style:italic;margin-top:6px;margin-bottom:6px;">
+    Note: AI Generated Content. Confirm against primary document before citing.
+  </div>
+</td></tr>
+"""
+
+    blocks = [heading_row]
+    for i, a in enumerate(top_filings):
+        blocks.append(_block(a))
+        if i < len(top_filings) - 1:
+            blocks.append(
+                f'<tr><td style="padding:0 30px;">'
+                f'<div style="border-top:1px dashed {_BORDER};height:1px;"></div></td></tr>\n'
+                f'<tr><td style="padding:8px 30px;"></td></tr>'
+            )
+    return "\n".join(blocks)
+
+
 def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str = "",
                        edition: str = "daily") -> str:
     """Render the daily brief HTML from pre-gathered data.
@@ -1048,7 +1112,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 
         cat_tags = ""
         for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
-            cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
+            cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12", "buffer": "#1a1a2e"}.get(cat, _GRAY)
             cat_tags += (
                 f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
                 f'font-size:9px;color:{_WHITE};background:{cat_color};'
@@ -1085,7 +1149,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {accent_color};">
-    {title} <span style="font-weight:400;color:{_GRAY};font-size:11px;">({len(groups)})</span>
+    {title}
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     {items}
@@ -1145,7 +1209,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 
             cat_tags = ""
             for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
-                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
+                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12", "buffer": "#1a1a2e"}.get(cat, _GRAY)
                 cat_tags += (
                     f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
                     f'font-size:9px;color:{_WHITE};background:{cat_color};'
@@ -1174,7 +1238,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_ORANGE};">
-    Upcoming Effectiveness <span style="font-weight:400;color:{_GRAY};font-size:11px;">({len(pending)})</span>
+    Upcoming Effectiveness
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     {''.join(pending_items)}
@@ -1236,19 +1300,24 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     # --- Key Highlights ---
     highlights_html = _daily_highlights_box(_daily_highlights(data))
 
+    # --- Top Filings of the Day (LLM analysis of new fund filings) ---
+    top_filings_section = _render_top_filings_section(data.get("top_filings", []))
+
     # --- Assemble (executive order) ---
     # 1. Market Pulse (SPY, QQQ, BTC, ETP 1D Flow)
     # 2. ETP Market Overview (market-wide KPIs only)
     # 3. Market Landscape (5-category AUM/flow matrix — sits near the overview)
     # 4. New Fund Launches (newly-listed products from the last 7 days)
     # 5. Filing Activity (New vs Updated fund filings, today only)
-    # 6. Upcoming Effectiveness, CTA, Footer
+    # 6. Top Filings of the Day (LLM analysis, between New Filings and Upcoming)
+    # 7. Upcoming Effectiveness, CTA, Footer
     body = (
         header + msg_html + highlights_html
         + market_pulse_section + etp_overview_section
         + landscape_section
         + launches_section
         + filings_section
+        + top_filings_section
         + pending_section
         + cta_section + footer
     )
@@ -1415,7 +1484,12 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         for f in unique_funds:
             categories[_classify_fund(f)].append(f)
 
-        relevant = categories.get("leveraged", []) + categories.get("income", []) + categories.get("crypto", [])
+        relevant = (
+            categories.get("leveraged", [])
+            + categories.get("income", [])
+            + categories.get("crypto", [])
+            + categories.get("buffer", [])
+        )
         other_funds = categories.get("other", [])
         other_count = len(other_funds)
         cat_counts = {c: len(names) for c, names in categories.items() if names and c != "other"}
@@ -1528,6 +1602,15 @@ def _gather_daily_data(db_session, since_date: str | None = None,
     # Market snapshot (Bloomberg data — None if unavailable)
     market_snapshot = _gather_market_snapshot(db=db_session)
 
+    # Top Filings of the Day (LLM-picked + analyzed; cache-first, no network
+    # I/O when every filing is already cached).
+    top_filings: list[dict] = []
+    try:
+        from etp_tracker import filing_analysis
+        top_filings = filing_analysis.run_analysis_for_day(db_session, since_date)
+    except Exception as _tf_err:
+        log.warning("Top Filings analysis failed: %s", _tf_err)
+
     return {
         "launches": launches,
         "filing_groups": filing_groups,
@@ -1536,6 +1619,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         "newly_effective_1d": newly_effective_1d,
         "total_pending": total_pending,
         "market_snapshot": market_snapshot,
+        "top_filings": top_filings,
     }
 
 
@@ -1842,7 +1926,7 @@ def _render_morning_brief_html(data: dict, dashboard_url: str = "") -> str:
 
             cat_tags = ""
             for cat, cnt in sorted(cats.items(), key=lambda x: x[1], reverse=True):
-                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12"}.get(cat, _GRAY)
+                cat_color = {"leveraged": "#e74c3c", "income": "#27ae60", "crypto": "#f39c12", "buffer": "#1a1a2e"}.get(cat, _GRAY)
                 cat_tags += (
                     f' <span style="display:inline-block;padding:1px 5px;border-radius:3px;'
                     f'font-size:9px;color:{_WHITE};background:{cat_color};'
