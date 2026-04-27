@@ -83,10 +83,18 @@ class CboeScanner:
                     params={"symbol": ticker},
                     headers=headers,
                     timeout=aiohttp.ClientTimeout(total=15),
+                    allow_redirects=False,
                 ) as resp:
                     if resp.status in (401, 403):
                         raise AuthError(
                             f"CBOE auth rejected (status {resp.status}); refresh CBOE_SESSION_COOKIE"
+                        )
+                    # CBOE 302s expired sessions to /login. Treat as auth failure
+                    # so the run aborts cleanly instead of churning on HTML responses.
+                    if 300 <= resp.status < 400:
+                        loc = resp.headers.get("Location", "")
+                        raise AuthError(
+                            f"CBOE redirected to {loc!r} (status {resp.status}); refresh CBOE_SESSION_COOKIE"
                         )
                     if resp.status == 429:
                         async with self._429_lock:
