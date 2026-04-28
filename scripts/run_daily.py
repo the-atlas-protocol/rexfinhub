@@ -875,23 +875,35 @@ def main():
                 if day_of_week in ("Saturday", "Sunday"):
                     print(f"  {day_of_week} -- skipping email reports")
                 else:
-                    # Daily report Mon-Fri (no --force: respect dedup guards)
-                    print("  Sending daily report...")
-                    result = subprocess.run(
-                        [sys.executable, str(PROJECT_ROOT / "scripts" / "send_email.py"), "send", "daily"],
-                        cwd=str(PROJECT_ROOT), timeout=300,
-                    )
-                    if result.returncode != 0:
-                        errors.append("Daily email send failed")
-                    # Weekly + L&I + Income + Flow on Monday only
+                    # 2026-04-28 wiring: this used to shell out to send_email.py
+                    # send daily/weekly directly. Now routed through send_all.py
+                    # with --use-decision so the autonomous send-day loop works:
+                    #   1. preflight at 18:30 writes data/.preflight_token + posts summary
+                    #   2. Ryu clicks GO on /admin/reports/dashboard -> writes decision file
+                    #   3. this daily timer at 19:30 calls send_all --use-decision --send
+                    #   4. send_all checks token+GO, then atomically opens gate, sends
+                    #      all 7 reports (or just daily/weekly bundle on weekday/Monday),
+                    #      and locks gate via try/finally.
+                    # If decision is HOLD or token mismatch, send_all aborts cleanly
+                    # without firing — pipeline still completes (sync + upload happened).
                     if day_of_week == "Monday":
-                        print("  Monday -- sending weekly bundle (Weekly + L&I + Income + Flow)...")
-                        result = subprocess.run(
-                            [sys.executable, str(PROJECT_ROOT / "scripts" / "send_email.py"), "send", "weekly"],
-                            cwd=str(PROJECT_ROOT), timeout=300,
-                        )
-                        if result.returncode != 0:
-                            errors.append("Weekly email send failed")
+                        bundle = "all"   # daily + weekly + li + income + flow + autocall + stock_recs
+                        label = "all bundles (Monday: daily + weekly + autocall + stock_recs)"
+                    else:
+                        bundle = "daily"
+                        label = "daily only"
+                    print(f"  Sending via send_all.py --use-decision: {label}...")
+                    result = subprocess.run(
+                        [sys.executable, str(PROJECT_ROOT / "scripts" / "send_all.py"),
+                         "--bundle", bundle, "--use-decision", "--send"],
+                        cwd=str(PROJECT_ROOT), timeout=900,
+                    )
+                    if result.returncode == 3:
+                        # Decision missing / token mismatch — common on send-days
+                        # where Ryu hasn't clicked GO yet. Not a failure.
+                        print("  send_all: standing down (no decision or token mismatch)")
+                    elif result.returncode != 0:
+                        errors.append(f"send_all.py exited {result.returncode}")
             except Exception as e:
                 print(f"  Email send failed (non-fatal): {e}")
                 errors.append(f"Email send error: {e}")

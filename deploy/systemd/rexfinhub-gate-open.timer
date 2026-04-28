@@ -1,10 +1,11 @@
 [Unit]
-Description=Open send gate weekdays 17:15 ET so the 17:45 daily timer can actually send
+Description=Open send gate weekdays 19:00 ET so the 19:30 daily timer can actually send
 
 [Timer]
-# Same start as the bloomberg timer — gate is open by the time the daily
-# timer at 17:45 finishes prebake and calls send_email.py.
-OnCalendar=Mon..Fri 17:15:00
+# 2026-04-28 cadence flip: was 17:15 (paired with old 17:45 daily); moved
+# to 19:00 to pair with new 19:30 daily timer. 30-min lead time gives
+# market-sync + prebake runway before the send window opens.
+OnCalendar=Mon..Fri 19:00:00
 Persistent=false
 
 [Install]

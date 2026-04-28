@@ -47,6 +47,8 @@ def _fmt_aum(val: float) -> str:
     """Format AUM value (in millions) for display."""
     if val is None or val != val:  # NaN
         return "$0"
+    if abs(val) >= 1_000_000:
+        return f"${val / 1_000_000:,.2f}T"
     if abs(val) >= 1000:
         return f"${val / 1000:,.1f}B"
     if abs(val) >= 1:
@@ -300,6 +302,8 @@ def _gather_market_snapshot(db=None) -> dict | None:
         def _fmt_flow_val(val: float) -> str:
             sign = "+" if val >= 0 else "-"
             av = abs(val)
+            if av >= 1_000_000:
+                return f"{sign}${av/1_000_000:,.2f}T"
             if av >= 1000:
                 return f"{sign}${av/1000:,.1f}B"
             if av >= 1:
@@ -350,7 +354,9 @@ def _gather_market_snapshot(db=None) -> dict | None:
         # Winners & Losers: top 5 / worst 5 by 1D return
         winners_losers = {"winners": [], "losers": []}
         if not rex_df.empty and "t_w3.total_return_1day" in rex_df.columns:
-            valid_ret = rex_df[rex_df["t_w3.total_return_1day"].notna()].copy()
+            _ret_num = pd.to_numeric(rex_df["t_w3.total_return_1day"], errors="coerce")
+            valid_ret = rex_df.assign(**{"t_w3.total_return_1day": _ret_num})
+            valid_ret = valid_ret[valid_ret["t_w3.total_return_1day"].notna()].copy()
             _flow_col = "t_w4.fund_flow_1day" if "t_w4.fund_flow_1day" in valid_ret.columns else None
             for _, row in valid_ret.nlargest(5, "t_w3.total_return_1day").iterrows():
                 ret = float(row.get("t_w3.total_return_1day", 0))
@@ -393,7 +399,11 @@ def _gather_market_snapshot(db=None) -> dict | None:
                 landscape.append({
                     "category": cat,
                     "aum": cat_aum,
-                    "aum_fmt": f"${cat_aum/1000:,.1f}B" if cat_aum >= 1000 else f"${cat_aum:,.0f}M",
+                    "aum_fmt": (
+                        f"${cat_aum/1_000_000:,.2f}T" if cat_aum >= 1_000_000
+                        else f"${cat_aum/1000:,.1f}B" if cat_aum >= 1000
+                        else f"${cat_aum:,.0f}M"
+                    ),
                     "flow_1w": cat_flow_1w,
                     "flow_1w_fmt": _fmt_flow_val(cat_flow_1w),
                     "flow_1w_positive": cat_flow_1w >= 0,
@@ -449,7 +459,11 @@ def _gather_market_snapshot(db=None) -> dict | None:
             _ind_flow_1w = float(_pd.to_numeric(_all_dedup["t_w4.fund_flow_1week"], errors="coerce").fillna(0).sum()) if "t_w4.fund_flow_1week" in _all_dedup.columns else 0
             _ind_count = len(_all_dedup)
             market_pulse["_industry"] = {
-                "aum": _ind_aum, "aum_fmt": f"${_ind_aum/1000:,.1f}B" if _ind_aum >= 1000 else f"${_ind_aum:,.0f}M",
+                "aum": _ind_aum, "aum_fmt": (
+                    f"${_ind_aum/1_000_000:,.2f}T" if _ind_aum >= 1_000_000
+                    else f"${_ind_aum/1000:,.1f}B" if _ind_aum >= 1000
+                    else f"${_ind_aum:,.0f}M"
+                ),
                 "flow_1d": _ind_flow_1d, "flow_1d_fmt": _fmt_flow_val(_ind_flow_1d),
                 "flow_1d_positive": _ind_flow_1d >= 0,
                 "flow_1w": _ind_flow_1w, "flow_1w_fmt": _fmt_flow_val(_ind_flow_1w),
@@ -1641,24 +1655,99 @@ def build_digest_html_from_db(
                               edition=edition)
 
 
-def _audit_send(subject: str, recipients: list[str], allowed: bool):
-    """Log every send attempt to data/.send_audit.json."""
+_AUDIT_PATH = Path(__file__).parent.parent / "data" / ".send_audit.json"
+
+# Recipient-rate-limit threshold (max emails any single address can receive per day).
+# Set high enough that the daily + weekly + bundle-day pile-up doesn't trip;
+# low enough to catch a loop bug spamming one address.
+_PER_RECIPIENT_DAILY_LIMIT = 6
+
+
+def _audit_load() -> list:
     import json as _json
-    audit_path = Path(__file__).parent.parent / "data" / ".send_audit.json"
+    if not _AUDIT_PATH.exists():
+        return []
     try:
-        entries = _json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.exists() else []
+        return _json.loads(_AUDIT_PATH.read_text(encoding="utf-8"))
     except Exception:
-        entries = []
+        return []
+
+
+def _audit_now_et() -> str:
+    """Return current time as ISO-8601 string in America/New_York with offset."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/New_York")).isoformat(timespec="seconds")
+    except Exception:
+        # Fallback: naive local time (still readable).
+        return datetime.now().isoformat(timespec="seconds")
+
+
+def _audit_send(subject: str, recipients: list[str], allowed: bool,
+                phase: str = "result", note: str = ""):
+    """Log every send phase to data/.send_audit.json.
+
+    phase: "attempt" (pre-checks), "blocked" (any L1-L7 rejection), or
+           "result" (post-Graph-API outcome — allowed=True means delivered,
+           False means Graph API rejected after passing gate).
+    note: human-readable reason if blocked.
+    """
+    import json as _json
+    entries = _audit_load()
     entries.append({
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": _audit_now_et(),
         "subject": subject,
+        "recipients": list(recipients),  # Full address list (was: count only).
         "recipient_count": len(recipients),
         "allowed": allowed,
+        "phase": phase,
+        "note": note,
     })
-    # Keep last 200 entries
-    entries = entries[-200:]
-    audit_path.parent.mkdir(parents=True, exist_ok=True)
-    audit_path.write_text(_json.dumps(entries, indent=2), encoding="utf-8")
+    # Keep last 500 entries (was 200) — recipient lists make entries larger but
+    # forensic trail is more valuable than disk savings.
+    entries = entries[-500:]
+    _AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _AUDIT_PATH.write_text(_json.dumps(entries, indent=2), encoding="utf-8")
+
+
+def _recipients_over_limit_today(recipients: list[str]) -> list[tuple[str, int]]:
+    """Return list of (address, count) for any recipient that has already
+    received >= _PER_RECIPIENT_DAILY_LIMIT messages today (per audit log).
+
+    Counts only phase='result' AND allowed=True entries (actual deliveries).
+    """
+    today_prefix = _audit_now_et()[:10]  # "YYYY-MM-DD"
+    counts: dict[str, int] = {}
+    for entry in _audit_load():
+        if entry.get("phase") != "result":
+            continue
+        if not entry.get("allowed"):
+            continue
+        if not str(entry.get("timestamp", "")).startswith(today_prefix):
+            continue
+        for r in entry.get("recipients", []):
+            r_low = str(r).strip().lower()
+            counts[r_low] = counts.get(r_low, 0) + 1
+    over: list[tuple[str, int]] = []
+    for r in recipients:
+        r_low = str(r).strip().lower()
+        if counts.get(r_low, 0) >= _PER_RECIPIENT_DAILY_LIMIT:
+            over.append((r, counts[r_low]))
+    return over
+
+
+def _azure_sender_address() -> str | None:
+    """Return the AZURE_SENDER address from env, lowercased and stripped.
+
+    Used by L7 self-loop block. None if not configured.
+    """
+    try:
+        from webapp.services.graph_email import _load_env
+        cfg = _load_env()
+        s = cfg.get("sender")
+        return str(s).strip().lower() if s else None
+    except Exception:
+        return None
 
 
 _last_alert_time: float = 0
@@ -1730,25 +1819,65 @@ def _send_html_digest(html_body: str, recipients: list[str],
                       edition: str = "daily",
                       subject_override: str = "",
                       images: list[tuple[str, bytes, str]] | None = None,
-                      bypass_gate: bool = False) -> bool:
-    """Send pre-built HTML digest via Azure Graph or SMTP.
+                      bypass_gate: bool = False,
+                      allow_self_loop: bool = False) -> bool:
+    """Send pre-built HTML digest via Azure Graph API.
+
+    Layered safeguards (must ALL pass):
+        L1 gate file (skipped if bypass_gate=True)
+        L6 per-recipient daily rate limit
+        L7 self-loop block (refuse production batch where any recipient
+           equals the Azure sender address). Pass allow_self_loop=True
+           ONLY for test paths intentionally targeting the sender's own
+           inbox (which Exchange routes to Sent Items only).
+        L8 attempt → result audit pattern (forensic trail even on crash)
 
     Args:
         images: Optional list of (content_id, png_bytes, filename) for inline CID images.
     """
-    # --- SEND GATE (single chokepoint for ALL email in the codebase) ---
-    # config/.send_enabled must exist and contain "true" or nothing sends.
-    # bypass_gate=True for test sends (admin test to relasmar@rexfin.com only).
+    _subj_preview = subject_override or f"REX {edition}"
+
+    # L8a: Always log the attempt up front. Survives any subsequent crash.
+    _audit_send(_subj_preview, recipients, allowed=False, phase="attempt",
+                note=f"bypass_gate={bypass_gate} allow_self_loop={allow_self_loop}")
+
+    # L7 — Self-loop block. Sending from AZURE_SENDER to AZURE_SENDER routes to
+    # Sent Items only (Exchange rule), never reaches inbox. Tonight's autocall
+    # mystery and the Day 2 test-send confusion both came from this. Refuse
+    # for production batches; allow only for explicitly-flagged test paths.
+    _sender = _azure_sender_address()
+    if _sender and not allow_self_loop:
+        _self_loop_hits = [r for r in recipients if str(r).strip().lower() == _sender]
+        if _self_loop_hits:
+            _note = (f"L7 self-loop refused: {len(_self_loop_hits)} recipient(s) "
+                     f"match AZURE_SENDER={_sender}. Pass allow_self_loop=True for test sends.")
+            _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)
+            log.warning("SEND BLOCKED (L7 self-loop): %s — %s", _subj_preview, _note)
+            return False
+
+    # L1 — Send gate. config/.send_enabled must contain "true". bypass_gate=True
+    # for test sends (admin test paths). The L7 check ran first so a self-loop
+    # test still fails fast even with bypass_gate=True.
     _gate_file = Path(__file__).parent.parent / "config" / ".send_enabled"
     _gate_open = bypass_gate or (_gate_file.exists() and _gate_file.read_text().strip().lower() == "true")
-    _subj_preview = subject_override or f"REX {edition}"
-    _audit_send(_subj_preview, recipients, allowed=_gate_open)
     if not _gate_open:
-        log.warning("SEND BLOCKED: config/.send_enabled is not 'true'. Subject: %s, Recipients: %d",
-                     _subj_preview, len(recipients))
+        _note = "L1 gate closed: config/.send_enabled is not 'true'"
+        _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)
+        log.warning("SEND BLOCKED (L1 gate): %s — %d recipients", _subj_preview, len(recipients))
         return False
-    # --- END SEND GATE ---
 
+    # L6 — Per-recipient daily rate limit. Refuse if any recipient already
+    # received >= _PER_RECIPIENT_DAILY_LIMIT messages today (loop-bug guard).
+    _over = _recipients_over_limit_today(recipients)
+    if _over:
+        _note = (f"L6 rate limit: {len(_over)} recipient(s) at/over daily cap "
+                 f"({_PER_RECIPIENT_DAILY_LIMIT}): "
+                 + ", ".join(f"{addr}({n})" for addr, n in _over[:5]))
+        _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)
+        log.warning("SEND BLOCKED (L6 rate limit): %s — %s", _subj_preview, _note)
+        return False
+
+    # All safeguards passed — proceed to Graph API.
     if subject_override:
         subject = subject_override
     else:
@@ -1756,20 +1885,27 @@ def _send_html_digest(html_body: str, recipients: list[str],
         _label = _labels.get(edition, "Daily ETP Report")
         subject = f"REX {_label}: {datetime.now().strftime('%m/%d/%Y')}"
 
-    # Azure Graph API only — no SMTP fallback (SMTP uses personal email)
     try:
         from webapp.services.graph_email import is_configured, send_email
         if is_configured():
-            if send_email(subject=subject, html_body=html_body,
-                          recipients=recipients, images=images):
-                return True
-            else:
+            ok = send_email(subject=subject, html_body=html_body,
+                            recipients=recipients, images=images,
+                            bypass_gate=bypass_gate)
+            # L8b — Result audit. Forensic trail of what actually got delivered.
+            _audit_send(subject, recipients, allowed=bool(ok),
+                        phase="result",
+                        note="" if ok else "Graph API returned failure")
+            if not ok:
                 log.error("Graph API send failed for: %s", subject)
-                return False
+            return bool(ok)
         else:
+            _audit_send(subject, recipients, allowed=False, phase="blocked",
+                        note="Graph API not configured")
             log.error("Graph API not configured. SMTP fallback disabled. Email not sent: %s", subject)
             return False
     except ImportError:
+        _audit_send(subject, recipients, allowed=False, phase="blocked",
+                    note="graph_email module unavailable")
         log.error("graph_email module not available. Email not sent: %s", subject)
         return False
 

@@ -1,0 +1,48 @@
+{
+  "snapshot_taken_et": "2026-04-28T00:18:14",
+  "snapshot_source": "VPS DB (live query)",
+  "note": "Reference snapshot for preflight diff alerts. Update via the same query when adds/removes are intentional.",
+  "recipients_by_list": {
+    "autocall": [
+      "jgallardo@rexfin.com",
+      "matthew.swingle@rbccm.com",
+      "mike.heraty@rbccm.com",
+      "mmcnair@rexfin.com",
+      "mpremselaar@caisgroup.com",
+      "sacheychek@rexfin.com",
+      "sking@rexfin.com",
+      "spgroup@caisgroup.com",
+      "tranney@rexfin.com"
+    ],
+    "daily": [
+      "etfupdates@rexfin.com"
+    ],
+    "flow": [
+      "etfupdates@rexfin.com"
+    ],
+    "income": [
+      "etfupdates@rexfin.com"
+    ],
+    "li": [
+      "etfupdates@rexfin.com"
+    ],
+    "stock_recs": [
+      "gcollett@rexfin.com",
+      "meschmann@rexfin.com",
+      "proddevelopment@rexfin.com",
+      "sacheychek@rexfin.com"
+    ],
+    "weekly": [
+      "etfupdates@rexfin.com"
+    ]
+  },
+  "totals": {
+    "autocall": 9,
+    "daily": 1,
+    "flow": 1,
+    "income": 1,
+    "li": 1,
+    "stock_recs": 4,
+    "weekly": 1
+  }
+}

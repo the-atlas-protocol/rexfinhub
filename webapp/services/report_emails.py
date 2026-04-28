@@ -596,16 +596,22 @@ def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
     )
 
 
-def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
+def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10,
+                metric_key: str = "flow_1w",
+                metric_fmt_key: str = "flow_1w_fmt",
+                header: str = "Weekly Fund Flows") -> str:
     """Unified flow bar chart — one chart, inflows right of zero, outflows left.
 
     Zero line is consistent across all rows. Bar sizes are proportional to
     the absolute max flow. Shows every fund with a numeric flow value —
     zero-flow funds render as a tiny neutral mark so they still appear in
     the list (important for small universes like autocallables).
+
+    Defaults render 1W flow. Pass metric_key="flow_1m" + metric_fmt_key="flow_1m_fmt"
+    + header="Monthly Fund Flows" for a 1M variant.
     """
     def _flow_val(f: dict):
-        v = f.get("flow_1w", 0) or 0
+        v = f.get(metric_key, 0) or 0
         try:
             return float(v)
         except (TypeError, ValueError):
@@ -631,8 +637,8 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
     if not top_in and not top_out and not zero_flow:
         return ""
 
-    max_pos = max((f["flow_1w"] for f in top_in), default=0)
-    max_neg = max((abs(f["flow_1w"]) for f in top_out), default=0)
+    max_pos = max((_flow_val(f) for f in top_in), default=0)
+    max_neg = max((abs(_flow_val(f)) for f in top_out), default=0)
 
     # Zero position: proportion of negative space in the total range
     # If no negatives, zero is at left edge (0%). If no positives, zero at right (100%).
@@ -646,9 +652,9 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
         zero_pct = max_neg / (max_pos + max_neg) * 100
 
     def _bar_row(f: dict, label: str = "") -> str:
-        flow = f.get("flow_1w", 0)
+        flow = _flow_val(f)
         ticker = _esc(f["ticker"])
-        fmt = _esc(f["flow_1w_fmt"])
+        fmt = _esc(f.get(metric_fmt_key, ""))
         is_pos = flow >= 0
         color = _GREEN if is_pos else _RED
 
@@ -706,7 +712,7 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
                  f'letter-spacing:0.5px;">No Flow</td></tr>')
         for f in zero_flow:
             ticker = _esc(f.get("ticker", ""))
-            fmt = _esc(f.get("flow_1w_fmt", "--"))
+            fmt = _esc(f.get(metric_fmt_key, "--"))
             rows += (
                 f'<tr>'
                 f'<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;'
@@ -727,7 +733,7 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10) -> str:
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
         f'style="background:{_WHITE};border:1px solid {_BORDER};border-radius:8px;padding:10px 12px;">'
         f'<tr><td colspan="3" style="padding:0 0 6px;font-size:11px;font-weight:600;'
-        f'color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">Weekly Fund Flows</td></tr>'
+        f'color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">{header}</td></tr>'
         f'{rows}'
         f'</table></td></tr>'
     )
@@ -782,6 +788,81 @@ def _issuer_share_bars(issuers: list[dict], n: int = 6) -> str:
         f'<tr>{segments}</tr></table>'
         f'<div style="margin-top:6px;line-height:1.6;">{"".join(legend_items)}</div>'
         f'</td></tr>'
+    )
+
+
+def _volume_bars(rows: list[dict], header: str = "30-Day Average Daily Volume",
+                  fmt_dollars: bool = False) -> str:
+    """Single-color bar chart of average daily volume per fund.
+
+    Shows EVERY fund passed in, even those with zero volume (renders a tiny
+    zero-mark instead of being filtered out). Sorted by caller. REX funds
+    bolded. Each row: ticker | bar (proportional to max) | volume (formatted).
+
+    fmt_dollars=True formats values as $X.XM / $X.XK; otherwise shares.
+    """
+    if not rows:
+        return ""
+
+    def _fmt_vol(v: float) -> str:
+        prefix = "$" if fmt_dollars else ""
+        if v >= 1_000_000:
+            return f"{prefix}{v/1_000_000:,.2f}M"
+        if v >= 1_000:
+            return f"{prefix}{v/1_000:,.1f}K"
+        if v > 0:
+            return f"{prefix}{v:,.0f}"
+        return "—"
+
+    max_vol = max((r["vol_30d"] for r in rows), default=0)
+    body_rows = ""
+    for r in rows:
+        v = r["vol_30d"]
+        bar_pct = (v / max_vol * 100) if max_vol > 0 else 0
+        is_rex = r.get("is_rex", False)
+        color = _REX_GREEN if is_rex else "#0984e3"
+        weight = "font-weight:700;" if is_rex else ""
+        ticker = _esc(r["ticker"])
+        fmt = _esc(_fmt_vol(v))
+        if v <= 0:
+            # Zero-volume marker — small grey tick at zero, italic "—"
+            body_rows += (
+                f'<tr>'
+                f'<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;'
+                f'white-space:nowrap;overflow:hidden;{weight}">{ticker}</td>'
+                f'<td style="padding:2px 4px;">'
+                f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+                f'style="border-collapse:collapse;"><tr>'
+                f'<td style="width:2px;background:{_BORDER};height:14px;font-size:0;">&nbsp;</td>'
+                f'<td style="width:99.8%;font-size:0;">&nbsp;</td>'
+                f'</tr></table></td>'
+                f'<td style="padding:2px 4px;font-size:11px;color:{_GRAY};text-align:right;'
+                f'white-space:nowrap;width:80px;font-style:italic;">{fmt}</td></tr>'
+            )
+        else:
+            body_rows += (
+                f'<tr>'
+                f'<td style="padding:2px 0;font-size:11px;color:{_NAVY};width:65px;'
+                f'white-space:nowrap;overflow:hidden;{weight}">{ticker}</td>'
+                f'<td style="padding:2px 4px;">'
+                f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+                f'style="border-collapse:collapse;"><tr>'
+                f'<td style="width:{max(bar_pct, 0.5):.1f}%;background:{color};height:14px;'
+                f'border-radius:0 3px 3px 0;font-size:0;">&nbsp;</td>'
+                f'<td style="width:{max(100 - bar_pct, 0):.1f}%;font-size:0;">&nbsp;</td>'
+                f'</tr></table></td>'
+                f'<td style="padding:2px 4px;font-size:11px;color:{_NAVY};text-align:right;'
+                f'white-space:nowrap;width:80px;font-weight:600;">{fmt}</td></tr>'
+            )
+
+    return (
+        f'<tr><td style="padding:8px 30px 10px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{_WHITE};border:1px solid {_BORDER};border-radius:8px;padding:10px 12px;">'
+        f'<tr><td colspan="3" style="padding:0 0 6px;font-size:11px;font-weight:600;'
+        f'color:{_GRAY};text-transform:uppercase;letter-spacing:0.5px;">{header}</td></tr>'
+        f'{body_rows}'
+        f'</table></td></tr>'
     )
 
 
@@ -1721,9 +1802,9 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         rex_row=rex_row,
     )
 
-    # Market share bar
+    # Market share bar — show ALL issuers (no "Other" bucket for autocall report)
     if issuers:
-        body += _flow_share_bar(issuers, n=6)
+        body += _flow_share_bar(issuers, n=len(issuers))
 
     # Issuer comparison table
     if issuers:
@@ -1743,11 +1824,167 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         body += _table(headers, iss_rows, aligns, highlight_col=3,
                         rex_rows=rex_idxs, col_widths=widths)
 
-    # Flow bars — show full lists for the small autocall universe (~10 funds)
-    top_full = auto_suite.get("top10", [])
-    bot_full = auto_suite.get("bottom10", [])
-    if top_full or bot_full:
-        body += _flow_bars(top_full, bot_full, n=max(len(top_full), len(bot_full), 10))
+    # === Section 1: Weekly Fund Flows + Section 2: Monthly Fund Flows ===
+    # Pull EVERY classified autocall fund from mkt_master_data (not just top10),
+    # so zero-flow funds still appear in both charts.
+    full_universe: list[dict] = []
+    if db is not None:
+        try:
+            from webapp.services.market_data import get_master_data
+            _master_for_flows = get_master_data(db, etn_overrides=True)
+            _autocall_csv_tickers_f: set[str] = set()
+            try:
+                from market.config import RULES_DIR
+                import pandas as _pd_csv_f
+                _cc_f = _pd_csv_f.read_csv(RULES_DIR / "attributes_CC.csv",
+                                           engine="python", on_bad_lines="skip")
+                if "cc_category" in _cc_f.columns:
+                    _ac_f = _cc_f[_cc_f["cc_category"].astype(str).str.lower() == "autocallable"]
+                    _autocall_csv_tickers_f = {str(t).split()[0] for t in _ac_f["ticker"].dropna()}
+            except Exception:
+                pass
+            _ms_col_f = next((c for c in _master_for_flows.columns if c.lower().strip() == "market_status"), None)
+            _ft_col_f = next((c for c in _master_for_flows.columns if c.lower().strip() == "fund_type"), None)
+            _df_au_f = _master_for_flows.copy()
+            if _ms_col_f:
+                _df_au_f = _df_au_f[_df_au_f[_ms_col_f] == "ACTV"]
+            if _ft_col_f:
+                _df_au_f = _df_au_f[_df_au_f[_ft_col_f].isin(["ETF", "ETN"])]
+
+            def _is_autocall_f(row) -> bool:
+                tk = str(row.get("ticker", "")).split()[0]
+                if tk in _autocall_csv_tickers_f:
+                    return True
+                fn = str(row.get("fund_name", "")).lower()
+                return "autocall" in fn
+
+            _df_au_f = _df_au_f[_df_au_f.apply(_is_autocall_f, axis=1)].copy()
+
+            def _fmt_flow(v: float) -> str:
+                sign = "+" if v >= 0 else "-"
+                av = abs(v)
+                if av >= 1_000_000:
+                    return f"{sign}${av/1_000_000:,.2f}T"
+                if av >= 1000:
+                    return f"{sign}${av/1000:,.1f}B"
+                if av >= 1:
+                    return f"{sign}${av:.1f}M"
+                return f"{sign}${av:.2f}M"
+
+            for _, r in _df_au_f.iterrows():
+                tk = str(r.get("ticker", "")).split()[0]
+                try:
+                    f1w = float(r.get("t_w4.fund_flow_1week") or 0.0)
+                except (TypeError, ValueError):
+                    f1w = 0.0
+                try:
+                    f1m = float(r.get("t_w4.fund_flow_1month") or 0.0)
+                except (TypeError, ValueError):
+                    f1m = 0.0
+                full_universe.append({
+                    "ticker": tk,
+                    "fund_name": str(r.get("fund_name", "")),
+                    "is_rex": bool(r.get("is_rex", False)),
+                    "flow_1w": f1w,
+                    "flow_1w_fmt": _fmt_flow(f1w),
+                    "flow_1m": f1m,
+                    "flow_1m_fmt": _fmt_flow(f1m),
+                })
+        except Exception as _u_err:
+            import logging as _u_log
+            _u_log.getLogger(__name__).warning("autocall full universe load failed: %s", _u_err)
+
+    if full_universe:
+        n = len(full_universe)
+        body += _flow_bars(full_universe, [],
+                           n=n,
+                           metric_key="flow_1w", metric_fmt_key="flow_1w_fmt",
+                           header="Weekly Fund Flows (1W)")
+        body += _flow_bars(full_universe, [],
+                           n=n,
+                           metric_key="flow_1m", metric_fmt_key="flow_1m_fmt",
+                           header="Monthly Fund Flows (1M)")
+
+    # === Section 3: 30-Day Avg Daily $ Volume ===
+    # ALL classified autocall funds, dollar-volume = avg_daily_shares × yfinance close.
+    if db is not None:
+        try:
+            from webapp.services.market_data import get_master_data
+            _master = get_master_data(db, etn_overrides=True)
+            _autocall_csv_tickers: set[str] = set()
+            try:
+                from market.config import RULES_DIR
+                import pandas as _pd_csv
+                _cc = _pd_csv.read_csv(RULES_DIR / "attributes_CC.csv",
+                                       engine="python", on_bad_lines="skip")
+                if "cc_category" in _cc.columns:
+                    _ac = _cc[_cc["cc_category"].astype(str).str.lower() == "autocallable"]
+                    _autocall_csv_tickers = {str(t).split()[0] for t in _ac["ticker"].dropna()}
+            except Exception:
+                pass
+
+            _vol_col = "t_w2.average_vol_30day"
+            _ms_col = next((c for c in _master.columns if c.lower().strip() == "market_status"), None)
+            _ft_col = next((c for c in _master.columns if c.lower().strip() == "fund_type"), None)
+            _df_au = _master.copy()
+            if _ms_col:
+                _df_au = _df_au[_df_au[_ms_col] == "ACTV"]
+            if _ft_col:
+                _df_au = _df_au[_df_au[_ft_col].isin(["ETF", "ETN"])]
+
+            def _is_autocall(row) -> bool:
+                tk = str(row.get("ticker", "")).split()[0]
+                if tk in _autocall_csv_tickers:
+                    return True
+                fn = str(row.get("fund_name", "")).lower()
+                return "autocall" in fn
+
+            _df_au = _df_au[_df_au.apply(_is_autocall, axis=1)].copy()
+
+            # Pull current closing prices via yfinance (one batch download).
+            _tickers = [str(r.get("ticker", "")).split()[0] for _, r in _df_au.iterrows()]
+            _tickers = [t for t in _tickers if t]
+            _prices: dict[str, float] = {}
+            try:
+                import yfinance as _yf
+                _hist = _yf.download(_tickers, period="5d", progress=False,
+                                     auto_adjust=False, group_by="ticker")
+                for _t in _tickers:
+                    try:
+                        _closes = _hist[_t]["Close"].dropna() if len(_tickers) > 1 else _hist["Close"].dropna()
+                        if len(_closes) > 0:
+                            _prices[_t] = float(_closes.iloc[-1])
+                    except (KeyError, AttributeError, IndexError):
+                        pass
+            except Exception:
+                pass
+
+            dvol_rows = []
+            for _, r in _df_au.iterrows():
+                tk = str(r.get("ticker", "")).split()[0]
+                vol = 0.0
+                if _vol_col in r.index:
+                    try:
+                        vol = float(r.get(_vol_col) or 0.0)
+                    except (TypeError, ValueError):
+                        vol = 0.0
+                price = _prices.get(tk, 0.0)
+                dollar_vol = vol * price  # shares/day × $ = $ volume/day
+                dvol_rows.append({
+                    "ticker": tk,
+                    "fund_name": str(r.get("fund_name", "")),
+                    "is_rex": bool(r.get("is_rex", False)),
+                    "vol_30d": dollar_vol,
+                })
+            dvol_rows.sort(key=lambda x: x["vol_30d"], reverse=True)
+
+            if dvol_rows:
+                body += _volume_bars(dvol_rows,
+                                     header="30-Day Average Daily $ Volume",
+                                     fmt_dollars=True)
+        except Exception as _vol_err:
+            import logging as _vol_log
+            _vol_log.getLogger(__name__).warning("$ volume bar render failed: %s", _vol_err)
 
     # Market share line chart — ON HOLD
     # To re-enable: see git commit e2b5ae1 for the full chart code.

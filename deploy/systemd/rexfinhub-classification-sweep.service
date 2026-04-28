@@ -1,0 +1,15 @@
+[Unit]
+Description=REX FinHub Morning Classification Sweep — surfaces NULL etp_category / issuer_display gaps before the send-day rush
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main
+ExecStart=/home/jarvis/venv/bin/python scripts/classification_sweep.py --post-summary
+TimeoutStartSec=300
+StandardOutput=journal
+StandardError=journal

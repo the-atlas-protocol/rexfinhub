@@ -1,13 +1,13 @@
 [Unit]
-Description=REX FinHub Daily Pipeline Timer (weekdays 17:45 ET)
+Description=REX FinHub Daily Pipeline Timer (weekdays 19:30 ET)
 
 [Timer]
 # VPS timezone set to America/New_York — DST handled automatically.
-# Bloomberg pull runs at 17:15; 17:45 gives the market-sync + prebake +
-# upload chain 30 min of runway before the internal 17:30 email send gate.
-# (Note: the email send inside run_daily.py still waits until its own
-# target time, so the 17:45 start is the pipeline kickoff, not the send.)
-OnCalendar=Mon..Fri 17:45:00
+# 2026-04-28 cadence flip: was 17:45 ET; moved to 19:30 ET so daily reports
+# land late afternoon / early evening rather than mid-afternoon. Pre-flight
+# runs at 18:30 (rexfinhub-preflight.timer) — 1h before this fires — to
+# build previews + post the GO/HOLD summary. Gate open: 19:00. Gate close: 20:00.
+OnCalendar=Mon..Fri 19:30:00
 Persistent=true
 
 [Install]

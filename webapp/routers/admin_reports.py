@@ -6,6 +6,11 @@ Render via POST /api/v1/reports/upload/{report_key} and stored at
 data/prebaked_reports/{key}.html. This page just reads the static file.
 
 Result: instant page load on Render, no per-view compute cost.
+
+2026-04-28 refactor: REPORT_CATALOG is now a thin compatibility shim over
+`webapp/services/report_registry`. Adding a new report = one entry in
+the registry; preview, dashboard, send_all, and admin endpoints all
+pick it up automatically.
 """
 from __future__ import annotations
 
@@ -14,12 +19,13 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
+from webapp.services import report_registry
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/reports", tags=["admin-reports"])
@@ -27,6 +33,8 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 
 ADMIN_PASSWORD = "ryu123"
 PREBAKED_DIR = Path("data/prebaked_reports")
+DECISION_FILE = Path("data/.preflight_decision.json")
+TOKEN_FILE = Path("data/.preflight_token")
 
 
 def _check_auth(request: Request) -> bool:
@@ -36,63 +44,11 @@ def _check_auth(request: Request) -> bool:
     )
 
 
-# Full report catalog — every report that send_email.py knows about
-REPORT_CATALOG = {
-    "daily_filing": {
-        "name": "Daily Filing Report",
-        "description": "Daily SEC filings digest with market snapshot",
-        "cadence": "Daily",
-        "list_type": "daily",
-    },
-    "weekly_report": {
-        "name": "Weekly ETP Report",
-        "description": "Weekly roll-up of filings, market activity, REX performance",
-        "cadence": "Weekly",
-        "list_type": "weekly",
-    },
-    "li_report": {
-        "name": "Leverage & Inverse Report",
-        "description": "L&I market landscape — Index and Single Stock segments",
-        "cadence": "Weekly",
-        "list_type": "li",
-    },
-    "income_report": {
-        "name": "Income Report",
-        "description": "Covered-call and income ETF landscape",
-        "cadence": "Weekly",
-        "list_type": "income",
-    },
-    "flow_report": {
-        "name": "Flow Report",
-        "description": "Fund flows by category and direction",
-        "cadence": "Weekly",
-        "list_type": "flow",
-    },
-    "autocall_report": {
-        "name": "Autocallable Report",
-        "description": "Autocallable ETF weekly update",
-        "cadence": "Weekly",
-        "list_type": "autocall",
-    },
-    "intelligence_brief": {
-        "name": "Filing Intelligence Brief",
-        "description": "Executive-first daily — action required, competitive races, effectives",
-        "cadence": "Daily",
-        "list_type": "intelligence",
-    },
-    "filing_screener": {
-        "name": "Filing Candidates",
-        "description": "Top 5 filing picks from foundation_scorer",
-        "cadence": "Weekly",
-        "list_type": "screener",
-    },
-    "product_status": {
-        "name": "Product Pipeline",
-        "description": "REX product lifecycle: Listed / Awaiting / Filed / Research",
-        "cadence": "Monday",
-        "list_type": "pipeline",
-    },
-}
+# Backwards-compat shim — derived from report_registry.REGISTRY at import time.
+# Existing call sites (preview_landing, preview_raw, anything that imports
+# REPORT_CATALOG) keep working unchanged. New code should import from
+# `webapp.services.report_registry` directly.
+REPORT_CATALOG = report_registry.as_legacy_dict()
 
 
 def _load_metadata(report_key: str) -> dict:
@@ -162,3 +118,186 @@ def preview_raw(report_key: str, request: Request):
         )
 
     return HTMLResponse(html_path.read_text(encoding="utf-8"))
+
+
+# ---------------------------------------------------------------------------
+# Send-day dashboard + GO/HOLD decision endpoint
+# Added 2026-04-28 (plan task #6).
+# ---------------------------------------------------------------------------
+
+def _read_token() -> dict | None:
+    """Load the current preflight token (written by preflight_check.py).
+
+    Returns None if no token file or invalid JSON. The token expires
+    `valid_for_hours` after `created_et`; expiration is enforced at
+    decision time, not here.
+    """
+    if not TOKEN_FILE.exists():
+        return None
+    try:
+        return json.loads(TOKEN_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _read_decision() -> dict | None:
+    if not DECISION_FILE.exists():
+        return None
+    try:
+        return json.loads(DECISION_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request, db: Session = Depends(get_db)):
+    """Send-day dashboard — preview URLs for every active report + GO/HOLD buttons.
+
+    Replaces the per-report manual click flow with a single page Ryu can
+    open from the preflight summary email.
+    """
+    if not _check_auth(request):
+        return RedirectResponse("/admin/", status_code=302)
+
+    active = report_registry.get_active()
+    token_info = _read_token()
+    decision = _read_decision()
+
+    # Build report rows
+    rows = []
+    for r in active:
+        status = _report_status(r.key)
+        size_str = f"{status['size_bytes']:,} B" if status["exists"] else "(not baked)"
+        rows.append(f"""
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #ecf0f1;">
+            <strong>{r.name}</strong><br>
+            <span style="font-size:11px;color:#7f8c8d;">{r.description}</span>
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#566573;">
+            {r.bundle}
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#566573;">
+            {size_str}
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #ecf0f1;">
+            <a href="/admin/reports/preview/{r.key}/raw" target="_blank"
+               style="color:#0984e3;text-decoration:none;font-size:12px;">Preview &rarr;</a>
+          </td>
+        </tr>
+        """)
+    rows_html = "".join(rows)
+
+    # Token + decision panel
+    if token_info:
+        token = token_info.get("token", "")
+        created = token_info.get("created_et", "")
+        token_panel = f"""
+        <div style="margin:16px 0;padding:14px;background:#f4f5f6;border-radius:6px;">
+          <strong>Preflight token:</strong> <code>{token[:8]}…</code>
+          (created {created}, valid 4h)
+        </div>
+        """
+    else:
+        token_panel = """
+        <div style="margin:16px 0;padding:14px;background:#fef2f2;border-radius:6px;border-left:4px solid #e74c3c;">
+          <strong>No preflight token.</strong> Run <code>preflight_check.py</code> on the VPS first.
+        </div>
+        """
+
+    if decision:
+        decision_panel = f"""
+        <div style="margin:16px 0;padding:14px;background:#ecfdf5;border-radius:6px;border-left:4px solid #27ae60;">
+          <strong>Latest decision:</strong> {decision.get("action", "?").upper()}
+          at {decision.get("recorded_et", "?")} ({decision.get("note", "")})
+        </div>
+        """
+    else:
+        decision_panel = ""
+
+    # Action buttons
+    if token_info:
+        token = token_info.get("token", "")
+        actions = f"""
+        <form method="POST" action="/admin/reports/decision" style="display:inline-block;margin-right:12px;">
+          <input type="hidden" name="token" value="{token}">
+          <input type="hidden" name="action" value="GO">
+          <button type="submit" style="background:#27ae60;color:white;border:none;padding:12px 24px;
+                  border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">GO &mdash; Send all 7</button>
+        </form>
+        <form method="POST" action="/admin/reports/decision" style="display:inline-block;">
+          <input type="hidden" name="token" value="{token}">
+          <input type="hidden" name="action" value="HOLD">
+          <button type="submit" style="background:#e74c3c;color:white;border:none;padding:12px 24px;
+                  border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">HOLD &mdash; Investigate</button>
+        </form>
+        """
+    else:
+        actions = '<p style="color:#7f8c8d;">Decision buttons appear once a preflight token is present.</p>'
+
+    return HTMLResponse(f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>REX Send-Day Dashboard</title></head>
+<body style="font-family:-apple-system,sans-serif;color:#1a1a2e;padding:20px;max-width:960px;margin:0 auto;">
+<h2 style="margin:0 0 8px;">Send-Day Dashboard</h2>
+<p style="font-size:13px;color:#7f8c8d;margin:0 0 16px;">As of {datetime.now().strftime('%Y-%m-%d %H:%M %Z')}</p>
+{token_panel}
+{decision_panel}
+<table style="width:100%;border-collapse:collapse;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;">
+  <thead><tr style="background:#1a1a2e;color:white;">
+    <th style="padding:10px 12px;text-align:left;">Report</th>
+    <th style="padding:10px 12px;text-align:left;">Bundle</th>
+    <th style="padding:10px 12px;text-align:left;">Baked</th>
+    <th style="padding:10px 12px;text-align:left;">Preview</th>
+  </tr></thead>
+  <tbody>{rows_html}</tbody>
+</table>
+<div style="margin:24px 0;padding:16px;background:#f8f9fa;border-radius:6px;">
+  {actions}
+</div>
+<p style="font-size:11px;color:#7f8c8d;">
+  GO records the decision to <code>data/.preflight_decision.json</code>. The next
+  scheduled <code>send_all.py</code> run consumes the decision + token. HOLD records
+  the same to block the send. Decisions expire when the token expires (4h).
+</p>
+</body></html>""")
+
+
+@router.post("/decision")
+def record_decision(request: Request,
+                    token: str = Form(...),
+                    action: str = Form(...)):
+    """Record a GO/HOLD decision against the current preflight token.
+
+    `send_all.py` (when invoked from the scheduled timer) reads this file,
+    verifies the token matches the current preflight, and only fires when
+    action == "GO".
+    """
+    if not _check_auth(request):
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+
+    if action.upper() not in ("GO", "HOLD"):
+        return JSONResponse({"error": "invalid action"}, status_code=400)
+
+    token_info = _read_token()
+    if not token_info:
+        return JSONResponse({"error": "no active preflight token"}, status_code=409)
+    if token_info.get("token") != token:
+        return JSONResponse({"error": "token mismatch"}, status_code=409)
+
+    try:
+        from zoneinfo import ZoneInfo
+        recorded_et = datetime.now(ZoneInfo("America/New_York")).isoformat(timespec="seconds")
+    except Exception:
+        recorded_et = datetime.now().isoformat(timespec="seconds")
+
+    payload = {
+        "token": token,
+        "action": action.upper(),
+        "recorded_et": recorded_et,
+        "note": f"Recorded via /admin/reports/decision",
+    }
+    DECISION_FILE.parent.mkdir(parents=True, exist_ok=True)
+    DECISION_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    log.info("Send decision recorded: %s for token %s", action.upper(), token[:8])
+
+    return RedirectResponse("/admin/reports/dashboard", status_code=303)

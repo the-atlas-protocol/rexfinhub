@@ -1,0 +1,12 @@
+[Unit]
+Description=REX FinHub Morning Classification Sweep (weekdays 09:00 ET)
+
+[Timer]
+# Catches new ETP launches with NULL etp_category / NULL issuer_display the
+# morning after, rather than at 18:30 preflight (where the same gap forces
+# scrambling 1h before the send window). 09:00 lets Ryu fix mid-morning.
+OnCalendar=Mon..Fri 09:00:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -333,7 +333,37 @@ def do_market_share(preview: bool):
         print(f"  {'Sent' if ok else 'FAILED'}: {subject}")
 
 
-VALID_BUNDLES = ("daily", "weekly", "market_share", "all")
+def do_autocall(preview: bool):
+    """Send the Autocallable ETF Weekly Update standalone.
+
+    Recipients: list_type='autocall' (10 recipients: REX internal + RBC + CAIS).
+    Replaces the prior preview-only-via-weekly-bundle workflow.
+    """
+    db = _get_db()
+    force = "--force" in [a.lower() for a in sys.argv[1:]]
+    try:
+        date = _data_date(db)
+        base_title, filename, builder = AUTOCALL_REPORT
+        subject = f"{base_title}: {date}"
+        if not preview and not force:
+            prev = _already_sent_this_week(filename)
+            if prev:
+                print(f"\n  BLOCKED: {filename} already sent this week ({prev})")
+                return
+        print(f"\n  Building {subject}...")
+        html = builder(db)
+        if preview:
+            _save_and_open(html, filename)
+        else:
+            ok = _send_via_smtp(html, subject, list_type="autocall")
+            print(f"  {'Sent' if ok else 'FAILED'}: {subject}")
+            if ok:
+                _record_send(filename)
+    finally:
+        db.close()
+
+
+VALID_BUNDLES = ("daily", "weekly", "autocall", "market_share", "all")
 
 
 def main():
@@ -424,6 +454,8 @@ def main():
         do_daily(preview)
     elif bundle == "weekly":
         do_weekly(preview)
+    elif bundle == "autocall":
+        do_autocall(preview)
     elif bundle == "market_share":
         do_market_share(preview)
     else:  # "all"

@@ -97,18 +97,21 @@ def send_email(
     html_body: str,
     recipients: list[str],
     images: list[tuple[str, bytes, str]] | None = None,
+    bypass_gate: bool = False,
 ) -> bool:
     """Send email via Microsoft Graph API.
 
     Args:
         images: Optional list of (content_id, png_bytes, filename) for inline CID images.
+        bypass_gate: If True, skip the .send_enabled gate (for admin test sends).
 
     Returns True on success, False on failure.
     """
     # --- SEND GATE (mirrors the gate in email_alerts._send_html_digest) ---
     from pathlib import Path as _P
     _gate = _P(__file__).resolve().parent.parent.parent / "config" / ".send_enabled"
-    if not _gate.exists() or _gate.read_text().strip().lower() != "true":
+    _gate_open = bypass_gate or (_gate.exists() and _gate.read_text().strip().lower() == "true")
+    if not _gate_open:
         log.warning("SEND BLOCKED (Graph): config/.send_enabled is not 'true'. Subject: %s", subject)
         return False
     # --- END SEND GATE ---

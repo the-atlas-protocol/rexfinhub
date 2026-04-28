@@ -892,7 +892,11 @@ def _render_landscape(landscape: dict, master: pd.DataFrame = None) -> str:
 
 
 def _render_market_pulse_weekly(master: pd.DataFrame) -> str:
-    """Market Pulse: 1W total returns for major index proxies."""
+    """Market Pulse: 1W total returns for major index proxies.
+
+    Bloomberg's t_w3.total_return_1week column is unreliable (frequently NULL).
+    Use yfinance as the canonical 1W return source, with BBG fallback.
+    """
     if master is None or master.empty:
         return ""
 
@@ -900,29 +904,62 @@ def _render_market_pulse_weekly(master: pd.DataFrame) -> str:
     _val = f"font-size:16px;font-weight:700;"
     _lbl = f"font-size:8px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.4px;"
 
-    ret_col = "t_w3.total_return_1week" if "t_w3.total_return_1week" in master.columns else None
-    if not ret_col:
-        return ""
-
     _PROXIES = [
         ("SPY US", "SPY", "S&P 500"), ("QQQ US", "QQQ", "NASDAQ"),
         ("DIA US", "DIA", "Dow"), ("IWM US", "IWM", "Russell 2000"),
         ("IBIT US", "IBIT", "Bitcoin"), ("GLD US", "GLD", "Gold"),
     ]
 
+    # Prefer yfinance for 1W (5-trading-day) returns
+    _yf_returns: dict[str, float] = {}
+    try:
+        import yfinance as yf
+        from datetime import date as _date_cls, timedelta as _td
+        _end = _date_cls.today() + _td(days=1)
+        _start = _date_cls.today() - _td(days=12)
+        for _bbg_t, _yf_t, _plbl in _PROXIES:
+            try:
+                _hist = yf.download(_yf_t, start=str(_start), end=str(_end),
+                                    progress=False, auto_adjust=False)
+                _closes = _hist["Close"].values.flatten()
+                if len(_closes) >= 6:
+                    _prev = float(_closes[-6])  # ~5 trading days ago
+                    _last = float(_closes[-1])
+                    if _prev > 0:
+                        _yf_returns[_plbl] = (_last - _prev) / _prev * 100
+            except Exception:
+                pass
+    except ImportError:
+        pass
+
+    ret_col = "t_w3.total_return_1week" if "t_w3.total_return_1week" in master.columns else None
+
     cells = []
     for bbg_ticker, yf_ticker, label in _PROXIES:
-        row = master[master["ticker"] == bbg_ticker]
-        if row.empty:
-            continue
-        ret = float(row.iloc[0].get(ret_col, 0))
-        color = _GREEN if ret >= 0 else _RED
-        cells.append(
-            f'<td width="16%" style="{_cell}">'
-            f'<div style="{_val}color:{color};">{ret:+.2f}%</div>'
-            f'<div style="{_lbl}">{label}</div></td>'
-            f'<td width="0.5%"></td>'
-        )
+        ret = None
+        if label in _yf_returns:
+            ret = _yf_returns[label]
+        elif ret_col is not None:
+            row = master[master["ticker"] == bbg_ticker]
+            if not row.empty:
+                v = row.iloc[0].get(ret_col)
+                if v is not None and not (isinstance(v, float) and math.isnan(v)):
+                    ret = float(v)
+        if ret is None:
+            cells.append(
+                f'<td width="16%" style="{_cell}">'
+                f'<div style="{_val}color:{_GRAY};">--</div>'
+                f'<div style="{_lbl}">{label}</div></td>'
+                f'<td width="0.5%"></td>'
+            )
+        else:
+            color = _GREEN if ret >= 0 else _RED
+            cells.append(
+                f'<td width="16%" style="{_cell}">'
+                f'<div style="{_val}color:{color};">{ret:+.2f}%</div>'
+                f'<div style="{_lbl}">{label}</div></td>'
+                f'<td width="0.5%"></td>'
+            )
 
     if not cells:
         return ""
@@ -1015,6 +1052,7 @@ def _render_etp_overview(kpis: dict, rex_df: pd.DataFrame, master: pd.DataFrame)
     total_flow_1m = float(deduped["t_w4.fund_flow_1month"].sum()) if "t_w4.fund_flow_1month" in deduped.columns else 0
 
     def _fmta(v):
+        if abs(v) >= 1_000_000: return f"${v/1_000_000:,.2f}T"
         if abs(v) >= 1000: return f"${v/1000:,.1f}B"
         if abs(v) >= 1: return f"${v:.1f}M"
         return f"${v:.2f}M"
@@ -1238,6 +1276,7 @@ def _weekly_highlights(market: dict | None, filing: dict) -> list[str]:
             flow_1w = float(m["t_w4.fund_flow_1week"].sum()) if "t_w4.fund_flow_1week" in m.columns else 0
             if total_aum:
                 def _fmta(v):
+                    if abs(v) >= 1_000_000: return f"${v/1_000_000:,.2f}T"
                     if abs(v) >= 1000: return f"${v/1000:,.1f}B"
                     if abs(v) >= 1: return f"${v:.1f}M"
                     return f"${v:.2f}M"

@@ -1,0 +1,13 @@
+[Unit]
+Description=REX FinHub Pre-Send Audit (weekdays 18:30 ET, 1h before daily send)
+
+[Timer]
+# VPS timezone is America/New_York. Pre-flight runs at 18:30 — 30 min after
+# rexfinhub-bloomberg (18:00 — wait, currently 17:15+21:00) and 1h before
+# rexfinhub-daily (19:30). Posts the GO/HOLD summary to relasmar so Ryu can
+# review previews + click GO before 19:30.
+OnCalendar=Mon..Fri 18:30:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

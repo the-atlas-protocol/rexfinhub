@@ -9,6 +9,12 @@ User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
 Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
+# 2026-04-28: pull latest code from main before each daily run. Eliminates
+# the SCP-and-drift pattern that bit us 2026-04-27. --ff-only fails fast
+# (no silent merge) if local has unexpected divergence; the leading "-" on
+# ExecStartPre means "ignore exit code" — pull failure shouldn't block the
+# pipeline (we'd rather run with current code than skip the day).
+ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main
 ExecStart=/home/jarvis/venv/bin/python scripts/run_daily.py --skip-sec
 TimeoutStartSec=3600
 StandardOutput=journal

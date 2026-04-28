@@ -1,0 +1,20 @@
+[Unit]
+Description=REX FinHub Pre-Send Audit (data freshness, classification gaps, recipient diff, preview status, summary email)
+After=network-online.target rexfinhub-bloomberg.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pull latest code first (mirrors rexfinhub-daily.service pattern). Leading
+# "-" means a pull failure doesn't block the audit.
+ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main
+# --post-summary actually emails the audit summary to relasmar via
+# send_critical_alert. Without it, the script writes the HTML to disk only
+# (used for ad-hoc investigation).
+ExecStart=/home/jarvis/venv/bin/python scripts/preflight_check.py --post-summary
+TimeoutStartSec=900
+StandardOutput=journal
+StandardError=journal
