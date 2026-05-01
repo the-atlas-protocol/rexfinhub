@@ -1,0 +1,44 @@
+Pre-IPO BRACKET rows for your review: 22
+
+### Anduril (2 rows)
+  2026-03-20 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Anduril] ETF
+  2026-03-20 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Anduril] ETF
+
+### Anthropic (3 rows)
+  2026-03-17 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Anthropic] ETF
+  2026-03-17 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Anthropic] ETF
+  2026-04-29 485APOS  | Tidal Trust II                 | YieldMax(R) [Anthropic] Option Income Strategy ETF
+
+### Cerebras (2 rows)
+  2026-04-14 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Cerebras] ETF
+  2026-04-14 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Cerebras] ETF
+
+### Cohere (2 rows)
+  2026-04-01 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Cohere] ETF
+  2026-04-01 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Cohere] ETF
+
+### Databricks (3 rows)
+  2026-04-16 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Databricks] ETF
+  2026-04-16 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Databricks] ETF
+  2026-04-30 485APOS  | Tidal Trust II                 | YieldMax(R) [Databricks] Option Income Strategy ETF
+
+### Discord (1 rows)
+  2026-03-03 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Discord] ETF
+
+### Kraken (2 rows)
+  2026-04-15 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Kraken] ETF
+  2026-04-15 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Kraken] ETF
+
+### OpenAI (2 rows)
+  2026-03-26 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [OpenAI] ETF
+  2026-03-26 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [OpenAI] ETF
+
+### SpaceX (3 rows)
+  2026-03-04 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [SpaceX] ETF
+  2026-03-04 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [SpaceX] ETF
+  2026-04-28 485APOS  | Tidal Trust II                 | YieldMax(R) [SpaceX] Option Income Strategy ETF
+
+### Stripe (2 rows)
+  2026-04-21 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Long [Stripe] ETF
+  2026-04-21 485APOS  | Tidal Trust II                 | Defiance Daily Target 2X Short [Stripe] ETF
+
