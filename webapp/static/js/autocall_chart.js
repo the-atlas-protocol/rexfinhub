@@ -71,6 +71,9 @@
     refsB: [null],
     issueDateBISO: null,
 
+    // B follows A — when ON, B's issue date mirrors A on every change
+    bFollowA: true,
+
     // Coupon mode: 'manual' | 'suggested' — default suggested (auto-fills coupon)
     couponMode: 'suggested',
 
@@ -424,6 +427,12 @@
     var pres = $('ac-present-toggle');
     if (pres) pres.addEventListener('click', onTogglePresent);
 
+    var sidebarExpand = $('ac-sidebar-expand');
+    if (sidebarExpand) sidebarExpand.addEventListener('click', onSidebarExpand);
+
+    var bfa = $('ac-b-follow-a');
+    if (bfa) bfa.addEventListener('change', onToggleBFollowA);
+
     // Coupon mode toggle (Auto-suggest)
     var cmode = $('ac-coupon-mode');
     if (cmode) cmode.addEventListener('change', onToggleCouponMode);
@@ -501,6 +510,11 @@
       if (idx >= state.legalDates.length) idx = state.legalDates.length - 1;
       state.issueDateISO = state.legalDates[idx];
     }
+    if (state.bFollowA && state.compareOn) {
+      state.issueDateBISO = state.issueDateISO;
+      var bIssue = $('ac-b-issue');
+      if (bIssue) bIssue.value = state.issueDateISO || '';
+    }
     updateIssueLabel();
     scheduleRender();
     scheduleUrlWrite();
@@ -513,6 +527,11 @@
     var idx = snapToLegalDate(iso);
     if (idx == null) return;
     state.issueDateISO = state.legalDates[idx];
+    if (state.bFollowA && state.compareOn) {
+      state.issueDateBISO = state.issueDateISO;
+      var bIssue = $('ac-b-issue');
+      if (bIssue) bIssue.value = state.issueDateISO;
+    }
     var slider = $('ac-issue-scrub');
     if (slider) slider.value = String(idx);
     updateIssueLabel();
@@ -577,6 +596,11 @@
   var _bsFetchTimer = null;
   var _bsFetchSeq = 0;
 
+  function setBsLoading(on) {
+    var el = $('ac-coupon-loading');
+    if (el) el.style.display = on ? '' : 'none';
+  }
+
   function scheduleBsCouponFetch() {
     if (state.couponMode !== 'suggested') return;
     if (_bsFetchTimer) clearTimeout(_bsFetchTimer);
@@ -586,6 +610,7 @@
       var refs = state.refs.filter(function (r) { return !!r; });
       if (!refs.length || !state.issueDateISO) return;
       var p = readParamsRaw();
+      setBsLoading(true);
       fetch('/notes/tools/autocall/suggest-coupon', {
         method: 'POST',
         credentials: 'same-origin',
@@ -594,7 +619,9 @@
       })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) {
-          if (!d || seq !== _bsFetchSeq) return;  // stale; user has moved on
+          if (seq !== _bsFetchSeq) return;  // stale
+          setBsLoading(false);
+          if (!d) return;
           if (d.coupon_pa_pct != null) {
             var input = $('ac-coupon-rate');
             if (input) {
@@ -604,7 +631,9 @@
             scheduleRender();
           }
         })
-        .catch(function () { /* fall back silently to JS heuristic */ });
+        .catch(function () {
+          if (seq === _bsFetchSeq) setBsLoading(false);
+        });
     }, 450);
   }
 
@@ -666,9 +695,39 @@
 
   function onTogglePresent() {
     state.presentOn = !state.presentOn;
-    var btn = $('ac-present-toggle');
-    if (btn) btn.classList.toggle('ac-tool-btn-active', state.presentOn);
     document.body.classList.toggle('ac-present-on', state.presentOn);
+    // Plotly chart needs to recompute layout after the surrounding DOM resizes.
+    setTimeout(function () {
+      var div = $('ac-chart');
+      if (div && window.Plotly) {
+        try { Plotly.Plots.resize(div); } catch (e) {}
+      }
+    }, 50);
+    scheduleUrlWrite();
+  }
+
+  function onSidebarExpand() {
+    if (!state.presentOn) return;
+    state.presentOn = false;
+    document.body.classList.remove('ac-present-on');
+    setTimeout(function () {
+      var div = $('ac-chart');
+      if (div && window.Plotly) {
+        try { Plotly.Plots.resize(div); } catch (e) {}
+      }
+    }, 50);
+    scheduleUrlWrite();
+  }
+
+  function onToggleBFollowA() {
+    var el = $('ac-b-follow-a');
+    state.bFollowA = !!(el && el.checked);
+    var bIssue = $('ac-b-issue');
+    if (bIssue) bIssue.disabled = state.bFollowA;
+    if (state.bFollowA && state.issueDateISO) {
+      state.issueDateBISO = state.issueDateISO;
+      if (bIssue) bIssue.value = state.issueDateISO;
+    }
     scheduleRender();
     scheduleUrlWrite();
   }
@@ -781,10 +840,17 @@
 
   // ---- Simulation + chart ------------------------------------------------
 
+  function setEmptyState(on) {
+    var es = $('ac-empty-state');
+    var cw = $('ac-chart-wrap');
+    if (es) es.style.display = on ? '' : 'none';
+    if (cw) cw.style.display = on ? 'none' : '';
+  }
+
   function render() {
     var refs = state.refs.filter(function (r) { return !!r; });
     if (!refs.length || !state.issueDateISO) {
-      drawEmpty();
+      setEmptyState(true);
       updateResults(null);
       updateResultsB(null);
       state.lastResultA = null;
@@ -792,6 +858,7 @@
       renderObservationLog();
       return;
     }
+    setEmptyState(false);
     maybeAutoSuggestCoupon();
     var params = readParams();
     var pad = readPad();
