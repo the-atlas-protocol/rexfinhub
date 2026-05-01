@@ -183,15 +183,12 @@ def _autocall_seed_if_empty():
         return
     try:
         from webapp.models import AutocallIndexLevel
+        from webapp.services.autocall_data_loader import load
         from sqlalchemy.orm import Session as _S
         with _S(engine) as s:
             n = s.query(AutocallIndexLevel).limit(1).count()
             if n > 0:
                 return
-        # Empty — load via the loader script's logic.
-        import sys as _sys
-        _sys.path.insert(0, str(PROJECT_ROOT))
-        from scripts.load_index_levels import load
         with _S(engine) as s:
             summary = load(csv_path, s)
         _l.info("Autocall data seeded: %d rows, %d tickers, %s -> %s",
