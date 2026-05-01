@@ -846,7 +846,14 @@ def main():
         except Exception as e:
             print(f"  Notes upload failed (non-fatal): {e}")
 
-        # === Wait until 5:30 PM to send emails ===
+        # === Wait until send window to send emails ===
+        # 2026-04-30: changed target from 17:30 -> 19:30 ET to match the new
+        # gate-open/daily-timer cadence (gate opens 19:00, daily-timer fires
+        # 19:30). Pre-fix: an early-AM invocation (e.g., 04:11 reconciler) would
+        # wait until 17:30 and try to send before the gate was open, getting
+        # blocked silently while the 19:30 daily timer's separate run_daily
+        # would correctly fire after gate-open. Two-path behavior was masking
+        # the bug.
         print("\n[12/12] Sending email reports...")
         if not critical_ok:
             print(f"  SKIPPED: critical step(s) failed — not sending emails with stale/missing data")
@@ -866,10 +873,10 @@ def main():
             try:
                 import subprocess
                 now_dt = datetime.now()
-                target = now_dt.replace(hour=17, minute=30, second=0, microsecond=0)
+                target = now_dt.replace(hour=19, minute=30, second=0, microsecond=0)
                 if now_dt < target:
                     wait_secs = (target - now_dt).total_seconds()
-                    print(f"  Pipeline done. Waiting until 5:30 PM to send ({wait_secs / 60:.0f} min)...")
+                    print(f"  Pipeline done. Waiting until 7:30 PM to send ({wait_secs / 60:.0f} min)...")
                     time.sleep(wait_secs)
                 day_of_week = datetime.now().strftime("%A")
                 if day_of_week in ("Saturday", "Sunday"):

@@ -89,6 +89,53 @@ def audit_bloomberg(db) -> dict:
 # Audit 2: Classification gaps
 # ---------------------------------------------------------------------------
 
+def audit_ticker_dupes_recent(db) -> dict:
+    """Phase 1.4 — detect ticker bleed in fund_extractions added in last 24h.
+
+    Catches regressions of the multi-fund accession bleed bug fixed
+    2026-04-30 in step3.py. If a (registrant, ticker) appears on >1 series
+    in extractions added in the last 24 hours, flag for investigation.
+    """
+    out = {"name": "Ticker dupes (24h)", "status": "pass", "detail": "", "rows": []}
+    import sqlite3
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute("""
+            SELECT f.registrant, fe.class_symbol, fe.series_name, f.accession_number,
+                   f.filing_date, f.form
+            FROM fund_extractions fe
+            JOIN filings f ON f.id = fe.filing_id
+            WHERE fe.class_symbol IS NOT NULL
+              AND fe.class_symbol != ''
+              AND f.filing_date >= date('now','-1 day')
+              AND f.registrant IS NOT NULL
+        """)
+        from collections import defaultdict
+        groups = defaultdict(set)
+        rows = cur.fetchall()
+        for reg, sym, ser, *_ in rows:
+            groups[(reg, sym)].add(ser)
+        bleed = [(k, v) for k, v in groups.items() if len(v) > 1]
+        con.close()
+
+        if not bleed:
+            out["detail"] = f"no ticker dupes in {len(rows)} extractions added in last 24h"
+        else:
+            out["status"] = "fail"
+            out["detail"] = f"{len(bleed)} (registrant, ticker) pairs duplicated across series"
+            out["rows"] = [
+                {"registrant": k[0], "ticker": k[1], "series_count": len(v),
+                 "series_names": sorted(v)[:5]}
+                for k, v in bleed[:10]
+            ]
+    except Exception as e:
+        out["status"] = "fail"
+        out["detail"] = f"query error: {type(e).__name__}: {e}"
+    return out
+
+
 def audit_classification(db) -> dict:
     """Three-tier check: etp_category NULL, issuer_display NULL, CC missing from attributes."""
     import sqlite3
@@ -481,8 +528,8 @@ def main():
         print(f"WARN: DB session init failed (non-fatal for audits): {e}")
 
     audits = []
-    for fn in (audit_bloomberg, audit_classification, audit_null_data,
-               audit_recipients, audit_previews):
+    for fn in (audit_bloomberg, audit_classification, audit_ticker_dupes_recent,
+               audit_null_data, audit_recipients, audit_previews):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)

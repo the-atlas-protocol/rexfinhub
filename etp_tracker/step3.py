@@ -409,11 +409,31 @@ def _extract_full(client: SECClient, txt_url: str, form: str,
 
     # Build output rows
     rows: list[dict] = []
+    # 2026-04-30 fix: track tickers already assigned WITHIN THIS FILING. The
+    # body-text ticker extractor uses a ±600 char proximity window which, in
+    # multi-fund accessions where funds are listed in a single table or close
+    # together, can attribute the SAME ticker to multiple funds (off-by-one
+    # bleed across siblings). Documented as "Same-trust ticker scraping" in
+    # CLAUDE.md. Surface symptom: the 17 T-REX 04-30 485BPOS funds had AMPU
+    # assigned to both AMPX and AXTI, etc. Fix is conservative — keep the
+    # first occurrence (closest match wins by SGML order), clear duplicates
+    # (better empty than wrong; SGML-provided tickers in `base` are unaffected).
+    used_tickers: set[str] = set()
     if sgml_rows:
         for base in sgml_rows:
             nm = base.get("Class Contract Name") or base.get("Series Name") or ""
             tkr, tkr_src = _extract_ticker_for_series_from_texts(nm, all_plain_texts)
             row = dict(base)
+            # If the SGML already provided a ticker for this row, register and skip body extraction.
+            sgml_tkr = (base.get("Class Symbol") or "").strip().upper()
+            if sgml_tkr:
+                used_tickers.add(sgml_tkr)
+            elif tkr:
+                if tkr in used_tickers:
+                    # Already attributed to a prior fund in this filing — drop rather than mispair.
+                    tkr = ""
+                else:
+                    used_tickers.add(tkr)
             if tkr:
                 row["Class Symbol"] = tkr
                 src = row.get("Extracted From") or "SGML-TXT"
