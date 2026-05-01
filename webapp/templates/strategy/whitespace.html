@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Whitespace Candidates — L&I Strategy{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/strategy">L&amp;I Strategy</a><span class="sep">/</span>
+    <span>Whitespace</span>
+  </div>
+  <h1>Whitespace Candidates</h1>
+  <div class="date">{{ total }} stocks with zero competitor products + zero REX filings + no recent 485APOS. Ranked by composite score.</div>
+</div>
+
+<!-- Filters -->
+<form method="get" action="/strategy/whitespace" style="margin:20px 0;">
+  <div class="filter-bar">
+    <label>Sector:
+      <select name="sector">
+        <option value="">All</option>
+        {% for s in sectors %}
+        <option value="{{ s }}" {% if current_sector == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Min mkt cap ($M):
+      <input type="number" name="min_mcap" value="{{ current_min_mcap or '' }}" placeholder="500" min="0" step="100">
+    </label>
+    <label>
+      <input type="checkbox" name="require_mentions" {% if require_mentions %}checked{% endif %}>
+      Retail mentions only
+    </label>
+    <label>
+      <input type="checkbox" name="require_theme" {% if require_theme %}checked{% endif %}>
+      Thematic only
+    </label>
+    <button type="submit" class="btn btn-primary">Apply</button>
+    <a href="/strategy/whitespace" class="btn btn-secondary">Reset</a>
+  </div>
+</form>
+
+<table class="data-table" style="width:100%;">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Ticker</th>
+      <th>Sector</th>
+      <th>Mkt Cap</th>
+      <th>Vol 90d</th>
+      <th>1m</th>
+      <th>1y</th>
+      <th>OI</th>
+      <th>SI</th>
+      <th>Inst</th>
+      <th>Mentions</th>
+      <th>Themes</th>
+      <th>Score</th>
+      <th>%ile</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ (page-1)*per_page + loop.index }}</td>
+      <td><a href="/strategy/ticker/{{ row.ticker }}"><strong>{{ row.ticker }}</strong></a></td>
+      <td>{{ row.sector }}</td>
+      <td>{{ row.mcap }}</td>
+      <td>{{ row.rvol_90d }}</td>
+      <td>{{ row.ret_1m }}</td>
+      <td>{{ row.ret_1y }}</td>
+      <td>{{ row.total_oi }}</td>
+      <td>{{ row.si_ratio }}</td>
+      <td>{{ row.inst_own }}</td>
+      <td>{{ row.mentions }}</td>
+      <td>
+        {% if row.is_thematic %}<span class="pill pill-green">{{ row.themes }}</span>
+        {% else %}<span class="muted">—</span>{% endif %}
+      </td>
+      <td><strong>{{ row.score }}</strong></td>
+      <td>{{ row.score_pct }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Pagination -->
+<div style="margin-top:20px;display:flex;gap:8px;align-items:center;">
+  {% if page > 1 %}
+    <a href="?page={{ page - 1 }}&per_page={{ per_page }}{% if current_sector %}&sector={{ current_sector }}{% endif %}" class="btn btn-secondary">← Prev</a>
+  {% endif %}
+  <span class="muted">Page {{ page }} of {{ n_pages }}</span>
+  {% if page < n_pages %}
+    <a href="?page={{ page + 1 }}&per_page={{ per_page }}{% if current_sector %}&sector={{ current_sector }}{% endif %}" class="btn btn-secondary">Next →</a>
+  {% endif %}
+</div>
+
+<style>
+  .filter-bar { background:#f5f7fa; padding:12px; border-radius:6px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .filter-bar label { font-size:13px; display:flex; gap:6px; align-items:center; }
+  .filter-bar select, .filter-bar input[type=number] { padding:4px 8px; border:1px solid #dce4e9; border-radius:4px; }
+  .data-table { border-collapse:collapse; font-size:12px; }
+  .data-table th { background:#1a1a2e; color:white; padding:7px 6px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; }
+  .data-table td { padding:6px; border-bottom:1px solid #ecf0f1; }
+  .data-table tr:nth-child(even) { background:#f9fafb; }
+  .data-table tr:hover { background:#eef5fc; }
+  .pill { display:inline-block; padding:2px 6px; border-radius:10px; font-size:10px; font-weight:600; }
+  .pill-green { background:#27ae60; color:white; }
+  .btn { padding:6px 12px; border-radius:4px; text-decoration:none; font-weight:600; font-size:12px; border:none; cursor:pointer; }
+  .btn-primary { background:#0984e3; color:white; }
+  .btn-secondary { background:#7f8c8d; color:white; }
+  .muted { color:#7f8c8d; font-size:12px; }
+</style>
+{% endblock %}

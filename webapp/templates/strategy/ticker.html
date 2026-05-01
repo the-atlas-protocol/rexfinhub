@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}{{ ticker }} — L&I Ticker Analysis{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/strategy">L&amp;I Strategy</a><span class="sep">/</span>
+    <a href="/strategy/whitespace">Whitespace</a><span class="sep">/</span>
+    <span>{{ ticker }}</span>
+  </div>
+  <h1>{{ ticker }}{% if info %} — {{ info.sector }}{% endif %}</h1>
+</div>
+
+{% if error %}
+<div class="alert">
+  <strong>{{ ticker }}</strong> — {{ error }}
+</div>
+{% else %}
+
+<!-- Core metrics -->
+<div class="metric-row">
+  <div class="metric"><div class="label">Market cap</div><div class="val">{{ info.market_cap }}</div></div>
+  <div class="metric"><div class="label">Last price</div><div class="val">${{ info.last_price }}</div></div>
+  <div class="metric"><div class="label">% of 52w high</div><div class="val">{{ info.pct_of_52w_high }}</div></div>
+  <div class="metric"><div class="label">Retail mentions</div><div class="val">{{ info.mentions_24h }}</div></div>
+</div>
+
+<!-- Score box -->
+{% if score and score.composite %}
+<div class="score-box">
+  <div>
+    <div class="score-label">Composite Score</div>
+    <div class="score-val">{{ '%+.2f' % score.composite }}</div>
+    <div class="score-sub">Rank {{ score.rank_in_universe }} of {{ score.universe_size }} — {{ '%.0f'|format(score.percentile) }}th percentile</div>
+  </div>
+  <div>
+    {% if score.top_drivers %}
+    <div class="drivers-label">Top drivers</div>
+    <ul class="drivers">
+      {% for d in score.top_drivers %}<li>{{ d }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if score.flags %}
+    <div class="flags-label">Flags</div>
+    <ul class="flags">
+      {% for f in score.flags %}<li>{{ f }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Two-column layout -->
+<div class="two-col">
+  <div class="col">
+    <h2>Returns</h2>
+    <table class="mini-table">
+      <tr><th>1m</th><td>{{ info.ret_1m }}</td></tr>
+      <tr><th>3m</th><td>{{ info.ret_3m }}</td></tr>
+      <tr><th>6m</th><td>{{ info.ret_6m }}</td></tr>
+      <tr><th>1y</th><td>{{ info.ret_1y }}</td></tr>
+    </table>
+
+    <h2>Volatility</h2>
+    <table class="mini-table">
+      <tr><th>30-day realized</th><td>{{ info.rvol_30d }}%</td></tr>
+      <tr><th>90-day realized</th><td>{{ info.rvol_90d }}%</td></tr>
+    </table>
+
+    <h2>Positioning</h2>
+    <table class="mini-table">
+      <tr><th>Short-interest ratio</th><td>{{ info.si_ratio }}</td></tr>
+      <tr><th>Institutional own %</th><td>{{ info.inst_own_pct }}</td></tr>
+      <tr><th>Insider own %</th><td>{{ info.insider_pct }}</td></tr>
+    </table>
+  </div>
+
+  <div class="col">
+    <h2>Options</h2>
+    <table class="mini-table">
+      <tr><th>Total OI</th><td>{{ info.total_oi }}</td></tr>
+      <tr><th>Call OI</th><td>{{ info.call_oi }}</td></tr>
+      <tr><th>Put OI</th><td>{{ info.put_oi }}</td></tr>
+    </table>
+
+    <h2>Themes</h2>
+    {% if info.themes %}
+      {% for t in info.themes %}
+      <span class="pill pill-green">{{ t }}</span>
+      {% endfor %}
+    {% else %}
+      <div class="muted">No theme tags</div>
+    {% endif %}
+
+    <h2>Product coverage</h2>
+    {% if coverage %}
+      <div class="coverage-block">
+        <strong>REX active products:</strong> {{ coverage.n_rex_active or 0 }}<br>
+        {% for p in coverage.rex_active_products %}
+          <div class="prod">{{ p.ticker }} — {{ p.fund_name }} (${{ '%.0f' % p.aum }}M)</div>
+        {% endfor %}
+
+        <strong style="display:block; margin-top:10px;">Competitor active products:</strong> {{ coverage.n_competitor_active or 0 }}<br>
+        {% for p in coverage.competitor_active_products %}
+          <div class="prod">{{ p.ticker }} — {{ p.issuer }} ({{ p.leverage }}x {{ p.direction }})</div>
+        {% endfor %}
+
+        {% if coverage.n_rex_active == 0 and coverage.n_competitor_active == 0 %}
+          <div class="muted"><strong>WHITESPACE</strong> — zero active leveraged products on this underlier.</div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %}
+
+<style>
+  .metric-row { display:flex; gap:12px; margin:20px 0; }
+  .metric { flex:1; background:#f5f7fa; padding:14px; border-radius:6px; }
+  .metric .label { font-size:11px; color:#7f8c8d; text-transform:uppercase; }
+  .metric .val { font-size:22px; font-weight:700; margin-top:4px; }
+  .score-box { background:#e3f2fd; border-left:4px solid #0984e3; padding:16px 20px; display:flex; gap:30px; margin:20px 0; }
+  .score-label { font-size:11px; text-transform:uppercase; color:#0984e3; }
+  .score-val { font-size:32px; font-weight:700; color:#1a1a2e; }
+  .score-sub { font-size:12px; color:#7f8c8d; }
+  .drivers-label, .flags-label { font-size:11px; text-transform:uppercase; font-weight:600; margin-top:6px; }
+  .drivers, .flags { margin:4px 0 8px 16px; padding:0; font-size:13px; }
+  .drivers li { color:#27ae60; }
+  .flags li { color:#e67e22; }
+  .two-col { display:flex; gap:30px; margin-top:20px; }
+  .col { flex:1; }
+  .col h2 { font-size:15px; color:#1a1a2e; margin:18px 0 8px; border-bottom:1px solid #ecf0f1; padding-bottom:4px; }
+  .mini-table { width:100%; font-size:13px; }
+  .mini-table th { text-align:left; color:#7f8c8d; font-weight:500; padding:4px 8px 4px 0; width:50%; }
+  .mini-table td { text-align:right; padding:4px 0; font-weight:600; }
+  .pill { display:inline-block; padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; margin:2px; }
+  .pill-green { background:#27ae60; color:white; }
+  .coverage-block { font-size:13px; line-height:1.5; }
+  .prod { padding:3px 10px; background:#f5f7fa; margin:2px 0; border-radius:4px; font-size:12px; font-family:monospace; }
+  .alert { padding:14px; background:#fff3e0; border-left:4px solid #e67e22; margin:20px 0; }
+  .muted { color:#7f8c8d; font-size:12px; margin-top:6px; }
+</style>
+{% endblock %}

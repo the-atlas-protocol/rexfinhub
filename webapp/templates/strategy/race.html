@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Filing Race — L&I Strategy{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/strategy">L&amp;I Strategy</a><span class="sep">/</span>
+    <span>Filing Race</span>
+  </div>
+  <h1>Filing Race</h1>
+  <div class="date">How fast each issuer goes from 485APOS to active. Competitor filings in flight + our reaction status.</div>
+</div>
+
+<h2>Issuer cadence — median days from 485APOS to active product</h2>
+{% if cadence %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Issuer</th>
+      <th>Launches</th>
+      <th>Median Days</th>
+      <th>Min</th>
+      <th>Max</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in cadence %}
+    <tr {% if r.is_rex %}class="rex"{% endif %}>
+      <td><strong>{{ r.issuer }}</strong>{% if r.is_rex %} <span class="pill pill-green">REX</span>{% endif %}</td>
+      <td>{{ r.n_launches }}</td>
+      <td><strong>{{ r.median_days }}</strong></td>
+      <td>{{ r.min_days }}</td>
+      <td>{{ r.max_days }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="muted">No cadence data. Run filing_race.py.</div>
+{% endif %}
+
+<h2 style="margin-top:30px;">Recent competitor 485APOS filings with projected launch dates</h2>
+{% if race %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Filing date</th>
+      <th>Days until launch</th>
+      <th>Underlier</th>
+      <th>Registrant</th>
+      <th>Projected launch</th>
+      <th>REX reaction</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in race %}
+    <tr class="{{ r.urgency }}">
+      <td>{{ r.filing_date }}</td>
+      <td><strong>{{ r.days_until_launch }}</strong></td>
+      <td><a href="/strategy/ticker/{{ r.underlier }}">{{ r.underlier }}</a></td>
+      <td>{{ r.registrant }}</td>
+      <td>{{ r.projected_launch }}</td>
+      <td>
+        {% if r.rex_has_reacted %}<span class="pill pill-green">REX filed</span>
+        {% else %}<span class="pill pill-orange">Not yet</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif race_available %}
+<div class="muted">No upcoming competitor launches in the projection window.</div>
+{% else %}
+<div class="alert">
+  <strong>Race data limitation:</strong> The filings → ticker join currently only matches filings for products already in <code>mkt_master_data</code>. New 485APOS filings on not-yet-named products are missed. Fix in backlog: widen join with fund_name regex on "2X LONG", "3X INVERSE", etc.
+</div>
+{% endif %}
+
+<style>
+  .data-table { border-collapse:collapse; width:100%; font-size:13px; margin-top:10px; }
+  .data-table th { background:#1a1a2e; color:white; padding:8px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; }
+  .data-table td { padding:7px 8px; border-bottom:1px solid #ecf0f1; }
+  .data-table tr.rex { background:#e8f5e9; }
+  .data-table tr.urgent { background:#ffebee; }
+  .data-table tr:hover { background:#eef5fc; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+  .pill-green { background:#27ae60; color:white; }
+  .pill-orange { background:#e67e22; color:white; }
+  .alert { padding:14px; background:#fff3e0; border-left:4px solid #e67e22; margin:10px 0; font-size:13px; }
+  .muted { color:#7f8c8d; font-size:12px; margin:10px 0; }
+</style>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}L&I Strategy Engine — REX Financial{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <span>L&amp;I Strategy</span>
+  </div>
+  <h1>L&amp;I Strategy Engine</h1>
+  <div class="date">Whitespace candidates + filing race + ticker-level research. Data source: <code>{{ data_source }}</code> — refreshed {{ data_age_hours }}h ago.</div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="num">{{ n_universe }}</div>
+    <div class="label">Whitespace candidates</div>
+  </div>
+  <div class="kpi kpi-green">
+    <div class="num">{{ n_thematic }}</div>
+    <div class="label">Thematic matches</div>
+  </div>
+  <div class="kpi kpi-orange">
+    <div class="num">{{ n_high_mentions }}</div>
+    <div class="label">Retail-active (≥10 mentions)</div>
+  </div>
+</div>
+
+<!-- Quick links -->
+<div style="display:flex; gap:12px; margin: 20px 0;">
+  <a href="/strategy/whitespace" class="btn btn-primary">Full Whitespace List →</a>
+  <a href="/strategy/race" class="btn btn-secondary">Filing Race →</a>
+</div>
+
+<!-- Top 10 preview -->
+<h2 style="margin-top:30px;">Top 10 Whitespace Candidates</h2>
+<p class="muted">Ranked by composite score. Click any ticker for a deep-dive.</p>
+
+<table class="data-table" style="width:100%;">
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>Ticker</th>
+      <th>Sector</th>
+      <th>Mkt Cap</th>
+      <th>Vol (90d)</th>
+      <th>1m</th>
+      <th>1y</th>
+      <th>Mentions</th>
+      <th>Themes</th>
+      <th>Score</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in top10 %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td><a href="/strategy/ticker/{{ row.ticker }}"><strong>{{ row.ticker }}</strong></a></td>
+      <td>{{ row.sector }}</td>
+      <td>{{ row.mcap }}</td>
+      <td>{{ row.rvol }}</td>
+      <td>{{ row.ret_1m }}</td>
+      <td>{{ row.ret_1y }}</td>
+      <td>{{ row.mentions }}</td>
+      <td>{% if row.themes %}<span class="pill pill-green">{{ row.themes }}</span>{% endif %}</td>
+      <td><strong>{{ row.score }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="muted" style="margin-top:20px; font-size:12px;">
+  <strong>Methodology:</strong> v3 weights — retail mention count (22%), realized vol 30d (15%), thematic relevance (14%), 1m return (12%), vol 90d (9%), insider (8%), 1y return (5%) minus short-interest penalty (−8%) and institutional ownership penalty (−7%). Whitespace filter: zero active competitor 2x products + zero REX filings + zero competitor 485APOS in last 180d.
+</div>
+
+<style>
+  .kpi-row { display:flex; gap:12px; margin:20px 0; }
+  .kpi { flex:1; padding:14px 18px; background:var(--panel-bg, #f5f7fa); border-radius:6px; }
+  .kpi .num { font-size:24px; font-weight:700; color:var(--text-primary, #1a1a2e); }
+  .kpi .label { font-size:11px; text-transform:uppercase; color:var(--text-muted, #7f8c8d); margin-top:2px; }
+  .kpi-green { background:#e8f5e9; }
+  .kpi-orange { background:#fff3e0; }
+  .data-table { border-collapse:collapse; font-size:13px; margin-top:10px; }
+  .data-table th { background:#1a1a2e; color:white; padding:8px; text-align:left; font-weight:600; }
+  .data-table td { padding:7px 8px; border-bottom:1px solid #ecf0f1; }
+  .data-table tr:nth-child(even) { background:#f9fafb; }
+  .data-table tr:hover { background:#eef5fc; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+  .pill-green { background:#27ae60; color:white; }
+  .btn { padding:8px 14px; border-radius:4px; text-decoration:none; font-weight:600; font-size:13px; }
+  .btn-primary { background:#0984e3; color:white; }
+  .btn-secondary { background:#1a1a2e; color:white; }
+  .btn:hover { opacity:0.9; }
+  .muted { color:#7f8c8d; font-size:12px; margin:5px 0; }
+</style>
+{% endblock %}

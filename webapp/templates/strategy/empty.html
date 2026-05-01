@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}L&I Strategy{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>L&amp;I Strategy</h1>
+</div>
+
+<div class="alert">
+  <h3>Data not available yet</h3>
+  <p>{{ message }}</p>
+  <p>Run <code>/li-report</code> from Claude Code or execute:</p>
+  <pre>cd /c/Projects/rexfinhub
+python -m screener.li_engine.analysis.universe_loader
+python -m screener.li_engine.analysis.whitespace_v4
+python -m screener.li_engine.analysis.filing_race</pre>
+</div>
+
+<style>
+  .alert { padding:20px; background:#fff3e0; border-left:4px solid #e67e22; margin:20px 0; }
+  .alert pre { background:#1a1a2e; color:#ecf0f1; padding:12px; border-radius:4px; font-size:12px; margin-top:10px; }
+</style>
+{% endblock %}
