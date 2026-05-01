@@ -162,9 +162,40 @@ def init_db():
         FilingAlert, TrustCandidate,
         CapMProduct, CapMTrustAP,
         CboeSymbol, CboeStateChange, CboeScanRun, CboeKnownActive,
+        AutocallIndexMetadata, AutocallIndexLevel,
+        AutocallCrisisPreset, AutocallSweepCache,
     )
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()
+    _autocall_seed_if_empty()
+
+
+def _autocall_seed_if_empty():
+    """Seed autocall_* tables from the bundled CSV if they're empty.
+
+    Runs on every startup but only inserts when the levels table is empty
+    (idempotent). Lets Render pick up the dataset without a manual upload.
+    """
+    import logging as _log_m
+    _l = _log_m.getLogger(__name__)
+    csv_path = PROJECT_ROOT / "webapp" / "data_static" / "autocall_index_levels.csv"
+    if not csv_path.exists():
+        return
+    try:
+        from webapp.models import AutocallIndexLevel
+        from webapp.services.autocall_data_loader import load
+        from sqlalchemy.orm import Session as _S
+        with _S(engine) as s:
+            n = s.query(AutocallIndexLevel).limit(1).count()
+            if n > 0:
+                return
+        with _S(engine) as s:
+            summary = load(csv_path, s)
+        _l.info("Autocall data seeded: %d rows, %d tickers, %s -> %s",
+                summary["rows"], summary["tickers"],
+                summary["date_min"], summary["date_max"])
+    except Exception as e:
+        _l.warning("Autocall seed failed (non-fatal): %s", e)
 
 
 def _migrate_missing_columns():
