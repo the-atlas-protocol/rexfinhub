@@ -2224,7 +2224,22 @@ def get_aum_goal_history(db: Session, slug: str) -> dict | None:
 
     # 6. Totals + target line
     total_series = [round(sum(s["data"][i] for s in datasets), 2) for i in range(len(sorted_months))]
-    current_total = total_series[-1] if total_series else 0.0
+    # current_aum_m: prefer the already-overridden value from MktMasterData
+    # (MicroSectors ETNs use proprietary share/price data; raw time-series is wrong).
+    try:
+        master_q = (
+            db.query(func.sum(MktMasterData.aum))
+            .filter(
+                MktMasterData.is_rex == True,
+                MktMasterData.market_status == "ACTV",
+                MktMasterData.aum.isnot(None),
+                MktMasterData.ticker.in_(tickers),
+            )
+        )
+        master_total = master_q.scalar()
+        current_total = float(master_total) if master_total else (total_series[-1] if total_series else 0.0)
+    except Exception:
+        current_total = total_series[-1] if total_series else 0.0
     earliest_inc = min((v for v in incep_lookup.values() if v is not None), default=sorted_months[0])
 
     return {
