@@ -55,7 +55,8 @@ html.ac-fullwidth .container {
   position: relative;
 }
 body.ac-present-on .ac-page {
-  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-columns: 1fr;
+  gap: 0;
 }
 body.ac-present-on .ac-sidebar { display: none; }
 body.ac-present-on .ac-sidebar-expand { display: flex; }
@@ -63,34 +64,34 @@ body.ac-present-on .ac-sidebar-expand { display: flex; }
 .ac-sidebar-expand {
   display: none;
   position: fixed;
-  top: 130px;
-  left: 8px;
-  width: 28px;
-  height: 56px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 64px;
   border: 1px solid var(--border, #e2e8f0);
+  border-left: none;
   background: var(--white, #fff);
   color: var(--blue, #2563eb);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 6px 6px 0;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   z-index: 40;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.08);
+  opacity: 0.8;
 }
-.ac-sidebar-expand:hover { background: var(--blue-subtle, #eff6ff); }
+.ac-sidebar-expand:hover { background: var(--blue-subtle, #eff6ff); opacity: 1; }
 
-/* Sidebar shell */
+/* Sidebar shell — flows naturally (no internal scroll) */
 .ac-sidebar {
-  position: sticky;
-  top: 70px;
   align-self: start;
-  max-height: calc(100vh - 90px);
   display: flex;
   flex-direction: column;
   background: var(--white, #fff);
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
 .ac-sidebar-head {
   display: flex;
@@ -124,8 +125,6 @@ body.ac-present-on .ac-sidebar-expand { display: flex; }
   color: var(--blue, #2563eb);
 }
 .ac-sidebar-body {
-  flex: 1;
-  overflow-y: auto;
   padding: 10px 14px 14px;
 }
 
@@ -628,9 +627,8 @@ body.ac-coupon-suggested .ac-kpi-coupon-pct { display: flex; }
   letter-spacing: 0.06em;
   color: var(--text-muted, #64748b);
 }
-.ac-log-scroll {
-  max-height: 360px;
-  overflow-y: auto;
+/* Lifespan log: full table, no internal scroll. */
+.ac-log-table {
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 4px;
 }
@@ -823,3 +821,115 @@ body.ac-hide-memory .ac-log-table td:last-child { display: none; }
   .ac-results-row { grid-template-columns: 1fr; }
   body.ac-compare-on .ac-results-grid { grid-template-columns: 1fr; }
 }
+
+/* =============================================================
+   Round 4: timeline strip + 3-scenario support + Add scenario
+   ============================================================= */
+
+.ac-timeline-strip {
+  background: var(--white, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.ac-timeline-strip-row {
+  display: grid;
+  grid-template-columns: 200px 220px 110px 110px;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+.ac-timeline-scrub-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ac-timeline-strip .ac-field { margin-bottom: 0; }
+.ac-timeline-strip .ac-scrub { margin: 4px 0; }
+
+@media (max-width: 1100px) {
+  .ac-timeline-strip-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Up to 3 result columns */
+body.ac-compare-on .ac-results-grid { grid-template-columns: 1fr 1fr; }
+body.ac-compare-c-on .ac-results-grid { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 1400px) {
+  body.ac-compare-c-on .ac-results-grid { grid-template-columns: 1fr; }
+}
+
+/* Scenario C section (purple accent to differ from B's orange) */
+.ac-section-c {
+  background: rgba(147, 51, 234, 0.04);
+  border: 1px dashed #9333ea;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 10px -2px 0;
+}
+.ac-section-title-c { color: #9333ea; }
+.ac-results-col-c .ac-scenario-header { color: #9333ea; }
+
+/* Scenario remove × button in section title */
+.ac-scenario-remove {
+  margin-left: auto;
+  background: none;
+  border: 1px solid currentColor;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  opacity: 0.7;
+}
+.ac-scenario-remove:hover { opacity: 1; background: currentColor; color: var(--white, #fff); }
+
+/* Add scenario button */
+.ac-section-add-scenario { padding-bottom: 14px; }
+.ac-add-scenario-btn {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border, #e2e8f0);
+  background: rgba(100, 116, 139, 0.03);
+  color: var(--text-muted, #64748b);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.ac-add-scenario-btn:hover {
+  border-color: var(--blue, #2563eb);
+  color: var(--blue, #2563eb);
+  background: var(--blue-subtle, #eff6ff);
+}
+.ac-add-scenario-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Compare-on results grid wider when collapsed sidebar (Hide Inputs) */
+body.ac-present-on .ac-results-grid {
+  grid-template-columns: 1fr;
+}
+body.ac-present-on.ac-compare-on .ac-results-grid {
+  grid-template-columns: 1fr 1fr;
+}
+body.ac-present-on.ac-compare-c-on .ac-results-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Date input: don't enforce min/max blocking — JS handles snap */
+.ac-issue-typed { font-family: var(--font-mono, ui-monospace); font-weight: 600; }
+
+/* Timeline strip: KPI / chart wrap stay full-width */
+.ac-main { width: 100%; }
+.ac-chart { width: 100% !important; }

@@ -21,9 +21,10 @@
   var ObsStatus = Engine.ObsStatus;
 
   // Distinct, accessible palette for up to 5 references.
-  // Scenario A uses cool/blue family; Scenario B uses warm/orange family for clear contrast.
+  // Scenario A: cool/blue. Scenario B: warm/orange. Scenario C: purple/violet.
   var REF_COLORS = ['#2563eb', '#0D9488', '#0891b2', '#7c3aed', '#1e40af'];
   var REF_COLORS_B = ['#ea580c', '#dc2626', '#d97706', '#be185d', '#a21caf'];
+  var REF_COLORS_C = ['#9333ea', '#7c3aed', '#a21caf', '#5b21b6', '#581c87'];
   var BARRIER_COLORS = {
     ac: '#2563eb',
     coupon: '#FF9800',
@@ -63,16 +64,21 @@
     chartReady: false,
     rafPending: false,
 
-    // Compare mode
+    // Compare mode (B visible)
     compareOn: false,
+    // Compare 3rd (C visible)
+    compareCOn: false,
 
     // Present mode
     presentOn: false,
     refsB: [null],
     issueDateBISO: null,
+    refsC: [null],
+    issueDateCISO: null,
 
-    // B follows A — when ON, B's issue date mirrors A on every change
+    // Follow-A toggles
     bFollowA: true,
+    cFollowA: true,
 
     // Coupon mode: 'manual' | 'suggested' — default suggested (auto-fills coupon)
     couponMode: 'suggested',
@@ -83,6 +89,7 @@
     // Last simulation results, kept for log + CSV export
     lastResultA: null,
     lastResultB: null,
+    lastResultC: null,
 
     // Log sorting
     logSort: { key: 'k', dir: 'asc', type: 'num' },
@@ -290,24 +297,26 @@
       .filter(function (m) { return m.category === 'strategy_underlying'; })
       .sort(sortMeta);
 
-    var sel = $('ac-b-ref-1');
-    if (!sel) return;
-    var blank = document.createElement('option');
-    blank.value = '';
-    blank.textContent = '-- select reference --';
-    sel.appendChild(blank);
-    if (underlyings.length) {
-      var g1 = document.createElement('optgroup');
-      g1.label = 'Underlyings';
-      underlyings.forEach(function (m) { g1.appendChild(makeOpt(m)); });
-      sel.appendChild(g1);
-    }
-    if (strategies.length) {
-      var g2 = document.createElement('optgroup');
-      g2.label = 'Strategy Underlyings';
-      strategies.forEach(function (m) { g2.appendChild(makeOpt(m)); });
-      sel.appendChild(g2);
-    }
+    ['ac-b-ref-1', 'ac-c-ref-1'].forEach(function (id) {
+      var sel = $(id);
+      if (!sel) return;
+      var blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = '-- select reference --';
+      sel.appendChild(blank);
+      if (underlyings.length) {
+        var g1 = document.createElement('optgroup');
+        g1.label = 'Underlyings';
+        underlyings.forEach(function (m) { g1.appendChild(makeOpt(m)); });
+        sel.appendChild(g1);
+      }
+      if (strategies.length) {
+        var g2 = document.createElement('optgroup');
+        g2.label = 'Strategy Underlyings';
+        strategies.forEach(function (m) { g2.appendChild(makeOpt(m)); });
+        sel.appendChild(g2);
+      }
+    });
   }
 
   function sortMeta(a, b) {
@@ -325,35 +334,43 @@
   }
 
   function populatePresets() {
-    var wrap = $('ac-presets');
-    if (!wrap) return;
+    var sel = $('ac-presets-select');
+    if (!sel) return;
     var presets = (state.bootstrap.presets || []).slice().sort(function (a, b) {
       var ao = a.sort_order == null ? 9999 : a.sort_order;
       var bo = b.sort_order == null ? 9999 : b.sort_order;
       return ao - bo;
     });
     presets.forEach(function (p) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ac-preset-btn';
-      btn.textContent = p.name;
-      btn.addEventListener('click', function () {
-        var snap = snapToLegalDate(p.start_date);
-        if (snap == null) return;
-        var slider = $('ac-issue-scrub');
-        slider.value = String(snap);
-        state.issueDateISO = state.legalDates[snap];
-        // Sync B's issue date when compare on (always, regardless of follow-A)
-        if (state.compareOn) {
-          state.issueDateBISO = state.issueDateISO;
-          var bIssue = $('ac-b-issue');
-          if (bIssue) bIssue.value = state.issueDateISO;
-        }
-        updateIssueLabel();
-        scheduleRender();
-        scheduleUrlWrite();
-      });
-      wrap.appendChild(btn);
+      var opt = document.createElement('option');
+      opt.value = p.start_date;
+      opt.textContent = p.name + ' — ' + p.start_date;
+      opt.dataset.name = p.name;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', function () {
+      var iso = sel.value;
+      if (!iso) return;
+      var snap = snapToLegalDate(iso);
+      if (snap == null) return;
+      var slider = $('ac-issue-scrub');
+      slider.value = String(snap);
+      state.issueDateISO = state.legalDates[snap];
+      // Sync B's and C's issue dates regardless of follow-A
+      if (state.compareOn) {
+        state.issueDateBISO = state.issueDateISO;
+        var bIssue = $('ac-b-issue');
+        if (bIssue) bIssue.value = state.issueDateISO;
+      }
+      if (state.compareCOn) {
+        state.issueDateCISO = state.issueDateISO;
+        var cIssue = $('ac-c-issue');
+        if (cIssue) cIssue.value = state.issueDateISO;
+      }
+      updateIssueLabel();
+      scheduleRender();
+      scheduleUrlWrite();
+      sel.value = '';  // reset dropdown to placeholder
     });
   }
 
@@ -451,11 +468,7 @@
   function updateIssueLabel() {
     var typed = $('ac-issue-typed');
     if (typed) {
-      // Set min/max to the slider's legal range; value = current scrub.
-      if (state.legalDates.length) {
-        typed.min = state.legalDates[0];
-        typed.max = state.legalDates[state.legalDates.length - 1];
-      }
+      // No min/max — let user type any date freely. JS snaps onChange.
       typed.value = state.issueDateISO || '';
     }
   }
@@ -540,6 +553,48 @@
     var mirrorBtn = $('ac-b-mirror-a');
     if (mirrorBtn) mirrorBtn.addEventListener('click', onMirrorAToB);
 
+    var mirrorCBtn = $('ac-c-mirror-a');
+    if (mirrorCBtn) mirrorCBtn.addEventListener('click', onMirrorAToC);
+
+    var addScenBtn = $('ac-add-scenario');
+    if (addScenBtn) addScenBtn.addEventListener('click', onAddScenario);
+
+    Array.prototype.forEach.call(document.querySelectorAll('.ac-scenario-remove'), function (btn) {
+      btn.addEventListener('click', function () {
+        onRemoveScenario(btn.dataset.scenario);
+      });
+    });
+
+    // Scenario C inputs — wire same listeners as B
+    var cFollowA = $('ac-c-follow-a');
+    if (cFollowA) cFollowA.addEventListener('change', onToggleCFollowA);
+
+    var cParamIds = ['ac-c-tenor', 'ac-c-obs-freq', 'ac-c-coupon-rate',
+      'ac-c-coupon-barrier', 'ac-c-ac-barrier', 'ac-c-prot-barrier', 'ac-c-no-call'];
+    cParamIds.forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('input', onParamChange);
+    });
+    var cMem = $('ac-c-memory');
+    if (cMem) cMem.addEventListener('change', onParamChange);
+    var cRef = $('ac-c-ref-1');
+    if (cRef) cRef.addEventListener('change', function (e) {
+      state.refsC[0] = e.target.value || null;
+      scheduleRender();
+      scheduleUrlWrite();
+    });
+    var cIssue = $('ac-c-issue');
+    if (cIssue) cIssue.addEventListener('change', function (e) {
+      var iso = e.target.value;
+      if (!iso) return;
+      var idx = snapToLegalDate(iso);
+      if (idx == null) return;
+      state.issueDateCISO = state.legalDates[idx];
+      cIssue.value = state.issueDateCISO;
+      scheduleRender();
+      scheduleUrlWrite();
+    });
+
     // Coupon mode toggle (Auto-suggest)
     var cmode = $('ac-coupon-mode');
     if (cmode) cmode.addEventListener('change', onToggleCouponMode);
@@ -622,6 +677,11 @@
       var bIssue = $('ac-b-issue');
       if (bIssue) bIssue.value = state.issueDateISO || '';
     }
+    if (state.cFollowA && state.compareCOn) {
+      state.issueDateCISO = state.issueDateISO;
+      var cIssue = $('ac-c-issue');
+      if (cIssue) cIssue.value = state.issueDateISO || '';
+    }
     updateIssueLabel();
     scheduleRender();
     scheduleUrlWrite();
@@ -636,8 +696,13 @@
     state.issueDateISO = state.legalDates[idx];
     if (state.bFollowA && state.compareOn) {
       state.issueDateBISO = state.issueDateISO;
-      var bIssue = $('ac-b-issue');
-      if (bIssue) bIssue.value = state.issueDateISO;
+      var bIssueT = $('ac-b-issue');
+      if (bIssueT) bIssueT.value = state.issueDateISO;
+    }
+    if (state.cFollowA && state.compareCOn) {
+      state.issueDateCISO = state.issueDateISO;
+      var cIssueT = $('ac-c-issue');
+      if (cIssueT) cIssueT.value = state.issueDateISO;
     }
     var slider = $('ac-issue-scrub');
     if (slider) slider.value = String(idx);
@@ -683,20 +748,26 @@
   function applyCouponMode() {
     var input = $('ac-coupon-rate');
     var inputB = $('ac-b-coupon-rate');
+    var inputC = $('ac-c-coupon-rate');
     var tag = $('ac-coupon-suggested-tag');
     var tagB = $('ac-b-coupon-suggested-tag');
+    var tagC = $('ac-c-coupon-suggested-tag');
     if (state.couponMode === 'suggested') {
       document.body.classList.add('ac-coupon-suggested');
       if (tag) tag.style.display = '';
       if (tagB) tagB.style.display = '';
+      if (tagC) tagC.style.display = '';
       if (input) input.readOnly = true;
       if (inputB) inputB.readOnly = true;
+      if (inputC) inputC.readOnly = true;
     } else {
       document.body.classList.remove('ac-coupon-suggested');
       if (tag) tag.style.display = 'none';
       if (tagB) tagB.style.display = 'none';
+      if (tagC) tagC.style.display = 'none';
       if (input) input.readOnly = false;
       if (inputB) inputB.readOnly = false;
+      if (inputC) inputC.readOnly = false;
     }
   }
 
@@ -771,6 +842,19 @@
         }
       }
     }
+    // Scenario C
+    if (state.compareCOn) {
+      var refsCC = state.refsC.filter(function (r) { return !!r; });
+      var issueCC = state.issueDateCISO || ($('ac-c-issue') && $('ac-c-issue').value) || null;
+      if (refsCC.length && issueCC) {
+        var pC = readParamsRawC();
+        var scC = Engine.suggestCoupon(refsCC, issueCC, pC, state.store);
+        if (scC != null) {
+          var inputC = $('ac-c-coupon-rate');
+          if (inputC) inputC.value = scC.toFixed(2);
+        }
+      }
+    }
   }
 
   function readParamsRawB() {
@@ -839,6 +923,167 @@
     }
     scheduleRender();
     scheduleUrlWrite();
+  }
+
+  function onAddScenario() {
+    if (!state.compareOn) {
+      // Open scenario B
+      state.compareOn = true;
+      var bSection = $('ac-scenario-b');
+      if (bSection) bSection.style.display = '';
+      var bResults = document.querySelector('.ac-results-col-b');
+      if (bResults) bResults.style.display = '';
+      document.body.classList.add('ac-compare-on');
+      // Default B from A
+      mirrorAParamsToBIfBlank();
+      if (state.bFollowA && state.issueDateISO) {
+        state.issueDateBISO = state.issueDateISO;
+        var bIssue = $('ac-b-issue');
+        if (bIssue) bIssue.value = state.issueDateISO;
+      }
+      if (!state.refsB[0]) {
+        var aRef = state.refs.find(function (r) { return !!r; });
+        if (aRef) {
+          state.refsB[0] = aRef;
+          var bRefSel = $('ac-b-ref-1');
+          if (bRefSel) bRefSel.value = aRef;
+        }
+      }
+    } else if (!state.compareCOn) {
+      // Open scenario C
+      state.compareCOn = true;
+      var cSection = $('ac-scenario-c');
+      if (cSection) cSection.style.display = '';
+      var cResults = document.querySelector('.ac-results-col-c');
+      if (cResults) cResults.style.display = '';
+      document.body.classList.add('ac-compare-c-on');
+      // Default C from A
+      mirrorAParamsToC();
+      if (state.cFollowA && state.issueDateISO) {
+        state.issueDateCISO = state.issueDateISO;
+        var cIssue = $('ac-c-issue');
+        if (cIssue) cIssue.value = state.issueDateISO;
+      }
+      if (!state.refsC[0]) {
+        var aRef = state.refs.find(function (r) { return !!r; });
+        if (aRef) {
+          state.refsC[0] = aRef;
+          var cRefSel = $('ac-c-ref-1');
+          if (cRefSel) cRefSel.value = aRef;
+        }
+      }
+    }
+    updateAddScenarioButton();
+    _forceChartReflow();
+    scheduleUrlWrite();
+  }
+
+  function onRemoveScenario(which) {
+    if (which === 'b') {
+      // Remove B (and C if present, since C is "third" and shouldn't outlive B)
+      state.compareOn = false;
+      state.compareCOn = false;
+      var bSection = $('ac-scenario-b');
+      if (bSection) bSection.style.display = 'none';
+      var bResults = document.querySelector('.ac-results-col-b');
+      if (bResults) bResults.style.display = 'none';
+      var cSection = $('ac-scenario-c');
+      if (cSection) cSection.style.display = 'none';
+      var cResults = document.querySelector('.ac-results-col-c');
+      if (cResults) cResults.style.display = 'none';
+      document.body.classList.remove('ac-compare-on');
+      document.body.classList.remove('ac-compare-c-on');
+    } else if (which === 'c') {
+      state.compareCOn = false;
+      var cSec = $('ac-scenario-c');
+      if (cSec) cSec.style.display = 'none';
+      var cRes = document.querySelector('.ac-results-col-c');
+      if (cRes) cRes.style.display = 'none';
+      document.body.classList.remove('ac-compare-c-on');
+    }
+    updateAddScenarioButton();
+    _forceChartReflow();
+    scheduleUrlWrite();
+  }
+
+  function updateAddScenarioButton() {
+    var btn = $('ac-add-scenario');
+    if (!btn) return;
+    if (!state.compareOn) {
+      btn.textContent = '+ Add Scenario';
+      btn.disabled = false;
+    } else if (!state.compareCOn) {
+      btn.textContent = '+ Add Scenario C';
+      btn.disabled = false;
+    } else {
+      btn.textContent = 'Max 3 scenarios';
+      btn.disabled = true;
+    }
+  }
+
+  function onToggleCFollowA() {
+    var el = $('ac-c-follow-a');
+    state.cFollowA = !!(el && el.checked);
+    var cIssue = $('ac-c-issue');
+    if (cIssue) cIssue.disabled = state.cFollowA;
+    if (state.cFollowA && state.issueDateISO) {
+      state.issueDateCISO = state.issueDateISO;
+      if (cIssue) cIssue.value = state.issueDateISO;
+    }
+    scheduleRender();
+    scheduleUrlWrite();
+  }
+
+  function mirrorAParamsToC() {
+    var pairs = [
+      ['ac-tenor', 'ac-c-tenor'],
+      ['ac-obs-freq', 'ac-c-obs-freq'],
+      ['ac-coupon-rate', 'ac-c-coupon-rate'],
+      ['ac-coupon-barrier', 'ac-c-coupon-barrier'],
+      ['ac-ac-barrier', 'ac-c-ac-barrier'],
+      ['ac-prot-barrier', 'ac-c-prot-barrier'],
+      ['ac-no-call', 'ac-c-no-call'],
+    ];
+    pairs.forEach(function (p) {
+      var a = $(p[0]); var c = $(p[1]);
+      if (a && c) c.value = a.value;
+    });
+    var memA = $('ac-memory'); var memC = $('ac-c-memory');
+    if (memA && memC) memC.checked = memA.checked;
+  }
+
+  function onMirrorAToC() {
+    mirrorAParamsToC();
+    var refA = (state.refs.find(function (r) { return !!r; })) || null;
+    if (refA) {
+      state.refsC[0] = refA;
+      var cSel = $('ac-c-ref-1');
+      if (cSel) cSel.value = refA;
+    }
+    if (state.issueDateISO) {
+      state.issueDateCISO = state.issueDateISO;
+      var cIssue = $('ac-c-issue');
+      if (cIssue) cIssue.value = state.issueDateISO;
+    }
+    scheduleRender();
+    scheduleUrlWrite();
+  }
+
+  function readParamsRawC() {
+    return {
+      tenor_months: clampInt('ac-c-tenor', 1, 600, 60),
+      obs_freq_months: clampInt('ac-c-obs-freq', 1, 60, 1),
+      coupon_rate_pa_pct: clampNum('ac-c-coupon-rate', 0, 1000, 10),
+      coupon_barrier_pct: clampNum('ac-c-coupon-barrier', 0, 1000, 60),
+      ac_barrier_pct: clampNum('ac-c-ac-barrier', 0, 1000, 100),
+      protection_barrier_pct: clampNum('ac-c-prot-barrier', 0, 1000, 50),
+      memory: !!($('ac-c-memory') && $('ac-c-memory').checked),
+      no_call_months: clampInt('ac-c-no-call', 0, 600, 12),
+    };
+  }
+
+  function readParamsC() {
+    return readParamsRawC();
   }
 
   function onMirrorAToB() {
@@ -1009,8 +1254,10 @@
       setEmptyState(true);
       updateResults(null);
       updateResultsB(null);
+      updateResultsC(null);
       state.lastResultA = null;
       state.lastResultB = null;
+      state.lastResultC = null;
       renderObservationLog();
       return;
     }
@@ -1176,6 +1423,73 @@
       state.lastResultB = null;
     }
 
+    // Scenario C
+    var resultC = null;
+    if (state.compareCOn) {
+      var refsC = state.refsC.filter(function (r) { return !!r; });
+      var issueC = state.issueDateCISO || ($('ac-c-issue') && $('ac-c-issue').value) || null;
+      if (refsC.length && issueC) {
+        var paramsC = readParamsC();
+        resultC = Engine.simulate(refsC, issueC, paramsC, state.store);
+        state.lastResultC = resultC;
+
+        var maturityCISO = Engine.edate(issueC, paramsC.tenor_months);
+        var xStartCISO = shiftMonths(issueC, -pad.before);
+        var xEndCTarget = shiftMonths(maturityCISO, pad.after);
+        if (xEndCTarget > maxDate) xEndCTarget = maxDate;
+        var xEndCISO = xEndCTarget;
+        if (xStartCISO < xStartFinal) xStartFinal = xStartCISO;
+        if (xEndCISO > xEndFinal) xEndFinal = xEndCISO;
+
+        var initialC = {};
+        refsC.forEach(function (r) {
+          var lvl = state.store.locf(r, issueC);
+          initialC[r] = lvl && lvl > 0 ? lvl : null;
+        });
+        refsC.forEach(function (r, i) {
+          var init = initialC[r];
+          if (!init) return;
+          var s = state.store.seriesBetween(r, xStartCISO, xEndCISO);
+          var ys = new Array(s.levels.length);
+          for (var k = 0; k < s.levels.length; k++) {
+            ys[k] = (s.levels[k] / init) * 100;
+          }
+          var name = ((state.metaByTicker[r] && state.metaByTicker[r].short_name) || r) + ' (C)';
+          traces.push({
+            type: 'scatter', mode: 'lines',
+            x: s.dates, y: ys, name: name,
+            line: { color: REF_COLORS_C[i % REF_COLORS_C.length], width: 2.2, dash: 'dashdot' },
+            opacity: 0.95,
+            hovertemplate: '%{x}<br>' + name + ': %{y:.2f}<extra></extra>',
+          });
+        });
+        var xBarrierC = [xStartCISO, xEndCISO];
+        traces.push(barrierTraceB(xBarrierC, paramsC.ac_barrier_pct, 'AC Barrier (C)', BARRIER_COLORS.ac));
+        traces.push(barrierTraceB(xBarrierC, paramsC.coupon_barrier_pct, 'Coupon Barrier (C)', BARRIER_COLORS.coupon));
+        traces.push(barrierTraceB(xBarrierC, paramsC.protection_barrier_pct, 'Protection Barrier (C)', BARRIER_COLORS.protection));
+        if (resultC.outcome !== Outcome.INVALID) {
+          var evC = buildEventMarkers(resultC, paramsC, ' (C)');
+          Object.keys(evC).forEach(function (key) {
+            var pts = evC[key];
+            if (!pts.x.length) return;
+            pts.marker.symbol = (pts.marker.symbol || 'circle') + (pts.marker.symbol && pts.marker.symbol.indexOf('open') >= 0 ? '' : '-open');
+            // Make C markers distinct with purple-tinted color
+            pts.opacity = 0.85;
+            traces.push(pts);
+          });
+        }
+        shapes.push(vline(issueC, '#cbd5e1'));
+        if (resultC.outcome_date) shapes.push(vline(resultC.outcome_date, '#cbd5e1'));
+        shapes.push(vline(maturityCISO, '#e2e8f0'));
+        annotations.push(vAnno(issueC, 0, 'Issue C', true));
+        annotations.push(vAnno(maturityCISO, 0, 'Maturity C', true));
+      } else {
+        state.lastResultC = null;
+      }
+    } else {
+      state.lastResultC = null;
+    }
+
     // Y-axis ceiling
     var allY = [];
     traces.forEach(function (t) {
@@ -1226,6 +1540,7 @@
 
     updateResults(resultA);
     updateResultsB(resultB);
+    updateResultsC(resultC);
     updateVsPill(resultA, resultB);
     renderObservationLog();
   }
@@ -1377,6 +1692,20 @@
     }, result);
   }
 
+  function updateResultsC(result) {
+    setResultsBlock({
+      outcome: 'ac-c-outcome',
+      date: 'ac-c-outcome-date',
+      paid: 'ac-c-kpi-paid',
+      paidPct: 'ac-c-kpi-paid-pct',
+      missed: 'ac-c-kpi-missed',
+      principal: 'ac-c-kpi-principal',
+      total: 'ac-c-kpi-total',
+      ann: 'ac-c-kpi-annualized',
+      obs: 'ac-c-kpi-obs',
+    }, result);
+  }
+
   function setResultsBlock(ids, result) {
     var outcomeEl = $(ids.outcome);
     var dateEl = $(ids.date);
@@ -1489,6 +1818,22 @@
         });
       }
     }
+    if (state.compareCOn) {
+      var c = state.lastResultC;
+      if (c && c.observations && c.observations.length) {
+        c.observations.forEach(function (o) {
+          rows.push({
+            k: o.k,
+            obs_date: o.obs_date,
+            scenario: 'C',
+            worst_perf: (o.worst_perf == null) ? null : o.worst_perf * 100,
+            status: o.status,
+            coupon_paid_pct: o.coupon_paid_pct,
+            memory_bank_pct: o.memory_bank_pct,
+          });
+        });
+      }
+    }
     return rows;
   }
 
@@ -1504,7 +1849,8 @@
     // Hide memory-bank column unless memory is on for either scenario.
     var memOn = !!($('ac-memory') && $('ac-memory').checked);
     var memOnB = !!(state.compareOn && $('ac-b-memory') && $('ac-b-memory').checked);
-    var showMem = memOn || memOnB;
+    var memOnC = !!(state.compareCOn && $('ac-c-memory') && $('ac-c-memory').checked);
+    var showMem = memOn || memOnB || memOnC;
     document.body.classList.toggle('ac-hide-memory', !showMem);
     var rows = buildLogRows();
 
@@ -1524,7 +1870,8 @@
 
     // Toggle scenario column visibility on the header
     var scenTh = document.querySelector('#ac-log-table th[data-sort="scenario"]');
-    if (scenTh) scenTh.style.display = state.compareOn ? '' : 'none';
+    var anyCmp = state.compareOn || state.compareCOn;
+    if (scenTh) scenTh.style.display = anyCmp ? '' : 'none';
 
     var html = '';
     rows.forEach(function (r) {
@@ -1533,7 +1880,8 @@
       var chip = '<span class="ac-chip ac-chip-' + (r.status || 'na').replace(/_/g, '-') + '">' + escapeHtml(statusLbl) + '</span>';
       var coupon = (r.coupon_paid_pct == null) ? '--' : fmtPct(r.coupon_paid_pct);
       var mem = (r.memory_bank_pct == null) ? '--' : fmtPct(r.memory_bank_pct);
-      var scenCell = state.compareOn ? '<td>' + r.scenario + '</td>' : '';
+      var anyCmpRow = state.compareOn || state.compareCOn;
+      var scenCell = anyCmpRow ? '<td>' + r.scenario + '</td>' : '';
       html += '<tr>' +
         '<td>' + r.k + '</td>' +
         '<td>' + escapeHtml(r.obs_date || '--') + '</td>' +
@@ -1545,7 +1893,7 @@
         '</tr>';
     });
     if (!rows.length) {
-      var colspan = state.compareOn ? 7 : 6;
+      var colspan = (state.compareOn || state.compareCOn) ? 7 : 6;
       html = '<tr><td class="ac-log-empty" colspan="' + colspan + '">No observations.</td></tr>';
     }
     tbody.innerHTML = html;
