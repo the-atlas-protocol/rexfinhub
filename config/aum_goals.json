@@ -2,14 +2,14 @@
   "target_year": 2026,
   "unit": "millions",
   "suites": [
-    {"label": "REX-Osprey Crypto", "suite_key": "Crypto", "ye_2025": 276, "ye_2026_target": 600},
-    {"label": "EPI - US", "suite_key": "Equity Premium Income", "region": "US", "ye_2025": 1090, "ye_2026_target": 2000},
-    {"label": "EPI - Europe", "suite_key": "Equity Premium Income", "region": "EU", "ye_2025": 46, "ye_2026_target": 200},
-    {"label": "T-REX", "suite_key": "T-REX", "ye_2025": 2590, "ye_2026_target": 3000},
-    {"label": "G&I / Auto / Drone", "suite_key": "Growth & Income", "ye_2025": 158, "ye_2026_target": 500},
-    {"label": "Ulti / Income Max", "suite_key": "IncomeMax", "ye_2025": 8, "ye_2026_target": 200},
-    {"label": "Money Market", "suite_key": "T-Bill", "ye_2025": 0, "ye_2026_target": 1000},
-    {"label": "Microsectors", "suite_key": "MicroSectors", "ye_2025": 3057, "ye_2026_target": 3500}
+    {"slug": "crypto",       "label": "REX-Osprey Crypto",  "suite_key": "Crypto",                "ye_2025": 276,  "ye_2026_target": 600},
+    {"slug": "epi-us",       "label": "EPI - US",            "suite_key": "Equity Premium Income", "region": "US", "ye_2025": 1090, "ye_2026_target": 2000},
+    {"slug": "epi-eu",       "label": "EPI - Europe",        "suite_key": "Equity Premium Income", "region": "EU", "ye_2025": 46,   "ye_2026_target": 200},
+    {"slug": "t-rex",        "label": "T-REX",               "suite_key": "T-REX",                 "ye_2025": 2590, "ye_2026_target": 3000},
+    {"slug": "gi",           "label": "G&I / Auto / Drone",  "suite_key": "Growth & Income",       "ye_2025": 158,  "ye_2026_target": 500},
+    {"slug": "incomemax",    "label": "Ulti / Income Max",   "suite_key": "IncomeMax",             "ye_2025": 8,    "ye_2026_target": 200},
+    {"slug": "money-market", "label": "Money Market",        "suite_key": "T-Bill",                "ye_2025": 0,    "ye_2026_target": 1000},
+    {"slug": "microsectors", "label": "Microsectors",        "suite_key": "MicroSectors",          "ye_2025": 3057, "ye_2026_target": 3500}
   ],
-  "total": {"ye_2025": 7225, "ye_2026_target": 11000}
+  "total": {"slug": "total", "ye_2025": 7225, "ye_2026_target": 11000}
 }
