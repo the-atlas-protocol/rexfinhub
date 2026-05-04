@@ -2118,7 +2118,7 @@ def get_aum_goal_history(db: Session, slug: str) -> dict | None:
 
     Returns None for unknown slug or no data.
     """
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, date as _date
     from dateutil.relativedelta import relativedelta as _rd
 
     spec = _resolve_suite_filter(slug)
@@ -2144,7 +2144,7 @@ def get_aum_goal_history(db: Session, slug: str) -> dict | None:
 
     tickers = [r.ticker for r in rows if r.ticker]
     fund_name = {r.ticker: (r.fund_name or r.ticker) for r in rows}
-    incep_lookup: dict[str, date | None] = {}
+    incep_lookup: dict = {}
     for r in rows:
         raw = r.inception_date
         if raw is None:
@@ -2174,7 +2174,7 @@ def get_aum_goal_history(db: Session, slug: str) -> dict | None:
         return None
 
     dates = [r[3] for r in ts_rows if r[3] is not None]
-    as_of = max(dates) if dates else date.today()
+    as_of = max(dates) if dates else _date.today()
     if hasattr(as_of, "date") and callable(as_of.date):
         as_of = as_of.date()
 
@@ -2200,7 +2200,7 @@ def get_aum_goal_history(db: Session, slug: str) -> dict | None:
     # 4. Order tickers by inception (earliest at bottom of stack)
     def _incep_key(t: str):
         v = incep_lookup.get(t)
-        return v if v is not None else date(1900, 1, 1)
+        return v if v is not None else _date(1900, 1, 1)
     ordered = sorted([t for t in series if series[t]], key=_incep_key)
 
     # 5. Build datasets
