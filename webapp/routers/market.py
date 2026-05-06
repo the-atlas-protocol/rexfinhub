@@ -407,7 +407,8 @@ def screener_data_api(
         "map_li_direction, map_li_leverage_amount, map_li_underlier, "
         "map_cc_underlier, map_crypto_underlier, map_defined_category, "
         "map_thematic_category, cc_type, cc_category, strategy_confidence, "
-        "uses_derivatives, uses_swaps, is_40act, index_weighting_methodology"
+        "uses_derivatives, uses_swaps, is_40act, index_weighting_methodology, "
+        "primary_strategy, asset_class, sub_strategy"
     )
     # Only ETFs and ETNs (exclude Open-End Funds, SICAVs, etc.)
     query = f"SELECT {cols} FROM mkt_master_data WHERE market_status = 'ACTV' AND (fund_type = 'ETF' OR fund_type = 'ETN')"

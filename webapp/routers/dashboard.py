@@ -225,6 +225,29 @@ def home_page(request: Request, db: Session = Depends(get_db)):
 
     enable_13f = os.environ.get("ENABLE_13F", "0") == "1"
 
+    # Taxonomy summary — per-primary_strategy fund count from mkt_master_data
+    taxonomy_summary = []
+    try:
+        from webapp.models import MktMasterData
+        from sqlalchemy import case
+        rows = db.execute(
+            text("""
+                SELECT primary_strategy,
+                       COUNT(*) as total,
+                       SUM(CASE WHEN is_rex = 1 THEN 1 ELSE 0 END) as rex_count
+                FROM mkt_master_data
+                WHERE primary_strategy IS NOT NULL AND market_status = 'ACTV'
+                GROUP BY primary_strategy
+                ORDER BY total DESC
+            """)
+        ).fetchall()
+        taxonomy_summary = [
+            {"strategy": r[0], "total": r[1], "rex_count": r[2]}
+            for r in rows
+        ]
+    except Exception:
+        pass
+
     return templates.TemplateResponse("home.html", {
         "request": request,
         "brief_text": brief_text,
@@ -241,6 +264,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         "weekly_new_fund_count": weekly_new_fund_count,
         "weekly_notes_count": weekly_notes_count,
         "aum_goals": aum_goals,
+        "taxonomy_summary": taxonomy_summary,
     })
 
 

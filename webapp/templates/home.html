@@ -780,6 +780,25 @@
 
 </div>
 
+<!-- ===== TAXONOMY CLASSIFICATION STRIP (new 3-axis taxonomy) ===== -->
+{% if taxonomy_summary %}
+<div style="margin-bottom:32px;">
+  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;">
+    <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin:0;">Fund Universe by Strategy</h3>
+    <a href="/market/rex-performance?preset=taxonomy" style="font-size:12px; color:#2563eb; text-decoration:none;">View in screener &rarr;</a>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+    {% for row in taxonomy_summary %}
+    <a href="/market/rex-performance" style="text-decoration:none; display:block; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px; padding:10px 12px;">
+      <div style="font-size:11px; font-weight:600; color:#0f172a; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ row.strategy }}</div>
+      <div style="font-size:18px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ "{:,}".format(row.total) }}</div>
+      <div style="font-size:11px; color:#64748b; margin-top:2px;">{{ row.rex_count }} REX</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ===== THIS WEEK'S FILINGS ===== -->
 {% if weekly_fund_filings or weekly_notes_filings %}
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px;">

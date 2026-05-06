@@ -149,6 +149,10 @@
     <span class="filter-label">Suite:</span>
     <select id="fSuite"><option value="">All</option></select>
   </span>
+  <span class="filter-label">Strategy:</span>
+  <select id="fStrategy"><option value="">All Strategies</option></select>
+  <span class="filter-label">Asset Class:</span>
+  <select id="fAssetClass"><option value="">All Asset Classes</option></select>
   <span class="filter-label">Search:</span>
   <input type="text" id="fSearch" placeholder="Ticker or name...">
   <span class="filter-label">Per page:</span>
@@ -182,6 +186,8 @@ const COLUMNS=[
   ["strategy","Strategy","Classification",null,false],["etp_category","Category","Classification",null,false],
   ["category_display","Category Detail","Classification",null,false],["underlier_type","Underlier Type","Classification",null,false],
   ["strategy_confidence","Confidence","Classification",null,false],
+  ["primary_strategy","Strategy (New)","Taxonomy",null,false],["asset_class","Asset Class (New)","Taxonomy",null,false],
+  ["sub_strategy","Sub-Strategy (New)","Taxonomy",null,false],
   ["aum","AUM ($M)","Size","aum",true],
   ["fund_flow_1day","1D Flow","Flows","flow",false],["fund_flow_1week","1W Flow","Flows","flow",false],
   ["fund_flow_1month","1M Flow","Flows","flow",false],["fund_flow_3month","3M Flow","Flows","flow",false],
@@ -218,6 +224,7 @@ const PRESETS={
   li:{label:"L&I",cols:["ticker","fund_name","issuer_display","aum","is_singlestock","map_li_direction","map_li_leverage_amount","total_return_1day","total_return_1month","total_return_ytd","average_vol_30day"]},
   income:{label:"Income",cols:["ticker","fund_name","issuer_display","aum","map_cc_underlier","cc_type","cc_category","annualized_yield","total_return_1day","total_return_ytd","average_vol_30day"]},
   crypto:{label:"Crypto",cols:["ticker","fund_name","issuer_display","aum","map_crypto_underlier","total_return_1day","total_return_1week","total_return_1month","total_return_ytd","average_vol_30day"]},
+  taxonomy:{label:"Taxonomy",cols:["ticker","fund_name","issuer_display","aum","primary_strategy","asset_class","sub_strategy","etp_category","total_return_ytd","total_return_1year"]},
   all:{label:"All",cols:COLUMNS.map(c=>c[0])},
 };
 
@@ -285,9 +292,13 @@ function getFiltered(){
   let d=allData;
   const cat=document.getElementById("fCategory").value;
   const suite=document.getElementById("fSuite").value;
+  const strategy=document.getElementById("fStrategy").value;
+  const assetClass=document.getElementById("fAssetClass").value;
   const search=document.getElementById("fSearch").value.toUpperCase();
   if(cat) d=d.filter(r=>r.category_display===cat||r.etp_category===cat);
   if(suite) d=d.filter(r=>r.rex_suite===suite);
+  if(strategy) d=d.filter(r=>r.primary_strategy===strategy);
+  if(assetClass) d=d.filter(r=>r.asset_class===assetClass);
   if(search) d=d.filter(r=>(r.ticker||"").toUpperCase().includes(search)||(r.fund_name||"").toUpperCase().includes(search)||(r.issuer_display||"").toUpperCase().includes(search));
   d.sort((a,b)=>{
     let av=a[sortKey],bv=b[sortKey];
@@ -370,6 +381,8 @@ function doSort(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=false;
 function resetFilters(){
   document.getElementById("fCategory").value="";
   document.getElementById("fSuite").value="";
+  document.getElementById("fStrategy").value="";
+  document.getElementById("fAssetClass").value="";
   document.getElementById("fSearch").value="";
   currentPage=0;render();
 }
@@ -400,8 +413,12 @@ async function init(){
   // Populate dropdowns
   const cats=[...new Set(allData.map(r=>r.category_display).filter(Boolean))].sort();
   const suites=[...new Set(allData.map(r=>r.rex_suite).filter(Boolean))].sort();
+  const strategies=[...new Set(allData.map(r=>r.primary_strategy).filter(Boolean))].sort();
+  const assetClasses=[...new Set(allData.map(r=>r.asset_class).filter(Boolean))].sort();
   document.getElementById("fCategory").innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join("");
   document.getElementById("fSuite").innerHTML='<option value="">All Suites</option>'+suites.map(s=>`<option value="${s}">${s}</option>`).join("");
+  document.getElementById("fStrategy").innerHTML='<option value="">All Strategies</option>'+strategies.map(s=>`<option value="${s}">${s}</option>`).join("");
+  document.getElementById("fAssetClass").innerHTML='<option value="">All Asset Classes</option>'+assetClasses.map(s=>`<option value="${s}">${s}</option>`).join("");
 
   currentPage=0;
   buildPresets();buildSidebar();render();

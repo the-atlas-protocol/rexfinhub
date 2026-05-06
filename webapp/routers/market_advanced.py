@@ -416,6 +416,10 @@ def market_fund_detail(
                     "leverage": d.get("map_li_leverage_amount", ""),
                     "direction": d.get("map_li_direction", ""),
                     "underlier": d.get("map_li_underlier", ""),
+                    # New 3-axis taxonomy (additive — legacy category fields preserved above)
+                    "primary_strategy": d.get("primary_strategy") or "",
+                    "asset_class": d.get("asset_class") or "",
+                    "sub_strategy": d.get("sub_strategy") or "",
                     "row": d,
                 }
 
