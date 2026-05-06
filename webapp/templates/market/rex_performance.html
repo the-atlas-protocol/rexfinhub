@@ -116,10 +116,6 @@
   .h-scroll-btn:hover { background:#e8edf3; border-color:#1F3864; }
 </style>
 
-{% if not available %}
-<div style="padding:60px; text-align:center; color:#888; font-size:15px;">No market data available. Run market sync first.</div>
-{% else %}
-
 <!-- KPI + Pagination bar -->
 <div class="kpi-bar">
   <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle columns panel">&#9776;</button>
@@ -493,5 +489,4 @@ document.querySelectorAll("div[style]").forEach(el=>{
 
 init();
 </script>
-{% endif %}
 {% endblock %}
