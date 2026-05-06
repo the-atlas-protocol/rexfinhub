@@ -830,6 +830,91 @@ def live_recent(
     return {"items": items, "latest": latest, "count": len(items)}
 
 
+# ---------------------------------------------------------------------------
+# Analysis parquets — /strategy/* pages read these from the persistent disk
+# ---------------------------------------------------------------------------
+
+# Allowlist prevents arbitrary writes; must match exactly what run_daily.py uploads.
+ALLOWED_PARQUET_NAMES = {
+    "whitespace_v4.parquet",
+    "whitespace_candidates.parquet",
+    "filing_race.parquet",
+    "issuer_cadence.parquet",
+    "bbg_timeseries_panel.parquet",
+    "competitor_counts.parquet",
+    "filed_underliers.parquet",
+    "launch_candidates.parquet",
+}
+
+ANALYSIS_DIR = Path("data/analysis")
+
+
+@router.post("/parquets/upload")
+async def upload_parquet(
+    name: str,
+    file: UploadFile = File(...),
+    _: None = Depends(verify_api_key),
+):
+    """Upload an analysis parquet to Render's persistent disk.
+
+    Writes to data/analysis/{name} atomically (temp file then rename).
+    Only filenames in ALLOWED_PARQUET_NAMES are accepted — prevents path
+    traversal and limits writes to known strategy artifacts.
+    """
+    if name not in ALLOWED_PARQUET_NAMES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Parquet name not allowed: {name}. Allowed: {sorted(ALLOWED_PARQUET_NAMES)}",
+        )
+
+    # Reject names with path separators even if somehow in allowlist
+    if "/" in name or "\\" in name or ".." in name:
+        raise HTTPException(status_code=400, detail="Invalid parquet name")
+
+    ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
+    target = ANALYSIS_DIR / name
+    tmp = target.with_suffix(".parquet.uploading")
+
+    try:
+        total = 0
+        with open(tmp, "wb") as f:
+            while True:
+                chunk = await file.read(65536)
+                if not chunk:
+                    break
+                f.write(chunk)
+                total += len(chunk)
+
+        if total < 100:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise HTTPException(status_code=400, detail=f"Parquet too small: {total} bytes")
+
+        shutil.move(str(tmp), str(target))
+
+        import logging as _log
+        _log.getLogger(__name__).info("Parquet uploaded: %s (%d bytes)", name, total)
+
+        return {
+            "status": "ok",
+            "name": name,
+            "size_bytes": total,
+            "path": str(target),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        import logging
+        logging.getLogger(__name__).error("Parquet upload failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)[:200]}")
+
+
 @router.get("/docs", include_in_schema=False)
 def api_docs_page(request: Request):
     """Public API documentation page."""

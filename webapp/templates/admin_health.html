@@ -143,10 +143,10 @@
   </div>
 
   {# Prebake #}
-  {% set pb_class = 'ok' if prebake.files == 9 else ('warn' if prebake.files > 0 else 'fail') %}
+  {% set pb_class = 'ok' if prebake.files == n_expected_reports else ('warn' if prebake.files > 0 else 'fail') %}
   <div class="hs-card {{ pb_class }}">
     <h3>Prebaked reports</h3>
-    <div class="hs-big">{{ prebake.files }} / 9</div>
+    <div class="hs-big">{{ prebake.files }} / {{ n_expected_reports }}</div>
     {% if prebake.dir_exists %}
       <div class="hs-row"><span class="hs-label">newest bake</span><span class="hs-value">{{ prebake.newest_age }}</span></div>
     {% else %}

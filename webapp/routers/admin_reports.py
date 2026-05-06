@@ -219,12 +219,13 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     # Action buttons
     if token_info:
         token = token_info.get("token", "")
+        n = len(active)
         actions = f"""
         <form method="POST" action="/admin/reports/decision" style="display:inline-block;margin-right:12px;">
           <input type="hidden" name="token" value="{token}">
           <input type="hidden" name="action" value="GO">
           <button type="submit" style="background:#27ae60;color:white;border:none;padding:12px 24px;
-                  border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">GO &mdash; Send all 7</button>
+                  border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">GO &mdash; Send all {n}</button>
         </form>
         <form method="POST" action="/admin/reports/decision" style="display:inline-block;">
           <input type="hidden" name="token" value="{token}">

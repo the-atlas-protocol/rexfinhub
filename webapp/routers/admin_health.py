@@ -454,6 +454,7 @@ def health_page(
         "gate_transitions": _gate_transitions(),
         "today_send": _today_send_status(),
         "vps": _vps_freshness(),
+        "n_expected_reports": len(report_registry.REGISTRY),
         "now": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     return templates.TemplateResponse("admin_health.html", ctx)
