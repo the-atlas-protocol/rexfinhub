@@ -72,20 +72,20 @@
                 <div class="mega-link-desc">Rank issuers by AUM, flows, trends</div>
               </div>
             </a>
-            <a href="/market/underlier" class="mega-link {% if request.url.path == '/market/underlier' %}active{% endif %}">
+            <a href="/market/stock-coverage" class="mega-link {% if request.url.path == '/market/underlier' or request.url.path == '/market/stock-coverage' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
               <div class="mega-link-text">
-                <div class="mega-link-title">Underlier Analysis</div>
-                <div class="mega-link-desc">Performance by index and stock</div>
+                <div class="mega-link-title">Stock Coverage</div>
+                <div class="mega-link-desc">ETP coverage by underlying stock</div>
               </div>
             </a>
-            <div class="mega-link coming-soon">
-              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <a href="/market/issuer/detail" class="mega-link {% if request.url.path == '/market/issuer/detail' %}active{% endif %}">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
               <div class="mega-link-text">
-                <div class="mega-link-title">Market Share <span class="coming-soon-badge">Soon</span></div>
-                <div class="mega-link-desc">Share timeline + treemap</div>
+                <div class="mega-link-title">Issuer Detail</div>
+                <div class="mega-link-desc">Full product roster and AUM trend per issuer</div>
               </div>
-            </div>
+            </a>
           </div>
           <div class="mega-column">
             <div class="mega-section-label">Tools</div>

@@ -440,6 +440,15 @@ def screener_data_api(
     return {"funds": funds, "count": len(funds)}
 
 
+@router.get("/stock-coverage")
+def stock_coverage_redirect(request: Request, type: str = Query(default="income"), underlier: str = Query(default=None)):
+    """Redirect /market/stock-coverage to /market/underlier (canonical route)."""
+    qs = f"?type={type}"
+    if underlier:
+        qs += f"&underlier={underlier}"
+    return RedirectResponse(f"/market/underlier{qs}", status_code=302)
+
+
 @router.get("/underlier")
 def underlier_view(request: Request, db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     svc = _svc()
