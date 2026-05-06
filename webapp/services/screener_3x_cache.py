@@ -308,17 +308,34 @@ def _build_li_products(etp_df) -> list[dict]:
             dir_col = candidate
             break
 
+    # Determine underlier column
+    underlier_col = None
+    for candidate in [
+        "q_category_attributes.map_li_underlier",
+        "map_li_underlier",
+    ]:
+        if candidate in etp_df.columns:
+            underlier_col = candidate
+            break
+
     products = []
     for _, row in li_df.iterrows():
         direction = str(row.get(dir_col, "")) if dir_col else ""
+        underlier_raw = str(row.get(underlier_col, "")) if underlier_col else ""
+        # Normalise "NVDA US" → "NVDA" for lookup compatibility
+        underlier_clean = underlier_raw.replace(" US", "").strip()
         products.append({
             "ticker": str(row.get("ticker", "")),
             "fund_name": str(row.get("fund_name", "")),
             "issuer": str(row.get("issuer_display", row.get("issuer", ""))),
             "leverage": float(row.get("_lev", 0)),
             "direction": direction,
+            "underlier": underlier_clean,
             "aum": _safe_float(row.get("t_w4.aum", 0)),
             "flow_1m": _safe_float(row.get("t_w4.fund_flow_1month", 0)),
+            "flow_3m": _safe_float(row.get("t_w4.fund_flow_3month", 0)),
+            "flow_ytd": _safe_float(row.get("t_w4.fund_flow_ytd", 0)),
+            "expense_ratio": row.get("t_w2.expense_ratio"),
             "is_rex": bool(row.get("is_rex", False)),
         })
 

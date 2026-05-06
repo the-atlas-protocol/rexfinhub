@@ -244,13 +244,47 @@ def screener_stock_detail(
     aum_series_data = []
     market_share_data = []
 
-    if not _ON_RENDER:
+    ticker_clean = ticker.replace(" US", "").strip().upper()
+
+    if _ON_RENDER:
+        # On Render: serve competitive data from the 3x analysis cache (li_products)
+        # li_products contains underlier (clean, no " US" suffix) — filter by match
+        try:
+            analysis = get_3x_data()
+            if analysis:
+                li_products = analysis.get("li_products", [])
+                for p in li_products:
+                    if p.get("underlier", "").upper() == ticker_clean:
+                        products.append({
+                            "ticker": p.get("ticker", ""),
+                            "fund_name": p.get("fund_name", ""),
+                            "issuer": p.get("issuer", ""),
+                            "leverage": p.get("leverage", ""),
+                            "direction": p.get("direction", ""),
+                            "aum": p.get("aum", 0),
+                            "expense_ratio": p.get("expense_ratio"),
+                            "flow_1m": p.get("flow_1m"),
+                            "flow_3m": p.get("flow_3m"),
+                            "flow_ytd": p.get("flow_ytd"),
+                            "spread": None,
+                            "tracking_error": None,
+                            "is_rex": p.get("is_rex", False),
+                        })
+                for prod in products:
+                    if (prod.get("aum") or 0) > 0:
+                        market_share_data.append({
+                            "label": prod["ticker"],
+                            "value": prod["aum"],
+                            "is_rex": prod.get("is_rex", False),
+                        })
+        except Exception as e:
+            log.warning("Error loading competitive data from cache for %s: %s", ticker, e)
+    else:
         try:
             from screener.data_loader import load_etp_data
             from screener.competitive import get_products_for_underlier, compute_aum_trajectories
 
             etp_df = load_etp_data()
-            ticker_clean = ticker.replace(" US", "")
             underlier_bb = f"{ticker_clean} US"
 
             prods = get_products_for_underlier(etp_df, underlier_bb)
