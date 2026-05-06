@@ -152,6 +152,23 @@ def classify_fund(row: pd.Series) -> Classification:
             attributes=attrs,
         )
 
+    # --- Rule 4b: Risk Management (TAIL / MERGER markers) ---
+    # TAIL: dedicated tail-risk hedging strategies (Cambria TAIL, Alpha Architect CAOS, etc.)
+    # MERGER: merger arbitrage funds (not leveraged, not plain beta)
+    # Note: BEAR funds that use_leverage are already caught by Rule 3.
+    #       Standalone BEAR ETNs without Bloomberg uses_leverage=1 land here.
+    risk_mgmt_reason = _detect_risk_mgmt_keywords(text, name)
+    if risk_mgmt_reason:
+        attrs["risk_type"] = risk_mgmt_reason
+        return Classification(
+            ticker=ticker,
+            strategy="Risk Management",
+            confidence="HIGH",
+            reason=f"risk_mgmt marker: {risk_mgmt_reason}",
+            underlier_type=_resolve_underlier_type(is_ss_val, ticker, name),
+            attributes=attrs,
+        )
+
     # --- Rule 5: Fixed Income ---
     if asset_class == "Fixed Income":
         _extract_fixed_income_attrs(name, description, attrs)
@@ -636,6 +653,9 @@ def _detect_outcome_keywords(text: str) -> str:
     Returns the outcome type string, or empty string if not detected.
     Only matches specific defined outcome keywords -- does NOT match
     generic "HEDGED EQUITY" (most are currency-hedged international funds).
+
+    New markers (2026-05-06): PROTECTION for Calamos/Innovator structured
+    alt protection series (100% downside protection).
     """
     if re.search(r"\b(BUFFER|BUFFERED)\b", text):
         return "Buffer"
@@ -649,6 +669,10 @@ def _detect_outcome_keywords(text: str) -> str:
         return "Step-Up"
     if re.search(r"\bLADDERED\s+OVERLAY\b", text):
         return "Ladder"
+    # PROTECTION: structured alt protection products (Calamos, Innovator Defined Protection)
+    # Exclude "INFLATION PROTECTION" (bond/TIPS funds) and generic "CAPITAL PROTECTION"
+    if re.search(r"\b(STRUCTURED\s+ALT\s+PROTECTION|DEFINED\s+PROTECTION)\b", text):
+        return "Protection"
     return ""
 
 
@@ -678,6 +702,36 @@ def _has_crypto_keywords(text: str) -> bool:
         r"XRP|RIPPLE|LITECOIN|DOGECOIN|DIGITAL\s*ASSET)\b",
         text
     ))
+
+
+def _detect_risk_mgmt_keywords(text: str, name: str) -> str:
+    """Detect dedicated risk-management strategies by name markers.
+
+    Returns a category string if a clear risk-mgmt marker fires, else ''.
+
+    New markers added 2026-05-06 (Audit beta post-marker recheck):
+      TAIL  — tail-risk hedging ETFs (Cambria TAIL, CAOS, QTR, etc.)
+      MERGER — merger arbitrage ETFs (MRGR, MNA, MARB, ARB)
+      BEAR  — standalone bear/short ETNs without BBG uses_leverage=1 flag
+               (iPath Treasury Bear, AXS single-stock bear without lev field set)
+               Note: WBI BULLBEAR excluded (smart-beta, not directional short).
+    """
+    # TAIL risk: explicit tail-risk hedging products
+    if re.search(r"\bTAIL\s+RISK\b", text):
+        return "Tail Risk"
+
+    # MERGER arbitrage: explicit merger/arbitrage language
+    if re.search(r"\b(MERGER\s+ARBITRAGE|MERGER\s+ETF|PRE[\s-]*MERGER)\b", text):
+        return "Merger Arbitrage"
+
+    # BEAR-only ETNs/ETFs: name contains BEAR but NOT BULL (i.e. pure short directional)
+    # Exclude BULLBEAR (WBI tactical smart-beta) and funds already caught by uses_leverage
+    if (re.search(r"\bBEAR\b", text)
+            and not re.search(r"\bBULL\b", text)
+            and not re.search(r"\bBULLBEAR\b", text)):
+        return "Short / Bear"
+
+    return ""
 
 
 def _has_thematic_keywords(text: str) -> bool:
