@@ -208,7 +208,7 @@ ASTX US,TRADR 2X LONG ASTS DAILY ETF,Tradr,Equity,L&I,Long,single,ASTS US,,,stan
 ATCL US,REX AUTOCALLABLE INCOME ETF,REX,Equity,Income,Structured Product Income > Autocallable,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=CC
 ATFV US,ALGER 35 ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 ATMP US,IPATH SELECT MLP ETN,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-ATTR US,ARIN TACTICAL TAIL RISK ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+ATTR US,ARIN TACTICAL TAIL RISK ETF,,Equity,Risk Mgmt,Tail Risk,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Audit beta: Tail Risk ETF misclassified as Plain Beta
 AUAU US,GLOBAL X GOLD MINERS ETF,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 AUGM US,FT VEST US EQUITY MAX BUFFER ETF - AUGUST,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 AUGP US,PGIM S&P 500 BUFFER 12 ETF - AUGUST,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
@@ -547,23 +547,23 @@ BTRN US,GLOBAL X BITCOIN TREND STRATEGY ETF,Global X,Crypto,Plain Beta,Single-Ac
 BTYB US,VISTASHARES BITBONDS 5 YR ENHANCED WEEKLY DISTRIBUTION ETF,,Fixed Income,Income,Derivative Income > 0DTE / Weekly-Pay,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 BU US,DEFIANCE DAILY TARGET 2X LONG B ETF,Defiance,Commodity,L&I,Long,single,B US,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
 BUCK US,SIMPLIFY TREASURY OPTION INCOME ETF,Simplify,Fixed Income,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
-BUFB US,INNOVATOR LADDERED ALLOCATION BUFFER ETF,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+BUFB US,INNOVATOR LADDERED ALLOCATION BUFFER ETF,Innovator,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 BUFC US,AB CONSERVATIVE BUFFER ETF,AllianceBernstein,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFD US,FT VEST LADDERED DEEP BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+BUFD US,FT VEST LADDERED DEEP BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 BUFE US,FT VEST LADDERED EMERGING MARKETS BUFFER ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-BUFF US,INNOVATOR LADDERED ALLOCATION POWER BUFFER ETF,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+BUFF US,INNOVATOR LADDERED ALLOCATION POWER BUFFER ETF,Innovator,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 BUFG US,FT VEST BUFFERED ALLOCATION GROWTH ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFH US,FT VEST LADDERED MAX BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+BUFH US,FT VEST LADDERED MAX BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 BUFI US,AB INTERNATIONAL BUFFER ETF,AllianceBernstein,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 BUFM US,AB MODERATE BUFFER ETF,AllianceBernstein,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFP US,PGIM LADDERED S&P 500 BUFFER 12 ETF,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFQ US,FT VEST LADDERED NASDAQ BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFR US,FT VEST LADDERED BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFS US,FT VEST LADDERED SMALL CAP MODERATE BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+BUFP US,PGIM LADDERED S&P 500 BUFFER 12 ETF,Prudential,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
+BUFQ US,FT VEST LADDERED NASDAQ BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
+BUFR US,FT VEST LADDERED BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
+BUFS US,FT VEST LADDERED SMALL CAP MODERATE BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 BUFT US,FT VEST BUFFERED ALLOCATION DEFENSIVE ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFX US,FT VEST LADDERED ENHANCE & MODERATE BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFY US,FT VEST LADDERED INTERNATIONAL MODERATE BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-BUFZ US,FT VEST LADDERED MODERATE BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+BUFX US,FT VEST LADDERED ENHANCE & MODERATE BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
+BUFY US,FT VEST LADDERED INTERNATIONAL MODERATE BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
+BUFZ US,FT VEST LADDERED MODERATE BUFFER ETF,First Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 BUG US,GLOBAL X CYBERSECURITY ETF,Global X,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
 BUL US,PACER US CASH COWS GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 BULD US,PACER BLUESTAR ENGINEERING THE FUTURE ETF,Pacer,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Thematic
@@ -616,7 +616,7 @@ CATH US,GLOBAL X S&P 500 CATHOLIC VALUES ETF,,Equity,Plain Beta,Broad,,,,,standa
 CBLS US,CLOUGH HEDGED EQUITY ETF,,Multi-Asset,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 CBOA US,CALAMOS BITCOIN STRUCTURED ALT PROTECTION ETF - APRIL,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CBOJ US,CALAMOS BITCOIN STRUCTURED ALT PROTECTION ETF - JANUARY,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-CBOL US,CALAMOS LADDERED BITCOIN STRUCTURED ALT PROTECTION ETF,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+CBOL US,CALAMOS LADDERED BITCOIN STRUCTURED ALT PROTECTION ETF,Calamos,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 CBON US,VANECK CHINA BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 CBOO US,CALAMOS BITCOIN STRUCTURED ALT PROTECTION ETF - OCTOBER,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CBOX US,CALAMOS TAX-AWARE COLLATERAL ETF,,Multi-Asset,Defined Outcome,Box Spread,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -624,12 +624,12 @@ CBOY US,CALAMOS BITCOIN STRUCTURED ALT PROTECTION ETF - JULY,Calamos,Crypto,Defi
 CBSE US,CLOUGH SELECT EQUITY ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 CBTA US,CALAMOS BITCOIN 80 SERIES STRUCTURED ALT PROTECTION ETF - APRIL,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CBTJ US,CALAMOS BITCOIN 80% PROTECTION STRATEGY ETF - JANUARY,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-CBTL US,CALAMOS LADDERED BITCOIN 80 SERIES STRUCTURED ALT PROTECTION ETF,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+CBTL US,CALAMOS LADDERED BITCOIN 80 SERIES STRUCTURED ALT PROTECTION ETF,Calamos,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 CBTO US,CALAMOS BITCOIN 80 SERIES STRUCTURED ALT PROTECTION ETF - OCTOBER,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CBTY US,CALAMOS BITCOIN 80 SERIES STRUCTURED ALT PROTECTION ETF - JULY,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CBXA US,CALAMOS BITCOIN 90 SERIES STRUCTURED ALT PROTECTION ETF - APRIL,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CBXJ US,CALAMOS BITCOIN 90% PROTECTION STRATEGY ETF - JANUARY,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-CBXL US,CALAMOS LADDERED BITCOIN 90 SERIES STRUCTURED ALT PROTECTION ETF,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+CBXL US,CALAMOS LADDERED BITCOIN 90 SERIES STRUCTURED ALT PROTECTION ETF,Calamos,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 CBXO US,CALAMOS BITCOIN 90 SERIES STRUCTURED ALT PROTECTION ETF - OCTOBER,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
 CBXY US,CALAMOS BITCOIN 90 SERIES STRUCTURED ALT PROTECTION ETF - JULY,Calamos,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CCFE US,CONCOURSE CAPITAL FOCUSED EQUITY ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -775,7 +775,7 @@ CPSA US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - AUGUST,Calamos,Equity,De
 CPSD US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - DECEMBER,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CPSF US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - FEBRUARY,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CPSJ US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - JULY,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-CPSL US,CALAMOS LADDERED S&P 500 STRUCTURED ALT PROTECTION ETF,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+CPSL US,CALAMOS LADDERED S&P 500 STRUCTURED ALT PROTECTION ETF,Calamos,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 CPSM US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - MAY,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CPSN US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - NOVEMBER,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 CPSO US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - OCTOBER,Calamos,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
@@ -1489,7 +1489,7 @@ FGRU US,T-REX 2X LONG FIGR DAILY TARGET ETF,REX,Equity,L&I,Long,single,FIGR,,,st
 FGSI US,FT VEST GROWTH STRENGTH & TARGET INCOME ETF,First Trust,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 FGSM US,FRONTIER ASSET GLOBAL SMALL CAP EQUITY ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 FHDG US,FT VEST US EQUITY QUARTERLY DYNAMIC BUFFER ETF,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-FHEQ US,FIDELITY HEDGED EQUITY ETF,Fidelity,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+FHEQ US,FIDELITY HEDGED EQUITY ETF,Fidelity,Equity,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Hedged Equity belongs in Risk Mgmt
 FHLC US,FIDELITY MSCI HEALTH CARE INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 FHYS US,FEDERATED HERMES SHORT DURATION HIGH YIELD ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 FIAT US,YIELDMAX SHORT COIN OPTION INCOME STRATEGY ETF,YieldMax,Equity,Income,Derivative Income > Covered Call,single,COIN US,,,standalone,physical,1.0,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=CC
@@ -1947,10 +1947,10 @@ HEDJ US,WISDOMTREE EUROPE HEDGED EQUITY FUND,,Equity,Risk Mgmt,Hedged Equity,,,,
 HEEM US,ISHARES CURRENCY HEDGED MSCI EMERGING MARKETS ETF,,Currency,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 HEFA US,ISHARES CURRENCY HEDGED MSCI EAFE ETF,,Currency,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 HEGD US,SWAN HEDGED EQUITY US LARGE CAP ETF,,Equity,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-HELO US,JPMORGAN HEDGED EQUITY LADDERED OVERLAY ETF,JP Morgan,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
+HELO US,JPMORGAN HEDGED EQUITY LADDERED OVERLAY ETF,JP Morgan,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 HELX US,FRANKLIN GENOMIC ADVANCEMENTS ETF,Franklin Templeton,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
 HEMI US,HARTFORD EQUITY PREMIUM INCOME ETF,Hartford,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
-HEQQ US,JPMORGAN NASDAQ HEDGED EQUITY LADDERED OVERLAY ETF,JP Morgan,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+HEQQ US,JPMORGAN NASDAQ HEDGED EQUITY LADDERED OVERLAY ETF,JP Morgan,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 HEQT US,SIMPLIFY HEDGED EQUITY ETF,Simplify,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 HERD US,PACER CASH COWS FUND OF FUNDS ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 HERO US,GLOBAL X VIDEO GAMES & ESPORTS ETF,Global X,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
@@ -1979,7 +1979,7 @@ HMYY US,GRANITESHARES YIELDBOOST HIMS ETF,GraniteShares,Equity,Income,Derivative
 HODL US,VANECK BITCOIN ETF/US,VanEck,Crypto,Plain Beta,Single-Access,single,Bitcoin,,,standalone,physical,,,,,,,,,,,,,grantor_trust,,seed-2026-05-01,Migrated from etp_category=Crypto
 HODU US,DIREXION DAILY HOOD BULL 2X ETF,Direxion,Equity,L&I,Long,single,BULL US,,,standalone,physical,2.0,long,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 HOII US,REX HOOD GROWTH & INCOME ETF,REX,Equity,Income,Derivative Income > Covered Call,single,HOOD US,,,standalone,physical,1.5,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=CC
-HOLA US,JPMORGAN INTERNATIONAL HEDGED EQUITY LADDERED OVERLAY ETF,JP Morgan,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+HOLA US,JPMORGAN INTERNATIONAL HEDGED EQUITY LADDERED OVERLAY ETF,JP Morgan,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 HOLD US,HARBOR ALPHA LAYERING ETF,Harbor ETF Trust,Multi-Asset,L&I,Long,,,,,standalone,physical,1.5,long,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 HOMZ US,HOYA CAPITAL HOUSING ETF,ETF Series Solutions,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Thematic
 HOOG US,LEVERAGE SHARES 2X LONG HOOD DAILY ETF,LeverageShares,Equity,L&I,Long,single,HOOD US,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
@@ -2314,8 +2314,8 @@ IVSI US,APPLIED FINANCE IVS INTERNATIONAL LARGE ETF,,Equity,Plain Beta,Broad,,,,
 IVSS US,APPLIED FINANCE IVS US SMID ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 IVSX US,APPLIED FINANCE IVS INTERNATIONAL SMID ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 IVV US,ISHARES CORE S&P 500 ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-IVVB US,ISHARES LARGE CAP DEEP QUARTERLY LADDERED ETF,BlackRock,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-IVVM US,ISHARES LARGE CAP MODERATE QUARTERLY LADDERED ETF,BlackRock,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+IVVB US,ISHARES LARGE CAP DEEP QUARTERLY LADDERED ETF,BlackRock,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
+IVVM US,ISHARES LARGE CAP MODERATE QUARTERLY LADDERED ETF,BlackRock,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 IVVW US,ISHARES S&P 500 BUYWRITE ETF,BlackRock,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 IVW US,ISHARES S&P 500 GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 IWB US,ISHARES RUSSELL 1000 ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -3099,7 +3099,7 @@ ONDU US,TRADR 2X LONG ONDS DAILY ETF,Tradr,Equity,L&I,Long,single,ONDS US,,,stan
 ONEO US,STATE STREET SPDR RUSSELL 1000 MOMENTUM FOCUS ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 ONEQ US,FIDELITY NASDAQ COMPOSITE INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 ONEY US,STATE STREET SPDR RUSSELL 1000 YIELD FOCUS ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-ONEZ US,TRUESHARES SEASONALITY LADDERED BUFFERED ETF,TrueShares,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
+ONEZ US,TRUESHARES SEASONALITY LADDERED BUFFERED ETF,TrueShares,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 ONLN US,PROSHARES ONLINE RETAIL ETF,ProShares,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
 OOSP US,OBRA OPPORTUNISTIC STRUCTURED PRODUCTS ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 OPEG US,LEVERAGE SHARES 2X LONG OPEN DAILY ETF,LeverageShares,Equity,L&I,Long,single,OPEN US,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
@@ -3163,7 +3163,7 @@ PBDE US,PGIM S&P 500 BUFFER 20 ETF - DECEMBER,Prudential,Equity,Defined Outcome,
 PBE US,INVESCO BIOTECHNOLOGY & GENOME ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 PBEU US,PORTFOLIO BUILDING BLOCK EUROPEAN BANKS INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 PBFB US,PGIM S&P 500 BUFFER 20 ETF - FEBRUARY,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
-PBFR US,PGIM LADDERED S&P 500 BUFFER 20 ETF,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
+PBFR US,PGIM LADDERED S&P 500 BUFFER 20 ETF,Prudential,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 PBJ US,INVESCO FOOD & BEVERAGE ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 PBJA US,PGIM S&P 500 BUFFER 20 ETF - JANUARY,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
 PBJL US,PGIM S&P 500 BUFFER 20 ETF - JULY,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
@@ -3177,7 +3177,7 @@ PBOG US,PORTFOLIO BUILDING BLOCK INTEGRATED OIL GAS EXPLORATION & PRODUCTION IND
 PBOT US,PICTET AI & AUTOMATION ETF,2023 ETF Series Trust/Pictet,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,grantor_trust,,seed-2026-05-01,Migrated from etp_category=Thematic
 PBP US,INVESCO S&P 500 BUYWRITE ETF,Invesco,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 PBPH US,PORTFOLIO BUILDING BLOCK WORLD PHARMA AND BIOTECH INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-PBQQ US,PGIM LADDERED NASDAQ-100 BUFFER 12 ETF,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
+PBQQ US,PGIM LADDERED NASDAQ-100 BUFFER 12 ETF,Prudential,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Audit zeta: Ladder funds are Fixed Income/Plain Beta
 PBRG US,LEVERAGE SHARES 2X LONG PBR DAILY ETF,LeverageShares,Equity,L&I,Long,single,PBR US,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
 PBSE US,PGIM S&P 500 BUFFER 20 ETF - SEPTEMBER,Prudential,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
 PBTP US,INVESCO 0-5 YR US TIPS ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -3393,7 +3393,7 @@ PVI US,INVESCO FLOATING RATE MUNICIPAL INCOME ETF,,Fixed Income,Plain Beta,Broad
 PWB US,INVESCO LARGE CAP GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 PWER US,NOMURA ENERGY TRANSITION ETF,Nomura,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Thematic
 PWRD US,TCW TRANSFORM SYSTEMS ETF,TCW,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
-PWS US,PACER WEALTHSHIELD ETF,Pacer,Multi-Asset,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
+PWS US,PACER WEALTHSHIELD ETF,Pacer,Multi-Asset,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Audit zeta: Hedged Equity belongs in Risk Mgmt
 PWV US,INVESCO LARGE CAP VALUE ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 PWZ US,INVESCO CALIFORNIA AMT-FREE MUNICIPAL BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 PXE US,INVESCO ENERGY EXPLORATION & PRODUCTION ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -3415,7 +3415,7 @@ QABA US,FIRST TRUST NASDAQ ABA COMMUNITY BANK INDEX FUND,,Equity,Plain Beta,Broa
 QARP US,XTRACKERS RUSSELL 1000 US QUALITY AT A REASONABLE PRICE ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 QAT US,ISHARES MSCI QATAR ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 QB US,PROSHARES NASDAQ-100 DYNAMIC BUFFER ETF,ProShares,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
-QBER US,TRUESHARES QUARTERLY BEAR HEDGE ETF,TrueShares,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+QBER US,TRUESHARES QUARTERLY BEAR HEDGE ETF,TrueShares,Equity,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Hedged Equity belongs in Risk Mgmt
 QBF US,INNOVATOR UNCAPPED BITCOIN 20 FLOOR ETF - QUARTERLY,Innovator,Crypto,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
 QBIF US,ALLIANZIM INTERNATIONAL EQUITY BUFFER15 ETF,Allianz,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 QBIG US,INVESCO TOP QQQ ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -3429,7 +3429,7 @@ QBSV US,ALLIANZIM US EQUITY BUFFER5 ETF,Allianz,Equity,Defined Outcome,Buffer,,,
 QBTX US,TRADR 2X LONG QBTS DAILY ETF,Tradr,Equity,L&I,Long,single,QBTS US,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
 QBTZ US,DEFIANCE DAILY TARGET 2X SHORT QBTS ETF,VistaShares,Equity,L&I,Short,single,QBTS US,,,standalone,physical,2.0,short,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
 QBUF US,INNOVATOR NASDAQ-100 10 BUFFER ETF - QUARTERLY,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-QBUL US,TRUESHARES QUARTERLY BULL HEDGE ETF,TrueShares,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+QBUL US,TRUESHARES QUARTERLY BULL HEDGE ETF,TrueShares,Equity,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Hedged Equity belongs in Risk Mgmt
 QBY US,GRANITESHARES YIELDBOOST QBTS ETF,GraniteShares,Equity,Income,Derivative Income > Covered Call,single,QBTS US,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 QCAP US,FT VEST NASDAQ-100 CONSERVATIVE BUFFER ETF - APRIL,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 QCJA US,FT VEST NASDAQ-100 CONSERVATIVE BUFFER ETF - JANUARY,First Trust,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
@@ -3458,7 +3458,7 @@ QFRD US,PACER S&P 500 QUALITY FCF R&D LEADERS ETF,,Equity,Plain Beta,Style,,,,,s
 QGRD US,HORIZON NASDAQ-100 DEFINED RISK ETF,Horizon Funds,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 QGRO US,AMERICAN CENTURY US QUALITY GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 QGRW US,WISDOMTREE US QUALITY GROWTH FUND,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-QHDG US,INNOVATOR HEDGED NASDAQ-100 ETF,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+QHDG US,INNOVATOR HEDGED NASDAQ-100 ETF,Innovator,Equity,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Hedged Equity belongs in Risk Mgmt
 QHY US,WISDOMTREE US HIGH YIELD CORPORATE BOND FUND,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 QID US,PROSHARES ULTRASHORT QQQ,ProShares,Equity,L&I,Short,,,,,standalone,physical,2.0,short,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 QIDX US,INDEXPERTS QUALITY EARNINGS FOCUSED ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -4195,7 +4195,7 @@ TGLR US,WEDBUSH LAFFER TENGLER NEW ERA VALUE ETF,,Equity,Plain Beta,Style,,,,,st
 TGRT US,T. ROWE PRICE GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 TGRW US,T ROWE PRICE GROWTH STOCK ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 THD US,ISHARES MSCI THAILAND ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-THEQ US,T ROWE PRICE HEDGED EQUITY ETF,T Rowe,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
+THEQ US,T ROWE PRICE HEDGED EQUITY ETF,T Rowe,Equity,Risk Mgmt,Hedged Equity,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Audit zeta: Hedged Equity belongs in Risk Mgmt
 THIR US,THOR INDEX ROTATION ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 THMZ US,LAZARD EQUITY MEGATRENDS ETF,Lazard Active ETF Trust,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
 THNQ US,ROBO GLOBAL ARTIFICIAL INTELLIGENCE ETF,Exchange-Traded Concepts (ETC),Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
@@ -4383,7 +4383,7 @@ UCC US,PROSHARES ULTRA CONSUMER DISCRETIONARY,ProShares,Equity,L&I,Long,,,,,stan
 UCIB US,ETRACS UBS BLOOMBERG CONSTANT MATURITY COMMODITY INDX CMCI TOTAL RETURN ETN SE B,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 UCO US,PROSHARES ULTRA BLOOMBERG CRUDE OIL,ProShares,Commodity,L&I,Long,single,CLA Comdty,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
 UCON US,FIRST TRUST SMITH UNCONSTRAINED BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-UCOP US,PROSHARES ULTRA COPPER K-1 FREE ETF,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+UCOP US,PROSHARES ULTRA COPPER K-1 FREE ETF,,Commodity,L&I,Long,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Audit delta CX-01: ProShares Ultra (2x Long) corrected from Plain Beta
 UCRD US,VICTORYSHARES CORPORATE BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 UCYB US,PROSHARES ULTRA NASDAQ CYBERSECURITY ETF,ProShares,Equity,L&I,Long,,,,,standalone,physical,2.0,long,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 UDEC US,INNOVATOR U.S. EQUITY ULTRA BUFFER ETF - DECEMBER,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
@@ -4425,10 +4425,10 @@ UNL US,UNITED STATES 12 MONTH NATURAL GAS FUND LP,,Commodity,Plain Beta,Broad,,,
 UNOV US,INNOVATOR U.S. EQUITY ULTRA BUFFER ETF - NOVEMBER,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
 UNX US,TRADR 2X LONG U DAILY ETF,Tradr,Equity,L&I,Long,single,U US,,,standalone,physical,2.0,long,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 UOCT US,INNOVATOR U.S. EQUITY ULTRA BUFFER ETF OCTOBER,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined
-UPAL US,PROSHARES ULTRA PALLADIUM K-1 FREE ETF,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+UPAL US,PROSHARES ULTRA PALLADIUM K-1 FREE ETF,,Commodity,L&I,Long,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Audit delta CX-01: ProShares Ultra (2x Long) corrected from Plain Beta
 UPGD US,INVESCO BLOOMBERG ANALYST RATING IMPROVERS ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 UPGR US,XTRACKERS US GREEN INFRASTRUCTURE SELECT EQUITY ETF,DWS Xtrackers,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
-UPLT US,PROSHARES ULTRA PLATINUM K-1 FREE ETF,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+UPLT US,PROSHARES ULTRA PLATINUM K-1 FREE ETF,,Commodity,L&I,Long,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Audit delta CX-01: ProShares Ultra (2x Long) corrected from Plain Beta
 UPRO US,PROSHARES ULTRAPRO S&P 500,ProShares,Equity,L&I,Long,,,,,standalone,physical,3.0,long,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 UPSD US,APTUS LARGE CAP UPSIDE ETF,ETF Series Solutions/Aptus Cap,Equity,L&I,Short,,,,,standalone,physical,1.0,short,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 UPSG US,LEVERAGE SHARES 2X LONG UPS DAILY ETF,LeverageShares,Equity,L&I,Long,single,UPS US,,,standalone,physical,2.0,long,daily,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=LI
@@ -4972,7 +4972,7 @@ CVY US,INVESCO ZACKS MULTI-ASSET INCOME ETF,Invesco,Multi-Asset,Plain Beta,Alloc
 DDV US,DEFINED DURATION 5 ETF,EA Series Trust,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 DDX US,DEFINED DURATION 10 ETF,EA Series Trust,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 DDXX US,DEFINED DURATION 20 ETF,EA Series Trust,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
-DEFR US,APTUS DEFERRED INCOME ETF,Aptus,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
+DEFR US,APTUS DEFERRED INCOME ETF,Aptus,Multi-Asset,Income,Deferred Income,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,"Audit beta: misclassified Risk Mgmt, correct is Income"
 DWSH US,ADVISORSHARES DORSEY WRIGHT SHORT ETF,AdvisorShares,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 EAOA US,ISHARES ESG AWARE 80/20 AGGRESSIVE ALLOCATION ETF,iShares,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 EAOK US,ISHARES ESG AWARE 30/70 CONSERVATIVE ALLOCATION ETF,iShares,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
@@ -5054,7 +5054,7 @@ MKTN US,FEDERATED HERMES MDT MARKET NEUTRAL ETF,Federated Hermes,Multi-Asset,Ris
 MNA US,NYLI MERGER ARBITRAGE ETF,New York Life,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 MOOD US,RELATIVE SENTIMENT TACTICAL ALLOCATION ETF,EA Series Trust,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 MPRO US,MONARCH PROCAP INDEX ETF,Northern Lights Fund Trust IV/,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
-MRGR US,PROSHARES MERGER ETF,ProShares,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
+MRGR US,PROSHARES MERGER ETF,ProShares,Multi-Asset,Risk Mgmt,Event-Driven/Merger Arb,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Audit beta: sub_strategy correction
 MSMR US,MCELHENNY SHEFFIELD MANAGED RISK ETF,ETF Series Solutions,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 MSTB US,LHA MARKET STATE TACTICAL BETA ETF,Little Harbor Funds/USA,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 MVFD US,MONARCH VOLUME FACTOR DIVIDEND TREE INDEX ETF,Northern Lights Fund Trust IV/,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
