@@ -1,0 +1,22 @@
+[Unit]
+Description=REX FinHub L&I Engine Parquet Rebuild Chain
+After=network.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
+ExecStart=/bin/bash -c '\
+  /home/jarvis/venv/bin/python -m screener.li_engine.analysis.universe_loader && \
+  /home/jarvis/venv/bin/python -m screener.li_engine.analysis.bbg_timeseries && \
+  /home/jarvis/venv/bin/python -m screener.li_engine.analysis.filed_underliers && \
+  /home/jarvis/venv/bin/python -m screener.li_engine.analysis.competitor_counts && \
+  /home/jarvis/venv/bin/python -m screener.li_engine.analysis.launch_candidates && \
+  /home/jarvis/venv/bin/python -m screener.li_engine.analysis.whitespace_v4'
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

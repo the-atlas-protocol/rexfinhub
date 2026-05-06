@@ -1,0 +1,122 @@
+# Pre-IPO and recently-priced IPOs tracked for L&I filing race intelligence.
+# Update valuations as fresh public reporting comes in — no code change required.
+# Source: screener/li_engine/analysis/weekly_v2_report.py::IPO_DATA
+# Extracted: 2026-05-04
+
+# ===========================================================================
+# HIGH-PROFILE PRE-IPO
+# Private companies expected to debut. Valuations are last-known private
+# rounds / tenders. Update last_reviewed when you verify a figure.
+# ===========================================================================
+high_profile_pre_ipo:
+
+  - ticker: SpaceX
+    company: SpaceX
+    date: "TBD (Starlink spinout watch)"
+    valuation: "~$500B (Dec 2025 secondary; up from $400B)"
+    desc: "Starlink spin-out is the most-discussed vehicle. Space-economy + satellite-broadband exposure."
+    last_reviewed: "2026-05-05"
+
+  - ticker: OpenAI
+    company: OpenAI
+    date: "TBD"
+    valuation: "~$500B (Q1 2025 tender); internal rumors of $1T+ post-restructure"
+    desc: "Foundation-model leader. PBC restructure enables eventual public exit; no S-1 yet."
+    last_reviewed: "2026-05-05"
+
+  - ticker: Anthropic
+    company: Anthropic
+    date: "TBD"
+    valuation: "~$300B+ (Sept 2025 Series F; Amazon + Google strategic backing)"
+    desc: "Claude / safety-first foundation models. Strategic backing from Amazon + Google."
+    last_reviewed: "2026-05-05"
+
+  - ticker: xAI
+    company: xAI
+    date: "Speculative"
+    valuation: "~$200B (2025 funding round)"
+    desc: "Grok models, Musk-led. IPO path tied to Tesla/X integration narrative."
+    last_reviewed: "2026-05-05"
+
+  - ticker: Anduril
+    company: Anduril Industries
+    date: "TBD"
+    valuation: "~$30B+ (last round)"
+    desc: "Defense-tech / autonomous systems. Lattice OS + AI-augmented hardware."
+    last_reviewed: "2026-05-05"
+
+  - ticker: ScaleAI
+    company: Scale AI
+    date: "TBD"
+    valuation: "~$25B+ (Meta investment)"
+    desc: "Data labeling + evaluation infrastructure. Critical-path supplier to foundation-model labs."
+    last_reviewed: "2026-05-05"
+
+  - ticker: Stripe
+    company: Stripe
+    date: "Speculative"
+    valuation: "~$91B (2024 tender)"
+    desc: "Payments infrastructure. Long-running IPO speculation; tender prices set the floor."
+    last_reviewed: "2026-05-05"
+
+  - ticker: Databricks
+    company: Databricks
+    date: "Speculative"
+    valuation: "~$62B (last round)"
+    desc: "Lakehouse + AI platform. F-1 watch ongoing; Snowflake is the trading comp."
+    last_reviewed: "2026-05-05"
+
+  - ticker: Cerebras
+    company: Cerebras Systems
+    date: "Has filed S-1"
+    valuation: "Targeted ~$8B at filing"
+    desc: "Wafer-scale AI accelerator chips. AI-infra exposure outside the Nvidia trade."
+    last_reviewed: "2026-05-05"
+
+  - ticker: Klarna
+    company: Klarna
+    date: "Filed for IPO"
+    valuation: "~$15B (targeted)"
+    desc: "BNPL leader. Re-filed after multiple postponements; testing 2026 window."
+    last_reviewed: "2026-05-05"
+
+# ===========================================================================
+# RECENTLY PRICED
+# Tickers that have already priced and are trading or near-trading.
+# ===========================================================================
+recently_priced:
+
+  - ticker: ALMR
+    company: Alamar Biosciences
+    date: "Apr 17, 2026"
+    valuation: "Recently priced"
+    desc: "Proteomics platform — high-multiplex single-cell protein detection."
+    last_reviewed: "2026-05-05"
+
+  - ticker: AVEX
+    company: AEVEX Corp
+    date: "Apr 17, 2026"
+    valuation: "Recently priced"
+    desc: "Defense / unmanned aerial systems — military drone & ISR services."
+    last_reviewed: "2026-05-05"
+
+  - ticker: KLRA
+    company: Kailera Therapeutics
+    date: "Apr 17, 2026"
+    valuation: "Recently priced"
+    desc: "Obesity + GLP-1 biotech — chasing the Wegovy/Zepbound market."
+    last_reviewed: "2026-05-05"
+
+  - ticker: NHP
+    company: National Healthcare Properties
+    date: "Apr 22, 2026"
+    valuation: "Recently priced"
+    desc: "Healthcare REIT — senior housing + medical office portfolio."
+    last_reviewed: "2026-05-05"
+
+  - ticker: YSWY
+    company: Yesway
+    date: "Apr 22, 2026"
+    valuation: "Recently priced"
+    desc: "Convenience store chain (~440 locations across 9 states)."
+    last_reviewed: "2026-05-05"

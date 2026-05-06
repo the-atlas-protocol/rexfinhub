@@ -1,0 +1,11 @@
+[Unit]
+Description=Rebuild L&I Engine parquets twice a week (Mon+Fri 06:00 ET)
+After=network.target
+
+[Timer]
+OnCalendar=Mon,Fri *-*-* 06:00:00 America/New_York
+Persistent=true
+Unit=rexfinhub-parquet-rebuild.service
+
+[Install]
+WantedBy=timers.target

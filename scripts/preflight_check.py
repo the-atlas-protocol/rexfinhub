@@ -365,6 +365,121 @@ def audit_previews(db) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Audit 6: Data freshness (parquet files + BBG xlsm)
+# ---------------------------------------------------------------------------
+
+def audit_data_freshness(db) -> dict:
+    """Verify BBG xlsm and L&I Engine parquet files are fresh enough for reports."""
+    out = {"name": "Data freshness", "status": "pass", "detail": "", "items": []}
+    issues = []
+    bbg = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
+    if bbg.exists():
+        age_h = (datetime.now().timestamp() - bbg.stat().st_mtime) / 3600
+        item = {"file": bbg.name, "age_hours": round(age_h, 1), "threshold_hours": 12}
+        if age_h > 12:
+            item["status"] = "fail"
+            issues.append(f"BBG file {age_h:.1f}h old (threshold 12h)")
+        else:
+            item["status"] = "pass"
+        out["items"].append(item)
+    else:
+        issues.append("BBG xlsm not found at data/DASHBOARD/bloomberg_daily_file.xlsm")
+        out["items"].append({"file": "bloomberg_daily_file.xlsm", "status": "missing"})
+
+    parquets = [
+        "bbg_timeseries_panel",
+        "competitor_counts",
+        "filed_underliers",
+        "launch_candidates",
+        "whitespace_v4",
+    ]
+    for p in parquets:
+        f = PROJECT_ROOT / "data" / "analysis" / f"{p}.parquet"
+        if not f.exists():
+            issues.append(f"MISSING {p}.parquet")
+            out["items"].append({"file": f"{p}.parquet", "status": "missing"})
+        else:
+            age_h = (datetime.now().timestamp() - f.stat().st_mtime) / 3600
+            item = {"file": f"{p}.parquet", "age_hours": round(age_h, 0), "threshold_hours": 168}
+            if age_h > 168:  # 7 days
+                item["status"] = "fail"
+                issues.append(f"{p}.parquet {age_h:.0f}h old (threshold 168h)")
+            else:
+                item["status"] = "pass"
+            out["items"].append(item)
+
+    if issues:
+        out["status"] = "fail"
+        out["detail"] = "; ".join(issues)
+    else:
+        out["detail"] = "all data sources fresh"
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Audit 7: Attribution completeness (primary_strategy + issuer_display)
+# ---------------------------------------------------------------------------
+
+def audit_attribution_completeness(db) -> dict:
+    """Verify report attribution columns are populated on ACTV funds."""
+    out = {"name": "Attribution completeness", "status": "pass", "detail": ""}
+    try:
+        from sqlalchemy import text
+        # Use the passed-in SQLAlchemy session if available; fall back to a new one.
+        _close_local = False
+        if db is None:
+            try:
+                from webapp.database import SessionLocal
+                db = SessionLocal()
+                _close_local = True
+            except Exception as e:
+                out["status"] = "fail"
+                out["detail"] = f"cannot open DB session: {e}"
+                return out
+
+        try:
+            total = db.execute(
+                text("SELECT count(*) FROM mkt_master_data WHERE market_status='ACTV'")
+            ).scalar() or 0
+            null_strat = db.execute(
+                text("SELECT count(*) FROM mkt_master_data WHERE market_status='ACTV' AND primary_strategy IS NULL")
+            ).scalar() or 0
+            null_iss = db.execute(
+                text("SELECT count(*) FROM mkt_master_data WHERE market_status='ACTV' AND issuer_display IS NULL")
+            ).scalar() or 0
+        finally:
+            if _close_local:
+                try:
+                    db.close()
+                except Exception:
+                    pass
+
+        issues = []
+        if total > 0:
+            pct_strat = 100 * null_strat / total
+            pct_iss = 100 * null_iss / total
+            if pct_strat > 5:
+                issues.append(f"NULL primary_strategy {pct_strat:.1f}% (threshold 5%)")
+            if pct_iss > 15:
+                issues.append(f"NULL issuer_display {pct_iss:.1f}% (threshold 15%)")
+            if issues:
+                out["status"] = "fail"
+                out["detail"] = "; ".join(issues)
+            else:
+                out["detail"] = (
+                    f"{total} ACTV: NULL strat={null_strat} ({pct_strat:.1f}%), "
+                    f"NULL issuer={null_iss} ({pct_iss:.1f}%)"
+                )
+        else:
+            out["status"] = "warn"
+            out["detail"] = "no ACTV funds found in mkt_master_data"
+    except Exception as e:
+        out["status"] = "fail"
+        out["detail"] = f"query error: {type(e).__name__}: {e}"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Idempotency token
 # ---------------------------------------------------------------------------
 
@@ -529,7 +644,8 @@ def main():
 
     audits = []
     for fn in (audit_bloomberg, audit_classification, audit_ticker_dupes_recent,
-               audit_null_data, audit_recipients, audit_previews):
+               audit_null_data, audit_recipients, audit_previews,
+               audit_data_freshness, audit_attribution_completeness):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)

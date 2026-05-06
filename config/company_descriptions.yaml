@@ -1,0 +1,39 @@
+# One-line company descriptions used in the L&I weekly stock-recs report.
+# Lookup key: ticker (uppercase, no exchange suffix) -> description string.
+# Update freely; reloaded at every report build. No code change required.
+#
+# Source: screener/li_engine/analysis/weekly_v2_report.py::COMPANY_LINES
+# Extracted: 2026-05-04 — do not edit that constant; edit here instead.
+
+# --- Launch candidates (REX filed, want to launch) ---
+AXTI: "Compound-semiconductor substrates (InP/GaAs) for AI optical interconnects — the +3,941% 1y rally is a real photonics narrative."
+DOCN: "DigitalOcean — cloud infrastructure mid-cap, AI-data-center beneficiary; +53% 1m on real fundamental growth."
+UI: "Ubiquiti — networking equipment for ISP/enterprise; quietly compounding business with 14 retail mentions today."
+DNA: "Ginkgo Bioworks — synthetic biology platform; biotech vol with a 'biofoundry' narrative."
+AMPX: "Amprius Technologies — silicon-anode batteries for EV and aviation; +57% 1m and active retail momentum."
+TSEM: "Tower Semiconductor — Israeli specialty foundry (analog, RF); Intel acquisition history gives strategic-value floor."
+FSLY: "Fastly — edge-compute / CDN; AI-serving infrastructure tailwind has revived a beaten-down name."
+FNMA: "Fannie Mae — GSE recapitalization narrative continues to drive speculative flows."
+FMCC: "Freddie Mac — paired with FNMA; same recap thesis, smaller free float."
+CIEN: "Ciena — optical networking / 800G coherent; AI-data-center photonics angle."
+VIAV: "Viavi Solutions — optical test equipment; AI-data-center capex beneficiary."
+VSAT: "Viasat — satellite broadband + defense; space + connectivity."
+AKAM: "Akamai — CDN + cybersecurity; defensive infrastructure name."
+
+# --- Filing candidates (whitespace) ---
+LWLG: "Lightwave Logic — development-stage electro-optic polymer; +586% 1y but rally has cooled (zero retail mentions today)."
+SLS: "SELLAS Life Sciences — clinical-stage oncology biotech; binary trial readouts drive 114% volatility."
+BW: "Babcock & Wilcox — small-modular reactor exposure (nuclear renaissance theme); +2,085% 1y."
+KOD: "Kodiak Sciences — clinical-stage retinal biotech with Phase 3 readouts driving the +1,259% 1y move."
+NEXT: "NextDecade — Rio Grande LNG export developer; financing milestones drove +42% 1m."
+CC: "Chemours — fluoropolymers + Opteon refrigerant; HFC phase-out story with 32 retail mentions."
+ATAI: "atai Life Sciences — psychedelic medicine biotech (psilocybin/ketamine analogues)."
+SOC: "Sable Offshore — Santa Ynez offshore-oil restart play; institutional-driven (94% inst), not a retail leverage profile."
+VICR: "Vicor — power-conversion ICs for AI data centers; specialty-semis whitespace."
+YOU: "Clear Secure — biometric airport security (CLEAR lanes); travel + biometric narrative."
+NTLA: "Intellia Therapeutics — CRISPR gene editing; biotech-gene thematic."
+VG: "Venture Global LNG — recently IPO'd LNG exporter; same theme as NEXT but $38.7B size."
+WOLF: "Wolfspeed — silicon-carbide power semis; bruised by EV-cycle pullback but strategic."
+RUN: "Sunrun — residential solar leasing; policy-dependent solar narrative."
+PUMP: "ProPetro — oilfield services / pressure pumping; cyclical energy services."
+BWXT: "BWX Technologies — naval nuclear reactor builder + SMR; hot-theme play (nuclear)."
