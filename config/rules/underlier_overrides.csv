@@ -1,0 +1,10 @@
+ticker,map_li_underlier,source,notes,fixed_at
+DJTU US,DJT US,audit-2026-05-05,DJTU UA was self-referential (ETF's own ticker suffix UA instead of underlying DJT US Trump Media stock),2026-05-05T21:35:00-04:00
+CCUP US,CRCL US,audit-2026-05-05,CECL US (credit-loss accounting ticker) loaded instead of CRCL US (Circle Internet financial stock),2026-05-05T21:35:00-04:00
+CONX US,COIN US,audit-2026-05-05,BULL US (Parabolic 2x Bull ETF) loaded instead of COIN US (Coinbase) — Bloomberg mapped underlier to wrong fund,2026-05-05T21:35:00-04:00
+HODU US,HOOD US,audit-2026-05-05,BULL US (Parabolic 2x Bull ETF) loaded instead of HOOD US (Robinhood) — Bloomberg mapped underlier to wrong fund,2026-05-05T21:35:00-04:00
+LEUX US,LEU US,audit-2026-05-05,KEY (KeyCorp bank ticker) loaded instead of LEU US (Centrus Energy Corp) — fund name is TRADR 2X LONG LEU DAILY ETF,2026-05-05T21:35:00-04:00
+NBIL US,NBIS US,audit-2026-05-05,NVIS (Nanovision) loaded instead of NBIS US (Nebius Group) — fund name is GRANITESHARES 2X LONG NBIS DAILY ETF,2026-05-05T21:35:00-04:00
+SRPU US,SRPT US,audit-2026-05-05,SPRT US (transposed ticker) loaded instead of SRPT US (Sarepta Therapeutics) — fund name is TRADR 2X LONG SRPT DAILY ETF,2026-05-05T21:35:00-04:00
+GLL US,XAU Curncy,audit-2026-05-05,USDXAU Curncy loaded instead of XAU Curncy — GLL is ProShares Ultrashort Gold; MEDIUM confidence review before applying,2026-05-05T21:35:00-04:00
+ZSL US,XAG Curncy,audit-2026-05-05,SIA Comdty loaded instead of XAG Curncy — ZSL is ProShares Ultrashort Silver; MEDIUM confidence review before applying,2026-05-05T21:35:00-04:00
