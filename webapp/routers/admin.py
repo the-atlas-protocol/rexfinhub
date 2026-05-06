@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
 from webapp.models import Trust, FundStatus, AnalysisResult, TrustRequest, DigestSubscriber
+from webapp.services.admin_auth import load_admin_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="webapp/templates")
@@ -27,22 +28,7 @@ log = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
-
-def _load_admin_password() -> str:
-    """Load ADMIN_PASSWORD from config/.env or environment."""
-    import os
-    env_file = PROJECT_ROOT / "config" / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, val = line.split("=", 1)
-                if key.strip() == "ADMIN_PASSWORD":
-                    return val.strip().strip('"').strip("'")
-    return os.environ.get("ADMIN_PASSWORD", "")
-
-
-ADMIN_PASSWORD = _load_admin_password()
+ADMIN_PASSWORD = load_admin_password()
 RECIPIENTS_FILE = PROJECT_ROOT / "config" / "email_recipients.txt"
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 

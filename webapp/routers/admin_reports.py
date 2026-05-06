@@ -26,12 +26,13 @@ from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
 from webapp.services import report_registry
+from webapp.services.admin_auth import load_admin_password
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/reports", tags=["admin-reports"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
-ADMIN_PASSWORD = "ryu123"
+ADMIN_PASSWORD = load_admin_password()
 PREBAKED_DIR = Path("data/prebaked_reports")
 DECISION_FILE = Path("data/.preflight_decision.json")
 TOKEN_FILE = Path("data/.preflight_token")

@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import FastAPI, Form, Query, Request
+from fastapi import FastAPI, Form, Header, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -32,7 +32,11 @@ PROJECT_ROOT = WEBAPP_DIR.parent
 # ---------------------------------------------------------------------------
 
 def _load_site_password() -> str:
-    """Load SITE_PASSWORD from config/.env or environment."""
+    """Load SITE_PASSWORD from config/.env or environment.
+
+    In production (RENDER env var set) the password MUST be provided — the
+    trivial fallback "123" is rejected to prevent accidental open access.
+    """
     env_file = PROJECT_ROOT / "config" / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
@@ -41,7 +45,17 @@ def _load_site_password() -> str:
                 key, val = line.split("=", 1)
                 if key.strip() == "SITE_PASSWORD":
                     return val.strip().strip('"').strip("'")
-    return os.environ.get("SITE_PASSWORD", "123")
+    value = os.environ.get("SITE_PASSWORD", "")
+    if not value:
+        if os.environ.get("RENDER"):
+            raise RuntimeError(
+                "SITE_PASSWORD environment variable is required in production. "
+                "Set it in the Render dashboard."
+            )
+        # Local dev: use a non-trivial placeholder that still makes the site
+        # accessible without setting up .env.
+        return "dev-site-password"
+    return value
 
 
 SITE_PASSWORD = _load_site_password()
@@ -343,8 +357,9 @@ def create_app() -> FastAPI:
         return {"ok": True, "shutdown_at": shutdown_at.isoformat()}
 
     @app.delete("/api/v1/maintenance")
-    def clear_maintenance(request: Request, token: str = Query(None)):
-        if not _maint_authorized(request, token):
+    def clear_maintenance(request: Request,
+                          x_admin_token: str | None = Header(None, alias="X-Admin-Token")):
+        if not _maint_authorized(request, x_admin_token):
             return JSONResponse({"error": "Unauthorized"}, status_code=403)
         global _maintenance_msg
         _maintenance_msg = None

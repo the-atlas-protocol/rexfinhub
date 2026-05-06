@@ -26,12 +26,13 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
+from webapp.services.admin_auth import load_admin_password
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/products", tags=["admin-products"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
-ADMIN_PASSWORD = "ryu123"
+ADMIN_PASSWORD = load_admin_password()
 VALID_STATUSES = ["Research", "Target List", "Filed", "Awaiting Effective", "Listed", "Delisted"]
 VALID_SUITES = ["T-REX", "Premium Income", "Growth & Income", "IncomeMax", "Crypto", "Thematic", "Autocallable", "T-Bill", "MicroSectors ETN"]
 

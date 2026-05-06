@@ -31,6 +31,7 @@ from webapp.database import get_db, get_live_feed_db
 from webapp.models import (
     FilingAlert, MktPipelineRun, LiveFeedItem, Trust, Filing, FundStatus,
 )
+from webapp.services.admin_auth import load_admin_password
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin-health"])
@@ -41,11 +42,13 @@ SEND_GATE = PROJECT_ROOT / "config" / ".send_enabled"
 SEND_AUDIT = PROJECT_ROOT / "data" / ".send_audit.json"
 PREBAKED_DIR = PROJECT_ROOT / "data" / "prebaked_reports"
 
+_ADMIN_PASSWORD = load_admin_password()
+
 
 def _is_admin(request: Request) -> bool:
     return bool(
         request.session.get("is_admin")
-        or request.cookies.get("admin_auth") == "ryu123"
+        or (request.cookies.get("admin_auth") == _ADMIN_PASSWORD and _ADMIN_PASSWORD)
     )
 
 

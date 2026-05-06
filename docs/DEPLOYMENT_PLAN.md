@@ -204,7 +204,7 @@
 
 ## Render Configuration
 - URL: https://rex-etp-tracker.onrender.com
-- API Key: `rex-etp-api-2026-kJw9xPm4`
+- API Key: `<REDACTED — see config/.env>`
 - Disk: 10GB persistent at `/opt/render/project/src/data`
 - Upload: POST `/api/v1/db/upload` with X-API-Key header
 - DB size: 18.5MB compressed (124MB raw, stripped)
