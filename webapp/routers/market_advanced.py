@@ -413,9 +413,9 @@ def market_fund_detail(
                     "open_interest": _safe("t_w2.open_interest"),
                     "annualized_yield": _safe("t_w3.annualized_yield"),
                     "returns": returns,
-                    "leverage": d.get("map_li_leverage_amount", ""),
-                    "direction": d.get("map_li_direction", ""),
-                    "underlier": d.get("map_li_underlier", ""),
+                    "leverage": d.get("q_category_attributes.map_li_leverage_amount", ""),
+                    "direction": d.get("q_category_attributes.map_li_direction", ""),
+                    "underlier": d.get("q_category_attributes.map_li_underlier", ""),
                     # New 3-axis taxonomy (additive — legacy category fields preserved above)
                     "primary_strategy": d.get("primary_strategy") or "",
                     "asset_class": d.get("asset_class") or "",
@@ -425,12 +425,12 @@ def market_fund_detail(
 
                 # Competitors: same category or same underlier
                 cat = d.get("category_display", "")
-                underlier = d.get("map_li_underlier", "")
+                underlier = d.get("q_category_attributes.map_li_underlier", "")
                 if cat and match_col:
                     comp_filter = master[match_col].str.upper() != ticker
                     comp_filter &= master["market_status"] == "ACTV"
                     if underlier:
-                        comp_filter &= (master.get("map_li_underlier", pd.Series()) == underlier)
+                        comp_filter &= (master.get("q_category_attributes.map_li_underlier", pd.Series()) == underlier)
                     elif cat:
                         comp_filter &= (master.get("category_display", pd.Series()) == cat)
                     comp_rows = master[comp_filter].sort_values("t_w4.aum", ascending=False).head(10)
