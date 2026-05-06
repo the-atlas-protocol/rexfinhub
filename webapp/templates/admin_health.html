@@ -162,6 +162,124 @@
     <div class="hs-row"><span class="hs-label">fund statuses</span><span class="hs-value">{{ db_counts.fund_statuses }}</span></div>
   </div>
 
+  {# BBG freshness #}
+  {% set bbg_class = 'fail' if bbg.stale else ('ok' if bbg.exists else 'fail') %}
+  <div class="hs-card {{ bbg_class }}">
+    <h3>Bloomberg file</h3>
+    {% if not bbg.exists %}
+      <div class="hs-big">missing</div>
+      <div class="hs-row"><span class="hs-label">path</span><span class="hs-value">data/DASHBOARD/bloomberg_daily_file.xlsm</span></div>
+    {% elif bbg.error is defined %}
+      <div class="hs-big">error</div>
+      <div class="hs-row"><span class="hs-label">detail</span><span class="hs-value">{{ bbg.error[:60] }}</span></div>
+    {% else %}
+      <div class="hs-big">{{ bbg.age }}</div>
+      <div class="hs-row"><span class="hs-label">age</span><span class="hs-value">{{ bbg.age_hours }}h{% if bbg.stale %} &mdash; STALE{% endif %}</span></div>
+      <div class="hs-row"><span class="hs-label">mtime</span><span class="hs-value">{{ bbg.mtime }}</span></div>
+    {% endif %}
+  </div>
+
+  {# Preflight token #}
+  {% set tok_class = 'fail' if not preflight_token.exists else ('warn' if preflight_token.expired else 'ok') %}
+  <div class="hs-card {{ tok_class }}">
+    <h3>Preflight token</h3>
+    {% if not preflight_token.exists %}
+      <div class="hs-big">missing</div>
+      <div class="hs-row"><span class="hs-label">action</span><span class="hs-value">run preflight_check.py</span></div>
+    {% elif preflight_token.error is defined %}
+      <div class="hs-big">error</div>
+      <div class="hs-row"><span class="hs-label">detail</span><span class="hs-value">{{ preflight_token.error[:60] }}</span></div>
+    {% else %}
+      <div class="hs-big">{{ preflight_token.age }}</div>
+      <div class="hs-row"><span class="hs-label">token</span><span class="hs-value">{{ preflight_token.token }}</span></div>
+      <div class="hs-row"><span class="hs-label">age</span><span class="hs-value">{{ preflight_token.age_hours }}h / {{ preflight_token.valid_for_hours }}h{% if preflight_token.expired %} &mdash; EXPIRED{% endif %}</span></div>
+    {% endif %}
+  </div>
+
+  {# Preflight decision #}
+  {% set dec_action = preflight_decision.action %}
+  {% set dec_class = 'ok' if dec_action == 'GO' else ('warn' if dec_action == 'HOLD' else ('neutral' if not preflight_decision.exists else 'warn')) %}
+  <div class="hs-card {{ dec_class }}">
+    <h3>Preflight decision</h3>
+    {% if not preflight_decision.exists %}
+      <div class="hs-big">none</div>
+      {% if preflight_decision.preflight_status %}
+        <div class="hs-row"><span class="hs-label">last preflight</span><span class="hs-value">{{ preflight_decision.preflight_status }}</span></div>
+        <div class="hs-row"><span class="hs-label">at</span><span class="hs-value">{{ preflight_decision.preflight_ts or '?' }}</span></div>
+      {% endif %}
+    {% elif preflight_decision.error is defined %}
+      <div class="hs-big">error</div>
+      <div class="hs-row"><span class="hs-label">detail</span><span class="hs-value">{{ preflight_decision.error[:60] }}</span></div>
+    {% else %}
+      <div class="hs-big"><span class="hs-badge {{ dec_class }}">{{ dec_action }}</span></div>
+      <div class="hs-row"><span class="hs-label">recorded</span><span class="hs-value">{{ preflight_decision.age }}</span></div>
+      <div class="hs-row"><span class="hs-label">token</span><span class="hs-value">{{ preflight_decision.token }}</span></div>
+      {% if preflight_decision.preflight_status %}
+        <div class="hs-row"><span class="hs-label">preflight</span><span class="hs-value">{{ preflight_decision.preflight_status }}</span></div>
+      {% endif %}
+      {% if preflight_decision.reason %}
+        <div class="hs-row"><span class="hs-label">reason</span><span class="hs-value">{{ preflight_decision.reason[:40] }}</span></div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  {# Gate transitions (last 3) #}
+  <div class="hs-card neutral">
+    <h3>Gate log (last 3)</h3>
+    {% if not gate_transitions.exists %}
+      <div class="hs-big">no log</div>
+    {% elif gate_transitions.error is defined %}
+      <div class="hs-big">error</div>
+    {% elif not gate_transitions.transitions %}
+      <div class="hs-big">empty</div>
+    {% else %}
+      {% for t in gate_transitions.transitions %}
+        <div class="hs-row">
+          <span class="hs-label">{{ t.age }}</span>
+          <span class="hs-value">{{ t.action }} &rarr; {{ t.state }}{% if t.actor %} ({{ t.actor[:20] }}){% endif %}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {# Today send status #}
+  {% set ts_class = 'ok' if today_send.fired and today_send.allowed else ('warn' if today_send.fired else 'neutral') %}
+  <div class="hs-card {{ ts_class }}">
+    <h3>Today's send</h3>
+    {% if today_send.fired %}
+      <div class="hs-big"><span class="hs-badge ok">FIRED</span></div>
+      {% if today_send.timestamp %}<div class="hs-row"><span class="hs-label">at</span><span class="hs-value">{{ today_send.timestamp[:19] }}</span></div>{% endif %}
+      {% if today_send.subject %}<div class="hs-row"><span class="hs-label">subject</span><span class="hs-value">{{ (today_send.subject or '')[:35] }}</span></div>{% endif %}
+      {% if today_send.recipient_count %}<div class="hs-row"><span class="hs-label">recipients</span><span class="hs-value">{{ today_send.recipient_count }}</span></div>{% endif %}
+      <div class="hs-row"><span class="hs-label">allowed</span><span class="hs-value">{{ 'yes' if today_send.allowed else 'no' }}</span></div>
+    {% else %}
+      <div class="hs-big">not yet</div>
+      <div class="hs-row"><span class="hs-label">status</span><span class="hs-value">no send recorded today</span></div>
+    {% endif %}
+  </div>
+
+  {# VPS code freshness #}
+  {% set vps_class = 'ok' if vps.in_sync else ('warn' if vps.in_sync == false else 'neutral') %}
+  <div class="hs-card {{ vps_class }}">
+    <h3>VPS code freshness</h3>
+    {% if not vps.file_exists %}
+      <div class="hs-big">unknown</div>
+      <div class="hs-row"><span class="hs-label">.vps_commit</span><span class="hs-value">not present</span></div>
+      {% if vps.local_head %}<div class="hs-row"><span class="hs-label">local HEAD</span><span class="hs-value">{{ vps.local_head }}</span></div>{% endif %}
+    {% elif vps.error is defined %}
+      <div class="hs-big">error</div>
+      <div class="hs-row"><span class="hs-label">detail</span><span class="hs-value">{{ vps.error[:60] }}</span></div>
+    {% else %}
+      <div class="hs-big">
+        {% if vps.in_sync == true %}<span class="hs-badge ok">IN SYNC</span>
+        {% elif vps.in_sync == false %}<span class="hs-badge warn">BEHIND</span>
+        {% else %}<span class="hs-badge neutral">UNKNOWN</span>{% endif %}
+      </div>
+      {% if vps.vps_commit %}<div class="hs-row"><span class="hs-label">VPS</span><span class="hs-value">{{ vps.vps_commit }}</span></div>{% endif %}
+      {% if vps.local_head %}<div class="hs-row"><span class="hs-label">local</span><span class="hs-value">{{ vps.local_head }}</span></div>{% endif %}
+    {% endif %}
+  </div>
+
 </div>
 
 <p style="font-size:12px; color:var(--muted); margin-top:20px;">

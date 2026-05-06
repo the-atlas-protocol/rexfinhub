@@ -40,7 +40,14 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 SEND_GATE = PROJECT_ROOT / "config" / ".send_enabled"
 SEND_AUDIT = PROJECT_ROOT / "data" / ".send_audit.json"
+SEND_LOG = PROJECT_ROOT / "data" / ".send_log.json"
 PREBAKED_DIR = PROJECT_ROOT / "data" / "prebaked_reports"
+GATE_LOG = PROJECT_ROOT / "data" / ".gate_state_log.jsonl"
+PREFLIGHT_TOKEN = PROJECT_ROOT / "data" / ".preflight_token"
+PREFLIGHT_DECISION = PROJECT_ROOT / "data" / ".preflight_decision.json"
+PREFLIGHT_RESULT = PROJECT_ROOT / "data" / ".preflight_result.json"
+VPS_COMMIT = PROJECT_ROOT / ".vps_commit"
+BBG_FILE = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
 
 _ADMIN_PASSWORD = load_admin_password()
 
@@ -202,6 +209,213 @@ def _prebake_state() -> dict:
     }
 
 
+def _bbg_freshness() -> dict:
+    """Bloomberg xlsm file mtime + age."""
+    if not BBG_FILE.exists():
+        return {"exists": False}
+    try:
+        mtime = datetime.fromtimestamp(BBG_FILE.stat().st_mtime)
+        age_h = (datetime.now() - mtime).total_seconds() / 3600
+        return {
+            "exists": True,
+            "mtime": mtime.isoformat(timespec="seconds"),
+            "age": _fmt_age(mtime),
+            "age_hours": round(age_h, 1),
+            "stale": age_h > 12,
+        }
+    except Exception as e:
+        return {"exists": True, "error": str(e)}
+
+
+def _preflight_token_state() -> dict:
+    """Age of data/.preflight_token (idempotency token from last preflight run)."""
+    if not PREFLIGHT_TOKEN.exists():
+        return {"exists": False}
+    try:
+        payload = json.loads(PREFLIGHT_TOKEN.read_text(encoding="utf-8"))
+        created = payload.get("created_et")
+        created_dt = None
+        if created:
+            try:
+                created_dt = datetime.fromisoformat(created)
+                if created_dt.tzinfo is not None:
+                    created_dt = created_dt.replace(tzinfo=None)
+            except Exception:
+                pass
+        age_h = None
+        if created_dt:
+            age_h = round((datetime.now() - created_dt).total_seconds() / 3600, 1)
+        return {
+            "exists": True,
+            "token": payload.get("token", "?")[:8] + "...",
+            "created_et": created,
+            "age": _fmt_age(created_dt),
+            "age_hours": age_h,
+            "valid_for_hours": payload.get("valid_for_hours", 4),
+            "expired": age_h is not None and age_h > payload.get("valid_for_hours", 4),
+        }
+    except Exception as e:
+        return {"exists": True, "error": str(e)}
+
+
+def _preflight_decision_state() -> dict:
+    """State of data/.preflight_decision.json — GO / HOLD / missing."""
+    if not PREFLIGHT_DECISION.exists():
+        # Also check .preflight_result.json for overall_status
+        if PREFLIGHT_RESULT.exists():
+            try:
+                result = json.loads(PREFLIGHT_RESULT.read_text(encoding="utf-8"))
+                return {
+                    "exists": False,
+                    "action": None,
+                    "preflight_status": result.get("overall_status"),
+                    "preflight_ts": result.get("timestamp"),
+                }
+            except Exception:
+                pass
+        return {"exists": False, "action": None}
+    try:
+        payload = json.loads(PREFLIGHT_DECISION.read_text(encoding="utf-8"))
+        recorded = payload.get("recorded_et")
+        recorded_dt = None
+        if recorded:
+            try:
+                recorded_dt = datetime.fromisoformat(recorded)
+                if recorded_dt.tzinfo is not None:
+                    recorded_dt = recorded_dt.replace(tzinfo=None)
+            except Exception:
+                pass
+        preflight_status = None
+        if PREFLIGHT_RESULT.exists():
+            try:
+                result = json.loads(PREFLIGHT_RESULT.read_text(encoding="utf-8"))
+                preflight_status = result.get("overall_status")
+            except Exception:
+                pass
+        return {
+            "exists": True,
+            "action": payload.get("action", "?").upper(),
+            "token": payload.get("token", "?")[:8] + "...",
+            "recorded_et": recorded,
+            "age": _fmt_age(recorded_dt),
+            "reason": payload.get("reason", ""),
+            "preflight_status": preflight_status,
+        }
+    except Exception as e:
+        return {"exists": True, "error": str(e)}
+
+
+def _gate_transitions() -> dict:
+    """Last 3 gate state transitions from data/.gate_state_log.jsonl."""
+    if not GATE_LOG.exists():
+        return {"exists": False, "transitions": []}
+    try:
+        lines = GATE_LOG.read_text(encoding="utf-8").strip().splitlines()
+        recent = []
+        for raw in reversed(lines):
+            if len(recent) >= 3:
+                break
+            try:
+                entry = json.loads(raw)
+                ts = entry.get("timestamp")
+                ts_dt = None
+                if ts:
+                    try:
+                        ts_dt = datetime.fromisoformat(ts)
+                        if ts_dt.tzinfo is not None:
+                            ts_dt = ts_dt.replace(tzinfo=None)
+                    except Exception:
+                        pass
+                recent.append({
+                    "timestamp": ts,
+                    "age": _fmt_age(ts_dt),
+                    "action": entry.get("action"),
+                    "state": entry.get("state"),
+                    "actor": entry.get("actor"),
+                    "note": entry.get("note", ""),
+                })
+            except Exception:
+                continue
+        return {"exists": True, "transitions": recent}
+    except Exception as e:
+        return {"exists": True, "transitions": [], "error": str(e)}
+
+
+def _today_send_status() -> dict:
+    """Did the daily send fire today? Read from data/.send_log.json."""
+    result: dict = {"fired": False, "recipients": [], "allowed": None}
+    # Primary: .send_log.json (structured per-send log written by graph_email)
+    if SEND_LOG.exists():
+        try:
+            entries = json.loads(SEND_LOG.read_text(encoding="utf-8"))
+            if not isinstance(entries, list):
+                entries = [entries]
+            today = datetime.now().date().isoformat()
+            for entry in reversed(entries):
+                ts = entry.get("timestamp", "")
+                if ts.startswith(today):
+                    result["fired"] = True
+                    result["timestamp"] = ts
+                    result["recipients"] = entry.get("recipients", [])
+                    result["allowed"] = entry.get("allowed")
+                    result["subject"] = entry.get("subject")
+                    result["recipient_count"] = len(result["recipients"])
+                    break
+            return result
+        except Exception:
+            pass
+    # Fallback: .send_audit.json
+    if SEND_AUDIT.exists():
+        try:
+            entries = json.loads(SEND_AUDIT.read_text(encoding="utf-8"))
+            if not isinstance(entries, list):
+                entries = [entries]
+            today = datetime.now().date().isoformat()
+            for entry in reversed(entries):
+                ts = entry.get("timestamp", "")
+                if ts.startswith(today):
+                    result["fired"] = True
+                    result["timestamp"] = ts
+                    result["allowed"] = entry.get("allowed")
+                    result["subject"] = entry.get("subject")
+                    result["recipient_count"] = entry.get("recipient_count")
+                    break
+        except Exception:
+            pass
+    return result
+
+
+def _vps_freshness() -> dict:
+    """VPS code freshness — compare .vps_commit to local HEAD."""
+    local_head = None
+    try:
+        import subprocess
+        r = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True,
+            cwd=str(PROJECT_ROOT), timeout=5,
+        )
+        if r.returncode == 0:
+            local_head = r.stdout.strip()[:12]
+    except Exception:
+        pass
+
+    if not VPS_COMMIT.exists():
+        return {"vps_commit": None, "local_head": local_head, "in_sync": None, "file_exists": False}
+    try:
+        vps_commit = VPS_COMMIT.read_text(encoding="utf-8").strip()[:12]
+        in_sync = vps_commit == local_head if (vps_commit and local_head) else None
+        return {
+            "vps_commit": vps_commit,
+            "local_head": local_head,
+            "in_sync": in_sync,
+            "file_exists": True,
+        }
+    except Exception as e:
+        return {"vps_commit": None, "local_head": local_head, "in_sync": None,
+                "file_exists": True, "error": str(e)}
+
+
 def _db_counts(db: Session) -> dict:
     return {
         "trusts": db.execute(select(func.count()).select_from(Trust)).scalar() or 0,
@@ -233,6 +447,13 @@ def health_page(
         "send_gate": _send_gate_state(),
         "prebake": _prebake_state(),
         "db_counts": _db_counts(db),
+        # Observability additions (Sys-E Fix 2)
+        "bbg": _bbg_freshness(),
+        "preflight_token": _preflight_token_state(),
+        "preflight_decision": _preflight_decision_state(),
+        "gate_transitions": _gate_transitions(),
+        "today_send": _today_send_status(),
+        "vps": _vps_freshness(),
         "now": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     return templates.TemplateResponse("admin_health.html", ctx)
@@ -256,5 +477,12 @@ def health_json(
         "send_gate": _send_gate_state(),
         "prebake": _prebake_state(),
         "db_counts": _db_counts(db),
+        # Observability additions (Sys-E Fix 2)
+        "bbg": _bbg_freshness(),
+        "preflight_token": _preflight_token_state(),
+        "preflight_decision": _preflight_decision_state(),
+        "gate_transitions": _gate_transitions(),
+        "today_send": _today_send_status(),
+        "vps": _vps_freshness(),
         "now": datetime.now().isoformat(),
     }
