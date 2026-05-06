@@ -336,3 +336,14 @@ NVDK US,NVDA,,Synthetic,Single Stock
 TSLK US,TSLA,,Traditional,Single Stock
 ODTE US,,,Traditional,Broad Beta
 SBAR US,,Autocall,Synthetic,Autocallable
+CAGE US,,,Synthetic,Broad Beta
+LQDM US,,BTSICTLQ,Synthetic,Broad Beta
+MUYY US,,,Traditional,Broad Beta
+HYGM US,,BTSICTHY,Synthetic,Broad Beta
+TMYY US,,,Traditional,Broad Beta
+CRY US,CRCL,,Traditional,Single Stock
+XEY US,,,Traditional,Crypto
+CWY US,,,Traditional,Broad Beta
+BIOY US,,,Traditional,Sector
+TECY US,,,Traditional,Sector
+FINY US,,,Traditional,Broad Beta
