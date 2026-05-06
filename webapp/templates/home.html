@@ -401,6 +401,72 @@
 .ha-goal-growth-pos { color: #059669; }
 .ha-goal-growth-neg { color: #dc2626; }
 .ha-goal-growth-na  { color: #94a3b8; font-weight: 500; }
+
+/* Clickable goal cards */
+.ha-goal-card[data-slug] {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.ha-goal-card[data-slug]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+/* Modal overlay */
+.gm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.gm-overlay.is-open { display: flex; }
+.gm-modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 920px;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+.gm-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #0f172a;
+  color: #fff;
+}
+.gm-title { font-size: 16px; font-weight: 700; margin: 0; }
+.gm-sub { font-size: 11px; color: #cbd5e1; margin-top: 2px; }
+.gm-close {
+  background: transparent; border: 0; color: #cbd5e1;
+  font-size: 22px; line-height: 1; cursor: pointer; padding: 0 6px;
+}
+.gm-close:hover { color: #fff; }
+.gm-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+.gm-stats {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  font-size: 12px; color: #475569;
+  padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 12px;
+}
+.gm-stat-label { color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.gm-stat-val { color: #0f172a; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+.gm-canvas-wrap { position: relative; height: 420px; }
+.gm-loading, .gm-error {
+  text-align: center; padding: 60px 20px; color: #64748b; font-size: 13px;
+}
+.gm-error { color: #dc2626; }
+@media (max-width: 600px) {
+  .gm-canvas-wrap { height: 280px; }
+  .gm-modal { max-height: 95vh; }
+}
 </style>
 
 <div class="ha-goals-section">
@@ -420,7 +486,7 @@
 
   <div class="ha-goals-grid">
     {% for s in aum_goals.suites %}
-    <div class="ha-goal-card">
+    <div class="ha-goal-card" {% if s.slug %}data-slug="{{ s.slug }}" data-label="{{ s.label }}" role="button" tabindex="0" aria-label="View AUM history for {{ s.label }}"{% endif %}>
       <div class="ha-goal-label">{{ s.label }}</div>
       <div class="ha-goal-value">{{ fmt_aum(s.current_aum) }}</div>
       <div class="ha-goal-target">of {{ fmt_aum(s.ye_2026_target) }} target</div>
@@ -441,7 +507,7 @@
     {% endfor %}
 
     {% if aum_goals.total %}
-    <div class="ha-goal-card is-total">
+    <div class="ha-goal-card is-total" {% if aum_goals.total.slug %}data-slug="{{ aum_goals.total.slug }}" data-label="{{ aum_goals.total.label or 'Total REX AUM' }}" role="button" tabindex="0" aria-label="View total AUM history"{% endif %}>
       <div class="ha-goal-label">{{ aum_goals.total.label or 'Total' }}</div>
       <div class="ha-goal-value">{{ fmt_aum(aum_goals.total.current_aum) }}</div>
       <div class="ha-goal-target">of {{ fmt_aum(aum_goals.total.ye_2026_target) }} target</div>
@@ -462,6 +528,148 @@
     {% endif %}
   </div>
 </div>
+
+<!-- ===== AUM Goal History Modal ===== -->
+<div id="goalChartOverlay" class="gm-overlay" role="dialog" aria-modal="true" aria-labelledby="goalChartTitle">
+  <div class="gm-modal">
+    <div class="gm-header">
+      <div>
+        <h3 id="goalChartTitle" class="gm-title">AUM History</h3>
+        <div id="goalChartSub" class="gm-sub"></div>
+      </div>
+      <button type="button" class="gm-close" id="goalChartClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="gm-body">
+      <div id="goalChartStats" class="gm-stats" style="display:none;"></div>
+      <div class="gm-canvas-wrap">
+        <div id="goalChartLoading" class="gm-loading">Loading history…</div>
+        <div id="goalChartError" class="gm-error" style="display:none;"></div>
+        <canvas id="goalChartCanvas" style="display:none;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const overlay   = document.getElementById('goalChartOverlay');
+  const titleEl   = document.getElementById('goalChartTitle');
+  const subEl     = document.getElementById('goalChartSub');
+  const statsEl   = document.getElementById('goalChartStats');
+  const loadingEl = document.getElementById('goalChartLoading');
+  const errorEl   = document.getElementById('goalChartError');
+  const canvas    = document.getElementById('goalChartCanvas');
+  const closeBtn  = document.getElementById('goalChartClose');
+  if (!overlay || !canvas) return;
+  let chartInstance = null;
+
+  function fmtAum(m) {
+    if (m == null) return '--';
+    if (Math.abs(m) >= 1000) return '$' + (m / 1000).toFixed(2) + 'B';
+    if (Math.abs(m) >= 1)    return '$' + m.toFixed(0) + 'M';
+    return '$' + (m * 1000).toFixed(0) + 'K';
+  }
+  function fmtMonth(s) {
+    // 'YYYY-MM' -> "Mon 'YY"
+    const parts = s.split('-');
+    if (parts.length < 2) return s;
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+    return d.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', " '");
+  }
+
+  function openModal(slug, label) {
+    titleEl.textContent = label + ' — AUM History';
+    subEl.textContent = 'Source: Bloomberg';
+    statsEl.style.display = 'none';
+    statsEl.innerHTML = '';
+    errorEl.style.display = 'none';
+    canvas.style.display = 'none';
+    loadingEl.style.display = 'block';
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+
+    fetch('/api/v1/aum-goals/history/' + encodeURIComponent(slug))
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(d => render(d))
+      .catch(err => {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = 'Could not load history: ' + err.message;
+        errorEl.style.display = 'block';
+      });
+  }
+
+  function render(d) {
+    loadingEl.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // Stats row
+    const stats = [
+      ['Current', fmtAum(d.current_aum_m)],
+      ['2026 Target', fmtAum(d.ye_2026_target)],
+      ['YE 2025', fmtAum(d.ye_2025)],
+      ['Products', d.n_products],
+      ['Earliest inception', d.earliest_inception ? d.earliest_inception.slice(0, 7) : '--'],
+    ];
+    statsEl.innerHTML = stats.map(([k, v]) =>
+      `<div><div class="gm-stat-label">${k}</div><div class="gm-stat-val">${v}</div></div>`
+    ).join('');
+    statsEl.style.display = 'flex';
+    subEl.textContent = `Source: Bloomberg · As of ${d.as_of}`;
+
+    const labelsFmt = d.labels.map(fmtMonth);
+    chartInstance = new Chart(canvas, {
+      type: 'line',
+      data: { labels: labelsFmt, datasets: d.datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${fmtAum(ctx.parsed.y)}`,
+              footer: items => 'Total: ' + fmtAum(items.reduce((s, i) => s + i.parsed.y, 0)),
+            },
+          },
+        },
+        scales: {
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { callback: v => fmtAum(v) },
+            grid: { color: '#f1f5f9' },
+          },
+          x: {
+            grid: { display: false },
+            ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+          },
+        },
+      },
+    });
+  }
+
+  function closeModal() {
+    overlay.classList.remove('is-open');
+    document.body.style.overflow = '';
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  }
+
+  document.querySelectorAll('.ha-goal-card[data-slug]').forEach(card => {
+    card.addEventListener('click', () => openModal(card.dataset.slug, card.dataset.label || 'AUM'));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    });
+  });
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeModal();
+  });
+})();
+</script>
 {% endif %}
 
 <hr class="ha-divider">

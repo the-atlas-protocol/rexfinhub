@@ -259,6 +259,21 @@ def dashboard_redirect(request: Request):
 # API routes (stay here — used by home page)
 # ---------------------------------------------------------------------------
 
+@router.get("/api/v1/aum-goals/history/{slug}")
+def api_aum_goal_history(slug: str, db: Session = Depends(get_db)):
+    """Per-suite AUM history for the clickable goals cards on the home page."""
+    from fastapi.responses import JSONResponse
+    from webapp.services.market_data import get_aum_goal_history
+    try:
+        data = get_aum_goal_history(db, slug)
+    except Exception as e:
+        log.warning("aum-goals history failed for %s: %s", slug, e)
+        return JSONResponse({"error": "history-unavailable"}, status_code=500)
+    if data is None:
+        return JSONResponse({"error": "unknown-slug-or-no-data", "slug": slug}, status_code=404)
+    return data
+
+
 @router.get("/api/v1/home-kpis")
 def api_home_kpis(db: Session = Depends(get_db)):
     """Aggregate KPIs for the home page. Lives here (not holdings.py) so it

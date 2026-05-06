@@ -2008,6 +2008,7 @@ def get_aum_goals(db: Session) -> dict | None:
             expected = ye25 + year_fraction * (target - ye25)
             on_track = current >= expected
             return {
+                "slug": entry.get("slug"),
                 "label": entry["label"],
                 "ye_2025": ye25,
                 "ye_2026_target": target,
@@ -2049,6 +2050,7 @@ def get_aum_goals(db: Session) -> dict | None:
         return {
             "suites": suite_entries,
             "total": {
+                "slug": t.get("slug", "total"),
                 "label": "Total REX AUM",
                 "ye_2025": t["ye_2025"],
                 "ye_2026_target": t["ye_2026_target"],
@@ -2063,3 +2065,193 @@ def get_aum_goals(db: Session) -> dict | None:
     except Exception as e:
         log.warning("get_aum_goals failed: %s", e)
         return None
+
+
+# ---------------------------------------------------------------------------
+# AUM goals — historical chart data per suite (used by clickable cards)
+# ---------------------------------------------------------------------------
+# Color palette matching scripts/generate_aum_growth_charts.py
+_GOAL_HISTORY_PALETTE = [
+    "#0984e3", "#e8913a", "#5ea66b", "#9b6dc4", "#d15555",
+    "#4db8a8", "#c47a5a", "#3d7ec7", "#7a8c6e", "#b87a3d",
+    "#5f9ea0", "#cd853f", "#9acd32", "#ba55d3", "#ff6347",
+    "#20b2aa", "#daa520", "#8fbc8f", "#dda0dd", "#f4a460",
+]
+
+
+def _resolve_suite_filter(slug: str) -> dict | None:
+    """Map a goals card slug to (suite_key, region) filter spec.
+
+    Returns None if slug is unknown.
+    """
+    from pathlib import Path as _Path
+    config_path = _Path(__file__).resolve().parent.parent.parent / "config" / "aum_goals.json"
+    if not config_path.exists():
+        return None
+    try:
+        cfg = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if slug == "total" or slug == cfg.get("total", {}).get("slug"):
+        return {"slug": "total", "label": "Total REX AUM",
+                "ye_2026_target": cfg["total"]["ye_2026_target"],
+                "ye_2025": cfg["total"]["ye_2025"], "all_rex": True}
+    for entry in cfg.get("suites", []):
+        if entry.get("slug") == slug:
+            return {
+                "slug": slug,
+                "label": entry["label"],
+                "suite_key": entry["suite_key"],
+                "region": entry.get("region"),
+                "ye_2025": entry["ye_2025"],
+                "ye_2026_target": entry["ye_2026_target"],
+                "all_rex": False,
+            }
+    return None
+
+
+def get_aum_goal_history(db: Session, slug: str) -> dict | None:
+    """Return Chart.js-shaped AUM history for a goals card.
+
+    Per-ticker stacked-area series since earliest inception in the suite.
+    Pre-inception months are zeroed (Bloomberg backfills stale data).
+
+    Returns None for unknown slug or no data.
+    """
+    from datetime import datetime as _dt, date as _date
+    from dateutil.relativedelta import relativedelta as _rd
+
+    spec = _resolve_suite_filter(slug)
+    if spec is None:
+        return None
+
+    # 1. Resolve eligible tickers
+    base = (
+        db.query(MktMasterData.ticker, MktMasterData.fund_name, MktMasterData.inception_date)
+        .filter(MktMasterData.is_rex == True, MktMasterData.market_status == "ACTV")
+    )
+    if not spec.get("all_rex"):
+        base = base.filter(MktMasterData.rex_suite == spec["suite_key"])
+    rows = base.all()
+
+    if spec.get("region") == "US":
+        rows = [r for r in rows if not (r.ticker or "").endswith(" LN")]
+    elif spec.get("region") == "EU":
+        rows = [r for r in rows if (r.ticker or "").endswith(" LN")]
+
+    if not rows:
+        return None
+
+    tickers = [r.ticker for r in rows if r.ticker]
+    fund_name = {r.ticker: (r.fund_name or r.ticker) for r in rows}
+    incep_lookup: dict = {}
+    for r in rows:
+        raw = r.inception_date
+        if raw is None:
+            incep_lookup[r.ticker] = None
+            continue
+        if isinstance(raw, str):
+            if raw.startswith("NaT") or not raw.strip():
+                incep_lookup[r.ticker] = None
+                continue
+            try:
+                incep_lookup[r.ticker] = _dt.strptime(raw[:10], "%Y-%m-%d").date()
+            except ValueError:
+                incep_lookup[r.ticker] = None
+        elif hasattr(raw, "date") and callable(raw.date):
+            incep_lookup[r.ticker] = raw.date()
+        else:
+            incep_lookup[r.ticker] = raw
+
+    # 2. Pull historical AUM (months_ago 0..36)
+    ts_rows = db.execute(
+        select(
+            MktTimeSeries.ticker, MktTimeSeries.months_ago,
+            MktTimeSeries.aum_value, MktTimeSeries.as_of_date,
+        ).where(MktTimeSeries.ticker.in_(tickers))
+    ).all()
+    if not ts_rows:
+        return None
+
+    dates = [r[3] for r in ts_rows if r[3] is not None]
+    as_of = max(dates) if dates else _date.today()
+    if hasattr(as_of, "date") and callable(as_of.date):
+        as_of = as_of.date()
+
+    # 3. Aggregate by (month_date, ticker), zeroing pre-inception
+    series: dict[str, dict[date, float]] = {t: {} for t in tickers}
+    for tk, m_ago, aum, _d in ts_rows:
+        if tk not in series:
+            continue
+        month_date = as_of - _rd(months=int(m_ago))
+        inc = incep_lookup.get(tk)
+        if inc and month_date < inc:
+            continue
+        series[tk][month_date] = (series[tk].get(month_date) or 0.0) + float(aum or 0)
+
+    all_months: set[date] = set()
+    for d in series.values():
+        all_months.update(d.keys())
+    if not all_months:
+        return None
+    sorted_months = sorted(all_months)
+    labels = [d.strftime("%Y-%m") for d in sorted_months]
+
+    # 4. Order tickers by inception (earliest at bottom of stack)
+    def _incep_key(t: str):
+        v = incep_lookup.get(t)
+        return v if v is not None else _date(1900, 1, 1)
+    ordered = sorted([t for t in series if series[t]], key=_incep_key)
+
+    # 5. Build datasets
+    datasets = []
+    for i, tk in enumerate(ordered):
+        bare = (tk.split(" ")[0] if tk else tk)
+        color = _GOAL_HISTORY_PALETTE[i % len(_GOAL_HISTORY_PALETTE)]
+        data_pts = [round(series[tk].get(d, 0.0), 2) for d in sorted_months]
+        datasets.append({
+            "label": bare,
+            "ticker": tk,
+            "fund_name": fund_name.get(tk, tk),
+            "data": data_pts,
+            "borderColor": color,
+            "backgroundColor": color + "cc",  # alpha 0.8 hex
+            "fill": True,
+            "tension": 0.25,
+            "pointRadius": 0,
+            "borderWidth": 1.5,
+        })
+
+    # 6. Totals + target line
+    total_series = [round(sum(s["data"][i] for s in datasets), 2) for i in range(len(sorted_months))]
+    # current_aum_m: prefer the already-overridden value from MktMasterData
+    # (MicroSectors ETNs use proprietary share/price data; raw time-series is wrong).
+    try:
+        master_q = (
+            db.query(func.sum(MktMasterData.aum))
+            .filter(
+                MktMasterData.is_rex == True,
+                MktMasterData.market_status == "ACTV",
+                MktMasterData.aum.isnot(None),
+                MktMasterData.ticker.in_(tickers),
+            )
+        )
+        master_total = master_q.scalar()
+        current_total = float(master_total) if master_total else (total_series[-1] if total_series else 0.0)
+    except Exception:
+        current_total = total_series[-1] if total_series else 0.0
+    earliest_inc = min((v for v in incep_lookup.values() if v is not None), default=sorted_months[0])
+
+    return {
+        "slug": spec["slug"],
+        "label": spec["label"],
+        "labels": labels,
+        "datasets": datasets,
+        "total_series": total_series,
+        "current_aum_m": current_total,
+        "ye_2025": spec.get("ye_2025"),
+        "ye_2026_target": spec.get("ye_2026_target"),
+        "n_products": len(datasets),
+        "earliest_inception": earliest_inc.isoformat() if earliest_inc else None,
+        "as_of": as_of.isoformat() if hasattr(as_of, "isoformat") else str(as_of),
+    }

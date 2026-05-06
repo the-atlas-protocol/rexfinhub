@@ -281,7 +281,7 @@ def _chart_rex(df, as_of, label):
 # -----------------------------------------------------------------------
 _COMP_PAL_BRIGHT = ["#3d7ec7", "#e8913a", "#5ea66b", "#9b6dc4", "#d15555", "#4db8a8", "#c47a5a"]
 
-def _chart_comp(df, as_of, label):
+def _chart_comp(df, as_of, label, rex_bottom=False):
     a = df[df.aum > 0].copy()
 
     non_rex = a[(a.months_ago == 0) & (~a.is_rex)].groupby("issuer")["aum"].sum().sort_values(ascending=False)
@@ -295,13 +295,21 @@ def _chart_comp(df, as_of, label):
     a["g"] = a.apply(grp, axis=1)
     piv = a.groupby(["months_ago", "g"])["aum"].sum().unstack(fill_value=0)
 
-    # Stack order: Others at bottom, then competitors small->large, REX on top
     ordered = []
-    if "Others" in piv.columns:
-        ordered.append("Others")
-    ordered.extend([c for c in reversed(top) if c in piv.columns])
-    if "REX" in piv.columns:
-        ordered.append("REX")
+    if rex_bottom:
+        # REX at bottom, then competitors large->small, Others on top
+        if "REX" in piv.columns:
+            ordered.append("REX")
+        ordered.extend([c for c in top if c in piv.columns])
+        if "Others" in piv.columns:
+            ordered.append("Others")
+    else:
+        # Others at bottom, competitors small->large, REX on top
+        if "Others" in piv.columns:
+            ordered.append("Others")
+        ordered.extend([c for c in reversed(top) if c in piv.columns])
+        if "REX" in piv.columns:
+            ordered.append("REX")
     piv = piv[[c for c in ordered if c in piv.columns]]
     piv = piv.sort_index(ascending=False)
     piv.index = [_d(m, as_of) for m in piv.index]
@@ -325,10 +333,15 @@ def _chart_comp(df, as_of, label):
     sp = ax.stackplot(piv_b.index, *[piv_b[c] for c in piv_b.columns],
                       colors=colors, alpha=0.85, zorder=2)
 
-    # Bold top-edge line on REX band so it pops
+    # Bold edge line on REX band so it pops
     if "REX" in piv_b.columns:
-        total = piv_b.sum(axis=1)
-        ax.plot(piv_b.index, total, color=_BLUE, linewidth=2.2, zorder=5)
+        if rex_bottom:
+            # REX is bottom band — outline its top edge (REX value itself)
+            ax.plot(piv_b.index, piv_b["REX"], color=_BLUE, linewidth=2.2, zorder=5)
+        else:
+            # REX is top band — outline the total (top of stack)
+            total = piv_b.sum(axis=1)
+            ax.plot(piv_b.index, total, color=_BLUE, linewidth=2.2, zorder=5)
 
     ax.set_ylabel("AUM ($B)", fontsize=9, fontweight="bold")
     total_max = piv_b.sum(axis=1).max()

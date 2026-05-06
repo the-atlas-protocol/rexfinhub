@@ -4,10 +4,11 @@
 {% block head %}
 <link rel="stylesheet" href="/static/css/autocall.css">
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>document.documentElement.classList.add('ac-fullwidth');</script>
 {% endblock %}
 
 {% block content %}
-<div class="header">
+<div class="ac-page-header">
   <div class="breadcrumb">
     <a href="/">Home</a>
     <span class="sep">/</span>
@@ -15,8 +16,381 @@
     <span class="sep">/</span>
     Autocall Simulator
   </div>
-  <h1>Autocallable Note Simulator</h1>
-  <div class="date">Backtest autocallable notes against historical reference data. Single product or basket of up to 5 references.</div>
+  <div class="ac-page-title-row">
+    <div>
+      <h1>Autocallable Note Simulator</h1>
+      <div class="ac-subtitle">Backtest single or basket autocallables against historical reference data.</div>
+    </div>
+    <div class="ac-page-meta">
+      <span class="ac-data-asof">Data as of <span id="ac-data-asof-date">--</span></span>
+      <button type="button" id="ac-about" class="ac-tool-btn ac-tool-btn-ghost" title="How this tool works + methodology">About</button>
+    </div>
+  </div>
+</div>
+
+<div id="ac-error-banner" class="alert alert-error" style="display:none; margin-bottom:16px;"></div>
+
+<div class="ac-page" id="ac-page">
+  <button type="button" id="ac-sidebar-expand" class="ac-sidebar-expand" title="Show inputs" aria-label="Show inputs">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+
+  <aside class="ac-sidebar" id="ac-sidebar">
+    <div class="ac-sidebar-head">
+      <span class="ac-sidebar-title">Inputs</span>
+      <button type="button" id="ac-present-toggle" class="ac-sidebar-collapse" title="Hide inputs (full-width chart)" aria-label="Hide inputs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+
+    <div class="ac-sidebar-body">
+
+      <!-- ===== References ===== -->
+      <section class="ac-section">
+        <div class="ac-section-title">References <span class="ac-section-hint">up to 5</span></div>
+        <div class="ac-ref-chips" id="ac-ref-chips"></div>
+        <select id="ac-ref-add" class="ac-select ac-ref-add">
+          <option value="">+ Add reference...</option>
+        </select>
+        <select id="ac-ref-1" data-ref-idx="0" style="display:none;"></select>
+        <select id="ac-ref-2" data-ref-idx="1" style="display:none;"></select>
+        <select id="ac-ref-3" data-ref-idx="2" style="display:none;"></select>
+        <select id="ac-ref-4" data-ref-idx="3" style="display:none;"></select>
+        <select id="ac-ref-5" data-ref-idx="4" style="display:none;"></select>
+      </section>
+
+      <!-- ===== Note Structure (combined: tenor / freq / no-call / memory / barriers / coupon) ===== -->
+      <section class="ac-section">
+        <div class="ac-section-title">Note Structure</div>
+        <div class="ac-grid-2">
+          <div class="ac-field" title="Total length of the note in months (typical autocallables are 36-60mo).">
+            <label for="ac-tenor">Tenor (mo)</label>
+            <input type="number" id="ac-tenor" class="ac-input" min="1" step="1" value="60">
+          </div>
+          <div class="ac-field" title="How often the autocall + coupon levels are checked. 1 = monthly.">
+            <label for="ac-obs-freq">Obs Freq (mo)</label>
+            <input type="number" id="ac-obs-freq" class="ac-input" min="1" step="1" value="1">
+          </div>
+          <div class="ac-field" title="Months from issue during which the note CANNOT be autocalled.">
+            <label for="ac-no-call">No-Call (mo)</label>
+            <input type="number" id="ac-no-call" class="ac-input" min="0" step="1" value="12">
+          </div>
+          <div class="ac-field ac-field-toggle">
+            <label for="ac-memory" class="ac-toggle-label" title="ON: missed coupons accumulate, paid in full on next non-missed observation.">
+              <input type="checkbox" id="ac-memory">
+              <span>Memory</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="ac-section-subtitle">Barriers (% of issue level)</div>
+        <div class="ac-grid-3">
+          <div class="ac-field" title="If worst-of >= this % at an observation past the no-call window, the note is called early.">
+            <label for="ac-ac-barrier">Autocall</label>
+            <input type="number" id="ac-ac-barrier" class="ac-input" min="0" step="1" value="100">
+          </div>
+          <div class="ac-field" title="If worst-of >= this %, the coupon is paid for that period.">
+            <label for="ac-coupon-barrier">Coupon</label>
+            <input type="number" id="ac-coupon-barrier" class="ac-input" min="0" step="1" value="60">
+          </div>
+          <div class="ac-field" title="At maturity, if worst-of < this %, principal is impaired 1-for-1 with the loss.">
+            <label for="ac-prot-barrier">Protection</label>
+            <input type="number" id="ac-prot-barrier" class="ac-input" min="0" step="1" value="50">
+          </div>
+        </div>
+
+        <div class="ac-section-subtitle">
+          Coupon
+          <span id="ac-coupon-suggested-tag" class="ac-suggested-tag">SUGGESTED</span>
+          <span id="ac-coupon-loading" class="ac-coupon-loading" style="display:none;" title="Computing BS Monte Carlo par-coupon...">
+            <span class="ac-spinner-tiny"></span>
+          </span>
+        </div>
+        <div class="ac-grid-2">
+          <div class="ac-field">
+            <label for="ac-coupon-rate">Coupon % p.a.</label>
+            <input type="number" id="ac-coupon-rate" class="ac-input" min="0" step="0.1" value="10">
+          </div>
+          <div class="ac-field ac-field-toggle">
+            <label for="ac-coupon-mode" class="ac-toggle-label" title="ON: coupon auto-fills from a vol-based BS Monte Carlo estimate.">
+              <input type="checkbox" id="ac-coupon-mode" checked>
+              <span>Auto</span>
+            </label>
+          </div>
+        </div>
+        <div class="ac-coupon-note">
+          Coupon is a <strong>BS-style estimate</strong>, not a real product price. Real autocallables price from a vol surface + funding curve.
+        </div>
+      </section>
+
+      <!-- ===== Scenario B (compare) ===== -->
+      <section id="ac-scenario-b" class="ac-section ac-section-extra ac-section-b" style="display:none;">
+        <div class="ac-section-title ac-section-title-b">
+          Scenario B
+          <button type="button" class="ac-scenario-remove" data-scenario="b" title="Remove scenario B">×</button>
+        </div>
+        <div class="ac-field ac-field-toggle ac-b-follow-row">
+          <label for="ac-b-follow-a" class="ac-toggle-label" title="ON: B mirrors A's issue date and crisis preset clicks">
+            <input type="checkbox" id="ac-b-follow-a" checked>
+            <span>Issue date follows A</span>
+          </label>
+        </div>
+        <div class="ac-field"><label for="ac-b-ref-1">Reference</label>
+          <select id="ac-b-ref-1" class="ac-select" data-b-ref-idx="0"></select></div>
+        <div class="ac-field"><label for="ac-b-issue">Issue Date (B)</label>
+          <input type="date" id="ac-b-issue" class="ac-input"></div>
+        <div class="ac-grid-2">
+          <div class="ac-field"><label for="ac-b-tenor">Tenor (mo)</label>
+            <input type="number" id="ac-b-tenor" class="ac-input" min="1" step="1" value="60"></div>
+          <div class="ac-field"><label for="ac-b-obs-freq">Obs (mo)</label>
+            <input type="number" id="ac-b-obs-freq" class="ac-input" min="1" step="1" value="1"></div>
+          <div class="ac-field"><label for="ac-b-no-call">No-Call (mo)</label>
+            <input type="number" id="ac-b-no-call" class="ac-input" min="0" step="1" value="12"></div>
+          <div class="ac-field ac-field-toggle">
+            <label for="ac-b-memory" class="ac-toggle-label">
+              <input type="checkbox" id="ac-b-memory">
+              <span>Memory</span>
+            </label>
+          </div>
+        </div>
+        <div class="ac-grid-3">
+          <div class="ac-field"><label for="ac-b-ac-barrier">Autocall</label>
+            <input type="number" id="ac-b-ac-barrier" class="ac-input" min="0" step="1" value="100"></div>
+          <div class="ac-field"><label for="ac-b-coupon-barrier">Coupon</label>
+            <input type="number" id="ac-b-coupon-barrier" class="ac-input" min="0" step="1" value="60"></div>
+          <div class="ac-field"><label for="ac-b-prot-barrier">Protection</label>
+            <input type="number" id="ac-b-prot-barrier" class="ac-input" min="0" step="1" value="50"></div>
+        </div>
+        <div class="ac-field">
+          <label for="ac-b-coupon-rate">Coupon % p.a. (B) <span id="ac-b-coupon-suggested-tag" class="ac-suggested-tag">SUGGESTED</span></label>
+          <input type="number" id="ac-b-coupon-rate" class="ac-input" min="0" step="0.1" value="10">
+        </div>
+        <button type="button" id="ac-b-mirror-a" class="ac-tool-btn ac-b-mirror-btn" title="Snapshot A's params into B">Mirror A's params</button>
+      </section>
+
+      <!-- ===== Scenario C (compare 3rd) ===== -->
+      <section id="ac-scenario-c" class="ac-section ac-section-extra ac-section-c" style="display:none;">
+        <div class="ac-section-title ac-section-title-c">
+          Scenario C
+          <button type="button" class="ac-scenario-remove" data-scenario="c" title="Remove scenario C">×</button>
+        </div>
+        <div class="ac-field ac-field-toggle">
+          <label for="ac-c-follow-a" class="ac-toggle-label">
+            <input type="checkbox" id="ac-c-follow-a" checked>
+            <span>Issue date follows A</span>
+          </label>
+        </div>
+        <div class="ac-field"><label for="ac-c-ref-1">Reference</label>
+          <select id="ac-c-ref-1" class="ac-select" data-c-ref-idx="0"></select></div>
+        <div class="ac-field"><label for="ac-c-issue">Issue Date (C)</label>
+          <input type="date" id="ac-c-issue" class="ac-input"></div>
+        <div class="ac-grid-2">
+          <div class="ac-field"><label for="ac-c-tenor">Tenor (mo)</label>
+            <input type="number" id="ac-c-tenor" class="ac-input" min="1" step="1" value="60"></div>
+          <div class="ac-field"><label for="ac-c-obs-freq">Obs (mo)</label>
+            <input type="number" id="ac-c-obs-freq" class="ac-input" min="1" step="1" value="1"></div>
+          <div class="ac-field"><label for="ac-c-no-call">No-Call (mo)</label>
+            <input type="number" id="ac-c-no-call" class="ac-input" min="0" step="1" value="12"></div>
+          <div class="ac-field ac-field-toggle">
+            <label for="ac-c-memory" class="ac-toggle-label">
+              <input type="checkbox" id="ac-c-memory">
+              <span>Memory</span>
+            </label>
+          </div>
+        </div>
+        <div class="ac-grid-3">
+          <div class="ac-field"><label for="ac-c-ac-barrier">Autocall</label>
+            <input type="number" id="ac-c-ac-barrier" class="ac-input" min="0" step="1" value="100"></div>
+          <div class="ac-field"><label for="ac-c-coupon-barrier">Coupon</label>
+            <input type="number" id="ac-c-coupon-barrier" class="ac-input" min="0" step="1" value="60"></div>
+          <div class="ac-field"><label for="ac-c-prot-barrier">Protection</label>
+            <input type="number" id="ac-c-prot-barrier" class="ac-input" min="0" step="1" value="50"></div>
+        </div>
+        <div class="ac-field">
+          <label for="ac-c-coupon-rate">Coupon % p.a. (C) <span id="ac-c-coupon-suggested-tag" class="ac-suggested-tag">SUGGESTED</span></label>
+          <input type="number" id="ac-c-coupon-rate" class="ac-input" min="0" step="0.1" value="10">
+        </div>
+        <button type="button" id="ac-c-mirror-a" class="ac-tool-btn ac-b-mirror-btn" title="Snapshot A's params into C">Mirror A's params</button>
+      </section>
+
+      <!-- ===== Add scenario ===== -->
+      <section class="ac-section ac-section-add-scenario">
+        <button type="button" id="ac-add-scenario" class="ac-add-scenario-btn" title="Add a comparison scenario (up to 3 total)">+ Add Scenario</button>
+      </section>
+
+    </div>
+  </aside>
+
+  <main class="ac-main">
+
+    <div class="ac-empty-state" id="ac-empty-state" style="display:none;">
+      <div class="ac-empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-7"/></svg>
+      </div>
+      <div class="ac-empty-title">Pick a reference to begin</div>
+      <div class="ac-empty-text">Choose at least one index from the sidebar. The default scenario backtests <strong>BMAXUS Index</strong> with a 5y, 100/60/50 autocallable.</div>
+    </div>
+
+    <div class="ac-chart-wrap" id="ac-chart-wrap">
+      <div id="ac-chart" class="ac-chart"></div>
+    </div>
+
+    <!-- ===== Timeline strip (under chart) ===== -->
+    <div class="ac-timeline-strip" id="ac-timeline-strip">
+      <div class="ac-timeline-strip-row">
+        <div class="ac-field ac-field-issue">
+          <label for="ac-issue-typed">Issue Date</label>
+          <input type="date" id="ac-issue-typed" class="ac-input ac-issue-typed">
+        </div>
+        <div class="ac-field ac-field-presets">
+          <label for="ac-presets-select">Crisis Preset</label>
+          <select id="ac-presets-select" class="ac-select"><option value="">— Pick one —</option></select>
+        </div>
+        <div class="ac-field ac-field-pad">
+          <label for="ac-pad-before">Pad Before (mo)</label>
+          <input type="number" id="ac-pad-before" class="ac-input" min="0" step="1" value="3">
+        </div>
+        <div class="ac-field ac-field-pad">
+          <label for="ac-pad-after">Pad After (mo)</label>
+          <input type="number" id="ac-pad-after" class="ac-input" min="0" step="1" value="3">
+        </div>
+      </div>
+      <div class="ac-timeline-scrub-row">
+        <input type="range" id="ac-issue-scrub" class="ac-scrub" min="0" max="0" step="1" value="0">
+        <div class="ac-scrub-bounds">
+          <span id="ac-scrub-min">--</span>
+          <span id="ac-scrub-max">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ac-results">
+      <div class="ac-results-grid" id="ac-results-grid">
+        <div class="ac-results-col" data-scenario="a">
+          <div class="ac-scenario-header" data-only-compare>Scenario A</div>
+          <div class="ac-results-row">
+            <div class="ac-status-block">
+              <div class="ac-status-label">Outcome</div>
+              <div id="ac-outcome" class="ac-status-value">--</div>
+              <div id="ac-outcome-date" class="ac-status-sub">--</div>
+            </div>
+            <div class="kpi-row ac-kpi-row">
+              <div class="kpi"><div class="num" id="ac-kpi-paid">0</div><div class="label">Coupons Paid</div></div>
+              <div class="kpi"><div class="num" id="ac-kpi-missed">0</div><div class="label">Coupons Missed</div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-kpi-paid-pct">--</div><div class="label">Cpns Paid % <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi"><div class="num" id="ac-kpi-principal">100%</div><div class="label">Principal</div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-kpi-total">--</div><div class="label">Total Ret <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-kpi-annualized">--</div><div class="label">Ann. Ret <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi"><div class="num" id="ac-kpi-obs">0</div><div class="label">Obs</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="ac-results-col ac-results-col-b" data-scenario="b" style="display:none;">
+          <div class="ac-scenario-header">Scenario B</div>
+          <div class="ac-results-row">
+            <div class="ac-status-block">
+              <div class="ac-status-label">Outcome</div>
+              <div id="ac-b-outcome" class="ac-status-value">--</div>
+              <div id="ac-b-outcome-date" class="ac-status-sub">--</div>
+            </div>
+            <div class="kpi-row ac-kpi-row">
+              <div class="kpi"><div class="num" id="ac-b-kpi-paid">0</div><div class="label">Coupons Paid</div></div>
+              <div class="kpi"><div class="num" id="ac-b-kpi-missed">0</div><div class="label">Coupons Missed</div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-b-kpi-paid-pct">--</div><div class="label">Cpns Paid % <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi"><div class="num" id="ac-b-kpi-principal">100%</div><div class="label">Principal</div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-b-kpi-total">--</div><div class="label">Total Ret <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-b-kpi-annualized">--</div><div class="label">Ann. Ret <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi"><div class="num" id="ac-b-kpi-obs">0</div><div class="label">Obs</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="ac-results-col ac-results-col-c" data-scenario="c" style="display:none;">
+          <div class="ac-scenario-header">Scenario C</div>
+          <div class="ac-results-row">
+            <div class="ac-status-block">
+              <div class="ac-status-label">Outcome</div>
+              <div id="ac-c-outcome" class="ac-status-value">--</div>
+              <div id="ac-c-outcome-date" class="ac-status-sub">--</div>
+            </div>
+            <div class="kpi-row ac-kpi-row">
+              <div class="kpi"><div class="num" id="ac-c-kpi-paid">0</div><div class="label">Coupons Paid</div></div>
+              <div class="kpi"><div class="num" id="ac-c-kpi-missed">0</div><div class="label">Coupons Missed</div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-c-kpi-paid-pct">--</div><div class="label">Cpns Paid % <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi"><div class="num" id="ac-c-kpi-principal">100%</div><div class="label">Principal</div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-c-kpi-total">--</div><div class="label">Total Ret <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-c-kpi-annualized">--</div><div class="label">Ann. Ret <span class="ac-tag-mini">est</span></div></div>
+              <div class="kpi"><div class="num" id="ac-c-kpi-obs">0</div><div class="label">Obs</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="ac-vs-pill" class="ac-vs-pill" style="display:none;"></div>
+    </div>
+
+    <div class="ac-tabs-wrap">
+      <div class="ac-tabs" role="tablist">
+        <button type="button" class="ac-tab ac-tab-active" data-tab="lifespan" role="tab" aria-selected="true">Lifespan</button>
+        <button type="button" class="ac-tab" data-tab="distribution" role="tab" aria-selected="false">Historical Outcomes</button>
+      </div>
+
+      <div class="ac-tab-panel" data-tab-panel="lifespan">
+        <div class="ac-log-toolbar">
+          <div class="ac-log-title">Observation Log</div>
+          <button type="button" id="ac-log-csv" class="ac-tool-btn">Download CSV</button>
+        </div>
+        <table class="ac-log-table ac-log-centered" id="ac-log-table">
+          <thead>
+            <tr>
+              <th data-sort="k" data-type="num" class="ac-sort-asc">#</th>
+              <th data-sort="obs_date" data-type="date">Date</th>
+              <th data-sort="scenario" data-type="str" data-only-compare>Scenario</th>
+              <th data-sort="worst_perf" data-type="num" id="ac-log-perf-label">Performance %</th>
+              <th data-sort="status" data-type="str">Status</th>
+              <th data-sort="coupon_paid_pct" data-type="num">Coupon paid %</th>
+              <th data-sort="memory_bank_pct" data-type="num">Memory bank %</th>
+            </tr>
+          </thead>
+          <tbody id="ac-log-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="ac-tab-panel" data-tab-panel="distribution" style="display:none;">
+        <div class="ac-dist-explainer">
+          <strong>What is this?</strong> If this exact note had been issued every business day in history with the current params, what would the outcomes look like? Use it to gut-check whether your barriers and tenor produce a product that calls early most of the time, vs. one that frequently rides to maturity.
+          <em class="ac-dist-explainer-note">Auto-suggest mode recomputes the coupon at each historical issue date based on that date's vol regime — slower (~10s), but realistic.</em>
+        </div>
+        <div class="ac-dist-toolbar">
+          <button type="button" id="ac-sweep-run" class="ac-tool-btn ac-tool-btn-primary">Run sweep</button>
+          <span id="ac-sweep-spinner" class="ac-spinner" style="display:none;"></span>
+          <span id="ac-sweep-cached" class="ac-cached-badge" style="display:none;">cached</span>
+          <span id="ac-sweep-err" class="ac-sweep-err"></span>
+        </div>
+        <div id="ac-sweep-result" class="ac-sweep-result" style="display:none;">
+          <div class="kpi-row ac-sweep-kpi-row">
+            <div class="kpi"><div class="num" id="ac-sweep-n">0</div><div class="label">Sample size</div></div>
+            <div class="kpi"><div class="num" id="ac-sweep-mean">--</div><div class="label">Mean total ret</div></div>
+            <div class="kpi"><div class="num" id="ac-sweep-median">--</div><div class="label">Median total ret</div></div>
+            <div class="kpi"><div class="num" id="ac-sweep-p10">--</div><div class="label">P10</div></div>
+            <div class="kpi"><div class="num" id="ac-sweep-p90">--</div><div class="label">P90</div></div>
+            <div class="kpi"><div class="num" id="ac-sweep-mean-ann">--</div><div class="label">Mean annualized</div></div>
+          </div>
+          <div class="ac-coupon-summary" id="ac-coupon-summary" style="display:none;">
+            <span class="ac-coupon-summary-label">Suggested coupon range across history:</span>
+            <span class="ac-coupon-summary-vals" id="ac-coupon-summary-vals">--</span>
+          </div>
+          <div class="ac-sweep-section">
+            <div class="ac-sweep-section-title">Outcome Buckets</div>
+            <div class="ac-bucket-bars" id="ac-bucket-bars"></div>
+          </div>
+          <div class="ac-sweep-section">
+            <div class="ac-sweep-section-title">Total Return Distribution</div>
+            <div id="ac-hist-chart" class="ac-hist-chart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <div id="ac-about-modal" class="ac-modal" style="display:none;" role="dialog" aria-modal="true">
@@ -27,10 +401,10 @@
     </div>
     <div class="ac-modal-body">
       <h4>What it does</h4>
-      <p>For any autocallable note specification (references, barriers, tenor, memory) and any historical issue date, this tool replays what the actual cashflows would have been against historical price data. It then prices the &ldquo;par&rdquo; coupon &mdash; the rate that makes the note worth its issue price under risk-neutral assumptions.</p>
+      <p>For any autocallable note specification (references, barriers, tenor, memory) and any historical issue date, this tool replays what the actual cashflows would have been against historical price data, and prices the &ldquo;par&rdquo; coupon &mdash; the rate that makes the note worth its issue price under risk-neutral assumptions.</p>
 
       <h4>How the suggested coupon is computed</h4>
-      <p>We run a 10,000-path Black&ndash;Scholes Monte Carlo simulation of the references under risk-neutral GBM dynamics, replay the autocallable cashflows on each path, and bisect on the coupon rate to find the par-pricing coupon (PV = 100). Inputs:</p>
+      <p>10,000-path Black&ndash;Scholes Monte Carlo simulation under risk-neutral GBM dynamics, replay autocallable cashflows on each path, bisect on coupon rate to find PV = 100. Inputs:</p>
       <ul>
         <li><strong>Volatility:</strong> 252-day realized log-return stdev of each reference, ending on the issue date.</li>
         <li><strong>Correlation:</strong> Pearson correlation matrix from the same return panel (Cholesky-factored, PSD-repaired if needed).</li>
@@ -38,330 +412,13 @@
         <li><strong>Dividend yield:</strong> 0% for total-return indices, 2% for SPX/NDX price-return.</li>
         <li><strong>Funding spread:</strong> 0 (issuer-specific in reality; indicative pricing only).</li>
       </ul>
-      <p>During fast scrub interactions, a vol-based heuristic shows an instant estimate; the BS coupon overwrites within ~1s after you stop.</p>
+      <p>During fast scrub interactions a vol heuristic shows an instant estimate; the BS coupon overwrites within ~1s after you stop.</p>
 
       <h4>What this is NOT</h4>
-      <p>This is not a real product price. Real autocallables are priced by issuers using calibrated vol surfaces, term-structure of rates, funding curves, and bid-ask. Treat suggested coupons as <em>directional indicative</em> values, not quotes. Historical-Outcomes sweeps use the faster vol heuristic for speed.</p>
+      <p>Not a real product price. Real autocallables are priced by issuers using calibrated vol surfaces, term-structure of rates, funding curves, and bid-ask. Treat suggested coupons as <em>directional indicative</em> values, not quotes.</p>
 
       <h4>Data</h4>
-      <p>Daily index closes for 26 references (SPX, NDX, BMAXUS, MerQube vol-targeted, BBG bond TR, etc.). Source: Bloomberg, exported manually, refreshed monthly. Pre-inception cells are skipped via LOCF.</p>
-    </div>
-  </div>
-</div>
-
-<div id="ac-error-banner" class="alert alert-error" style="display:none; margin-bottom:16px;"></div>
-
-<div class="ac-data-asof">Data as of <span id="ac-data-asof-date">--</span></div>
-
-<div class="ac-controls">
-  <div class="ac-row ac-row-refs">
-    <div class="ac-refs-grid">
-      <div class="ac-field">
-        <label for="ac-ref-1">Reference 1 <span class="ac-required">*</span></label>
-        <select id="ac-ref-1" class="ac-select" data-ref-idx="0"></select>
-      </div>
-      <div class="ac-field">
-        <label for="ac-ref-2">Reference 2</label>
-        <select id="ac-ref-2" class="ac-select" data-ref-idx="1"></select>
-      </div>
-      <div class="ac-field">
-        <label for="ac-ref-3">Reference 3</label>
-        <select id="ac-ref-3" class="ac-select" data-ref-idx="2"></select>
-      </div>
-      <div class="ac-field">
-        <label for="ac-ref-4">Reference 4</label>
-        <select id="ac-ref-4" class="ac-select" data-ref-idx="3"></select>
-      </div>
-      <div class="ac-field">
-        <label for="ac-ref-5">Reference 5</label>
-        <select id="ac-ref-5" class="ac-select" data-ref-idx="4"></select>
-      </div>
-    </div>
-  </div>
-
-  <div class="ac-row ac-row-timeline">
-    <div class="ac-timeline-main">
-      <div class="ac-scrub-header">
-        <label for="ac-issue-scrub">Issue Date</label>
-        <input type="date" id="ac-issue-typed" class="ac-issue-typed" title="Type any business day; it will snap to the nearest available date">
-      </div>
-      <input type="range" id="ac-issue-scrub" class="ac-scrub" min="0" max="0" step="1" value="0">
-      <div class="ac-scrub-bounds">
-        <span id="ac-scrub-min"></span>
-        <span id="ac-scrub-max"></span>
-      </div>
-    </div>
-    <div class="ac-pads">
-      <div class="ac-field ac-field-compact">
-        <label for="ac-pad-before">Pad Before (mo)</label>
-        <input type="number" id="ac-pad-before" class="ac-input" min="0" step="1" value="3">
-      </div>
-      <div class="ac-field ac-field-compact">
-        <label for="ac-pad-after">Pad After (mo)</label>
-        <input type="number" id="ac-pad-after" class="ac-input" min="0" step="1" value="3">
-      </div>
-    </div>
-  </div>
-
-  <div class="ac-row ac-row-presets">
-    <div class="ac-presets-label">Crisis Presets</div>
-    <div id="ac-presets" class="ac-presets"></div>
-    <div class="ac-toolbar">
-      <button type="button" id="ac-compare-toggle" class="ac-tool-btn" title="Show a second scenario alongside this one">Compare</button>
-      <button type="button" id="ac-present-toggle" class="ac-tool-btn" title="Hide structure inputs for a clean read of the chart">Hide Inputs</button>
-      <button type="button" id="ac-reset" class="ac-tool-btn" title="Reset all inputs to defaults (BMAXUS, 60mo, 100/60/50 barriers)">Reset</button>
-      <button type="button" id="ac-about" class="ac-tool-btn" title="How this tool works + methodology">About</button>
-      <button type="button" id="ac-copy-link" class="ac-tool-btn" title="Copy a URL with your current scenario — paste anywhere to reproduce this view">Copy Link</button>
-      <span id="ac-copy-link-msg" class="ac-tool-msg"></span>
-    </div>
-  </div>
-
-  <div class="ac-row ac-row-params">
-    <div class="ac-params-group">
-      <div class="ac-params-group-label">Note Structure</div>
-      <div class="ac-params-grid">
-        <div class="ac-field" title="Total length of the note in months (typical autocallables are 36-60mo).">
-          <label for="ac-tenor">Tenor (mo)</label>
-          <input type="number" id="ac-tenor" class="ac-input" min="1" step="1" value="60">
-        </div>
-        <div class="ac-field" title="How often the autocall + coupon levels are checked (1 = monthly).">
-          <label for="ac-obs-freq">Obs Freq (mo)</label>
-          <input type="number" id="ac-obs-freq" class="ac-input" min="1" step="1" value="1">
-        </div>
-        <div class="ac-field" title="Months from issue during which the note CANNOT be autocalled, even if the reference is above the autocall barrier. Coupons can still pay during this window.">
-          <label for="ac-no-call">No-Call (mo)</label>
-          <input type="number" id="ac-no-call" class="ac-input" min="0" step="1" value="12">
-        </div>
-        <div class="ac-field ac-field-toggle">
-          <label for="ac-memory" class="ac-toggle-label" title="When ON, missed coupons accumulate. The next observation that's above the coupon barrier pays the current coupon plus everything previously skipped.">
-            <input type="checkbox" id="ac-memory">
-            <span>Memory Coupon</span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <div class="ac-params-group">
-      <div class="ac-params-group-label">Barriers</div>
-      <div class="ac-params-grid">
-        <div class="ac-field" title="If the worst-of reference is at or above this % of its issue level on an observation, the note is called early and pays par + the coupon. Default 100%.">
-          <label for="ac-ac-barrier">Autocall %</label>
-          <input type="number" id="ac-ac-barrier" class="ac-input" min="0" step="1" value="100">
-        </div>
-        <div class="ac-field" title="On each observation, if the worst-of reference is at or above this % of issue, the coupon is paid. Lower barrier = more coupons paid. Default 60%.">
-          <label for="ac-coupon-barrier">Coupon %</label>
-          <input type="number" id="ac-coupon-barrier" class="ac-input" min="0" step="1" value="60">
-        </div>
-        <div class="ac-field" title="At maturity, if the worst-of reference is BELOW this % of issue, principal is impaired 1-for-1 with the reference's loss. Default 50% means full principal protection unless the worst ref is down >50%.">
-          <label for="ac-prot-barrier">Protection %</label>
-          <input type="number" id="ac-prot-barrier" class="ac-input" min="0" step="1" value="50">
-        </div>
-      </div>
-    </div>
-
-    <div class="ac-params-group ac-params-group-coupon">
-      <div class="ac-params-group-label">
-        Coupon
-        <span id="ac-coupon-suggested-tag" class="ac-suggested-tag">SUGGESTED</span>
-      </div>
-      <div class="ac-params-grid">
-        <div class="ac-field ac-field-coupon">
-          <label for="ac-coupon-rate">Coupon % p.a.</label>
-          <input type="number" id="ac-coupon-rate" class="ac-input" min="0" step="0.1" value="10">
-        </div>
-        <div class="ac-field ac-field-toggle">
-          <label for="ac-coupon-mode" class="ac-toggle-label" title="When ON, coupon auto-fills from a vol-based estimate. Recomputes as inputs change.">
-            <input type="checkbox" id="ac-coupon-mode" checked>
-            <span>Auto-suggest</span>
-          </label>
-        </div>
-      </div>
-      <div class="ac-coupon-note">
-        Coupon is a <strong>vol-based estimate</strong>, not a real product price. Real autocallables are priced from a vol surface + funding curve + correlation matrix. Use as a scenario tool, not a quote.
-      </div>
-    </div>
-  </div>
-
-  <div id="ac-scenario-b" class="ac-scenario-b" style="display:none;">
-    <div class="ac-scenario-b-header">Scenario B</div>
-    <div class="ac-row ac-row-refs">
-      <div class="ac-refs-grid ac-refs-grid-b">
-        <div class="ac-field">
-          <label for="ac-b-ref-1">Reference 1 <span class="ac-required">*</span></label>
-          <select id="ac-b-ref-1" class="ac-select" data-b-ref-idx="0"></select>
-        </div>
-        <div class="ac-field">
-          <label for="ac-b-issue">Issue Date</label>
-          <input type="date" id="ac-b-issue" class="ac-input">
-        </div>
-      </div>
-    </div>
-    <div class="ac-row ac-row-params">
-      <div class="ac-params-group">
-        <div class="ac-params-group-label">Note Structure (B)</div>
-        <div class="ac-params-grid">
-          <div class="ac-field">
-            <label for="ac-b-tenor">Tenor (mo)</label>
-            <input type="number" id="ac-b-tenor" class="ac-input" min="1" step="1" value="60">
-          </div>
-          <div class="ac-field">
-            <label for="ac-b-obs-freq">Obs Freq (mo)</label>
-            <input type="number" id="ac-b-obs-freq" class="ac-input" min="1" step="1" value="1">
-          </div>
-          <div class="ac-field">
-            <label for="ac-b-no-call">No-Call (mo)</label>
-            <input type="number" id="ac-b-no-call" class="ac-input" min="0" step="1" value="12">
-          </div>
-          <div class="ac-field ac-field-toggle">
-            <label for="ac-b-memory" class="ac-toggle-label">
-              <input type="checkbox" id="ac-b-memory">
-              <span>Memory Coupon</span>
-            </label>
-          </div>
-        </div>
-      </div>
-      <div class="ac-params-group">
-        <div class="ac-params-group-label">Barriers (B)</div>
-        <div class="ac-params-grid">
-          <div class="ac-field">
-            <label for="ac-b-ac-barrier">Autocall %</label>
-            <input type="number" id="ac-b-ac-barrier" class="ac-input" min="0" step="1" value="100">
-          </div>
-          <div class="ac-field">
-            <label for="ac-b-coupon-barrier">Coupon %</label>
-            <input type="number" id="ac-b-coupon-barrier" class="ac-input" min="0" step="1" value="60">
-          </div>
-          <div class="ac-field">
-            <label for="ac-b-prot-barrier">Protection %</label>
-            <input type="number" id="ac-b-prot-barrier" class="ac-input" min="0" step="1" value="50">
-          </div>
-        </div>
-      </div>
-      <div class="ac-params-group ac-params-group-coupon">
-        <div class="ac-params-group-label">
-          Coupon (B)
-          <span id="ac-b-coupon-suggested-tag" class="ac-suggested-tag">SUGGESTED</span>
-        </div>
-        <div class="ac-params-grid">
-          <div class="ac-field ac-field-coupon">
-            <label for="ac-b-coupon-rate">Coupon % p.a.</label>
-            <input type="number" id="ac-b-coupon-rate" class="ac-input" min="0" step="0.1" value="10">
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="ac-chart-wrap">
-  <div id="ac-chart" class="ac-chart"></div>
-</div>
-
-<div class="ac-results">
-  <div class="ac-results-grid">
-    <div class="ac-results-col" data-scenario="a">
-      <div class="ac-scenario-header" data-only-compare>Scenario A</div>
-      <div class="ac-results-row">
-        <div class="ac-status-block">
-          <div class="ac-status-label">Outcome</div>
-          <div id="ac-outcome" class="ac-status-value">--</div>
-          <div id="ac-outcome-date" class="ac-status-sub">--</div>
-        </div>
-        <div class="kpi-row ac-kpi-row">
-          <div class="kpi"><div class="num" id="ac-kpi-paid">0</div><div class="label">Coupons Paid</div></div>
-          <div class="kpi"><div class="num" id="ac-kpi-missed">0</div><div class="label">Coupons Missed</div></div>
-          <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-kpi-paid-pct">--</div><div class="label">Cpns Paid % <span class="ac-tag-mini">est</span></div></div>
-          <div class="kpi"><div class="num" id="ac-kpi-principal">100%</div><div class="label">Principal</div></div>
-          <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-kpi-total">--</div><div class="label">Total Ret <span class="ac-tag-mini">est</span></div></div>
-          <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-kpi-annualized">--</div><div class="label">Ann. Ret <span class="ac-tag-mini">est</span></div></div>
-          <div class="kpi"><div class="num" id="ac-kpi-obs">0</div><div class="label">Obs</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="ac-results-col ac-results-col-b" data-scenario="b" style="display:none;">
-      <div class="ac-scenario-header">Scenario B</div>
-      <div class="ac-results-row">
-        <div class="ac-status-block">
-          <div class="ac-status-label">Outcome</div>
-          <div id="ac-b-outcome" class="ac-status-value">--</div>
-          <div id="ac-b-outcome-date" class="ac-status-sub">--</div>
-        </div>
-        <div class="kpi-row ac-kpi-row">
-          <div class="kpi"><div class="num" id="ac-b-kpi-paid">0</div><div class="label">Coupons Paid</div></div>
-          <div class="kpi"><div class="num" id="ac-b-kpi-missed">0</div><div class="label">Coupons Missed</div></div>
-          <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-b-kpi-paid-pct">--</div><div class="label">Cpns Paid % <span class="ac-tag-mini">est</span></div></div>
-          <div class="kpi"><div class="num" id="ac-b-kpi-principal">100%</div><div class="label">Principal</div></div>
-          <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-b-kpi-total">--</div><div class="label">Total Ret <span class="ac-tag-mini">est</span></div></div>
-          <div class="kpi ac-kpi-coupon-pct" data-coupon-only><div class="num" id="ac-b-kpi-annualized">--</div><div class="label">Ann. Ret <span class="ac-tag-mini">est</span></div></div>
-          <div class="kpi"><div class="num" id="ac-b-kpi-obs">0</div><div class="label">Obs</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="ac-vs-pill" class="ac-vs-pill" style="display:none;"></div>
-</div>
-
-<div class="ac-tabs-wrap">
-  <div class="ac-tabs" role="tablist">
-    <button type="button" class="ac-tab ac-tab-active" data-tab="lifespan" role="tab" aria-selected="true">Lifespan</button>
-    <button type="button" class="ac-tab" data-tab="distribution" role="tab" aria-selected="false">Historical Outcomes</button>
-  </div>
-
-  <div class="ac-tab-panel" data-tab-panel="lifespan">
-    <div class="ac-log-toolbar">
-      <div class="ac-log-title">Observation Log</div>
-      <button type="button" id="ac-log-csv" class="ac-tool-btn">Download CSV</button>
-    </div>
-    <div class="ac-log-scroll">
-      <table class="ac-log-table ac-log-centered" id="ac-log-table">
-        <thead>
-          <tr>
-            <th data-sort="k" data-type="num" class="ac-sort-asc">#</th>
-            <th data-sort="obs_date" data-type="date">Date</th>
-            <th data-sort="scenario" data-type="str" data-only-compare>Scenario</th>
-            <th data-sort="worst_perf" data-type="num" id="ac-log-perf-label">Performance %</th>
-            <th data-sort="status" data-type="str">Status</th>
-            <th data-sort="coupon_paid_pct" data-type="num">Coupon paid %</th>
-            <th data-sort="memory_bank_pct" data-type="num">Memory bank %</th>
-          </tr>
-        </thead>
-        <tbody id="ac-log-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="ac-tab-panel" data-tab-panel="distribution" style="display:none;">
-    <div class="ac-dist-explainer">
-      <strong>What is this?</strong> If this exact note had been issued every business day in history with the current params, what would the outcomes look like? Use it to gut-check whether your barriers and tenor produce a product that calls early most of the time, vs. one that frequently rides to maturity.
-      <em class="ac-dist-explainer-note">Auto-suggest mode recomputes the coupon at each historical issue date based on that date's vol regime — slower (~10s), but realistic.</em>
-    </div>
-    <div class="ac-dist-toolbar">
-      <button type="button" id="ac-sweep-run" class="ac-tool-btn ac-tool-btn-primary">Run sweep</button>
-      <span id="ac-sweep-spinner" class="ac-spinner" style="display:none;"></span>
-      <span id="ac-sweep-cached" class="ac-cached-badge" style="display:none;">cached</span>
-      <span id="ac-sweep-err" class="ac-sweep-err"></span>
-    </div>
-    <div id="ac-sweep-result" class="ac-sweep-result" style="display:none;">
-      <div class="kpi-row ac-sweep-kpi-row">
-        <div class="kpi"><div class="num" id="ac-sweep-n">0</div><div class="label">Sample size</div></div>
-        <div class="kpi"><div class="num" id="ac-sweep-mean">--</div><div class="label">Mean total ret</div></div>
-        <div class="kpi"><div class="num" id="ac-sweep-median">--</div><div class="label">Median total ret</div></div>
-        <div class="kpi"><div class="num" id="ac-sweep-p10">--</div><div class="label">P10</div></div>
-        <div class="kpi"><div class="num" id="ac-sweep-p90">--</div><div class="label">P90</div></div>
-        <div class="kpi"><div class="num" id="ac-sweep-mean-ann">--</div><div class="label">Mean annualized</div></div>
-      </div>
-      <div class="ac-coupon-summary" id="ac-coupon-summary" style="display:none;">
-        <span class="ac-coupon-summary-label">Suggested coupon range across history:</span>
-        <span class="ac-coupon-summary-vals" id="ac-coupon-summary-vals">--</span>
-      </div>
-      <div class="ac-sweep-section">
-        <div class="ac-sweep-section-title">Outcome Buckets</div>
-        <div class="ac-bucket-bars" id="ac-bucket-bars"></div>
-      </div>
-      <div class="ac-sweep-section">
-        <div class="ac-sweep-section-title">Total Return Distribution</div>
-        <div id="ac-hist-chart" class="ac-hist-chart"></div>
-      </div>
+      <p>Daily index closes for 26 references (SPX, NDX, BMAXUS, MerQube vol-targeted, BBG bond TR, etc.). Source: Bloomberg, refreshed monthly.</p>
     </div>
   </div>
 </div>
