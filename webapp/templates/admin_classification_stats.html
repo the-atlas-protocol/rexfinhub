@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Classification Stats — REX Admin{% endblock %}
+
+{% block content %}
+<style>
+.cs-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cs-header h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0; }
+.cs-back { font-size: 13px; color: #2563eb; text-decoration: none; }
+.cs-back:hover { text-decoration: underline; }
+
+/* Coverage KPIs */
+.cs-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.cs-kpi {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.cs-kpi.accent-new { border-top: 3px solid #059669; }
+.cs-kpi.accent-legacy { border-top: 3px solid #d97706; }
+.cs-kpi-value { font-size: 26px; font-weight: 700; color: #0f172a; font-variant-numeric: tabular-nums; }
+.cs-kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; margin-top: 4px; }
+.cs-kpi-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+/* Section headers */
+.cs-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  padding-left: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  border-left: 3px solid #2563eb;
+}
+.cs-section h2 { font-size: 15px; font-weight: 600; color: #0f172a; margin: 0; }
+.cs-section-note { font-size: 12px; color: #94a3b8; }
+
+/* Table */
+.cs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.cs-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.cs-table th.num { text-align: right; }
+.cs-table td {
+  padding: 7px 10px;
+  color: #334155;
+  border-bottom: 1px solid #f8fafc;
+  vertical-align: middle;
+}
+.cs-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cs-table tbody tr:hover { background: #f8fafc; }
+.cs-table .bucket-name { font-weight: 600; color: #0f172a; }
+
+/* Bar fill */
+.cs-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cs-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 60px;
+}
+.cs-bar-fill { height: 100%; border-radius: 3px; }
+.cs-bar-pct { font-size: 11px; color: #64748b; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* REX vs competitor badge */
+.cs-rex { color: #059669; font-weight: 700; }
+.cs-comp { color: #64748b; }
+
+/* AUM formatting */
+.cs-aum { color: #334155; font-variant-numeric: tabular-nums; }
+</style>
+
+<div class="cs-header">
+  <h1>Classification Stats</h1>
+  <a href="/admin/" class="cs-back">&larr; Back to Admin</a>
+</div>
+
+<!-- ===== COVERAGE KPIs ===== -->
+<div class="cs-kpis">
+  <div class="cs-kpi accent-new">
+    <div class="cs-kpi-value">{{ coverage.pct }}%</div>
+    <div class="cs-kpi-label">New Taxonomy Coverage</div>
+    <div class="cs-kpi-sub">{{ "{:,}".format(coverage.classified) }} / {{ "{:,}".format(coverage.total) }} active funds</div>
+  </div>
+  <div class="cs-kpi accent-legacy">
+    <div class="cs-kpi-value">{{ coverage.legacy_pct }}%</div>
+    <div class="cs-kpi-label">Legacy (etp_category) Coverage</div>
+    <div class="cs-kpi-sub">{{ "{:,}".format(coverage.legacy_classified) }} / {{ "{:,}".format(coverage.total) }} active funds</div>
+  </div>
+  <div class="cs-kpi">
+    <div class="cs-kpi-value">{{ "{:,}".format(coverage.total) }}</div>
+    <div class="cs-kpi-label">Total Active Funds</div>
+    <div class="cs-kpi-sub">market_status = ACTV</div>
+  </div>
+</div>
+
+{% macro fmt_aum(v) -%}
+  {%- if v is none or v == 0 -%}—
+  {%- elif v >= 1000 -%}${{ "%.1f"|format(v / 1000) }}B
+  {%- else -%}${{ "%.0f"|format(v) }}M
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro bar(count, max_count, color) %}
+  {% set pct = (count / max_count * 100) | round(0) if max_count > 0 else 0 %}
+  <div class="cs-bar-wrap">
+    <div class="cs-bar-bg">
+      <div class="cs-bar-fill" style="width:{{ pct }}%; background:{{ color }};"></div>
+    </div>
+    <span class="cs-bar-pct">{{ "{:,}".format(count) }}</span>
+  </div>
+{% endmacro %}
+
+<!-- ===== BY PRIMARY STRATEGY ===== -->
+<div class="cs-section">
+  <h2>By Primary Strategy</h2>
+  <span class="cs-section-note">{{ by_primary_strategy|length }} buckets</span>
+</div>
+{% set max_ps = by_primary_strategy[0].total if by_primary_strategy else 1 %}
+<table class="cs-table">
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Funds</th>
+      <th class="num">REX</th>
+      <th class="num">Competitors</th>
+      <th class="num">Total AUM</th>
+      <th class="num">REX AUM</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in by_primary_strategy %}
+    <tr>
+      <td class="bucket-name">{{ row.bucket }}</td>
+      <td>{{ bar(row.total, max_ps, "#2563eb") }}</td>
+      <td class="num cs-rex">{{ row.rex_count }}</td>
+      <td class="num cs-comp">{{ row.comp_count }}</td>
+      <td class="num cs-aum">{{ fmt_aum(row.total_aum) }}</td>
+      <td class="num cs-aum">{{ fmt_aum(row.rex_aum) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" style="color:#94a3b8; text-align:center; padding:20px;">No data — run market sync first.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ===== BY ASSET CLASS ===== -->
+<div class="cs-section">
+  <h2>By Asset Class</h2>
+  <span class="cs-section-note">{{ by_asset_class|length }} buckets</span>
+</div>
+{% set max_ac = by_asset_class[0].total if by_asset_class else 1 %}
+<table class="cs-table">
+  <thead>
+    <tr>
+      <th>Asset Class</th>
+      <th>Funds</th>
+      <th class="num">REX</th>
+      <th class="num">Competitors</th>
+      <th class="num">Total AUM</th>
+      <th class="num">REX AUM</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in by_asset_class %}
+    <tr>
+      <td class="bucket-name">{{ row.bucket }}</td>
+      <td>{{ bar(row.total, max_ac, "#059669") }}</td>
+      <td class="num cs-rex">{{ row.rex_count }}</td>
+      <td class="num cs-comp">{{ row.comp_count }}</td>
+      <td class="num cs-aum">{{ fmt_aum(row.total_aum) }}</td>
+      <td class="num cs-aum">{{ fmt_aum(row.rex_aum) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" style="color:#94a3b8; text-align:center; padding:20px;">No data — run market sync first.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ===== BY SUB-STRATEGY (top 20) ===== -->
+<div class="cs-section">
+  <h2>By Sub-Strategy (top 20)</h2>
+  <span class="cs-section-note">{{ by_sub_strategy|length }} shown</span>
+</div>
+{% set max_ss = by_sub_strategy[0].total if by_sub_strategy else 1 %}
+<table class="cs-table">
+  <thead>
+    <tr>
+      <th>Sub-Strategy</th>
+      <th>Funds</th>
+      <th class="num">REX</th>
+      <th class="num">Competitors</th>
+      <th class="num">Total AUM</th>
+      <th class="num">REX AUM</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in by_sub_strategy %}
+    <tr>
+      <td class="bucket-name">{{ row.bucket }}</td>
+      <td>{{ bar(row.total, max_ss, "#7c3aed") }}</td>
+      <td class="num cs-rex">{{ row.rex_count }}</td>
+      <td class="num cs-comp">{{ row.comp_count }}</td>
+      <td class="num cs-aum">{{ fmt_aum(row.total_aum) }}</td>
+      <td class="num cs-aum">{{ fmt_aum(row.rex_aum) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" style="color:#94a3b8; text-align:center; padding:20px;">No data — run market sync first.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div style="font-size:11px; color:#94a3b8; margin-top:16px; margin-bottom:32px;">
+  Source: mkt_master_data (active funds only). AUM in USD millions.
+  <a href="/admin/" style="color:#94a3b8; margin-left:12px;">&larr; Back to Admin</a>
+</div>
+
+{% endblock %}

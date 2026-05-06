@@ -828,6 +828,72 @@ def admin_login(request: Request, password: str = Form("")):
     })
 
 
+@router.get("/classification-stats")
+def classification_stats(request: Request, db: Session = Depends(get_db)):
+    """Classification stats — per-bucket counts for the new 3-axis taxonomy."""
+    if not _is_admin(request):
+        return templates.TemplateResponse("admin_login.html", {"request": request, "error": None})
+
+    from sqlalchemy import text as sa_text
+
+    def _query(group_col: str, limit: int = 50) -> list[dict]:
+        rows = db.execute(sa_text(f"""
+            SELECT {group_col},
+                   COUNT(*) AS total,
+                   SUM(CASE WHEN is_rex = 1 THEN 1 ELSE 0 END) AS rex_count,
+                   SUM(CASE WHEN is_rex = 0 THEN 1 ELSE 0 END) AS comp_count,
+                   ROUND(SUM(COALESCE(aum, 0)), 2) AS total_aum,
+                   ROUND(SUM(CASE WHEN is_rex = 1 THEN COALESCE(aum, 0) ELSE 0 END), 2) AS rex_aum
+            FROM mkt_master_data
+            WHERE {group_col} IS NOT NULL AND market_status = 'ACTV'
+            GROUP BY {group_col}
+            ORDER BY total DESC
+            LIMIT {limit}
+        """)).fetchall()
+        return [
+            {
+                "bucket": r[0],
+                "total": r[1],
+                "rex_count": r[2],
+                "comp_count": r[3],
+                "total_aum": round(float(r[4] or 0), 1),
+                "rex_aum": round(float(r[5] or 0), 1),
+            }
+            for r in rows
+        ]
+
+    by_primary_strategy = _query("primary_strategy")
+    by_asset_class = _query("asset_class")
+    by_sub_strategy = _query("sub_strategy", limit=20)
+
+    # Coverage stats
+    total_row = db.execute(sa_text("""
+        SELECT COUNT(*) as total,
+               SUM(CASE WHEN primary_strategy IS NOT NULL THEN 1 ELSE 0 END) as classified,
+               SUM(CASE WHEN etp_category IS NOT NULL THEN 1 ELSE 0 END) as legacy_classified
+        FROM mkt_master_data WHERE market_status = 'ACTV'
+    """)).fetchone()
+    coverage = {
+        "total": total_row[0] if total_row else 0,
+        "classified": total_row[1] if total_row else 0,
+        "legacy_classified": total_row[2] if total_row else 0,
+    }
+    if coverage["total"] > 0:
+        coverage["pct"] = round(100 * coverage["classified"] / coverage["total"], 1)
+        coverage["legacy_pct"] = round(100 * coverage["legacy_classified"] / coverage["total"], 1)
+    else:
+        coverage["pct"] = 0
+        coverage["legacy_pct"] = 0
+
+    return templates.TemplateResponse("admin_classification_stats.html", {
+        "request": request,
+        "by_primary_strategy": by_primary_strategy,
+        "by_asset_class": by_asset_class,
+        "by_sub_strategy": by_sub_strategy,
+        "coverage": coverage,
+    })
+
+
 @router.get("/logout")
 def admin_logout(request: Request):
     """Clear admin session."""
