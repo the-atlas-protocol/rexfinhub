@@ -286,6 +286,11 @@ def create_app() -> FastAPI:
     app.include_router(admin_products.router)
     app.include_router(pipeline_calendar.router)
     app.include_router(admin_reports.router)
+
+    # Fix 3: /calendar/ top-level pillar — delegates to the market_advanced calendar_view
+    # /pipeline/ (old) retains its own calendar unchanged; /market/calendar also kept
+    from webapp.routers.calendar_router import router as calendar_router
+    app.include_router(calendar_router)
     app.include_router(admin_health.router)
     app.include_router(screener.router)
     app.include_router(market.router)

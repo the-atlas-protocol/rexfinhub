@@ -400,6 +400,42 @@
       </div>
     </div>
 
+    <!-- PILLAR 4b: Calendar (ETP Launch Tracker) -->
+    <div class="mega-trigger-wrap">
+      <a href="/calendar/" class="mega-trigger {% if request.url.path.startswith('/calendar') or request.url.path == '/market/calendar' %}active{% endif %}" data-panel="calendar">Calendar</a>
+      <div class="mega-panel" id="panel-calendar">
+        <div class="mega-columns">
+          <div class="mega-column">
+            <div class="mega-section-label">Launch Tracker</div>
+            <a href="/calendar/" class="mega-link {% if request.url.path.startswith('/calendar') %}active{% endif %}">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">ETP Launch Calendar</div>
+                <div class="mega-link-desc">Verified ETP launches + upcoming effective dates</div>
+              </div>
+            </a>
+          </div>
+          <div class="mega-column">
+            <div class="mega-section-label">Filters</div>
+            <a href="/calendar/?primary_strategy=L%26I" class="mega-link">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-6"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">L&I Launches</div>
+                <div class="mega-link-desc">Leveraged &amp; Inverse ETPs only</div>
+              </div>
+            </a>
+            <a href="/calendar/?primary_strategy=Income" class="mega-link">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">Income Launches</div>
+                <div class="mega-link-desc">Covered call &amp; income ETPs</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- PILLAR 5: Structured Notes -->
     <div class="mega-trigger-wrap">
       <button class="mega-trigger {% if request.url.path.startswith('/notes') %}active{% endif %}" aria-expanded="false" data-panel="notes">Structured Notes</button>
@@ -547,6 +583,12 @@
       {% else %}
       <span class="footer-link" style="opacity:0.4">Coming Soon</span>
       {% endif %}
+    </div>
+    <div>
+      <div class="footer-heading">Calendar</div>
+      <a href="/calendar/" class="footer-link">ETP Launch Calendar</a>
+      <a href="/calendar/?primary_strategy=L%26I" class="footer-link">L&I Launches</a>
+      <a href="/calendar/?primary_strategy=Income" class="footer-link">Income Launches</a>
     </div>
     <div>
       <div class="footer-heading">Pipeline</div>

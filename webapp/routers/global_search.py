@@ -22,6 +22,7 @@ _SITE_PAGES = [
     {"name": "Market Intelligence - Category", "url": "/market/category", "keywords": "market category leveraged inverse income crypto"},
     {"name": "Market Intelligence - Issuer Analysis", "url": "/market/issuer", "keywords": "market issuer analysis share"},
     {"name": "Market Intelligence - Underlier", "url": "/market/underlier", "keywords": "market underlier index underlying exposure"},
+    {"name": "ETP Launch Calendar", "url": "/calendar/", "keywords": "calendar launches inception effective date etp tracker"},
     {"name": "Market Intelligence - Calendar", "url": "/market/calendar", "keywords": "market calendar launches inception"},
     {"name": "Market Intelligence - Compare", "url": "/market/compare", "keywords": "market compare products head to head"},
     {"name": "Trust Dashboard", "url": "/dashboard", "keywords": "dashboard trust filings overview status"},
