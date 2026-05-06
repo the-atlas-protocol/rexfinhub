@@ -99,6 +99,7 @@
           <th onclick="sortTable('issuerTable', 4)">1W Flow</th>
           <th onclick="sortTable('issuerTable', 5)">1M Flow</th>
           <th onclick="sortTable('issuerTable', 6)"># Products</th>
+          <th>Profile</th>
         </tr>
       </thead>
       <tbody>
@@ -116,6 +117,11 @@
           <td class="num-cell {{ 'positive' if iss.flow_1w > 0 else 'negative' if iss.flow_1w < 0 else '' }}">{{ iss.flow_1w_fmt }}</td>
           <td class="num-cell {{ 'positive' if iss.flow_1m > 0 else 'negative' if iss.flow_1m < 0 else '' }}">{{ iss.flow_1m_fmt }}</td>
           <td class="num-cell">{{ iss.num_products }}</td>
+          <td style="text-align:center;">
+            <a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}"
+               style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#1F3864;color:#fff;border-radius:4px;font-size:14px;text-decoration:none;font-weight:600;"
+               title="View {{ iss.issuer_name }} profile">&#8594;</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
