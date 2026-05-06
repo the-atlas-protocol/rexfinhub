@@ -39,6 +39,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 DATA_DIR = PROJECT_ROOT / "data"
 TOKEN_FILE = DATA_DIR / ".preflight_token"
+RESULT_FILE = DATA_DIR / ".preflight_result.json"
 EXPECTED_RECIPIENTS = PROJECT_ROOT / "config" / "expected_recipients.json"
 PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
 
@@ -495,6 +496,48 @@ def write_token() -> str:
     return token
 
 
+def write_result_json(audits: list[dict], token: str) -> None:
+    """Write structured preflight result to data/.preflight_result.json.
+
+    This lets /admin/health (and any automation) read preflight state directly
+    without parsing the HTML summary email.
+
+    Schema:
+        {
+          "timestamp": "<ISO-8601 ET>",
+          "overall_status": "pass" | "warn" | "fail",
+          "token": "<uuid>",
+          "audits": {
+            "<audit_name_snake>": {"status": "pass"|"warn"|"fail", "detail": "..."},
+            ...
+          }
+        }
+    """
+    overall = "pass"
+    if any(a["status"] == "fail" for a in audits):
+        overall = "fail"
+    elif any(a["status"] in ("warn", "error") for a in audits):
+        overall = "warn"
+
+    audit_map: dict = {}
+    for a in audits:
+        # Convert audit name to a safe snake_case key
+        key = a.get("name", "unknown").lower().replace(" ", "_").replace("/", "_")
+        audit_map[key] = {
+            "status": a.get("status", "unknown"),
+            "detail": a.get("detail", ""),
+        }
+
+    payload = {
+        "timestamp": _now_et(),
+        "overall_status": overall,
+        "token": token,
+        "audits": audit_map,
+    }
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    RESULT_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Summary HTML
 # ---------------------------------------------------------------------------
@@ -659,6 +702,9 @@ def main():
 
     token = write_token()
     print(f"Idempotency token: {token} (written to {TOKEN_FILE})\n")
+
+    write_result_json(audits, token)
+    print(f"Structured result written: {RESULT_FILE}")
 
     summary_html = build_summary_html(audits, token)
     out_html = PROJECT_ROOT / "outputs" / "preflight_summary.html"
