@@ -1320,6 +1320,9 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     # --- Top Filings of the Day (LLM analysis of new fund filings) ---
     top_filings_section = _render_top_filings_section(data.get("top_filings", []))
 
+    # --- Funds in Pipeline (PEND/DELAYED from Bloomberg master) ---
+    pipeline_section = _render_pipeline_section(data.get("pipeline_funds", []))
+
     # --- Assemble (executive order) ---
     # 1. Market Pulse (SPY, QQQ, BTC, ETP 1D Flow)
     # 2. ETP Market Overview (market-wide KPIs only)
@@ -1328,7 +1331,8 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     # 5. New Fund Filings (today only)
     # 6. Top Filings of the Day (LLM analysis — sits between New and Updated filings)
     # 7. Updated Fund Filings (today only)
-    # 8. Upcoming Effectiveness, CTA, Footer
+    # 8. Funds in Pipeline (PEND/DELAYED — pre-launch alpha window)
+    # 9. Upcoming Effectiveness, CTA, Footer
     body = (
         header + msg_html + highlights_html
         + market_pulse_section + etp_overview_section
@@ -1337,6 +1341,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
         + new_filings_section
         + top_filings_section
         + updated_filings_section
+        + pipeline_section
         + pending_section
         + cta_section + footer
     )
@@ -1358,6 +1363,130 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 </table>
 </td></tr></table>
 </body></html>"""
+
+
+def _gather_pipeline_funds() -> list[dict]:
+    """Query mkt_master_data for PEND funds with classification populated.
+
+    Returns list of dicts with keys: ticker, fund_name, issuer_display,
+    primary_strategy, sub_strategy, inception_date, market_status.
+    Sorted by primary_strategy then fund_name.
+    """
+    import sqlite3 as _sqlite3
+    _db = Path(__file__).parent.parent / "data" / "etp_tracker.db"
+    if not _db.exists():
+        return []
+    try:
+        con = _sqlite3.connect(str(_db))
+        con.row_factory = _sqlite3.Row
+        cur = con.cursor()
+        cur.execute("""
+            SELECT ticker, fund_name, issuer_display, primary_strategy,
+                   sub_strategy, inception_date, market_status
+            FROM mkt_master_data
+            WHERE market_status IN ('PEND', 'DLST')
+              AND primary_strategy IS NOT NULL
+              AND fund_name IS NOT NULL
+              AND fund_name != ''
+            ORDER BY primary_strategy, sub_strategy, fund_name
+            LIMIT 200
+        """)
+        rows = cur.fetchall()
+        con.close()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
+
+
+def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
+    """Render the 'Funds in Pipeline (PEND/DELAYED)' section.
+
+    Groups funds by primary_strategy, max 20 per group.
+    Returns empty string if no pipeline funds.
+    """
+    if not pipeline_funds:
+        return ""
+
+    from collections import defaultdict as _dd
+    _TEAL_DARK = "#00695C"
+
+    groups: dict[str, list[dict]] = _dd(list)
+    for f in pipeline_funds:
+        ps = f.get("primary_strategy") or "Other"
+        groups[ps].append(f)
+
+    # Build per-strategy sub-tables
+    strategy_blocks = []
+    for ps in sorted(groups.keys()):
+        funds = groups[ps][:20]  # cap at 20 per group
+        overflow = max(0, len(groups[ps]) - 20)
+
+        rows_html = ""
+        for f in funds:
+            ticker = _esc((f.get("ticker") or "").replace(" US", "").strip())
+            name = _esc(f.get("fund_name") or "")
+            if len(name) > 52:
+                name = name[:49] + "..."
+            issuer = _esc(f.get("issuer_display") or "")
+            sub = _esc(f.get("sub_strategy") or "")
+            ms = (f.get("market_status") or "").upper()
+            ms_color = _RED if ms == "DLST" else _ORANGE
+            ms_label = ms if ms else "PEND"
+            rows_html += (
+                f'<tr>'
+                f'<td style="padding:4px 6px;font-size:11px;font-weight:600;'
+                f'color:{_NAVY};white-space:nowrap;">{ticker}</td>'
+                f'<td style="padding:4px 6px;font-size:11px;color:{_NAVY};">{name}</td>'
+                f'<td style="padding:4px 6px;font-size:10px;color:{_GRAY};">{issuer}</td>'
+                f'<td style="padding:4px 6px;font-size:10px;color:{_GRAY};">{sub}</td>'
+                f'<td style="padding:4px 6px;text-align:center;">'
+                f'<span style="display:inline-block;padding:1px 5px;border-radius:3px;'
+                f'font-size:9px;font-weight:600;color:{_WHITE};background:{ms_color};">'
+                f'{ms_label}</span></td>'
+                f'</tr>'
+            )
+
+        overflow_html = ""
+        if overflow:
+            overflow_html = (
+                f'<tr><td colspan="5" style="padding:3px 6px;font-size:10px;'
+                f'color:{_GRAY};font-style:italic;">...and {overflow} more</td></tr>'
+            )
+
+        col_hdr = (
+            f'<td style="padding:3px 6px;font-size:9px;font-weight:700;'
+            f'color:{_GRAY};text-transform:uppercase;letter-spacing:0.3px;'
+            f'border-bottom:1px solid {_BORDER};">'
+        )
+        strategy_blocks.append(
+            f'<div style="margin-bottom:10px;">'
+            f'<div style="font-size:12px;font-weight:700;color:{_TEAL_DARK};'
+            f'margin-bottom:4px;">{_esc(ps)} '
+            f'<span style="font-weight:400;color:{_GRAY};font-size:10px;">'
+            f'({len(groups[ps])} fund{"s" if len(groups[ps]) != 1 else ""})</span></div>'
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+            f'style="border-collapse:collapse;">'
+            f'<tr>'
+            f'{col_hdr}Ticker</td>'
+            f'{col_hdr}Fund Name</td>'
+            f'{col_hdr}Issuer</td>'
+            f'{col_hdr}Sub-Strategy</td>'
+            f'{col_hdr}Status</td>'
+            f'</tr>'
+            f'{rows_html}{overflow_html}'
+            f'</table></div>'
+        )
+
+    total = len(pipeline_funds)
+    return f"""
+<tr><td style="padding:15px 30px 10px;">
+  <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
+    padding-bottom:6px;border-bottom:2px solid {_TEAL};">
+    Funds in Pipeline (PEND/DELAYED)
+    <span style="font-size:11px;font-weight:400;color:{_GRAY};margin-left:8px;">{total} classified</span>
+  </div>
+  {''.join(strategy_blocks)}
+</td></tr>"""
 
 
 def _gather_daily_data(db_session, since_date: str | None = None,
@@ -1630,6 +1759,9 @@ def _gather_daily_data(db_session, since_date: str | None = None,
     except Exception as _tf_err:
         log.warning("Top Filings analysis failed: %s", _tf_err)
 
+    # --- Funds in Pipeline (PEND/DELAYED) from Bloomberg master data ---
+    pipeline_funds = _gather_pipeline_funds()
+
     return {
         "launches": launches,
         "filing_groups": filing_groups,
@@ -1639,6 +1771,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         "total_pending": total_pending,
         "market_snapshot": market_snapshot,
         "top_filings": top_filings,
+        "pipeline_funds": pipeline_funds,
     }
 
 
