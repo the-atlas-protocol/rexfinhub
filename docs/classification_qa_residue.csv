@@ -1,0 +1,483 @@
+ticker,fund_name,primary_strategy,sub_strategy,validation_status,suspected_correct_strategy,why
+DRKY US,VISTASHARES TARGET 15 DRUKMACRO DISTRIBUTION ETF,Plain Beta,,SUSPECT,Risk Mgmt,Plain Beta fund name contains non-beta marker(s): ['MACRO']
+ASLV US,ALLSPRING SPECIAL LARGE VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IUSV US,ISHARES CORE S&P U.S. VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+GVIP US,GOLDMAN SACHS HEDGE INDUSTRY VIP ETF,Plain Beta,,SUSPECT,Risk Mgmt,"Plain Beta fund name contains non-beta marker(s): ['HEDG', 'HEDGE']"
+FYX US,FIRST TRUST SMALL CAP CORE ALPHADEX FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+EMES US,HARBOR EMERGING MARKETS SELECT ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DGRO US,ISHARES CORE DIVIDEND GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+VBK US,VANGUARD SMALL-CAP GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DAK US,DAKOTA ACTIVE EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+XSMO US,INVESCO S&P SMALLCAP MOMENTUM ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+QVMS US,INVESCO S&P SMALLCAP 600 QVM MULTI-FACTOR ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+AVSC US,AVANTIS US SMALL CAP EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+AVLV US,AVANTIS US LARGE CAP VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DFAE US,DIMENSIONAL EMERGING CORE EQUITY MARKET ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FUTY US,FIDELITY MSCI UTILITIES INDEX ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+GMOV US,GMO US VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+TACU US,T ROWE PRICE ACTIVE CORE US EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+ATTR US,ARIN TACTICAL TAIL RISK ETF,Plain Beta,,SUSPECT,Risk Mgmt,"Plain Beta fund name contains non-beta marker(s): ['TAIL', 'TACTICAL']"
+VOOV US,VANGUARD S&P 500 VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FLSA US,FRANKLIN FTSE SAUDI ARABIA ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+QUS US,STATE STREET SPDR MSCI USA STRATEGICFACTORS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FXD US,FIRST TRUST CONSUMER DISCRETIONARY ALPHADEX FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+SAMM US,STRATEGAS MACRO MOMENTUM ETF,Plain Beta,,SUSPECT,Risk Mgmt,Plain Beta fund name contains non-beta marker(s): ['MACRO']
+XPH US,STATE STREET SPDR S&P PHARMACEUTICALS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IVV US,ISHARES CORE S&P 500 ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+ACLC US,AMERICAN CENTURY LARGE CAP EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+EWG US,ISHARES MSCI GERMANY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+QXQ US,SGI ENHANCED NASDAQ-100 ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+MGV US,VANGUARD MEGA CAP VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+ESUM US,EVENTIDE US MARKET ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FTCS US,FIRST TRUST CAPITAL STRENGTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+MFSG US,MFS ACTIVE GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DEUS US,XTRACKERS RUSSELL US MULTIFACTOR ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+PEPS US,PARAMETRIC EQUITY PLUS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DFMC US,US MICRO CAP PORTFOLIO ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+NUEM US,NUVEEN ESG EMERGING MARKETS EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+MNZL US,MANZIL RUSSELL HALAL USA BROAD MARKET ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IJS US,ISHARES S&P SMALL-CAP 600 VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+BCSM US,BARON SMID CAP ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+SECT US,MAIN SECTOR ROTATION ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+UPGD US,INVESCO BLOOMBERG ANALYST RATING IMPROVERS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+EAGL US,EAGLE CAPITAL SELECT EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+PBUS US,INVESCO MSCI USA ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+COWZ US,PACER US CASH COWS 100 ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+VIG US,VANGUARD DIVIDEND APPRECIATION ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+JHML US,JOHN HANCOCK MULTI-FACTOR LARGE CAP ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+NULV US,NUVEEN ESG LARGE-CAP VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+WLTG US,WEALTHTRUST DBS LONG TERM GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FKU US,FIRST TRUST UNITED KINGDOM ALPHADEX FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+CDC US,VICTORYSHARES US EQ INCOME ENHANCED VOLATILITY WTD ETF,Plain Beta,,SUSPECT,Income,Plain Beta fund name contains non-beta marker(s): ['INCOME']
+BDVG US,IMGP BERKSHIRE DIVIDEND GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+GEOA US,WISDOMTREE GEO ALPHA OPPORTUNITIES FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+JDIV US,JPMORGAN DIVIDEND LEADERS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+CRAK US,VANECK OIL REFINERS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DFVX US,DIMENSIONAL US LARGE CAP VECTOR ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+SCHB US,SCHWAB US BROAD MARKET ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+OAKM US,OAKMARK US LARGE CAP ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+EWO US,ISHARES MSCI AUSTRIA ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+ONEY US,STATE STREET SPDR RUSSELL 1000 YIELD FOCUS ETF,Plain Beta,,SUSPECT,Income,Plain Beta fund name contains non-beta marker(s): ['YIELD']
+NIXT US,RESEARCH AFFILIATES DELETIONS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FRTY US,ALGER MID CAP 40 ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IMCB US,ISHARES MORNINGSTAR MID-CAP ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+CFO US,VICTORYSHARES US 500 ENHANCED VOLATILITY WTD ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FBT US,FIRST TRUST NYSE ARCA BIOTECHNOLOGY INDEX FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+UDI US,USCF DIVIDEND INCOME FUND,Plain Beta,,SUSPECT,Income,Plain Beta fund name contains non-beta marker(s): ['INCOME']
+EWP US,ISHARES MSCI SPAIN ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+SELV US,SEI ENHANCED LOW VOLATILITY US LARGE CAP ETF,Plain Beta,,SUSPECT,Risk Mgmt,Plain Beta fund name contains non-beta marker(s): ['LOW VOLATILITY']
+PCLN US,PICTET CLEANER PLANET ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IPAC US,ISHARES CORE MSCI PACIFIC ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+VNSE US,NATIXIS VAUGHAN NELSON SELECT ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FVAL US,FIDELITY VALUE FACTOR ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+LST US,LEUTHOLD SELECT INDUSTRIES ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+BLGR US,BLUEMONTE LARGE CAP GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+GGM US,GGM MACRO ALIGNMENT ETF,Plain Beta,,SUSPECT,Risk Mgmt,Plain Beta fund name contains non-beta marker(s): ['MACRO']
+LCTU US,ISHARES U.S. CARBON TRANSITION READINESS AWARE ACTIVE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+PVAL US,PUTNAM FOCUSED LARGE CAP VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IMCV US,ISHARES MORNINGSTAR MID-CAP VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+CALF US,PACER US SMALL CAP CASH COWS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FSGS US,FIRST TRUST SMID GROWTH STRENGTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+VTWG US,VANGUARD RUSSELL 2000 GROWTH,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+LCO US,LOGIQ CONTRARIAN OPPORTUNITIES ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+FSTA US,FIDELITY MSCI CONSUMER STAPLES INDEX ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+STXK US,STRIVE SMALL-CAP ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+PRXV US,PRAXIS IMPACT LARGE CAP VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+SDY US,STATE STREET SPDR S&P DIVIDEND ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+ENOR US,ISHARES MSCI NORWAY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IJT US,ISHARES S&P SMALL-CAP 600 GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+HDGE US,ADVISORSHARES RANGER EQUITY BEAR ETF,Plain Beta,,SUSPECT,L&I,Plain Beta fund name contains non-beta marker(s): ['BEAR']
+USMF US,WISDOMTREE TRUST-WISDOMTREE US MULTIFACTOR FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+IJH US,ISHARES CORE S&P MID-CAP ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+XMAG US,DEFIANCE LARGE CAP EX-MAG 7 ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+RFDA US,ALPS DYNAMIC US DIVIDEND ADVANTAGE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+XLSR US,STATE STREET US SECTOR ROTATION ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+PTEU US,PACER TRENDPILOT EUROPEAN INDEX ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+NUMG US,NUVEEN ESG MID-CAP GROWTH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+EMDV US,PROSHARES MSCI EMERGING MARKETS DIVIDEND GROWERS ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+TEMR US,T ROWE PRICE EMERGING MARKETS EQUITY RESEARCH ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+SPYV US,STATE STREET SPDR PORTFOLIO S&P 500 VALUE ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+DEM US,WISDOMTREE EMERGING MARKETS HIGH DIVIDEND FUND,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+BEEZ US,HONEYTREE US EQUITY ETF,Plain Beta,,CONFIRMED,Plain Beta,No L&I/Income/Defined/Risk markers found in name
+CRWG US,LEVERAGE SHARES 2X LONG CRWV DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+EFU US,PROSHARES ULTRASHORT MSCI EAFE,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['SHORT', 'ULTRA', 'PROSHARES ULTRA']"
+ERY US,DIREXION DAILY ENERGY BEAR 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BEAR', 'DIREXION DAILY']"
+SKF US,PROSHARES ULTRASHORT FINANCIALS,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['SHORT', 'ULTRA', 'PROSHARES ULTRA']"
+BOIL US,PROSHARES ULTRA BLOOMBERG NATURAL GAS,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+RKLZ US,DEFIANCE DAILY TARGET 2X SHORT RKLB ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+RGTX US,DEFIANCE DAILY TARGET 2X LONG RGTI ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+SZOXF US,DB CRUDE OIL SHORT ETN,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['SHORT']
+UNHU US,DIREXION DAILY UNH BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+LMNX US,DEFIANCE DAILY TARGET 2X LONG LMND ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+UYM US,PROSHARES ULTRA MATERIALS,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+AGQ US,PROSHARES ULTRA SILVER,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+CSEX US,TRADR 2X LONG CLS DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+URAA US,DIREXION DAILY URANIUM INDUSTRY BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+MRNX US,DEFIANCE DAILY TARGET 2X LONG MRNA ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+PILL US,DIREXION DAILY PHARMACEUTICAL & MEDICAL BULL 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BULL', 'DIREXION DAILY']"
+CRWU US,T-REX 2X LONG CRWV DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+NEMG US,LEVERAGE SHARES 2X LONG NEM DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+SMZ US,TRADR 2X SHORT SMR DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+EPV US,PROSHARES ULTRASHORT FTSE EUROPE,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['SHORT', 'ULTRA', 'PROSHARES ULTRA']"
+SPYU US,MAX S&P 500 4X LEVERAGED ETN,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['LEVERAG', 'LEVERAGED']"
+AAPD US,DIREXION DAILY AAPL BEAR 1X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['BEAR', 'DIREXION DAILY']"
+MLPR US,ETRACS QUARTERLY PAY 1.5X LEVERAGED ALERIAN MLP INDEX ETN,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['LEVERAG', '1.5X', 'LEVERAGED']"
+TSXU US,DIREXION DAILY SEMICONDUCTORS TOP 5 BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+FLYD US,MICROSECTORS TRAVEL 3X INVERSE LEVERAGED ETN,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'INVERSE', 'LEVERAG']"
+TXNU US,DIREXION DAILY TXN BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+CRDX US,2X CARDANO ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+NIOG US,LEVERAGE SHARES 2X LONG NIO DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+WULX US,TRADR 2X LONG WULF DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+GMEU US,T-REX 2X LONG GME DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+AXTX US,TRADR 2X LONG AXTI DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+RBLU US,T-REX 2X LONG RBLX DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+ETHT US,PROSHARES ULTRA ETHER ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+URTY US,PROSHARES ULTRAPRO RUSSELL2000,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+UPRO US,PROSHARES ULTRAPRO S&P 500,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+AALG US,LEVERAGE SHARES 2X LONG AAL DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+OPEG US,LEVERAGE SHARES 2X LONG OPEN DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+TSLL US,DIREXION DAILY TSLA BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+AMZD US,DIREXION DAILY AMZN BEAR 1X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['BEAR', 'DIREXION DAILY']"
+YANG US,DIREXION DAILY FTSE CHINA BEAR 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BEAR', 'DIREXION DAILY']"
+QQDN US,PROSHARES ULTRASHORT QQQ MEGA,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['SHORT', 'ULTRA', 'PROSHARES ULTRA']"
+NVDG US,LEVERAGE SHARES 2X LONG NVDA DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+KORU US,DIREXION DAILY MSCI SOUTH KOREA BULL 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BULL', 'DIREXION DAILY']"
+BMNU US,T-REX 2X LONG BMNR DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+KPDD US,KRANESHARES 2X LONG PDD DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+CCUP US,T-REX 2X LONG CRCL DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+CIFU US,T-REX 2X LONG CIFR DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+TSL US,GRANITESHARES 1.25 LONG TSLA DAILY ETF,L&I,,SUSPECT,Unknown,L&I fund name missing expected leverage/direction marker
+BTCL US,T-REX 2X LONG BITCOIN DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+UPSG US,LEVERAGE SHARES 2X LONG UPS DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+DEENF US,DB COMMODITY DOUBLE SHORT EXCHANGE TRADED NOTES,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['SHORT']
+DGZ US,DB GOLD SHORT EXCHANGE TRADED NOTES,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['SHORT']
+TECL US,DIREXION DAILY TECHNOLOGY BULL 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BULL', 'DIREXION DAILY']"
+EUM US,PROSHARES SHORT MSCI EMERGING MARKETS,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['SHORT']
+MPL US,DEFIANCE DAILY TARGET 2X LONG MP ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+UNHG US,LEVERAGE SHARES 2X LONG UNH DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+SKRE US,TUTTLE CAPITAL DAILY 2X INVERSE REGIONAL BANKS ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'INVERSE']"
+HOOG US,LEVERAGE SHARES 2X LONG HOOD DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+GOU US,GRANITESHARES 2X LONG GOOGL DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+NVDU US,DIREXION DAILY NVDA BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+RWM US,PROSHARES SHORT RUSSELL2000,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['SHORT']
+WEBL US,DIREXION DAILY DOW JONES INTERNET BULL 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BULL', 'DIREXION DAILY']"
+SNOU US,T-REX 2X LONG SNOW DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+UCC US,PROSHARES ULTRA CONSUMER DISCRETIONARY,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+SPXU US,PROSHARES ULTRAPRO SHORT S&P 500,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['SHORT', 'ULTRA', 'PROSHARES ULTRA']"
+CXRN US,TEUCRIUM 2X DAILY CORN ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+LEUX US,TRADR 2X LONG LEU DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+ISUL US,GRANITESHARES 2X LONG ISRG DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+LITZ US,TRADR 2X SHORT LITE DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+PDDL US,GRANITESHARES 2X LONG PDD DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+AMZU US,DIREXION DAILY AMZN BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+JETD US,MAX AIRLINES -3X INVERSE LEVERAGED ETN,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'INVERSE', 'LEVERAG']"
+IONZ US,DEFIANCE DAILY TARGET 2X SHORT IONQ ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+ADBG US,LEVERAGE SHARES 2X LONG ADBE DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+BTGD US,STKD 100% BITCOIN & 100% GOLD ETF,L&I,,SUSPECT,Unknown,L&I fund name missing expected leverage/direction marker
+BMNZ US,DEFIANCE DAILY TARGET 2X SHORT BMNR ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+JDST US,DIREXION DAILY JUNIOR GOLD MINERS INDEX BEAR 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BEAR', 'DIREXION DAILY']"
+BRZU US,DIREXION DAILY MSCI BRAZIL BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+ASTN US,DEFIANCE DAILY TARGET 2X SHORT ASTS ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+OSCG US,LEVERAGE SHARES 2X LONG OSCR DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+UCO US,PROSHARES ULTRA BLOOMBERG CRUDE OIL,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+KMLI US,KRANESHARES 2X LONG MELI DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+MTUL US,ETRACS 2X LEVERAGED MSCI US MOMENTUM FACTOR TR ETN,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG', 'LEVERAGED']"
+UST US,PROSHARES ULTRA 7-10 YEAR TREASURY,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+HUTG US,LEVERAGE SHARES 2X LONG HUT DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+DLLL US,GRANITESHARES 2X LONG DELL DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+TBXU US,DIREXION DAILY BIOTECH TOP 5 BULL 2X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'BULL', 'DIREXION DAILY']"
+LABD US,DIREXION DAILY S&P BIOTECH BEAR 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BEAR', 'DIREXION DAILY']"
+TWM US,PROSHARES ULTRASHORT RUSSELL2000,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['SHORT', 'ULTRA', 'PROSHARES ULTRA']"
+SBTU US,T-REX 2X LONG SBET DAILY TARGET ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+GEMG US,LEVERAGE SHARES 2X LONG GEMI DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+CONI US,GRANITESHARES 2X SHORT COIN DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+COPZ US,DEFIANCE DAILY TARGET 2X LONG COPPER MINERS ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+SMQ US,TRADR 1X SHORT INNOVATION 100 MONTHLY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['SHORT']
+FIGG US,LEVERAGE SHARES 2X LONG FIG DAILY ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'LEVERAG']"
+UPV US,PROSHARES ULTRA FTSE EUROPE,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['ULTRA', 'PROSHARES ULTRA']"
+HIBL US,DIREXION DAILY S&P 500 HIGH BETA BULL 3X ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['3X', 'BULL', 'DIREXION DAILY']"
+KBAB US,KRANESHARES 2X LONG BABA DAILY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+SMST US,DEFIANCE DAILY TARGET 2X SHORT MSTR ETF,L&I,,CONFIRMED,L&I,"Name contains L&I marker(s): ['2X', 'SHORT']"
+QQQP US,TRADR 2X LONG INNOVATION 100 QUARTERLY ETF,L&I,,CONFIRMED,L&I,Name contains L&I marker(s): ['2X']
+BUFP US,PGIM LADDERED S&P 500 BUFFER 12 ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+DAUG US,FT VEST U.S. EQUITY DEEP BUFFER ETF - AUGUST,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BFEB US,INNOVATOR U.S. EQUITY BUFFER ETF - FEBRUARY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+IBFR US,INNOVATOR INTERNATIONAL DEVELOPED MANAGED 10 BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+QBIV US,ALLIANZIM INTERNATIONAL EQUITY BUFFER5 ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+FEBU US,ALLIANZIM US EQUITY BUFFER15 UNCAPPED FEB ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+SEPP US,PGIM S&P 500 BUFFER 12 ETF - SEPTEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+TLDR US,THE LADDERED T-BILL ETF,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+DGAP US,FT VEST US EQUITY BUFFER & DIGITAL RETURN ETF - APRIL,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+DECZ US,ELEVATION SERIES TRUST - TRUESHARES STRUCTURED OUTCOME DECEMBER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['OUTCOME', 'STRUCTURED OUTCOME']"
+CPSY US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - JANUARY,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+CPSU US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - JUNE,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+MAYM US,FT VEST US EQUITY MAX BUFFER ETF - MAY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+JANU US,ALLIANZIM US EQUITY BUFFER15 UNCAPPED JAN ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+CBTO US,CALAMOS BITCOIN 80 SERIES STRUCTURED ALT PROTECTION ETF - OCTOBER,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+INOV US,INNOVATOR INTERNATIONAL DEVELOPED POWER BUFFER ETF - NOVEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+CPSO US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - OCTOBER,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+DNOV US,FT VEST US EQUITY DEEP BUFFER ETF - NOVEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+JULM US,FT VEST US EQUITY MAX BUFFER ETF - JULY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+ZJUN US,INNOVATOR EQUITY DEFINED PROTECTION ETF - 1 YR JUNE,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['DEFINED', 'DEFINED PROTECTION']"
+UAPR US,INNOVATOR U.S. EQUITY ULTRA BUFFER ETF - APRIL,Defined Outcome,,AMBIGUOUS,L&I / Defined Outcome,"Name triggers multiple strategy markers: ['L&I', 'Defined Outcome']"
+XDQQ US,INNOVATOR GROWTH-100 ACCELERATED ETF-QUARTERLY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['ACCELERATED']
+BJAN US,INNOVATOR U.S. EQUITY BUFFER ETF - JANUARY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+JANM US,FT VEST US EQUITY MAX BUFFER ETF - JANUARY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+SEPZ US,ELEVATION SERIES TRUST - TRUESHARES STRUCTURED OUTCOME SEPTEMBER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['OUTCOME', 'STRUCTURED OUTCOME']"
+ZMAY US,INNOVATOR EQUITY DEFINED PROTECTION ETF - 1 YR MAY,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['DEFINED', 'DEFINED PROTECTION']"
+TJAN US,INNOVATOR EQUITY DEFINED PROTECTION ETF - 2 YR TO JANUARY 2027,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['DEFINED', 'DEFINED PROTECTION']"
+MRCP US,PGIM S&P 500 BUFFER 12 ETF - MARCH,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BUFF US,INNOVATOR LADDERED ALLOCATION POWER BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+AUGZ US,TRUESHARES STRUCTURED OUTCOME AUGUST ETF,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['OUTCOME', 'STRUCTURED OUTCOME']"
+PMAR US,INNOVATOR U.S. EQUITY POWER BUFFER ETF - MARCH,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+MAYT US,ALLIANZIM US EQUITY BUFFER10 MAY ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+SQMX US,FT VEST US EQUITY QUARTERLY MAX BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+APRB US,APTUS APRIL BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BUFB US,INNOVATOR LADDERED ALLOCATION BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+XFEB US,FT VEST US EQUITY ENHANCE & MODERATE BUFFER ETF - FEBRUARY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+QDEC US,FT VEST NASDAQ-100 BUFFER ETF - DECEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+TENJ US,ISHARES LARGE CAP 10% TARGET BUFFER JUN ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+DDTS US,INNOVATOR EQUITY DUAL DIRECTIONAL 10 BUFFER ETF - SEPTEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+CPRY US,CALAMOS RUSSELL 2000 STRUCTURED ALT PROTECTION ETF - JANUARY,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+IDEC US,INNOVATOR INTERNATIONAL DEVELOPED POWER BUFFER ETF - DECEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+KAUG US,INNOVATOR US SMALL CAP POWER BUFFER ETF - AUGUST,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+JUNZ US,ELEVATION SERIES TRUST - TRUESHARES STRUCTURED OUTCOME JUNE ETF,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['OUTCOME', 'STRUCTURED OUTCOME']"
+DDFO US,INNOVATOR EQUITY DUAL DIRECTIONAL 15 BUFFER ETF - OCTOBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+TMAR US,FT VEST EMERGING MARKET BUFFER ETF - MARCH,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+IAUG US,INNOVATOR INTERNATIONAL DEVELOPED POWER BUFFER ETF - AUGUST,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+UXOC US,FT VEST US EQUITY UNCAPPED ACCELERATOR ETF - OCTOBER,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+BFAP US,FT VEST BITCOIN STRATEGY FLOOR15 ETF - APRIL,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['FLOOR']
+CPRO US,CALAMOS RUSSELL 2000 STRUCTURED ALT PROTECTION ETF - OCTOBER,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+GJUL US,FT VEST US EQUITY MODERATE BUFFER ETF - JULY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+ABUF US,APTUS LADDERED BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+GOCT US,FT VEST US EQUITY MODERATE BUFFER ETF - OCTOBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+DJUN US,FT VEST US EQUITY DEEP BUFFER ETF - JUNE,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+RBUF US,INNOVATOR US SMALL CAP 10 BUFFER ETF - QUARTERLY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+UXAP US,FT VEST US EQUITY UNCAPPED ACCELERATOR ETF - APRIL,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+JNEU US,ALLIANZIM US EQUITY BUFFER15 UNCAPPED JUN ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+DVIN US,WEBS INDUSTRIALS XLI DEFINED VOLATILITY ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['DEFINED']
+ZAPR US,INNOVATOR EQUITY DEFINED PROTECTION ETF - 1 YR APRIL,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['DEFINED', 'DEFINED PROTECTION']"
+PSEP US,INNOVATOR U.S. EQUITY POWER BUFFER ETF - SEPTEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+QBKV US,ALLIANZIM US SMALL CAP BUFFER5 ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+USEP US,INNOVATOR U.S. EQUITY ULTRA BUFFER ETF - SEPTEMBER,Defined Outcome,,AMBIGUOUS,L&I / Defined Outcome,"Name triggers multiple strategy markers: ['L&I', 'Defined Outcome']"
+NBFR US,INNOVATOR NASDAQ-100 MANAGED 10 BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+PMJA US,PGIM S&P 500 MAX BUFFER ETF - JANUARY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+PWS US,PACER WEALTHSHIELD ETF,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+KBFR US,INNOVATOR US SMALL CAP MANAGED 10 BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+CPNM US,CALAMOS NASDAQ 100 STRUCTURED ALT PROTECTION ETF - MARCH,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+ZJAN US,INNOVATOR EQUITY DEFINED PROTECTION ETF - 1 YR JANUARY,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['DEFINED', 'DEFINED PROTECTION']"
+DVXB US,WEBS MATERIALS XLB DEFINED VOLATILITY ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['DEFINED']
+DDNQ US,INNOVATOR GROWTH-100 DUAL DIRECTIONAL 5 BUFFER ETF - QUARTERLY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BDEC US,INNOVATOR U.S. EQUITY BUFFER ETF -DECEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+NOVZ US,ELEVATION SERIES TRUST - TRUESHARES STRUCTURED OUTCOME NOVEMBER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['OUTCOME', 'STRUCTURED OUTCOME']"
+QBQV US,ALLIANZIM GROWTH-100 BUFFER5 ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+MAYU US,ALLIANZIM US EQUITY BUFFER15 UNCAPPED MAY ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BFEW US,FT VEST LADDERED US EQUITY EQUAL WEIGHT BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+QCJA US,FT VEST NASDAQ-100 CONSERVATIVE BUFFER ETF - JANUARY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+EAPR US,INNOVATOR EMERGING MARKETS POWER BUFFER ETF - APRIL,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+TOCT US,INNOVATOR EQUITY DEFINED PROTECTION ETF - 2 YR TO OCTOBER 2027,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['DEFINED', 'DEFINED PROTECTION']"
+XMAY US,FT VEST US EQUITY ENHANCE & MODERATE BUFFER ETF - MAY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+NVBU US,ALLIANZIM US EQUITY BUFFER15 UNCAPPED NOV ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+JUNT US,ALLIANZIM US EQUITY BUFFER10 JUN ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+KMAR US,INNOVATOR US SMALL CAP POWER BUFFER ETF - MARCH,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+MARW US,ALLIANZIM US EQ BUFFER20 MAR,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+CPNQ US,CALAMOS NASDAQ 100 STRUCTURED ALT PROTECTION ETF - DECEMBER,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+TFJL US,INNOVATOR 20+ YEAR TREASURY BOND 5 FLOOR ETF - JULY,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['FLOOR']
+KOCT US,INNOVATOR U.S. SMALL CAP POWER BUFFER ETF - OCTOBER,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+BMAR US,INNOVATOR U.S. EQUITY BUFFER ETF - MARCH,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+CPSR US,CALAMOS S&P 500 STRUCTURED ALT PROTECTION ETF - MARCH,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+BFOC US,FT VEST BITCOIN STRATEGY FLOOR15 ETF - OCTOBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['FLOOR']
+OCTM US,FT VEST US EQUITY MAX BUFFER ETF - OCTOBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BFLB US,BUFFERLABS US EQUITY DYNAMIC BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+PMSE US,PGIM S&P 500 MAX BUFFER ETF - SEPTEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+DDTO US,INNOVATOR EQUITY DUAL DIRECTIONAL 10 BUFFER ETF - OCTOBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BFXU US,FT VEST LADDERED U.S. EQUITY UNCAPPED ACCELERATOR ETF,Defined Outcome,,SUSPECT,Unknown,Defined Outcome fund name missing expected buffer/outcome marker
+BUFY US,FT VEST LADDERED INTERNATIONAL MODERATE BUFFER ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+NMAY US,INNOVATOR GROWTH-100 POWER BUFFER ETF - MAY,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'POWER BUFFER']"
+DECW US,ALLIANZIM US EQ BUFFER20 DEC,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+XBJA US,INNOVATOR US EQUITY ACCELERATED 9 BUFFER ETF - JANUARY,Defined Outcome,,CONFIRMED,Defined Outcome,"Name contains Defined Outcome marker(s): ['BUFFER', 'ACCELERATED']"
+SNOV US,FT VEST US SMALL CAP MODERATE BUFFER ETF - NOVEMBER,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+AUGM US,FT VEST US EQUITY MAX BUFFER ETF - AUGUST,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+PBFR US,PGIM LADDERED S&P 500 BUFFER 20 ETF,Defined Outcome,,CONFIRMED,Defined Outcome,Name contains Defined Outcome marker(s): ['BUFFER']
+BUYW US,MAIN BUYWRITE ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+QYLD US,GLOBAL X NASDAQ 100 COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+XLKI US,STATE STREET TECHNOLOGY SELECT SECTOR SPDR PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+XBCI US,NEOS BOOSTED BITCOIN HIGH INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+TSLW US,ROUNDHILL TSLA WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+MINY US,YIELDMAX STRATEGIC METALS & MINING PORTFOLIO OPTION INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+ITWO US,PROSHARES RUSSELL 2000 HIGH INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+GTR US,WISDOMTREE TARGET RANGE FUND,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+METW US,ROUNDHILL META WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+IDVO US,AMPLIFY CWP INTERNATIONAL ENHANCED DIVIDEND INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+IWMI US,NEOS RUSSELL 2000 HIGH INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+PVEX US,TRUESHARES CONVEQUITY ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+DPRE US,VIRTUS DUFF & PHELPS REAL ESTATE INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+LTTI US,FT VEST 20+ YEAR TREASURY & TARGET INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+SEPI US,SHELTON EQUITY PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+LQDM US,AMPLIFY LQD INVESTMENT GRADE 12% TARGET INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+BTCC US,GRAYSCALE BITCOIN COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+ACII US,INNOVATOR INDEX AUTOCALLABLE INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'AUTOCALLABLE']"
+YMAG US,YIELDMAX MAGNIFICENT 7 FUND OF OPTION INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+WTPI US,WISDOMTREE EQUITY PREMIUM INCOME,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+CONY US,YIELDMAX COIN OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+YFYA US,YIELDS FOR YOU INCOME STRATEGY A ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'YIELD']"
+UBEW US,ROUNDHILL UBER WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+HEMI US,HARTFORD EQUITY PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+TLA US,GRANITESHARES AUTOCALLABLE TSLA ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['AUTOCALLABLE']
+TMYY US,GRANITESHARES YIELDBOOST TSM ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['YIELD']
+YQQQ US,YIELDMAX N100 SHORT OPTION INCOME STRATEGY ETF,Income,,AMBIGUOUS,L&I / Income,"Name triggers multiple strategy markers: ['L&I', 'Income']"
+NFLW US,ROUNDHILL NFLX WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+BRKC US,YIELDMAX BRKB OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+IGME US,BITWISE GME OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'OPTION INCOME']"
+OARK US,YIELDMAX INNOVATION OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+KLIP US,KRANESHARES KWEB COVERED CALL STRATEGY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+FEAT US,YIELDMAX DORSEY WRIGHT FEATURED 5 INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+ROCY US,JPMORGAN EQUITY PREMIUM YIELD ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['PREMIUM', 'YIELD']"
+UNHW US,ROUNDHILL UNH WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+MAAY US,GRANITESHARES YIELDBOOST MARA ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['YIELD']
+TSPY US,TAPPALPHA SPY GROWTH AND DAILY INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+YETH US,ROUNDHILL ETHER COVERED CALL STRATEGY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+WDTE US,DEFIANCE S&P 500 WEEKLY DISTRIBUTION ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+YMAX US,YIELDMAX UNIVERSE FUND OF OPTION INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+COYY US,GRANITESHARES YIELDBOOST COIN ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['YIELD']
+DRAY US,YIELDMAX DKNG OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+XYLD US,GLOBAL X S&P 500 COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+CWII US,REX CRWV GROWTH & INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+CRCO US,YIELDMAX CRCL OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+XLFI US,STATE STREET FINANCIAL SELECT SECTOR SPDR PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+FDND US,FT VEST DOW JONES INTERNET & TARGET INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+JEPI US,JPMORGAN EQUITY PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+KHPI US,KENSINGTON HEDGED PREMIUM INCOME ETF,Income,,AMBIGUOUS,Income / Risk Mgmt,"Name triggers multiple strategy markers: ['Income', 'Risk Mgmt']"
+HCOW US,AMPLIFY COWS COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+NDIV US,AMPLIFY ENERGY & NATURAL RESOURCES COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+CAGE US,CALAMOS AUTOCALLABLE GROWTH ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['AUTOCALLABLE']
+XDTE US,ROUNDHILL S&P 500 0DTE COVERED CALL STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['COVERED CALL', '0DTE']"
+THRV US,PROSPERA INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+SPYH US,NEOS S&P 500 HEDGED EQUITY INCOME ETF,Income,,AMBIGUOUS,Income / Risk Mgmt,"Name triggers multiple strategy markers: ['Income', 'Risk Mgmt']"
+IOYY US,GRANITESHARES YIELDBOOST IONQ ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['YIELD']
+BALQ US,ISHARES NASDAQ PREMIUM INCOME ACTIVE ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+CEPI US,REX CRYPTO EQUITY PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+RBLY US,YIELDMAX RBLX OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+JHDG US,JOHN HANCOCK HEDGED EQUITY ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+BABO US,YIELDMAX BABA OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+AAPY US,KURV YIELD PREMIUM STRATEGY APPLE AAPL ETF/DE,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['PREMIUM', 'YIELD']"
+MST US,DEFIANCE LEVERAGED LONG + INCOME MSTR ETF,Income,,AMBIGUOUS,L&I / Income,"Name triggers multiple strategy markers: ['L&I', 'Income']"
+DOGG US,FT VEST DJIA DOGS 10 TARGET INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+IVVW US,ISHARES S&P 500 BUYWRITE ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+FEPI LN,REX TECH INNOVATION PREMIUM INCOME UCITS ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+RYLD US,GLOBAL X RUSSELL 2000 COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+RDTY US,YIELDMAX RUSSELL 2000 ODTE COVERED CALL STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['COVERED CALL', 'YIELDMAX', 'YIELD']"
+XLII US,STATE STREET INDUSTRIAL SELECT SECTOR SPDR PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+CVNY US,YIELDMAX CVNA OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+BTCI US,NEOS BITCOIN HIGH INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+FBDC US,FT CONFLUENCE BDC & SPECIALTY FINANCE INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+ARMW US,ROUNDHILL ARM WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+XOMO US,YIELDMAX XOM OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+ETTY US,AMPLIFY ETHEREUM 3% MONTHLY OPTION INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'OPTION INCOME']"
+RDYY US,YIELDMAX RDDT OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+DJIA US,GLOBAL X DOW 30 COVERED CALL ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+AZYY US,GRANITESHARES YIELDBOOST AMZN ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['YIELD']
+MARO US,YIELDMAX MARA OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+NVII US,REX NVDA GROWTH & INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+SCLZ US,SWAN ENHANCED DIVIDEND INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+SLVO US,UBS AG ETRACS SILVER SHARES COVERED CALL ETN,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+PYPY US,YIELDMAX PYPL OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+SPUT US,INNOVATOR EQUITY PREMIUM INCOME - DAILY PUTWRITE ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+XYLG US,GLOBAL X S&P 500 COVERED CALL & GROWTH ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['COVERED CALL']
+AMDW US,ROUNDHILL AMD WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+TCAL US,T ROWE PRICE CAPITAL APPRECIATION PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+GDXY US,YIELDMAX GOLD MINERS OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+XLCI US,STATE STREET COMMUNICATION SERVICES SELECT SECTOR SPDR PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+NBOS US,NEUBERGER OPTION STRATEGY ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+DISO US,YIELDMAX DIS OPTION INCOME STRATEGY ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+TSYY US,GRANITESHARES YIELDBOOST TSLA ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['YIELD']
+XLSI US,STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR PREMIUM INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['INCOME', 'PREMIUM']"
+GDXW US,ROUNDHILL GOLD MINERS WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+PLTW US,ROUNDHILL PLTR WEEKLYPAY ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['WEEKLYPAY']
+KGLD US,KURV GOLD ENHANCED INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+TSLY US,YIELDMAX TSLA OPTION INCOME ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['YIELDMAX', 'INCOME', 'YIELD']"
+ROCQ US,JPMORGAN NASDAQ EQUITY PREMIUM YIELD ETF,Income,,CONFIRMED,Income,"Name contains Income marker(s): ['PREMIUM', 'YIELD']"
+JELM US,JANUS HENDERSON EQUITY LINKED MODERATE INCOME ETF,Income,,CONFIRMED,Income,Name contains Income marker(s): ['INCOME']
+MATE US,MAN ACTIVE TREND ENHANCED ETF,Income,,SUSPECT,Unknown,Income fund name missing expected covered-call/income marker
+DBMF US,IMGP DBI MANAGED FUTURES STRATEGY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+FMF US,FIRST TRUST MANAGED FUTURES STRATEGY FUND,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+DEFR US,APTUS DEFERRED INCOME ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+EGGQ US,NESTYIELD VISIONARY ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+LBAY US,LEATHERBACK LONG/SHORT ALTERNATIVE YIELD ETF,Risk Mgmt,,AMBIGUOUS,L&I / Income / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Income', 'Risk Mgmt']"
+AHLT US,AMERICAN BEACON AHL TREND ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+XBOX US,ROUNDHILL ULTRA SHORT DURATION NO DIVIDEND TARGET ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+HFEQ US,UNLIMITED HFEQ EQUITY LONG SHORT ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+VXZ US,IPATH SERIES B S&P 500 VIX MID-TERM FUTURES ETN,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['VIX', 'MID-TERM FUTURES']"
+FOXY US,SIMPLIFY CURRENCY STRATEGY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['CURRENCY']
+FXB US,INVESCO CURRENCYSHARES BRITISH POUND STERLING TRUST,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['CURRENCY', 'CURRENCYSHARES']"
+YLDW US,WESTWOOD ENHANCED INCOME OPPORTUNITY ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+CEW US,WISDOMTREE EMERGING CURRENCY STRATEGY FUND,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['CURRENCY']
+ILS US,BROOKMONT CATASTROPHIC BOND ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+AINT US,FINQ DOLLAR NEUTRAL US LARGE CAP AI-MANAGED EQUITY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['NEUTRAL']
+PRAE US,PLANROCK ALTERNATIVE GROWTH ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['ALTERNATIVE']
+FIAX US,NICHOLAS FIXED INCOME ALTERNATIVE ETF,Risk Mgmt,,AMBIGUOUS,Income / Risk Mgmt,"Name triggers multiple strategy markers: ['Income', 'Risk Mgmt']"
+FAAR US,FIRST TRUST ALTERNATIVE ABSOLUTE RETURN STRATEGY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['ALTERNATIVE', 'ABSOLUTE RETURN']"
+PBL US,PGIM PORTFOLIO BALLAST ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+VIXY US,PROSHARES VIX SHORT-TERM FUTURES ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+WRTH US,WORTH CHARTING OPTIONS INCOME ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+UUP US,INVESCO DB US DOLLAR INDEX BULLISH FUND,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+ISMF US,ISHARES MANAGED FUTURES ACTIVE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+MNA US,NYLI MERGER ARBITRAGE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MERGER ARB']
+CLIX US,PROSHARES LONG ONLINE/SHORT STORES ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+ONEH US,TRUESHARES EQUITY HEDGE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['HEDGE']
+ADPV US,ADAPTIV SELECT ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+VIXM US,PROSHARES VIX MID-TERM FUTURES ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['VIX', 'MID-TERM FUTURES']"
+CBLS US,CLOUGH HEDGED EQUITY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['HEDGED', 'HEDGE']"
+SHRT US,GOTHAM SHORT STRATEGIES ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+DWSH US,ADVISORSHARES DORSEY WRIGHT SHORT ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+CTA US,SIMPLIFY MANAGED FUTURES STRATEGY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+SWAN US,AMPLIFY BLACKSWAN GROWTH & TREASURY CORE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['BLACKSWAN']
+PCR US,SIMPLIFY VETTAFI PRIVATE CREDIT STRATEGY ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+QIS US,SIMPLIFY MULTI-QIS ALTERNATIVE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['ALTERNATIVE']
+HELS US,HEDGEYE 130/30 EQUITY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['HEDGE']
+FTLS US,FIRST TRUST LONG/SHORT EQUITY ETF/US,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+SPIT US,F/M EMERALD SPECIAL SITUATIONS ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+HFGM US,UNLIMITED HFGM GLOBAL MACRO ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MACRO']
+UCON US,FIRST TRUST SMITH UNCONSTRAINED BOND ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['UNCONSTRAINED']
+LALT US,FIRST TRUST MULTI-STRATEGY ALTERNATIVE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['MULTI-STRATEGY', 'ALTERNATIVE']"
+SDMF US,SIMPLIFY DBI CTA MANAGED FUTURES INDEX ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+ASGM US,VIRTUS ALPHASIMPLEX GLOBAL MACRO ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MACRO']
+CMBO US,WAYFINDER DYNAMIC US INTEREST RATE ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+BTAL US,AGF US MARKET NEUTRAL ANTI-BETA FUND,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['MARKET NEUTRAL', 'ANTI-BETA', 'MARKET NEUTRAL']"
+FXY US,INVESCO CURRENCYSHARES JAPANESE YEN TRUST,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['CURRENCY', 'CURRENCYSHARES']"
+AGRH US,ISHARES INTEREST RATE HEDGED U.S. AGGREGATE BOND ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['HEDGED', 'HEDGE']"
+ARB US,ALTSHARES MERGER ARBITRAGE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MERGER ARB']
+FFUT US,FIDELITY MANAGED FUTURES ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+IALT US,ISHARES SYSTEMATIC ALTERNATIVES ACTIVE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['ALTERNATIVE', 'SYSTEMATIC']"
+TOAK US,TWIN OAK SHORT HORIZON ABSOLUTE RETURN ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+THY US,TOEWS AGILITY SHARES DYNAMIC TACTICAL INCOME ETF,Risk Mgmt,,AMBIGUOUS,Income / Risk Mgmt,"Name triggers multiple strategy markers: ['Income', 'Risk Mgmt']"
+QAI US,NYLI HEDGE MULTI-STRATEGY TRACKER ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['MULTI-STRATEGY', 'HEDGE']"
+FXE US,INVESCO CURRENCYSHARES EURO CURRENCY TRUST,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['CURRENCY', 'CURRENCYSHARES']"
+VXX US,IPATH SERIES B S&P 500 VIX SHORT-TERM FUTURES ETN,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+MARB US,FIRST TRUST MERGER ARBITRAGE ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MERGER ARB']
+CTAP US,SIMPLIFY US EQUITY PLUS MANAGED FUTURES STRATEGY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+MKTN US,FEDERATED HERMES MDT MARKET NEUTRAL ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['MARKET NEUTRAL', 'MARKET NEUTRAL', 'NEUTRAL']"
+ASMF US,VIRTUS ALPHASIMPLEX MANAGED FUTURES ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+HEFT US,HEDGEYE FOURTH TURNING ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['HEDGE']
+CBOX US,CALAMOS TAX-AWARE COLLATERAL ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+AAVM US,ALPHA ARCHITECT GLOBAL FACTOR EQUITY ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+SNTH US,MRP SYNTHEQUITY ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+THMR US,THOR ADAPTIVERISK DYNAMIC ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+EVNT US,ALTSHARES EVENT-DRIVEN ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['EVENT-DRIVEN']
+FXF US,INVESCO CURRENCYSHARES SWISS FRANC TRUST,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['CURRENCY', 'CURRENCYSHARES']"
+HTUS US,HULL TACTICAL US ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['TACTICAL']
+HFND US,UNLIMITED HFND MULTI-STRATEGY RETURN TRACKER ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MULTI-STRATEGY']
+BOXX US,ALPHA ARCHITECT 1-3 MONTH BOX ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+ALLW US,STATE STREET BRIDGEWATER ALL WEATHER ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['ALL WEATHER']
+BENJ US,HORIZON LANDMARK ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+FFLS US,FUTURE FUND LONG/SHORT ETF/THE,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+MRGR US,PROSHARES MERGER ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+IMF US,INVESCO MANAGED FUTURES STRATEGY ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+EMPB US,EFFICIENT MARKET PORTFOLIO PLUS ETF,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
+CLSE US,CONVERGENCE LONG/SHORT EQUITY ETF,Risk Mgmt,,AMBIGUOUS,L&I / Risk Mgmt,"Name triggers multiple strategy markers: ['L&I', 'Risk Mgmt']"
+FXA US,INVESCO CURRENCYSHARES AUSTRALIAN DOLLAR TRUST,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['CURRENCY', 'CURRENCYSHARES']"
+FXC US,INVESCO CURRENCYSHARES CANADIAN DOLLAR TRUST,Risk Mgmt,,CONFIRMED,Risk Mgmt,"Name contains Risk Mgmt marker(s): ['CURRENCY', 'CURRENCYSHARES']"
+HFMF US,UNLIMITED HFMF MANAGED FUTURES ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['MANAGED FUTURES']
+HDG US,PROSHARES HEDGE REPLICATION ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['HEDGE']
+FLSP US,FRANKLIN SYSTEMATIC STYLE PREMIA ETF,Risk Mgmt,,CONFIRMED,Risk Mgmt,Name contains Risk Mgmt marker(s): ['SYSTEMATIC']
+USDU US,WISDOMTREE BLOOMBERG U.S. DOLLAR BULLISH FUND,Risk Mgmt,,SUSPECT,Unknown,Risk Mgmt fund name missing expected hedge/risk/tail marker
