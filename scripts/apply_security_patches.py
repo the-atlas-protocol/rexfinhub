@@ -33,7 +33,7 @@ AUTOMATED_PATCHES = [
     {
         "id": "P2a",
         "file": "webapp/routers/admin_products.py",
-        "description": "Removed hardcoded ADMIN_PASSWORD = 'ryu123'. Now loads via webapp.services.admin_auth.load_admin_password().",
+        "description": "Removed hardcoded ADMIN_PASSWORD = '<redacted-legacy-value>'. Now loads via webapp.services.admin_auth.load_admin_password().",
         "severity": "CRITICAL",
     },
     {
@@ -45,7 +45,7 @@ AUTOMATED_PATCHES = [
     {
         "id": "P2c",
         "file": "webapp/routers/admin_health.py",
-        "description": "Removed inline literal 'ryu123' from _is_admin(). Loads via load_admin_password() at module init.",
+        "description": "Removed inline literal '<redacted-legacy-value>' from _is_admin(). Loads via load_admin_password() at module init.",
         "severity": "CRITICAL",
     },
     {
@@ -119,7 +119,7 @@ MANUAL_ACTIONS = [
         "priority": 2,
         "action": "Rotate ADMIN_PASSWORD in Render environment variables and VPS .env",
         "detail": (
-            "Old value 'ryu123' was hardcoded in 3 source files on GitHub. "
+            "Old value '<redacted-legacy-value>' was hardcoded in 3 source files on GitHub. "
             "Generate a strong replacement: python -c \"import secrets; print(secrets.token_urlsafe(16))\"\n"
             "Update in:\n"
             "  1. Render dashboard > rexfinhub > Environment > ADMIN_PASSWORD\n"
@@ -132,7 +132,7 @@ MANUAL_ACTIONS = [
         "priority": 3,
         "action": "Rotate SITE_PASSWORD in Render environment variables and VPS .env",
         "detail": (
-            "Old value 'rexusers26' was documented in CLAUDE.md on GitHub. "
+            "Old value '<redacted-legacy-site-pwd>' was documented in CLAUDE.md on GitHub. "
             "Generate replacement and update Render + VPS .env."
         ),
         "done": False,
@@ -205,9 +205,9 @@ MANUAL_ACTIONS = [
     },
     {
         "priority": 10,
-        "action": "Purge ryu123 from Git history",
+        "action": "Purge <redacted-legacy-value> from Git history",
         "detail": (
-            "Verify: git log --all -S 'ryu123' --oneline\n"
+            "Verify: git log --all -S '<redacted-legacy-value>' --oneline\n"
             "Same BFG / filter-repo process as API key if hits found."
         ),
         "done": False,
@@ -238,15 +238,15 @@ def run_verification() -> int:
     failures = 0
 
     checks = [
-        (PROJECT_ROOT / "webapp/routers/admin_products.py", "ryu123", "P2a: admin_products.py clean"),
-        (PROJECT_ROOT / "webapp/routers/admin_reports.py", "ryu123", "P2b: admin_reports.py clean"),
-        (PROJECT_ROOT / "webapp/routers/admin_health.py", "ryu123", "P2c: admin_health.py clean"),
-        (PROJECT_ROOT / "CLAUDE.md", "ryu123", "P5a: CLAUDE.md admin password clean"),
-        (PROJECT_ROOT / "CLAUDE.md", "rexusers26", "P5b: CLAUDE.md site password clean"),
+        (PROJECT_ROOT / "webapp/routers/admin_products.py", "<redacted-legacy-value>", "P2a: admin_products.py clean"),
+        (PROJECT_ROOT / "webapp/routers/admin_reports.py", "<redacted-legacy-value>", "P2b: admin_reports.py clean"),
+        (PROJECT_ROOT / "webapp/routers/admin_health.py", "<redacted-legacy-value>", "P2c: admin_health.py clean"),
+        (PROJECT_ROOT / "CLAUDE.md", "<redacted-legacy-value>", "P5a: CLAUDE.md admin password clean"),
+        (PROJECT_ROOT / "CLAUDE.md", "<redacted-legacy-site-pwd>", "P5b: CLAUDE.md site password clean"),
         (PROJECT_ROOT / "docs/DEPLOYMENT_PLAN.md", "rex-etp-api-2026-kJw9xPm4", "P1: DEPLOYMENT_PLAN.md API key clean"),
         (PROJECT_ROOT / "webapp/routers/api.py", "f\" AND etp_category = '", "P4: SQL injection (category) fixed"),
         (PROJECT_ROOT / "webapp/routers/api.py", "f\" AND ticker IN (", "P4: SQL injection (ticker IN) fixed"),
-        (PROJECT_ROOT / "webapp/services/admin_auth.py", "ryu123", "P2e: admin_auth.py has no hardcoded password"),
+        (PROJECT_ROOT / "webapp/services/admin_auth.py", "<redacted-legacy-value>", "P2e: admin_auth.py has no hardcoded password"),
     ]
 
     for path, literal, label in checks:

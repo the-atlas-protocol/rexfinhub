@@ -30,14 +30,14 @@
 
 | File | Line | Finding | Severity |
 |---|---|---|---|
-| `webapp/routers/admin_products.py` | 34 | `ADMIN_PASSWORD = "ryu123"` | **CRITICAL** |
-| `webapp/routers/admin_reports.py` | 34 | `ADMIN_PASSWORD = "ryu123"` | **CRITICAL** |
-| `webapp/routers/admin_health.py` | 48 | `request.cookies.get("admin_auth") == "ryu123"` | **CRITICAL** |
+| `webapp/routers/admin_products.py` | 34 | `ADMIN_PASSWORD = "<redacted-legacy-value>"` | **CRITICAL** |
+| `webapp/routers/admin_reports.py` | 34 | `ADMIN_PASSWORD = "<redacted-legacy-value>"` | **CRITICAL** |
+| `webapp/routers/admin_health.py` | 48 | `request.cookies.get("admin_auth") == "<redacted-legacy-value>"` | **CRITICAL** |
 | `docs/DEPLOYMENT_PLAN.md` | 207 | Full API key value in committed markdown | **CRITICAL** |
 | `webapp/main.py` | 44 | `os.environ.get("SITE_PASSWORD", "123")` — trivial fallback | HIGH |
 | `webapp/auth.py` | 35 | `os.environ.get("SESSION_SECRET", "dev-secret-change-me")` — public string | MEDIUM |
 
-**Critical implication**: Rotating ADMIN_PASSWORD in .env will fix `admin.py` (calls `_load_admin_password()`) but NOT the 3 hardcoded routers. They read the literal at import time. **Old password "ryu123" remains valid until code patched + redeployed.**
+**Critical implication**: Rotating ADMIN_PASSWORD in .env will fix `admin.py` (calls `_load_admin_password()`) but NOT the 3 hardcoded routers. They read the literal at import time. **Old password "<redacted-legacy-value>" remains valid until code patched + redeployed.**
 
 ## API Endpoint Auth
 
@@ -96,14 +96,14 @@ Unbounded cost. No lateral movement. **Severity: MEDIUM (financial)**
 
 ### P1 — Within 48h
 4. **Rotate all secrets in sequence**: API_KEY, ADMIN_PASSWORD, SITE_PASSWORD, SESSION_SECRET → `secrets.token_hex(32)`, AZURE_CLIENT_SECRET via Azure Portal, Gmail app password.
-5. **Verify git history**: `git log --all -S "ryu123"` and `git log --all -S "rex-etp-api"`. If hits, BFG cleaner.
+5. **Verify git history**: `git log --all -S "<redacted-legacy-value>"` and `git log --all -S "rex-etp-api"`. If hits, BFG cleaner.
 
 ### P2 — Within 1 week
 6. Add SSH key passphrase: `ssh-keygen -p -f ~/.ssh/id_ed25519`.
 7. Harden VPS sshd: PasswordAuthentication no, PermitRootLogin no. Audit authorized_keys.
 8. **Downscope Azure app**: Remove Files.ReadWrite.All, Sites.ReadWrite.All, Mail.Read. Mail.Send only.
 9. Enable 2FA on GitHub, Render, M365, domain registrar.
-10. Pre-commit hook: grep for `ryu123`, `rexusers26`, `sk-ant-`, `rex-etp-api` before push.
+10. Pre-commit hook: grep for `<redacted-legacy-value>`, `<redacted-legacy-site-pwd>`, `sk-ant-`, `rex-etp-api` before push.
 
 ### P3 — Ongoing
 11. Rate-limit /login (brute-force protection).
