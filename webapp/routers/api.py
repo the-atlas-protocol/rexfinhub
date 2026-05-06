@@ -525,23 +525,38 @@ def etp_screener(
         "map_thematic_category, cc_type, cc_category, strategy_confidence, "
         "uses_derivatives, uses_swaps, is_40act, index_weighting_methodology"
     )
-    query = f"SELECT {cols} FROM mkt_master_data WHERE market_status = 'ACTV' AND (fund_type = 'ETF' OR fund_type = 'ETN')"
+
+    # Build parameterized query — user inputs bound as :params, never interpolated.
+    where_clauses = [
+        "market_status = 'ACTV'",
+        "(fund_type = 'ETF' OR fund_type = 'ETN')",
+    ]
+    bind_params: dict[str, object] = {}
+
     if scope == "rex":
-        query += " AND is_rex = 1"
+        where_clauses.append("is_rex = 1")
     elif scope == "competitors":
-        query += " AND is_rex = 0"
+        where_clauses.append("is_rex = 0")
+
     if category:
-        query += f" AND etp_category = '{category}'"
+        where_clauses.append("etp_category = :category")
+        bind_params["category"] = category
+
+    tickers: list[str] = []
     if ticker:
         tickers = [t.strip() for t in ticker.split(",") if t.strip()]
         if tickers:
-            in_list = ",".join(f"'{t}'" for t in tickers)
-            query += f" AND ticker IN ({in_list})"
-    query += " ORDER BY aum DESC"
-    if limit > 0:
-        query += f" LIMIT {limit}"
+            # SQLAlchemy text() supports :param_N style for IN lists
+            placeholders = ", ".join(f":ticker_{i}" for i in range(len(tickers)))
+            where_clauses.append(f"ticker IN ({placeholders})")
+            for i, t in enumerate(tickers):
+                bind_params[f"ticker_{i}"] = t
 
-    rows = db.execute(sa_text(query)).fetchall()
+    sql = f"SELECT {cols} FROM mkt_master_data WHERE {' AND '.join(where_clauses)} ORDER BY aum DESC"
+    if limit > 0:
+        sql += f" LIMIT {limit}"
+
+    rows = db.execute(sa_text(sql), bind_params).fetchall()
     col_names = [c.strip() for c in cols.split(",")]
 
     funds = []
