@@ -32,6 +32,7 @@ from webapp.models import (
     FilingAlert, MktPipelineRun, LiveFeedItem, Trust, Filing, FundStatus,
 )
 from webapp.services.admin_auth import load_admin_password
+from webapp.services import report_registry
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin-health"])
