@@ -1,23 +1,69 @@
 {% set active_tab = 'calendar' %}
 {% extends base_template|default("market/base.html") %}
 
-{% block title %}Fund Activity -- REX Financial Intelligence Hub{% endblock %}
+{% block title %}ETP Launch Calendar -- REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}
 <div style="max-width:1400px; margin:0 auto;">
-<h2 class="section-title">Fund Activity Calendar</h2>
-<p style="color:#64748B; font-size:0.85rem; margin-bottom:24px;">
-  Recent fund launches (485BPOS effective dates) and upcoming filing events.
+<h2 class="section-title">ETP Launch Calendar</h2>
+<p style="color:#64748B; font-size:0.85rem; margin-bottom:16px;">
+  Verified ETP launches and upcoming effective dates. Variable annuity wrappers excluded.
   Effective date = the date a fund is eligible to begin trading.
 </p>
+
+{# ------------------------------------------------------------------ #}
+{# Fix 4: Filter form                                                  #}
+{# ------------------------------------------------------------------ #}
+<form method="get" action="/calendar/" style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:14px 18px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+  <div style="display:flex; flex-direction:column; gap:3px; min-width:180px;">
+    <label style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">Issuer</label>
+    <input type="text" name="issuer" value="{{ filter_issuer }}" placeholder="e.g. REX, ProShares..."
+           style="border:1px solid #d1d5db; border-radius:4px; padding:5px 8px; font-size:13px; width:100%; box-sizing:border-box;">
+  </div>
+  <div style="display:flex; flex-direction:column; gap:3px; min-width:170px;">
+    <label style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">Strategy</label>
+    <select name="primary_strategy" style="border:1px solid #d1d5db; border-radius:4px; padding:5px 8px; font-size:13px; background:#fff;">
+      <option value="">All strategies</option>
+      {% for ps in primary_strategies %}
+      <option value="{{ ps }}" {% if filter_primary_strategy == ps %}selected{% endif %}>{{ ps }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:3px; min-width:200px;">
+    <label style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">Sub-strategy</label>
+    <select name="sub_strategy" style="border:1px solid #d1d5db; border-radius:4px; padding:5px 8px; font-size:13px; background:#fff;">
+      <option value="">All sub-strategies</option>
+      {% for ss in sub_strategies %}
+      <option value="{{ ss }}" {% if filter_sub_strategy == ss %}selected{% endif %}>{{ ss }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:3px; min-width:130px;">
+    <label style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">From</label>
+    <input type="date" name="date_from" value="{{ filter_date_from }}"
+           style="border:1px solid #d1d5db; border-radius:4px; padding:5px 8px; font-size:13px; width:100%; box-sizing:border-box;">
+  </div>
+  <div style="display:flex; flex-direction:column; gap:3px; min-width:130px;">
+    <label style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">To</label>
+    <input type="date" name="date_to" value="{{ filter_date_to }}"
+           style="border:1px solid #d1d5db; border-radius:4px; padding:5px 8px; font-size:13px; width:100%; box-sizing:border-box;">
+  </div>
+  {# Preserve month/year during filter #}
+  <input type="hidden" name="month" value="{{ cal_month }}">
+  <input type="hidden" name="year" value="{{ cal_year }}">
+  <button type="submit" style="background:#1F3864; color:#fff; border:none; border-radius:4px; padding:7px 16px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">Apply</button>
+  {% if filter_issuer or filter_primary_strategy or filter_sub_strategy or filter_date_from or filter_date_to %}
+  <a href="/calendar/?month={{ cal_month }}&year={{ cal_year }}" style="display:inline-flex; align-items:center; font-size:12px; color:#64748b; text-decoration:none; padding:7px 10px; border:1px solid #d1d5db; border-radius:4px; background:#fff;">Clear</a>
+  {% endif %}
+</form>
 
 {# Month-Grid Calendar #}
 {% if weeks is defined and weeks %}
 <div style="margin-bottom:24px;">
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-    <a href="/market/calendar?month={{ prev_month }}&year={{ prev_year }}" class="btn btn-sm" style="padding:4px 12px;">&larr; Prev</a>
+    <a href="/calendar/?month={{ prev_month }}&year={{ prev_year }}{% if filter_issuer %}&issuer={{ filter_issuer|urlencode }}{% endif %}{% if filter_primary_strategy %}&primary_strategy={{ filter_primary_strategy|urlencode }}{% endif %}{% if filter_sub_strategy %}&sub_strategy={{ filter_sub_strategy|urlencode }}{% endif %}" class="btn btn-sm" style="padding:4px 12px;">&larr; Prev</a>
     <h3 style="margin:0; font-size:1.1rem;">{{ month_name }}</h3>
-    <a href="/market/calendar?month={{ next_month }}&year={{ next_year }}" class="btn btn-sm" style="padding:4px 12px;">Next &rarr;</a>
+    <a href="/calendar/?month={{ next_month }}&year={{ next_year }}{% if filter_issuer %}&issuer={{ filter_issuer|urlencode }}{% endif %}{% if filter_primary_strategy %}&primary_strategy={{ filter_primary_strategy|urlencode }}{% endif %}{% if filter_sub_strategy %}&sub_strategy={{ filter_sub_strategy|urlencode }}{% endif %}" class="btn btn-sm" style="padding:4px 12px;">Next &rarr;</a>
   </div>
 
   <div class="cal-grid">
@@ -71,7 +117,7 @@
   {# --- Recent Launches --- #}
   <div class="chart-box">
     <div class="chart-title" style="color:#059669;">Recent Launches (Last 90 Days)</div>
-    {% if recent_launches is defined and recent_launches %}
+    {% if recent_launches %}
     <table class="data-table" style="font-size:0.82rem;">
       <thead>
         <tr>
@@ -84,19 +130,23 @@
       <tbody>
         {% for item in recent_launches %}
         <tr>
-          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust.name }}">
-            <a href="/funds?q={{ (item.fund_name if item.fund_name else item.trust.name)|urlencode }}" class="text-link" style="font-weight:500;">
-              {{ item.fund_name if item.fund_name else item.trust.name }}
+          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust_name }}">
+            {% if item.ticker %}
+            <a href="/market/fund/{{ item.ticker }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name else item.trust_name }}
             </a>
+            {% else %}
+            <a href="/funds?q={{ (item.fund_name if item.fund_name else item.trust_name)|urlencode }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name else item.trust_name }}
+            </a>
+            {% endif %}
+            {% if item.issuer %}
+            <div style="font-size:10px; color:#94a3b8; margin-top:2px;">{{ item.issuer }}</div>
+            {% endif %}
           </td>
           <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
-            {% if item.filing.effective_date is defined and item.filing.effective_date %}
-              {{ item.filing.effective_date.strftime('%b %d, %Y') }}
-            {% elif item.effective_date is defined and item.effective_date %}
-              {{ item.effective_date.strftime('%b %d, %Y') }}
-            {% else %}
-              --
-            {% endif %}
+            {# Fix 2: use item.effective_date directly (not item.filing.effective_date) #}
+            {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '--' }}
           </td>
           <td style="padding:8px 10px;">
             <span class="badge badge-primary" style="font-size:0.7rem;">
@@ -104,41 +154,14 @@
             </span>
           </td>
           <td style="font-size:0.7rem; color:#94A3B8; padding:8px 10px;">
-            <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% elif recently_effective is defined and recently_effective %}
-    <table class="data-table" style="font-size:0.82rem;">
-      <thead>
-        <tr>
-          <th style="min-width:220px;">Fund / Trust</th>
-          <th>Effective Date</th>
-          <th>Form</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in recently_effective %}
-        <tr>
-          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust.name }}">
-            <a href="/funds?q={{ (item.fund_name if item.fund_name is defined and item.fund_name else item.trust.name)|urlencode }}" class="text-link" style="font-weight:500;">
-              {{ item.fund_name if item.fund_name is defined and item.fund_name else item.trust.name }}
-            </a>
-          </td>
-          <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
-            {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '--' }}
-          </td>
-          <td style="padding:8px 10px;">
-            <span class="badge badge-primary">{{ item.filing.form_type if item.filing.form_type is defined else item.filing.form }}</span>
+            <span class="badge badge-primary">{{ item.form }}</span>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div style="padding:20px; text-align:center; color:#94A3B8;">No recent launches in the last 90 days.</div>
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No ETP launches in the selected date range.</div>
     {% endif %}
   </div>
 
@@ -158,23 +181,26 @@
       <tbody>
         {% for item in upcoming %}
         <tr>
-          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust.name }}">
-            <a href="/funds?q={{ (item.fund_name if item.fund_name else item.trust.name)|urlencode }}" class="text-link" style="font-weight:500;">
-              {{ item.fund_name if item.fund_name else item.trust.name }}
+          <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust_name }}">
+            {% if item.ticker %}
+            <a href="/market/fund/{{ item.ticker }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name else item.trust_name }}
             </a>
+            {% else %}
+            <a href="/funds?q={{ (item.fund_name if item.fund_name else item.trust_name)|urlencode }}" class="text-link" style="font-weight:500;">
+              {{ item.fund_name if item.fund_name else item.trust_name }}
+            </a>
+            {% endif %}
+            {% if item.issuer %}
+            <div style="font-size:10px; color:#94a3b8; margin-top:2px;">{{ item.issuer }}</div>
+            {% endif %}
           </td>
           <td style="padding:8px 10px;">
-            {% set form_val = item.filing.form_type if item.filing.form_type is defined else item.filing.form %}
-            <span class="badge badge-{{ 'primary' if form_val == '485BPOS' else 'warning' }}">{{ form_val }}</span>
+            <span class="badge badge-{{ 'primary' if item.form == '485BPOS' else 'warning' }}">{{ item.form }}</span>
           </td>
           <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
-            {% if item.filing.effective_date is defined and item.filing.effective_date %}
-              {{ item.filing.effective_date.strftime('%b %d, %Y') }}
-            {% elif item.effective_date is defined and item.effective_date %}
-              {{ item.effective_date.strftime('%b %d, %Y') }}
-            {% else %}
-              --
-            {% endif %}
+            {# Fix 2: use item.effective_date directly #}
+            {{ item.effective_date.strftime('%b %d, %Y') if item.effective_date else '--' }}
           </td>
           <td style="padding:8px 10px;">
             <span class="urgency-badge urgency-{{ item.urgency }}">
@@ -186,7 +212,7 @@
       </tbody>
     </table>
     {% else %}
-    <div style="padding:20px; text-align:center; color:#94A3B8;">No upcoming events in the next 60 days.</div>
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No upcoming ETP events in the selected date range.</div>
     {% endif %}
   </div>
 </div>
@@ -197,11 +223,10 @@
 {% block market_scripts %}
 {% if weeks is defined and weeks %}
 <script>
-var calendarEvents = {{ calendar_events|default('{}')|tojson if calendar_events is defined else '{}' }};
+var calendarEvents = {};
 
 function showCalEvents(day) {
   var events = [];
-  // Find events for this day from the weeks data
   {% for week in weeks %}
   {% for day_data in week %}
   {% if day_data and day_data.events %}
@@ -219,14 +244,19 @@ function showCalEvents(day) {
   title.textContent = '{{ month_name }} ' + day;
 
   var html = '<table class="data-table" style="font-size:0.82rem;">';
-  html += '<thead><tr><th style="min-width:180px;">Event</th><th style="min-width:220px;">Fund / Trust</th><th>Type</th></tr></thead><tbody>';
+  html += '<thead><tr><th style="min-width:180px;">Event</th><th style="min-width:220px;">Fund / Trust</th><th>Issuer</th><th>Type</th></tr></thead><tbody>';
   events.forEach(function(ev) {
     var cls = ev.type === 'launch' ? 'cal-event-launch' : 'cal-event-upcoming';
     var fundName = ev.fund_name || ev.trust || '';
-    var fundLink = fundName ? '<a href="/funds?q=' + encodeURIComponent(fundName) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>' : '';
+    var fundLink = fundName
+      ? (ev.ticker
+          ? '<a href="/market/fund/' + escCalHtml(ev.ticker) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>'
+          : '<a href="/funds?q=' + encodeURIComponent(fundName) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>')
+      : '';
     html += '<tr>';
     html += '<td><span class="' + cls + '" style="padding:2px 6px; border-radius:4px; font-size:0.75rem;">' + escCalHtml(ev.label) + '</span></td>';
     html += '<td style="white-space:normal; line-height:1.4; padding:8px 10px;">' + fundLink + '</td>';
+    html += '<td style="font-size:0.75rem; color:#64748b;">' + escCalHtml(ev.issuer || '') + '</td>';
     html += '<td>' + escCalHtml(ev.form || '') + '</td>';
     html += '</tr>';
   });
