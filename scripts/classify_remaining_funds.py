@@ -84,10 +84,11 @@ _R3_ALT_INCOME = re.compile(
 )
 
 # RULE 4 — Defined outcome residue (protected, max buffer, stop-loss variants)
+# Audit beta (2026-05-06): added PROTECTION to catch Calamos CPSY/CPSU/CBTO series
 _R4_DEFOUT = re.compile(
     r"\b(DOWNSIDE PROTECT|MAX BUFFER|RISK[\s-]DEFINED"
     r"|STOP[\s-]LOSS|DEFINED PROTECT|PROTECT[\s-]FLOOR"
-    r"|EQUITY DEFINED PROTECT)\b",
+    r"|EQUITY DEFINED PROTECT|PROTECTION)\b",
     re.IGNORECASE,
 )
 
@@ -99,7 +100,15 @@ _R5_LOW_VOL = re.compile(
     re.IGNORECASE,
 )
 
+# RULE 5b — Bear/Short equity (L&I marker)
+# Audit beta (2026-05-06): added to catch BEAR/SHORT EQUITY funds like HDGE
+_R5B_BEAR = re.compile(
+    r"\bBEAR\b|\bSHORT\s+EQUITY\b",
+    re.IGNORECASE,
+)
+
 # RULE 6 — Alternative / hedge fund strategy (long/short, merger arb, macro, etc.)
+# Audit beta (2026-05-06): added TAIL RISK/TAIL and MERGER ARB/ARBITRAGE markers
 _R6_ALTALT = re.compile(
     r"\b(LONG[\s/]SHORT|MERGER[\s-]ARBITRAGE|MERGER ARBITRAGE|MARKET[\s-]NEUTRAL"
     r"|GLOBAL MACRO|MULTI[\s-]STRATEGY|MULTI[\s-]QIS|HEDGE REPLICATION"
@@ -108,7 +117,9 @@ _R6_ALTALT = re.compile(
     r"|SYSTEMATIC ALTERNATIVES|SYNTHEQUITY|EMERALD SPECIAL SITUATIONS"
     r"|HYPE ETF|130/30|FOURTH TURNING|ADAPTIVERISK|GLOBAL FACTOR EQUITY"
     r"|PORTFOLIO PLUS|OPTIONS INCOME|INCOME OPPORTUNITY"
-    r"|DEFERRED INCOME|BOX ETF|DYNAMIC US INTEREST RATE)\b",
+    r"|DEFERRED INCOME|BOX ETF|DYNAMIC US INTEREST RATE"
+    r"|TAIL\s+RISK|TAIL\b"
+    r"|MERGER\s+(?:ARB|ARBITRAGE))\b",
     re.IGNORECASE,
 )
 
@@ -269,6 +280,19 @@ def classify(ticker: str, fund_name: str, asset_class_focus: str,
         )
         return row
 
+    # --- RULE 5b: Bear / Short Equity (L&I) --------------------------------
+    # Audit beta (2026-05-06): catches equity bear funds like HDGE that don't
+    # encode 2X/3X in their name but use BEAR or SHORT EQUITY markers.
+    if _R5B_BEAR.search(name) and not _R1_LI.search(name):
+        row.update(
+            asset_class="Equity",
+            primary_strategy="L&I",
+            sub_strategy="Short",
+            direction="short",
+            reset_period="daily",
+        )
+        return row
+
     # --- RULE 8: True VIX / Volatility products ---------------------------
     # Place before Rule 6 so "VIX" names don't fall into Alt bucket
     if specialty or (etp_category or "").upper() in ("VIX", "VOLATILITY"):
@@ -284,6 +308,21 @@ def classify(ticker: str, fund_name: str, asset_class_focus: str,
     # --- RULE 6: Alternative strategies -----------------------------------
     if _R6_ALTALT.search(name) or alternative:
         # Special cases inside alternatives
+        # Audit beta (2026-05-06): Tail Risk and Merger Arb get precise sub_strategy
+        if re.search(r"\bTAIL\s+RISK\b|\bTAIL\b", name, re.IGNORECASE) and not re.search(r"\bCOCKTAIL\b", name, re.IGNORECASE):
+            row.update(
+                asset_class="Multi-Asset",
+                primary_strategy="Risk Mgmt",
+                sub_strategy="Tail Risk",
+            )
+            return row
+        if re.search(r"\bMERGER\s+(?:ARB|ARBITRAGE)\b", name, re.IGNORECASE):
+            row.update(
+                asset_class="Equity",
+                primary_strategy="Risk Mgmt",
+                sub_strategy="Event-Driven/Merger Arb",
+            )
+            return row
         if re.search(r"\bBOX\s+ETF\b", name, re.IGNORECASE):
             row.update(
                 asset_class="Fixed Income",
