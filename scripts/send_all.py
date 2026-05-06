@@ -246,25 +246,65 @@ def main():
     if args.use_decision:
         decision_file = PROJECT_ROOT / "data" / ".preflight_decision.json"
         token_file = PROJECT_ROOT / "data" / ".preflight_token"
+
+        def _decision_alert(subject: str, body: str) -> None:
+            """Fire send_critical_alert AND append to gate log. Best-effort."""
+            _gate_log("read", "standing_down", "send_all.py --use-decision", subject)
+            try:
+                from etp_tracker.email_alerts import send_critical_alert
+                send_critical_alert(subject=subject, message=body)
+            except Exception as _e:
+                print(f"WARN: send_critical_alert failed: {_e}")
+
         if not decision_file.exists():
-            print("ABORT: --use-decision but no data/.preflight_decision.json. Dashboard click required.")
+            _ts = _now_et()
+            msg = (f"send_all.py was invoked with --use-decision at {_ts} ET "
+                   f"but data/.preflight_decision.json does not exist. "
+                   f"No bundle was sent. Dashboard click required to authorise send.")
+            print(f"ABORT: --use-decision but no data/.preflight_decision.json. Dashboard click required.")
+            _decision_alert(f"SEND STOOD DOWN -- no decision file at {_ts} ET", msg)
             return 3
         if not token_file.exists():
-            print("ABORT: --use-decision but no data/.preflight_token. Run preflight first.")
+            _ts = _now_et()
+            msg = (f"send_all.py was invoked with --use-decision at {_ts} ET "
+                   f"but data/.preflight_token does not exist. "
+                   f"No bundle was sent. Run preflight first.")
+            print(f"ABORT: --use-decision but no data/.preflight_token. Run preflight first.")
+            _decision_alert(f"SEND STOOD DOWN -- no preflight token at {_ts} ET", msg)
             return 3
         try:
             decision = json.loads(decision_file.read_text(encoding="utf-8"))
             token_info = json.loads(token_file.read_text(encoding="utf-8"))
         except Exception as e:
+            _ts = _now_et()
+            msg = (f"send_all.py --use-decision failed to parse decision/token files at {_ts} ET. "
+                   f"Error: {e}. No bundle was sent.")
             print(f"ABORT: failed to read decision/token: {e}")
+            _decision_alert(f"SEND STOOD DOWN -- decision/token parse error at {_ts} ET", msg)
             return 3
         if decision.get("token") != token_info.get("token"):
+            _ts = _now_et()
+            d_tok = decision.get("token", "?")[:8]
+            p_tok = token_info.get("token", "?")[:8]
+            msg = (f"send_all.py --use-decision detected a TOKEN MISMATCH at {_ts} ET. "
+                   f"Decision token: {d_tok}... / Current preflight token: {p_tok}... "
+                   f"This likely means preflight was re-run after the dashboard click. "
+                   f"No bundle was sent. Click GO again on the fresh preflight.")
             print(f"ABORT: decision token does not match current preflight token. "
-                  f"decision={decision.get('token','?')[:8]} preflight={token_info.get('token','?')[:8]}")
+                  f"decision={d_tok} preflight={p_tok}")
+            _decision_alert(f"SEND STOOD DOWN -- token mismatch at {_ts} ET", msg)
             return 3
         if decision.get("action", "").upper() != "GO":
-            print(f"ABORT: decision recorded as {decision.get('action','?')}, not GO. Standing down.")
+            _ts = _now_et()
+            action = decision.get("action", "?")
+            reason = decision.get("reason", "no reason recorded")
+            msg = (f"send_all.py --use-decision found action={action} (not GO) at {_ts} ET. "
+                   f"Reason recorded: {reason}. No bundle was sent.")
+            print(f"ABORT: decision recorded as {action}, not GO. Standing down.")
+            _decision_alert(f"SEND STOOD DOWN -- decision={action} at {_ts} ET (reason: {reason})", msg)
             return 0
+        _gate_log("read", "go_authorized", "send_all.py --use-decision",
+                  f"token={decision.get('token','?')[:8]} recorded={decision.get('recorded_et','?')}")
         print(f"Decision: GO (token {decision.get('token','?')[:8]}, recorded {decision.get('recorded_et','?')})")
 
     dry_run = not args.send
