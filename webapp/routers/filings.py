@@ -60,18 +60,30 @@ _DATE_RANGE_MAP = {"7": 7, "30": 30, "90": 90, "365": 365}
 @router.get("/")
 def filings_hub(request: Request, db: Session = Depends(get_db)):
     """Filings Hub - landing page for the Filings pillar."""
-    # Count KPIs
-    fund_count = db.execute(select(func.count()).select_from(FundStatus)).scalar() or 0
-    filing_count = db.execute(select(func.count()).select_from(Filing)).scalar() or 0
-    trust_count = db.execute(
+    # KPIs — names must match template: todays_filings, weekly_filings, effective_funds, trusts_monitored
+    todays_filings = db.execute(
+        select(func.count(Filing.id)).where(Filing.filing_date == date.today())
+    ).scalar() or 0
+
+    cutoff_7d = date.today() - timedelta(days=7)
+    weekly_filings = db.execute(
+        select(func.count(Filing.id)).where(Filing.filing_date >= cutoff_7d)
+    ).scalar() or 0
+
+    effective_funds = db.execute(
+        select(func.count(FundStatus.id)).where(FundStatus.status == "EFFECTIVE")
+    ).scalar() or 0
+
+    trusts_monitored = db.execute(
         select(func.count()).select_from(Trust).where(Trust.is_active == True)
     ).scalar() or 0
 
     return templates.TemplateResponse("filings_hub.html", {
         "request": request,
-        "fund_count": fund_count,
-        "filing_count": filing_count,
-        "trust_count": trust_count,
+        "todays_filings": todays_filings,
+        "weekly_filings": weekly_filings,
+        "effective_funds": effective_funds,
+        "trusts_monitored": trusts_monitored,
     })
 
 
