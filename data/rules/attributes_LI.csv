@@ -877,3 +877,13 @@ CRDX US,Equity,Index/Basket/ETF Based,Long,2.0,
 STLU US,Equity,Index/Basket/ETF Based,Long,2.0,
 CHNU US,Equity,Index/Basket/ETF Based,Long,2.0,
 XAIL US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+UCOP US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPLT US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPAL US,Equity,Index/Basket/ETF Based,Long,2.0,
+STXL US,Equity,Index/Basket/ETF Based,Long,2.0,
+MPWX US,Equity,Single Stock,Long,2.0,MPWR
+STXX US,Equity,Single Stock,Long,2.0,STX
+CPNX US,Equity,Single Stock,Long,2.0,CPNG
+LITZ US,Equity,Single Stock,Short,2.0,LITE
+SNDQ US,Equity,Single Stock,Short,2.0,SNDK
+AXTX US,Equity,Single Stock,Long,2.0,AXTI
