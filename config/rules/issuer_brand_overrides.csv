@@ -2533,3 +2533,805 @@ ZCBF US,Global X,layer1_regex,Matched fund_name: GLOBAL X ZERO COUPON BOND 2034 
 ZCBG US,Global X,layer1_regex,Matched fund_name: GLOBAL X ZERO COUPON BOND 2035 ETF
 ZROZ US,PIMCO,layer1_regex,Matched fund_name: PIMCO 25+ YEAR ZERO COUPON U.S. TREASURY INDEX EXCHANGE-TRADED FUND
 ZSB US,USCF,layer1_regex,Matched fund_name: USCF SUSTAINABLE BATTERY METALS STRATEGY FUND
+497780 KS,Samsung,edgar-sponsor-2026-05-05,L2-C trust_dict: Samsung Asset Management Co Lt
+AAA US,Investment Managers Series,edgar-sponsor-2026-05-05,L2-C trust_dict: Investment Managers Series Tru
+AAUM US,Tema,edgar-sponsor-2026-05-05,L2-A fund_name: TEMA ALTERNATIVE ASSET MANAGERS ETF
+ABCS US,Alpha Blue Capital,edgar-sponsor-2026-05-05,L2-A fund_name: ALPHA BLUE CAPITAL US SMALL-MID CAP DYNAMIC ETF
+ABEQ US,Absolute,edgar-sponsor-2026-05-05,L2-B slash: Unified Series Trust/Absolute
+ABFL US,Abacus,edgar-sponsor-2026-05-05,L2-A fund_name: ABACUS FCF LEADERS ETF
+ABIG US,Argent,edgar-sponsor-2026-05-05,L2-A fund_name: ARGENT LARGE CAP ETF
+ABLG US,Abacus,edgar-sponsor-2026-05-05,L2-A fund_name: ABACUS FCF INTERNATIONAL LEADERS ETF
+ABLS US,Abacus,edgar-sponsor-2026-05-05,L2-A fund_name: ABACUS FCF SMALL CAP LEADERS ETF
+ABXB US,Abacus,edgar-sponsor-2026-05-05,L2-A fund_name: ABACUS FLEXIBLE BOND LEADERS ETF
+ACEP US,ARS,edgar-sponsor-2026-05-05,L2-A fund_name: ARS CORE EQUITY PORTFOLIO ETF
+ACSI US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+ACTS US,FIS,edgar-sponsor-2026-05-05,L2-C trust_dict: FIS Trust
+ACVF US,American Conservative Values,edgar-sponsor-2026-05-05,L2-A fund_name: AMERICAN CONSERVATIVE VALUES ETF
+ACVT US,Advent,edgar-sponsor-2026-05-05,L2-A fund_name: ADVENT CONVERTIBLE BOND ETF
+ADFI US,Anfield,edgar-sponsor-2026-05-05,L2-A fund_name: ANFIELD DYNAMIC FIXED INCOME ETF
+ADIV US,Guinness Atkinson,edgar-sponsor-2026-05-05,L2-A fund_name: GUINNESS ATKINSON ASIA PACIFIC DIVIDEND BUILDER ETF
+AEMS US,Anfield,edgar-sponsor-2026-05-05,L2-A fund_name: ANFIELD ENHANCED MARKET ETF
+AESR US,Anfield,edgar-sponsor-2026-05-05,L2-A fund_name: ANFIELD US EQUITY SECTOR ROTATION ETF
+AFIF US,Anfield,edgar-sponsor-2026-05-05,L2-A fund_name: ANFIELD UNIVERSAL FIXED INCOME ETF
+AFIX US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+AFOS US,ARS,edgar-sponsor-2026-05-05,L2-A fund_name: ARS FOCUSED OPPORTUNITIES STRATEGY ETF
+AGFXF US,DWS,edgar-sponsor-2026-05-05,L2-C trust_dict: DB ETNs/USA
+AGGA US,Astoria,edgar-sponsor-2026-05-05,L2-A fund_name: EA ASTORIA DYNAMIC CORE US FIXED INCOME ETF
+AGGZ US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK ENHANCED FIXED INCOME ETF
+AGIQ US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+AGOX US,Starboard,edgar-sponsor-2026-05-05,L2-C trust_dict: Starboard Investment Trust
+AGRW US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+AIMS US,Acuitas,edgar-sponsor-2026-05-05,L2-A fund_name: ACUITAS SMALL CAP ACTIVE ETF
+AINP US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+AINT US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+AIUP US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+AKAF US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+AKRE US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Professionally Managed Portfol
+ALIL US,Argent,edgar-sponsor-2026-05-05,L2-A fund_name: ARGENT FOCUSED SMALL CAP ETF
+ALRG US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+AMAX US,Starboard,edgar-sponsor-2026-05-05,L2-C trust_dict: Starboard Investment Trust
+AMID US,Argent,edgar-sponsor-2026-05-05,L2-A fund_name: ARGENT MID CAP ETF
+AMJB US,JP Morgan,edgar-sponsor-2026-05-05,L2-C trust_dict: JP Morgan ETNs/USA
+AMLP US,ALPS,edgar-sponsor-2026-05-05,L2-C trust_dict: ALPS ETF Trust
+AMOM US,Qraft,edgar-sponsor-2026-05-05,L2-A fund_name: QRAFT AI-ENHANCED US LARGE CAP MOMENTUM ETF
+AMZA US,Virtus ET,edgar-sponsor-2026-05-05,L2-B slash: ETFis Series Trust I/Virtus ET
+AOHY US,Angel Oak,edgar-sponsor-2026-05-05,L2-A fund_name: ANGEL OAK HIGH YIELD OPPORTUNITIES ETF
+AOTS US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+APCB US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust For Professional Manager
+APIE US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust For Professional Manager
+APLU US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+APMU US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust For Professional Manager
+APUE US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust For Professional Manager
+AQEC US,Arling,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Arling
+ARB US,AltShares,edgar-sponsor-2026-05-05,L2-C trust_dict: AltShares Trust
+ARCM US,Arrow,edgar-sponsor-2026-05-05,L2-C trust_dict: Arrow Investments Trust
+ARMH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: ARM HOLDINGS PLC ADRHEDGED
+ARMY US,Tema,edgar-sponsor-2026-05-05,L2-A fund_name: TEMA INTERNATIONAL DEFENSE ETF
+ARP US,PMV,edgar-sponsor-2026-05-05,L2-A fund_name: PMV ADAPTIVE RISK PARITY ETF
+ARWG US,Archer,edgar-sponsor-2026-05-05,L2-C trust_dict: Archer Investment Series Trust
+ASCE US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+ASLV US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+ASMH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: ASML HOLDING NV ADRHEDGED TM
+ATFV US,Alger,edgar-sponsor-2026-05-05,L2-A fund_name: ALGER 35 ETF
+ATTR US,Arin,edgar-sponsor-2026-05-05,L2-A fund_name: ARIN TACTICAL TAIL RISK ETF
+AUSM US,Allspring,edgar-sponsor-2026-05-05,L2-C trust_dict: Allspring Funds Management LLC
+AVOS US,Avos,edgar-sponsor-2026-05-05,L2-A fund_name: AVOS GLOBAL EQUITIES ETF
+AVRY US,Avory,edgar-sponsor-2026-05-05,L2-A fund_name: AVORY FOUNDATIONAL ETF
+AZTD US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+BAFE US,Brown Advisory,edgar-sponsor-2026-05-05,L2-A fund_name: BROWN ADVISORY FLEXIBLE EQUITY ETF
+BAIV US,Brown Advisory,edgar-sponsor-2026-05-05,L2-A fund_name: BROWN ADVISORY INTERNATIONAL VALUE SELECT ETF
+BAMA US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE ACTIVE ETF
+BAMB US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE INTERMEDIATE BOND ETF
+BAMD US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE DIVIDEND STOCK ETF
+BAMG US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE GROWTH STOCK ETF
+BAMO US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE OPPORTUNITIES ETF
+BAMU US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE ULTRA-SHORT BOND ETF
+BAMV US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE VALUE STOCK ETF
+BAMY US,Brookstone,edgar-sponsor-2026-05-05,L2-A fund_name: BROOKSTONE YIELD ETF
+BASG US,Brown Advisory,edgar-sponsor-2026-05-05,L2-A fund_name: BROWN ADVISORY SUSTAINABLE GROWTH ETF
+BASV US,Brown Advisory,edgar-sponsor-2026-05-05,L2-A fund_name: BROWN ADVISORY SUSTAINABLE VALUE ETF
+BBHL US,BBH,edgar-sponsor-2026-05-05,L2-C trust_dict: BBH Trust
+BBHM US,BBH,edgar-sponsor-2026-05-05,L2-C trust_dict: BBH Trust
+BBLU US,Bridgeway,edgar-sponsor-2026-05-05,L2-A fund_name: EA BRIDGEWAY BLUE CHIP ETF
+BCGS US,Bancreek,edgar-sponsor-2026-05-05,L2-A fund_name: BANCREEK GLOBAL SELECT ETF
+BCHP US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL FOCUSED BLUE CHIP ETF
+BCIL US,Bancreek,edgar-sponsor-2026-05-05,L2-A fund_name: BANCREEK INTERNATIONAL LARGE CAP ETF
+BCKT US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2030 INCOME BUCKET ETF
+BCUS US,Bancreek,edgar-sponsor-2026-05-05,L2-A fund_name: BANCREEK US LARGE CAP ETF
+BDBT US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BDGS US,Three Bridges Capital,edgar-sponsor-2026-05-05,L2-C trust_dict: Three Bridges Capital LP/USA
+BDIV US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+BDRY US,Amplify,edgar-sponsor-2026-05-05,L2-C trust_dict: Amplify Commodity Trust
+BDVG US,Litman Gregory,edgar-sponsor-2026-05-05,L2-C trust_dict: Litman Gregory Funds Trust
+BEEX US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+BEEZ US,Honeytree,edgar-sponsor-2026-05-05,L2-A fund_name: HONEYTREE US EQUITY ETF
+BESF US,Bastion,edgar-sponsor-2026-05-05,L2-A fund_name: BASTION ENERGY ETF
+BESO US,Framew,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Framew
+BFIX US,Build Asset Management,edgar-sponsor-2026-05-05,L2-C trust_dict: Build Funds Trust
+BFOR US,ALPS,edgar-sponsor-2026-05-05,L2-C trust_dict: ALPS ETF Trust
+BGDV US,Bahl & Gaynor,edgar-sponsor-2026-05-05,L2-A fund_name: BAHL & GAYNOR DIVIDEND ETF
+BGIG US,Bahl & Gaynor,edgar-sponsor-2026-05-05,L2-A fund_name: BAHL & GAYNOR INCOME GROWTH ETF
+BINT US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BINV US,Brandes,edgar-sponsor-2026-05-05,L2-C trust_dict: Brandes Funds/USA
+BLDX US,Impax,edgar-sponsor-2026-05-05,L2-A fund_name: IMPAX GLOBAL INFRASTRUCTURE ETF
+BLGR US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BLST US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BLTD US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BLUC US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BLUI US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BLUX US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BNDD US,KraneShares,edgar-sponsor-2026-05-05,L2-C trust_dict: KraneShares Trust
+BNDS US,Infrast,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Infrast
+BNO US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+BOBP US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BOUT US,Capital Force,edgar-sponsor-2026-05-05,L2-C trust_dict: Capital-Force ETF Trust
+BPH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: BP P.L.C. ADRHEDGED
+BRES US,Burney,edgar-sponsor-2026-05-05,L2-A fund_name: BURNEY US EQUITY SELECT ETF
+BRIB US,FIS,edgar-sponsor-2026-05-05,L2-C trust_dict: FIS Trust
+BRIF US,FIS,edgar-sponsor-2026-05-05,L2-C trust_dict: FIS Trust
+BRNY US,Burney,edgar-sponsor-2026-05-05,L2-A fund_name: BURNEY US FACTOR ROTATION ETF
+BSMC US,Brandes,edgar-sponsor-2026-05-05,L2-C trust_dict: Brandes Funds/USA
+BSR US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+BSVO US,Bridgeway,edgar-sponsor-2026-05-05,L2-A fund_name: EA BRIDGEWAY OMNI SMALL-CAP VALUE ETF
+BTAL US,AGF,edgar-sponsor-2026-05-05,L2-C trust_dict: AGF Investments Trust
+BTR US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+BUDH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: ANHEUSER-BUSCH INBEV SA/NV ADRHEDGED
+BUSA US,Brandes,edgar-sponsor-2026-05-05,L2-C trust_dict: Brandes Funds/USA
+BVAL US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+BWET US,Amplify,edgar-sponsor-2026-05-05,L2-C trust_dict: Amplify Commodity Trust
+BWTG US,Tuttle,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Tuttle
+BYRE US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL REAL ESTATE ACTIVE OPPORTUNITIES ETF
+CAFX US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Professionally Managed Portfol
+CAML US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Professionally Managed Portfol
+CAMX US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund/Ca
+CARK US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+CARY US,Angel Oak,edgar-sponsor-2026-05-05,L2-A fund_name: ANGEL OAK INCOME ETF
+CBLS US,Clough,edgar-sponsor-2026-05-05,L2-A fund_name: CLOUGH HEDGED EQUITY ETF
+CBSE US,Clough,edgar-sponsor-2026-05-05,L2-A fund_name: CLOUGH SELECT EQUITY ETF
+CCFE US,Concourse Capital,edgar-sponsor-2026-05-05,L2-A fund_name: CONCOURSE CAPITAL FOCUSED EQUITY ETF
+CCOR US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+CCSB US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+CDEI US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+CDIG US,City Different,edgar-sponsor-2026-05-05,L2-A fund_name: CITY DIFFERENT INVESTMENTS GLOBAL EQUITY ETF
+CEFS US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+CEFZ US,Elevation,edgar-sponsor-2026-05-05,L2-C trust_dict: Elevation Series Trust
+CGBL US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP CORE BALANCED ETF
+CGCB US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP CORE BOND ETF
+CGCP US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP CORE PLUS INCOME ETF
+CGCV US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP CONSERVATIVE EQUITY ETF
+CGDG US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP DIVIDEND GROWERS ETF
+CGDV US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP DIVIDEND VALUE ETF
+CGGE US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP GLOBAL EQUITY ETF
+CGGG US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP LARGE GROWTH ETF
+CGGO US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP GLOBAL GROWTH EQUITY ETF
+CGGR US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP GROWTH ETF
+CGHM US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP MUNICIPAL HIGH-INCOME ETF
+CGHY US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP HIGH YIELD BOND ETF
+CGIB US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP INTERNATIONAL BOND ETF USD-HEDGED
+CGIC US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP INTERNATIONAL CORE EQUITY ETF
+CGIE US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP INTERNATIONAL EQUITY ETF
+CGMM US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP US SMALL AND MID CAP ETF
+CGMS US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP US MULTI-SECTOR INCOME ETF
+CGMU US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP MUNICIPAL INCOME ETF
+CGNG US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP NEW GEOGRAPHY EQUITY ETF
+CGRO US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+CGSD US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP SHORT DURATION INCOME ETF
+CGSM US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP SHORT DURATION MUNICIPAL INCOME ETF
+CGUI US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP ULTRA SHORT INCOME ETF
+CGUS US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP CORE EQUITY ETF
+CGV US,IronHor,edgar-sponsor-2026-05-05,L2-B slash: Two Roads Shared Trust/IronHor
+CGVV US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP LARGE VALUE ETF
+CGXU US,Capital Group,edgar-sponsor-2026-05-05,L2-A fund_name: CAPITAL GROUP INTERNATIONAL FOCUS EQUITY ETF
+CLCG US,Crossmark,edgar-sponsor-2026-05-05,L2-A fund_name: CROSSMARK LARGE CAP GROWTH ETF
+CLCV US,Crossmark,edgar-sponsor-2026-05-05,L2-A fund_name: CROSSMARK LARGE CAP VALUE ETF
+CLIM US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+CLOC US,Advisors,edgar-sponsor-2026-05-05,L2-B slash: ETF Series Solutions/Advisors
+CLOX US,Eldridg,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Eldridg
+CLOZ US,Eldridg,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Eldridg
+CLSE US,Convergence,edgar-sponsor-2026-05-05,L2-C trust_dict: Convergence Investment Partner
+CLSM US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+CMBO US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+CNAV US,Collaborative Investment,edgar-sponsor-2026-05-05,L2-C trust_dict: Collaborative Investment Serie
+CNEQ US,Alger,edgar-sponsor-2026-05-05,L2-A fund_name: ALGER CONCENTRATED EQUITY ETF
+COAL US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts Trust
+CPAG US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+CPAI US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust III
+CPER US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+CPHY US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+CREF US,WhiteWolf,edgar-sponsor-2026-05-05,L2-A fund_name: WHITEWOLF COMMERCIAL REAL ESTATE FINANCE INCOME ETF
+CSMD US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Professionally Managed Portfol
+CTEF US,Castellan,edgar-sponsor-2026-05-05,L2-A fund_name: CASTELLAN TARGETED EQUITY ETF
+CTIF US,Castellan,edgar-sponsor-2026-05-05,L2-A fund_name: CASTELLAN TARGETED INCOME ETF
+CTWO US,Cotwo,edgar-sponsor-2026-05-05,L2-C trust_dict: Cotwo Advisors LLC/The
+CUSD US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust For Professional Manager
+CVAR US,Cultiv,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Cultiv
+CVIE US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+CVLC US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+CVMC US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+CVSB US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+DAK US,Dakota,edgar-sponsor-2026-05-05,L2-A fund_name: DAKOTA ACTIVE EQUITY ETF
+DANA US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+DBMF US,Litman Gregory,edgar-sponsor-2026-05-05,L2-C trust_dict: Litman Gregory Funds Trust
+DDV US,Lively,edgar-sponsor-2026-05-05,L2-A fund_name: DEFINED DURATION 5 ETF
+DDX US,Lively,edgar-sponsor-2026-05-05,L2-A fund_name: DEFINED DURATION 10 ETF
+DDXX US,Lively,edgar-sponsor-2026-05-05,L2-A fund_name: DEFINED DURATION 20 ETF
+DEEP US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+DEMZ US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+DEOH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: DIAGEO PLC ADRHEDGED
+DFMC US,Dimensional,edgar-sponsor-2026-05-05,L2-A fund_name: US MICRO CAP PORTFOLIO ETF
+DFNL US,Davis,edgar-sponsor-2026-05-05,L2-A fund_name: DAVIS SELECT FINANCIAL ETF
+DFTT US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust/Don
+DGS US,WisdomTree,edgar-sponsor-2026-05-05,L2-C trust_dict: WisdomTree ETFs/USA
+DHLX US,Diamond Hill,edgar-sponsor-2026-05-05,L2-A fund_name: DIAMOND HILL LARGE CAP CONCENTRATED ETF
+DINT US,Davis,edgar-sponsor-2026-05-05,L2-A fund_name: DAVIS SELECT INTERNATIONAL ETF
+DIVD US,Altrius,edgar-sponsor-2026-05-05,L2-A fund_name: ALTRIUS GLOBAL DIVIDEND ETF
+DIVE US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+DIVL US,Madison,edgar-sponsor-2026-05-05,L2-A fund_name: MADISON DIVIDEND VALUE ETF
+DIVP US,Cullen,edgar-sponsor-2026-05-05,L2-A fund_name: CULLEN ENHANCED EQUITY INCOME ETF
+DIVS US,Guinness Atkinson,edgar-sponsor-2026-05-05,L2-A fund_name: GUINNESS ATKINSON DIVIDEND BUILDER ETF
+DIVY US,Sound Capital,edgar-sponsor-2026-05-05,L2-A fund_name: SOUND EQUITY DIVIDEND INCOME ETF
+DIVZ US,Elevation,edgar-sponsor-2026-05-05,L2-A fund_name: ELEVATION SERIES TRUST - POLEN DIVIDEND INCOME ETF
+DRAI US,Draco,edgar-sponsor-2026-05-05,L2-A fund_name: DRACO EVOLUTION AI ETF
+DSMC US,Distillate,edgar-sponsor-2026-05-05,L2-A fund_name: DISTILLATE SMALL/MID CASH FLOW ETF
+DSPY US,Tema,edgar-sponsor-2026-05-05,L2-A fund_name: TEMA S&P 500 HISTORICAL WEIGHT ETF STRATEGY
+DSTL US,Distillate,edgar-sponsor-2026-05-05,L2-A fund_name: DISTILLATE US FUNDAMENTAL STABILITY & VALUE ETF
+DSTX US,Distillate,edgar-sponsor-2026-05-05,L2-A fund_name: DISTILLATE INTERNATIONAL FUNDAMENTAL STABILITY & VALUE ETF
+DTAN US,Sparkline,edgar-sponsor-2026-05-05,L2-A fund_name: SPARKLINE INTERNATIONAL INTANGIBLE VALUE ETF
+DUKH US,Ocean Park,edgar-sponsor-2026-05-05,L2-A fund_name: OCEAN PARK HIGH INCOME ETF
+DUKQ US,Ocean Park,edgar-sponsor-2026-05-05,L2-A fund_name: OCEAN PARK DOMESTIC ETF
+DUKX US,Ocean Park,edgar-sponsor-2026-05-05,L2-A fund_name: OCEAN PARK INTERNATIONAL ETF
+DUKZ US,Ocean Park,edgar-sponsor-2026-05-05,L2-A fund_name: OCEAN PARK DIVERSIFIED INCOME ETF
+DUNK US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+DUSA US,Davis,edgar-sponsor-2026-05-05,L2-A fund_name: DAVIS SELECT US EQUITY ETF
+DUTY US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+DVAL US,BrandywineGlobal,edgar-sponsor-2026-05-05,L2-A fund_name: BRANDYWINEGLOBAL DYNAMIC US LARGE CAP VALUE ETF
+DVDN US,Kingsb,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Kingsb
+DVGR US,DAC,edgar-sponsor-2026-05-05,L2-A fund_name: DAC 3D DIVIDEND GROWTH ETF
+DWLD US,Davis,edgar-sponsor-2026-05-05,L2-A fund_name: DAVIS SELECT WORLDWIDE ETF
+DYFI US,IDX,edgar-sponsor-2026-05-05,L2-A fund_name: IDX DYNAMIC FIXED INCOME ETF
+DYLD US,Redwood,edgar-sponsor-2026-05-05,L2-B slash: Two Roads Shared Trust/Redwood
+DYTA US,Summit Global Inv,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/Summit Global Inv
+EAGL US,2023 ETF Series,edgar-sponsor-2026-05-05,L2-C trust_dict: 2023 ETF Series Trust/The
+EASY US,Liberty,edgar-sponsor-2026-05-05,L2-A fund_name: LIBERTY ONE DEFENSIVE DIVIDEND GROWTH ETF
+EBI US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+ECML US,Euclidean,edgar-sponsor-2026-05-05,L2-C trust_dict: Euclidean Technologies Managem
+EDGF US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+EDGH US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+EDGI US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+EDGU US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+EEEE US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+EGGQ US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+EHLS US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+EIPI US,First Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: First Trust Exchange-Traded Fu
+EIPX US,First Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: First Trust Exchange-Traded Fu
+ELKD US,Elkhorn,edgar-sponsor-2026-05-05,L2-C trust_dict: Elkhorn ETF Trust
+ELKE US,Elkhorn,edgar-sponsor-2026-05-05,L2-C trust_dict: Elkhorn ETF Trust
+ELM US,Series Portfolios,edgar-sponsor-2026-05-05,L2-D EDGAR entity: Series Portfolios Trust
+EMPB US,Efficient Market,edgar-sponsor-2026-05-05,L2-A fund_name: EFFICIENT MARKET PORTFOLIO PLUS ETF
+ENRG US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+EQTY US,Kovitz,edgar-sponsor-2026-05-05,L2-A fund_name: KOVITZ CORE EQUITY ETF
+ESN US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+ETFF US,Amplify,edgar-sponsor-2026-05-05,L2-C trust_dict: Amplify Commodity Trust
+ETFT US,Fundsmith In,edgar-sponsor-2026-05-05,L2-B slash: ALPS Series Trust/Fundsmith In
+EVNT US,AltShares,edgar-sponsor-2026-05-05,L2-C trust_dict: AltShares Trust
+EXEQ US,Wedbush,edgar-sponsor-2026-05-05,L2-A fund_name: WEDBUSH RETURNONLEADERSHIP US LARGE-CAP ETF
+EZMO US,Teucrium In,edgar-sponsor-2026-05-05,L2-B slash: Listed Funds Trust/Teucrium In
+EZRO US,Teucrium In,edgar-sponsor-2026-05-05,L2-B slash: Listed Funds Trust/Teucrium In
+FARX US,Frontier,edgar-sponsor-2026-05-05,L2-A fund_name: FRONTIER ASSET ABSOLUTE RETURN ETF
+FCBD US,Frontier,edgar-sponsor-2026-05-05,L2-A fund_name: FRONTIER ASSET CORE BOND ETF
+FCTE US,3Fourt,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/3Fourt
+FCUS US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+FDAT US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+FDIV US,MarketDesk,edgar-sponsor-2026-05-05,L2-A fund_name: MARKETDESK FOCUSED US DIVIDEND ETF
+FDRS US,Corgi,edgar-sponsor-2026-05-05,L2-C trust_dict: Corgi ETF Trust I
+FEGE US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+FEMD US,First Eagle,edgar-sponsor-2026-05-05,L2-C trust_dict: First Eagle Etf Trust
+FEOE US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+FFF US,Founder,edgar-sponsor-2026-05-05,L2-C trust_dict: Founder Funds Trust
+FFIU US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+FFLS US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+FFND US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+FFOX US,FundX,edgar-sponsor-2026-05-05,L2-A fund_name: FUNDX FUTURE FUND OPPORTUNITIES ETF
+FFTY US,Capital Force,edgar-sponsor-2026-05-05,L2-C trust_dict: Capital-Force ETF Trust
+FGSM US,Frontier,edgar-sponsor-2026-05-05,L2-A fund_name: FRONTIER ASSET GLOBAL SMALL CAP EQUITY ETF
+FIAX US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+FINT US,Frontier,edgar-sponsor-2026-05-05,L2-A fund_name: FRONTIER ASSET TOTAL INTERNATIONAL EQUITY ETF
+FIXP US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+FLCE US,Frontier,edgar-sponsor-2026-05-05,L2-A fund_name: FRONTIER ASSET US LARGE CAP EQUITY ETF
+FLDZ US,Elevation,edgar-sponsor-2026-05-05,L2-A fund_name: ELEVATION SERIES TRUST-RIVERNORTH PATRIOT ETF
+FMCE US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+FMCX US,FM,edgar-sponsor-2026-05-05,L2-A fund_name: FM FOCUS EQUITY ETF
+FMTM US,MarketDesk,edgar-sponsor-2026-05-05,L2-A fund_name: MARKETDESK FOCUSED US MOMENTUM ETF
+FOPC US,Frontier,edgar-sponsor-2026-05-05,L2-A fund_name: FRONTIER ASSET OPPORTUNISTIC CREDIT ETF
+FORH US,Formid,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Formid
+FPAG US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust III
+FPAS US,Investment Managers Series,edgar-sponsor-2026-05-05,L2-C trust_dict: Investment Managers Series Tru
+FRDM US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+FRTY US,Alger,edgar-sponsor-2026-05-05,L2-A fund_name: ALGER MID CAP 40 ETF
+FTHB US,FIS,edgar-sponsor-2026-05-05,L2-C trust_dict: FIS Trust
+FXED US,Sound Capital,edgar-sponsor-2026-05-05,L2-A fund_name: SOUND ENHANCED FIXED INCOME ETF
+GABF US,Gabelli,edgar-sponsor-2026-05-05,L2-A fund_name: GABELLI FINANCIAL SERVICES OPPORTUNITIES ETF
+GAGE US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+GAID US,Guinness Atkinson,edgar-sponsor-2026-05-05,L2-A fund_name: GUINNESS ATKINSON INTERNATIONAL DIVIDEND BUILDER ETF
+GARA US,Guinness Atkinson,edgar-sponsor-2026-05-05,L2-A fund_name: GUINNESS ATKINSON REAL ASSETS INCOME ETF
+GARY US,Fund Parent,edgar-sponsor-2026-05-05,L2-B slash: Mango Growth ETF/Fund Parent
+GAUD US,Guinness Atkinson,edgar-sponsor-2026-05-05,L2-A fund_name: GUINNESS ATKINSON US DIVIDEND BUILDER ETF
+GBHI US,Gabelli,edgar-sponsor-2026-05-05,L2-A fund_name: GABELLI HIGH INCOME ETF
+GDMA US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+GEME US,Paren,edgar-sponsor-2026-05-05,L2-B slash: Pacific Asset Management/Paren
+GEND US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+GENM US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+GENT US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+GENW US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+GFGF US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+GGM US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+GHTA US,Collaborative Investment,edgar-sponsor-2026-05-05,L2-C trust_dict: Collaborative Investment Serie
+GIAX US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+GINX US,Summit Global Inv,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/Summit Global Inv
+GKAT US,Scharf,edgar-sponsor-2026-05-05,L2-A fund_name: SCHARF GLOBAL OPPORTUNITY ETF
+GLCR US,Teucrium In,edgar-sponsor-2026-05-05,L2-B slash: Listed Funds Trust/Teucrium In
+GLDB US,IDX,edgar-sponsor-2026-05-05,L2-A fund_name: IDX ALTERNATIVE FIAT ETF
+GMMA US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+GOAU US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+GOLS US,Gabelli,edgar-sponsor-2026-05-05,L2-A fund_name: GABELLI OPPORTUNITIES IN LIVE AND SPORTS ETF
+GOLY US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+GOP US,Subvers,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Subvers
+GPT US,Empowered Fund,edgar-sponsor-2026-05-05,L2-B slash: EA Series Trust/Empowered Fund
+GPTZ US,Corgi,edgar-sponsor-2026-05-05,L2-C trust_dict: Corgi ETF Trust II
+GQGU US,GQG,edgar-sponsor-2026-05-05,L2-A fund_name: GQG US EQUITY ETF
+GQI US,Natixis,edgar-sponsor-2026-05-05,L2-A fund_name: NATIXIS GATEWAY QUALITY INCOME ETF
+GQQQ US,Empowered Fund,edgar-sponsor-2026-05-05,L2-B slash: EA Series Trust/Empowered Fund
+GRBD US,Global Beta,edgar-sponsor-2026-05-05,L2-A fund_name: GLOBAL BETA CHINA GREEN BOND ETF
+GRNI US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+GRNJ US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+GRNY US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+GROZ US,Zacks,edgar-sponsor-2026-05-05,L2-A fund_name: ZACKS FOCUS GROWTH ETF
+GSCE US,Goldman Sachs,edgar-sponsor-2026-05-05,L2-C trust_dict: Goldman Sachs ETNs/USA
+GSKH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: GSK PLC ADRHEDGED
+GSPY US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+GVLU US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+GYLD US,Arrow,edgar-sponsor-2026-05-05,L2-C trust_dict: Arrow ETF Trust
+HAGE US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+HAUS US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+HBDC US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+HECA US,Hedgey,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Hedgey
+HEFT US,Hedgey,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Hedgey
+HEGD US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+HELS US,Hedgey,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Hedgey
+HF US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+HFEQ US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+HFGM US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+HFMF US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+HFND US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+HFSP US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+HGRO US,Hedgey,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Hedgey
+HLAL US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+HNDL US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+HSBH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: HSBC HOLDINGS PLC ADRHEDGED
+HTUS US,Htaa Llc,edgar-sponsor-2026-05-05,L2-B slash: Capitol Series Trust/HTAA LLC
+HWSM US,Hotchkis and Wiley,edgar-sponsor-2026-05-05,L2-A fund_name: HOTCHKIS & WILEY SMID CAP DIVERSIFIED VALUE FUND
+HYGA US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK ENHANCED CREDIT ETF
+HYP US,Golden,edgar-sponsor-2026-05-05,L2-A fund_name: GOLDEN EAGLE DYNAMIC HYPERGROWTH ETF
+HYTR US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust III
+ICAP US,Infrast,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Infrast
+ICEE US,Corgi,edgar-sponsor-2026-05-05,L2-C trust_dict: Corgi ETF Trust II
+ICPY US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+IDVZ US,Elevation,edgar-sponsor-2026-05-05,L2-C trust_dict: Elevation Series Trust
+IG US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL INVESTMENT GRADE CORPORATE ETF
+ILS US,Brookm,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Brookm
+INTL US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+IRET US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+ITAN US,Sparkline,edgar-sponsor-2026-05-05,L2-A fund_name: SPARKLINE INTANGIBLE VALUE ETF
+ITOL US,Tema,edgar-sponsor-2026-05-05,L2-A fund_name: TEMA INTERNATIONAL DURABLE QUALITY ETF
+IVEP US,Infrastructure Capital,edgar-sponsor-2026-05-05,L2-A fund_name: DAN IVES WEDBUSH AI POWER & INFRASTRUCTURE ETF
+IVES US,Wedbush,edgar-sponsor-2026-05-05,L2-C trust_dict: Wedbush Series Trust
+IVOL US,KraneShares,edgar-sponsor-2026-05-05,L2-C trust_dict: KraneShares Trust
+IVSI US,Applie,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Applie
+IVSS US,Applie,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Applie
+IVSX US,Applie,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Applie
+JGRW US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust For Professional Manager
+JOJO US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+JSTC US,Newfound,edgar-sponsor-2026-05-05,L2-C trust_dict: TOROSO Newfound Funds/USA
+KAMO US,Kensington,edgar-sponsor-2026-05-05,L2-C trust_dict: Kensington Asset Management ET
+KAT US,Scharf,edgar-sponsor-2026-05-05,L2-A fund_name: SCHARF ETF
+KCOP US,Kurv,edgar-sponsor-2026-05-05,L2-A fund_name: KURV COPPER & MINING ENHANCED INCOME ETF
+KDRN US,Kingsb,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Kingsb
+KDVD US,Gabelli,edgar-sponsor-2026-05-05,L2-C trust_dict: Gabelli ETFs Trust
+KEAT US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+KHPI US,Kensi,edgar-sponsor-2026-05-05,L2-B slash: Managed Portfolio Series/Kensi
+KNO US,Investment Managers Series,edgar-sponsor-2026-05-05,L2-C trust_dict: Investment Managers Series Tru
+KNOW US,Mason,edgar-sponsor-2026-05-05,L2-C trust_dict: Mason Capital Fund Trust
+KONG US,Formid,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Formid
+KOOL US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+LBAY US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+LBO US,WhiteWolf,edgar-sponsor-2026-05-05,L2-A fund_name: WHITEWOLF PUBLICLY LISTED PRIVATE EQUITY ETF
+LCAP US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL CAPITAL APPRECIATION SELECT ETF
+LCLG US,Logan,edgar-sponsor-2026-05-05,L2-A fund_name: LOGAN CAPITAL BROAD INNOVATIVE GROWTH ETF
+LCO US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+LCR US,Leuthold,edgar-sponsor-2026-05-05,L2-A fund_name: LEUTHOLD CORE ETF
+LDDR US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2035 INCOME BUCKET ETF
+LDRX US,Summit Global Inv,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/Summit Global Inv
+LEAD US,Siren,edgar-sponsor-2026-05-05,L2-A fund_name: SIREN DIVCON LEADERS DIVIDEND
+LENS US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+LEXI US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+LFAI US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2050 LONGEVITY INCOME ETF
+LFAO US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2055 LONGEVITY INCOME ETF
+LFAW US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2060 LONGEVITY INCOME ETF
+LFBE US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2065 LONGEVITY INCOME ETF
+LFDR US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX DURABLE INCOME ETF
+LGDX US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+LGH US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust III
+LGHT US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+LGRO US,ALPS,edgar-sponsor-2026-05-05,L2-C trust_dict: ALPS ETF Trust
+LIAE US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2050 INFLATION-PROTECTED LONGEVITY INCOME ETF
+LIAM US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2055 INFLATION-PROTECTED LONGEVITY INCOME ETF
+LIAU US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2060 INFLATION-PROTECTED LONGEVITY INCOME ETF
+LIBD US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2065 INFLATION-PROTECTED LONGEVITY INCOME ETF
+LIFT US,Stone Ridge,edgar-sponsor-2026-05-05,L2-A fund_name: LIFEX 2028 INCOME BUCKET ETF
+LODI US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+LOGO US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+LOTI US,Liberty,edgar-sponsor-2026-05-05,L2-A fund_name: LIBERTY ONE TACTICAL INCOME ETF
+LPRE US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+LQAI US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+LQID US,Kurv,edgar-sponsor-2026-05-05,L2-A fund_name: KURV ENHANCED SHORT MATURITY ETF
+LRGE US,Legg Mason,edgar-sponsor-2026-05-05,L2-C trust_dict: Legg Mason ETF Investment Trus
+LSAF US,Redwood,edgar-sponsor-2026-05-05,L2-B slash: Two Roads Shared Trust/Redwood
+LSAT US,Redwood,edgar-sponsor-2026-05-05,L2-B slash: Two Roads Shared Trust/Redwood
+LSGR US,Natixis,edgar-sponsor-2026-05-05,L2-A fund_name: NATIXIS LOOMIS SAYLES FOCUSED GROWTH ETF
+LST US,Leuthold,edgar-sponsor-2026-05-05,L2-A fund_name: LEUTHOLD SELECT INDUSTRIES ETF
+LSVD US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund/LS
+LVIG US,Hill Investment Group,edgar-sponsor-2026-05-05,L2-C trust_dict: Hill Investment Group Partners
+MAGA US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+MAGG US,Madison,edgar-sponsor-2026-05-05,L2-A fund_name: MADISON AGGREGATE BOND ETF
+MAMB US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MANI US,Man,edgar-sponsor-2026-05-05,L2-A fund_name: MAN ACTIVE INCOME ETF
+MATE US,Man,edgar-sponsor-2026-05-05,L2-A fund_name: MAN ACTIVE TREND ENHANCED ETF
+MAVF US,Unit Investment Trust/U,edgar-sponsor-2026-05-05,L2-B slash: Matrix/Unit Investment Trust/U
+MBCC US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MBOX US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+MBS US,Angel Oak,edgar-sponsor-2026-05-05,L2-A fund_name: ANGEL OAK MORTGAGE-BACKED SECURITIES ETF
+MBSF US,Regan,edgar-sponsor-2026-05-05,L2-B slash: Value Advisers Trust/Regan
+MBSX US,Advisor Managed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisor Managed Portfolios/Fun
+MCVT US,Miller,edgar-sponsor-2026-05-05,L2-C trust_dict: Miller Investment Trust
+MDAA US,Myriad,edgar-sponsor-2026-05-05,L2-A fund_name: MYRIAD DYNAMIC ASSET ALLOCATION ETF
+MDLV US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+MDPL US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MDST US,Westwood,edgar-sponsor-2026-05-05,L2-A fund_name: WESTWOOD SALIENT ENHANCED MIDSTREAM INCOME ETF
+MEMA US,Man,edgar-sponsor-2026-05-05,L2-A fund_name: MAN ACTIVE EMERGING MARKETS ALTERNATIVE ETF
+MFUL US,Tuttle,edgar-sponsor-2026-05-05,L2-C trust_dict: Tuttle Tactical ETFs/USA
+MGMT US,Ballast A,edgar-sponsor-2026-05-05,L2-B slash: Unified Series Trust/Ballast A
+MHIG US,Milliman,edgar-sponsor-2026-05-05,L2-A fund_name: MILLIMAN HEALTHCARE INFLATION GUARD ETF
+MHIP US,Milliman,edgar-sponsor-2026-05-05,L2-A fund_name: MILLIMAN HEALTHCARE INFLATION PLUS ETF
+MHY US,Man,edgar-sponsor-2026-05-05,L2-A fund_name: MAN ACTIVE HIGH YIELD ETF
+MIGO US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts Trust
+MINN US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust for Professional Manager
+MJSC US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+MKAM US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+MMKT US,Texas Capital,edgar-sponsor-2026-05-05,L2-A fund_name: TEXAS CAPITAL GOVERNMENT MONEY MARKET ETF
+MNZL US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+MOOD US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+MPLY US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+MPRO US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MRSK US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust/Toe
+MSMR US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+MSSS US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MSTB US,Little Harbor,edgar-sponsor-2026-05-05,L2-C trust_dict: Little Harbor Funds/USA
+MSTI US,Madison,edgar-sponsor-2026-05-05,L2-A fund_name: MADISON SHORT-TERM STRATEGIC INCOME ETF
+MSTQ US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+MUNX US,AMG,edgar-sponsor-2026-05-05,L2-C trust_dict: Amg ETF Trust
+MUSQ US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+MVFD US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MVFG US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+MVPA US,Advisor Managed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisor Managed Portfolios/Mil
+NACP US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+NANC US,Subvers,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Subvers
+NDAA US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+NDEQ US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+NDOW US,Collaborative Investment,edgar-sponsor-2026-05-05,L2-C trust_dict: Collaborative Investment Serie
+NELS US,Collaborative Investment,edgar-sponsor-2026-05-05,L2-C trust_dict: Collaborative Investment Serie
+NETL US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+NEWZ US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+NFRX US,2023 ETF Series,edgar-sponsor-2026-05-05,L2-C trust_dict: 2023 ETF Series Trust/The
+NITE US,Nightview,edgar-sponsor-2026-05-05,L2-B slash: Capital Series Trust/Nightview
+NIXT US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+NMBL US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+NPFE US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: NPF Core Equity ETF/Fund Paren
+NRSH US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+NSI US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+NUKX US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+NVOH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: NOVO NORDISK A/S B SHARES ADRHEDGED
+NWKD US,Infrastructure Capital,edgar-sponsor-2026-05-05,L2-A fund_name: NUCLEAR ENERGY & INFRASTRUCTURE ETF
+OACP US,OneAscent,edgar-sponsor-2026-05-05,L2-A fund_name: ONEASCENT CORE PLUS BOND ETF
+OAEM US,OneAscent,edgar-sponsor-2026-05-05,L2-A fund_name: ONEASCENT EMERGING MARKETS ETF
+OAIM US,OneAscent,edgar-sponsor-2026-05-05,L2-A fund_name: ONEASCENT INTERNATIONAL EQUITY ETF
+OAKG US,Harris Oakmark,edgar-sponsor-2026-05-05,L2-C trust_dict: Harris Oakmark ETF Trust
+OAKI US,Harris Oakmark,edgar-sponsor-2026-05-05,L2-C trust_dict: Harris Oakmark ETF Trust
+OAKM US,Harris Oakmark,edgar-sponsor-2026-05-05,L2-C trust_dict: Harris Oakmark ETF Trust
+OALC US,OneAscent,edgar-sponsor-2026-05-05,L2-A fund_name: ONEASCENT LARGE CAP CORE ETF
+OASC US,OneAscent,edgar-sponsor-2026-05-05,L2-A fund_name: ONEASCENT ENHANCED SMALL AND MID CAP ETF
+OBIL US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+OCIO US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+ODHY US,Obra,edgar-sponsor-2026-05-05,L2-A fund_name: OBRA DEFENSIVE HIGH YIELD ETF
+OEI US,Core Altern,edgar-sponsor-2026-05-05,L2-B slash: Listed Funds Trust/Core Altern
+OGSP US,Obra,edgar-sponsor-2026-05-05,L2-A fund_name: OBRA HIGH GRADE STRUCTURED PRODUCTS ETF
+OILT US,Texas Capital,edgar-sponsor-2026-05-05,L2-A fund_name: TEXAS CAPITAL TEXAS OIL INDEX ETF
+OLOXF US,DWS,edgar-sponsor-2026-05-05,L2-C trust_dict: DB ETNs/USA
+ONEH US,Elevation,edgar-sponsor-2026-05-05,L2-C trust_dict: Elevation Series Trust
+OOSP US,Obra,edgar-sponsor-2026-05-05,L2-A fund_name: OBRA OPPORTUNISTIC STRUCTURED PRODUCTS ETF
+OPER US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+OPTZ US,Optimiz,edgar-sponsor-2026-05-05,L2-B slash: Series Portfolio Trust/Optimiz
+OSCV US,Aptus Cap,edgar-sponsor-2026-05-05,L2-B slash: ETF Series Solutions/Aptus Cap
+OTGL US,OTG,edgar-sponsor-2026-05-05,L2-A fund_name: OTG LATIN AMERICA ETF
+OWNS US,Commun,edgar-sponsor-2026-05-05,L2-B slash: Quaker Investment Trust/Commun
+PBEU US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+PBOG US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+PBPH US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+PCCE US,Litman Gregory,edgar-sponsor-2026-05-05,L2-C trust_dict: Litman Gregory Funds Trust
+PCFI US,Polen Capita,edgar-sponsor-2026-05-05,L2-B slash: FundVantage Trust/Polen Capita
+PCGG US,Litman Gregory,edgar-sponsor-2026-05-05,L2-C trust_dict: Litman Gregory Funds Trust
+PCHI US,Polen Capita,edgar-sponsor-2026-05-05,L2-B slash: FundVantage Trust/Polen Capita
+PCIG US,Litman Gregory,edgar-sponsor-2026-05-05,L2-C trust_dict: Litman Gregory Funds Trust
+PCLG US,Polen Capita,edgar-sponsor-2026-05-05,L2-B slash: FundVantage Trust/Polen Capita
+PEPS US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+PFDE US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+PFFR US,Virtus ET,edgar-sponsor-2026-05-05,L2-B slash: ETFis Series Trust I/Virtus ET
+PFLD US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+PFOE US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+PHBI US,Pharmagreen,edgar-sponsor-2026-05-05,L2-A fund_name: PHARMAGREEN BIOTECH INC
+PHEQ US,Morgan Stanley,edgar-sponsor-2026-05-05,L2-C trust_dict: Morgan Stanley Etf Trust
+PIEQ US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL INTERNATIONAL EQUITY ETF
+PIFI US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+PINS US,Pinterest,edgar-sponsor-2026-05-05,L2-A fund_name: PINTEREST INC
+PLGI US,Collaborative Investment,edgar-sponsor-2026-05-05,L2-C trust_dict: Collaborative Investment Serie
+PPTY US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+PQDI US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL SPECTRUM PREFERRED AND INCOME ETF
+PRAE US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust III
+PRAY US,FIS,edgar-sponsor-2026-05-05,L2-C trust_dict: FIS Trust
+PRCS US,Parnassus,edgar-sponsor-2026-05-05,L2-A fund_name: PARNASSUS CORE SELECT ETF
+PREF US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL SPECTRUM PREFERRED SECURITIES ACTIVE ETF
+PRMR US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+PRNT US,ARK,edgar-sponsor-2026-05-05,L2-D EDGAR entity: ARK ETF Trust
+PRTO US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+PRVS US,Parnassus,edgar-sponsor-2026-05-05,L2-A fund_name: PARNASSUS VALUE SELECT ETF
+PRXG US,Praxis,edgar-sponsor-2026-05-05,L2-A fund_name: PRAXIS IMPACT LARGE CAP GROWTH ETF
+PRXV US,Praxis,edgar-sponsor-2026-05-05,L2-A fund_name: PRAXIS IMPACT LARGE CAP VALUE ETF
+PSC US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL US SMALL-CAP ETF
+PSET US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL QUALITY ETF
+PSQA US,Palmer Square,edgar-sponsor-2026-05-05,L2-A fund_name: PALMER SQUARE CLO SENIOR DEBT ETF
+PSQO US,Palmer Square,edgar-sponsor-2026-05-05,L2-A fund_name: PALMER SQUARE CREDIT OPPORTUNITIES ETF
+PSTR US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+PY US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL VALUE ETF
+PZIV US,Pzena In,edgar-sponsor-2026-05-05,L2-B slash: Advisors Series Trust/Pzena In
+PZLV US,Pzena In,edgar-sponsor-2026-05-05,L2-B slash: Advisors Series Trust/Pzena In
+QIDX US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+QQH US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust III
+QRFT US,Qraft,edgar-sponsor-2026-05-05,L2-A fund_name: QRAFT AI-ENHANCED US LARGE CAP ETF
+QTPI US,Exchange Place,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Place Advisors Trust
+QUIZ US,Zacks,edgar-sponsor-2026-05-05,L2-A fund_name: ZACKS QUALITY INTERNATIONAL ETF
+QVOY US,Q3 Asse,edgar-sponsor-2026-05-05,L2-B slash: Ultimus Managers Trust/Q3 Asse
+QXQ US,Summit Global Inv,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/Summit Global Inv
+RAA US,3Fourt,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/3Fourt
+RAAR US,Reckoner,edgar-sponsor-2026-05-05,L2-A fund_name: RECKONER YIELD ENHANCED AAA CLO REINVESTING ETF
+RAAY US,Reckoner,edgar-sponsor-2026-05-05,L2-A fund_name: RECKONER YIELD ENHANCED AAA CLO ANNUAL ETF
+RAUS US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+RBIL US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+RCGE US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+RCKZ US,Infrastructure Capital,edgar-sponsor-2026-05-05,L2-A fund_name: AI DATA CENTER REIT & INFRASTRUCTURE ETF
+RCLO US,Reckoner,edgar-sponsor-2026-05-05,L2-A fund_name: RECKONER BBB-B CLO ETF
+RCLR US,Reckoner,edgar-sponsor-2026-05-05,L2-A fund_name: RECKONER BBB-B CLO REINVESTING ETF
+RCLY US,Reckoner,edgar-sponsor-2026-05-05,L2-A fund_name: RECKONER BBB-B CLO ANNUAL ETF
+REAI US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+RHRX US,Starboard,edgar-sponsor-2026-05-05,L2-C trust_dict: Starboard Investment Trust
+RHTX US,Starboard,edgar-sponsor-2026-05-05,L2-C trust_dict: Starboard Investment Trust
+RIET US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+RIGS US,ALPS,edgar-sponsor-2026-05-05,L2-C trust_dict: ALPS ETF Trust
+RILA US,Indexperts,edgar-sponsor-2026-05-05,L2-C trust_dict: Indexperts LLC
+RISR US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+RITA US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+RJDI US,Raymond James,edgar-sponsor-2026-05-05,L2-A fund_name: RJ EAGLE GCM DIVIDEND SELECT INCOME ETF
+RJMI US,Raymond James,edgar-sponsor-2026-05-05,L2-A fund_name: RJ EAGLE MUNICIPAL INCOME ETF
+RJVI US,Raymond James,edgar-sponsor-2026-05-05,L2-A fund_name: RJ EAGLE VERTICAL INCOME ETF
+RKSG US,Advisor Managed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisor Managed Portfolios/Sou
+RMIF US,Little Harbor,edgar-sponsor-2026-05-05,L2-C trust_dict: Little Harbor Funds/USA
+RMRC US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+RNEM US,First Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: First Trust Exchange-Traded Fu
+RNIN US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+ROE US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+ROMO US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+ROPE US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+RPAR US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+RPHS US,Anfield,edgar-sponsor-2026-05-05,L2-B slash: Two Roads Shared Trust/Anfield
+RSMV US,Teucrium In,edgar-sponsor-2026-05-05,L2-B slash: Listed Funds Trust/Teucrium In
+RTHY US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+RULE US,Tuttle,edgar-sponsor-2026-05-05,L2-C trust_dict: Tuttle Tactical ETFs/USA
+RUNN US,Strategic,edgar-sponsor-2026-05-05,L2-C trust_dict: Strategic Trust
+RVER US,Advisor Managed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisor Managed Portfolios/Fun
+RW US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+SAMM US,Strategas,edgar-sponsor-2026-05-05,L2-A fund_name: STRATEGAS MACRO MOMENTUM ETF
+SAMT US,Strategas,edgar-sponsor-2026-05-05,L2-A fund_name: STRATEGAS MACRO THEMATIC OPPORTUNITIES ETF
+SAPH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: SAP SE ADRHEDGED
+SASS US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+SAWG US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+SAWS US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+SCDV US,Bahl & Gaynor,edgar-sponsor-2026-05-05,L2-A fund_name: BAHL & GAYNOR SMALL CAP DIVIDEND ETF
+SCEC US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+SCLS US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+SCMC US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+SCNM US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+SCSB US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+SCUB US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+SDEE US,Sound Capital,edgar-sponsor-2026-05-05,L2-A fund_name: SOUND ENHANCED EQUITY INCOME ETF
+SEA US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+SECT US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust IV/
+SEMG US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+SFGV US,Empowered Fund,edgar-sponsor-2026-05-05,L2-B slash: EA Series Trust/Empowered Fund
+SFY US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+SFYF US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+SGLC US,Summit Global Inv,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/Summit Global Inv
+SGRT US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+SHDG US,Soundwatch,edgar-sponsor-2026-05-05,L2-A fund_name: SOUNDWATCH HEDGED EQUITY ETF
+SHEH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: THE SHELL PLC ADRHEDGED
+SHRD US,FIS,edgar-sponsor-2026-05-05,L2-C trust_dict: FIS Trust
+SHRT US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+SHUS US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+SIXA US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+SIXL US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+SIXS US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+SJCP US,Manager Directed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Manager Directed Portfolios
+SJLD US,Manager Directed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Manager Directed Portfolios
+SMCO US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+SMDX US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+SMIG US,Bahl & Gaynor,edgar-sponsor-2026-05-05,L2-A fund_name: BAHL & GAYNOR SMALL/MID CAP INCOME GROWTH ETF
+SMIZ US,Zacks,edgar-sponsor-2026-05-05,L2-A fund_name: ZACKS SMALL/MID CAP ETF
+SMOM US,Symmetry,edgar-sponsor-2026-05-05,L2-A fund_name: SYMMETRY PANORAMIC SECTOR MOMENTUM ETF
+SMRI US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+SNAV US,Collaborative Investment,edgar-sponsor-2026-05-05,L2-C trust_dict: Collaborative Investment Serie
+SNTH US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+SNYH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: SANOFI ADRHEDGED
+SOVF US,Sovereign,edgar-sponsor-2026-05-05,L2-A fund_name: SOVEREIGN'S CAPITAL FLOURISH FUND
+SPCT US,Liberty,edgar-sponsor-2026-05-05,L2-A fund_name: LIBERTY ONE SPECTRUM ETF
+SPDF US,Sound Capital,edgar-sponsor-2026-05-05,L2-C trust_dict: Sound Capital Solutions LLC
+SPDV US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+SPIT US,F/m Investment LL,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/F/m Investment LL
+SPRE US,SP Funds,edgar-sponsor-2026-05-05,L2-A fund_name: SP FUNDS S&P GLOBAL REIT SHARIA ETF
+SPSK US,SP Funds,edgar-sponsor-2026-05-05,L2-A fund_name: SP FUNDS DOW JONES GLOBAL SUKUK ETF
+SPTE US,SP Funds,edgar-sponsor-2026-05-05,L2-A fund_name: SP FUNDS S&P GLOBAL TECHNOLOGY ETF
+SPUS US,SP Funds,edgar-sponsor-2026-05-05,L2-A fund_name: SP FUNDS S&P 500 SHARIA INDUSTRY EXCLUSIONS ETF
+SPWO US,SP Funds,edgar-sponsor-2026-05-05,L2-A fund_name: SP FUNDS S&P WORLD EX-US ETF
+SPYA US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK ENDURE ETF
+SQLV US,Legg Mason,edgar-sponsor-2026-05-05,L2-C trust_dict: Legg Mason ETF Investment Trus
+SQS US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+SRHQ US,Paralel,edgar-sponsor-2026-05-05,L2-B slash: Elevation Series Trust/Paralel
+SSFI US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+SSPY US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+SSUS US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+SSXU US,Fund Paren,edgar-sponsor-2026-05-05,L2-B slash: Strategy Shares Inc/Fund Paren
+STBF US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Trust for Professional Manager
+STHH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: STMICROELECTRONICS NV ADRHEDGED TM
+STNC US,Hennessy,edgar-sponsor-2026-05-05,L2-A fund_name: HENNESSY SUSTAINABLE ETF
+STPU LN,Amundi,edgar-sponsor-2026-05-05,L2-A fund_name: AMUNDI US CURVE STEEPENING 2-10Y UCITS ETF
+STRN US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+SWP US,Manager Directed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Manager Directed Portfolios
+SXQG US,Exchange-Traded Concepts,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange-Traded Concepts ETFs/
+TABD US,Transame,edgar-sponsor-2026-05-05,L2-B slash: 2023 ETF Series Trust/Transame
+TACK US,Cary Stre,edgar-sponsor-2026-05-05,L2-B slash: Capitol Series Trust/Cary Stre
+TALV US,Transame,edgar-sponsor-2026-05-05,L2-B slash: 2023 ETF Series Trust/Transame
+TAOZ US,Thornburg,edgar-sponsor-2026-05-05,L2-A fund_name: THORNBURG AMERICAN OPPORTUNITIES FUND/ETF
+TBFC US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+TBFG US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+TBG US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+TBIL US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+TCPB US,Thrivent,edgar-sponsor-2026-05-05,L2-A fund_name: THRIVENT CORE PLUS BOND ETF
+TCV US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+TDSB US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+TDSC US,Exchange Listed Funds,edgar-sponsor-2026-05-05,L2-C trust_dict: Exchange Listed Funds Trust
+TEMD US,Franklin Templeton,edgar-sponsor-2026-05-05,L2-A fund_name: TEMPLETON EMERGING MARKETS DEBT ETF
+TFFI US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+TFGZ US,Thornburg,edgar-sponsor-2026-05-05,L2-A fund_name: THORNBURG FOCUS GROWTH FUND/ETF
+TFPN US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+TGLR US,Wedbush,edgar-sponsor-2026-05-05,L2-A fund_name: WEDBUSH LAFFER TENGLER NEW ERA VALUE ETF
+THGG US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+THII US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+THIR US,Thor,edgar-sponsor-2026-05-05,L2-A fund_name: THOR INDEX ROTATION ETF
+THLV US,Thor,edgar-sponsor-2026-05-05,L2-A fund_name: THOR EQUAL WEIGHT LOW VOLATILITY ETF
+THMR US,Thor,edgar-sponsor-2026-05-05,L2-A fund_name: THOR ADAPTIVERISK DYNAMIC ETF
+THRV US,RBB,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB Fund Trust/The
+THTA US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+THY US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust/Toe
+TIIV US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+TINS US,Franklin Templeton,edgar-sponsor-2026-05-05,L2-A fund_name: TEMPLETON INTERNATIONAL INSIGHTS ETF
+TLDR US,REX,edgar-sponsor-2026-05-05,L2-C trust_dict: REX ETF Trust
+TMB US,Thornburg,edgar-sponsor-2026-05-05,L2-A fund_name: THORNBURG MULTI SECTOR BOND ETF
+TMH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: TOYOTA MOTOR CORPORATION ADRHEDGED
+TMVE US,Thrivent,edgar-sponsor-2026-05-05,L2-A fund_name: THRIVENT MID CAP VALUE ETF
+TOAK US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK SHORT HORIZON ABSOLUTE RETURN ETF
+TOAO US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK ACTIVE OPPORTUNITIES III ETF
+TOEQ US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK ACTIVE OPPORTUNITIES II ETF
+TOGA US,Tremblant,edgar-sponsor-2026-05-05,L2-A fund_name: TREMBLANT GLOBAL ETF
+TOS US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK STRATEGIC SOLUTIONS ETF
+TOT US,Advisor Managed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisor Managed Portfolios/Lio
+TOV US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+TPHD US,Timothy Plan,edgar-sponsor-2026-05-05,L2-A fund_name: TIMOTHY PLAN HIGH DIVIDEND STOCK ETF
+TPIF US,Timothy Plan,edgar-sponsor-2026-05-05,L2-A fund_name: TIMOTHY PLAN INTERNATIONAL ETF
+TPLC US,Timothy Plan,edgar-sponsor-2026-05-05,L2-A fund_name: TIMOTHY PLAN US LARGE/MID CAP CORE ETF
+TPLS US,Thornburg,edgar-sponsor-2026-05-05,L2-A fund_name: THORNBURG CORE PLUS BOND ETF
+TPSC US,Timothy Plan,edgar-sponsor-2026-05-05,L2-A fund_name: TIMOTHY PLAN US SMALL CAP CORE ETF
+TRBF US,Angel Oak,edgar-sponsor-2026-05-05,L2-A fund_name: ANGEL OAK TOTAL RETURN ETF
+TRDE US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+TSCM US,TimesSqu,edgar-sponsor-2026-05-05,L2-B slash: 2023 ETF Series Trust/TimesSqu
+TSCV US,Thrivent,edgar-sponsor-2026-05-05,L2-A fund_name: THRIVENT SMALL CAP VALUE ETF
+TSES US,Truth Social,edgar-sponsor-2026-05-05,L2-A fund_name: TRUTH SOCIAL AMERICAN ENERGY SECURITY ETF
+TSIC US,Truth Social,edgar-sponsor-2026-05-05,L2-A fund_name: TRUTH SOCIAL AMERICAN ICONS ETF
+TSME US,Thrivent,edgar-sponsor-2026-05-05,L2-A fund_name: THRIVENT SMALL-MID CAP EQUITY ETF
+TSNF US,Truth Social,edgar-sponsor-2026-05-05,L2-A fund_name: TRUTH SOCIAL AMERICAN NEXT FRONTIERS ETF
+TSPX US,Twin Oak,edgar-sponsor-2026-05-05,L2-A fund_name: TWIN OAK ACTIVE OPPORTUNITIES ETF
+TSRS US,Truth Social,edgar-sponsor-2026-05-05,L2-A fund_name: TRUTH SOCIAL AMERICAN RED STATE REITS ETF
+TSSD US,Truth Social,edgar-sponsor-2026-05-05,L2-A fund_name: TRUTH SOCIAL AMERICAN SECURITY & DEFENSE ETF
+TTEH US,Precidian,edgar-sponsor-2026-05-05,L2-A fund_name: TOTALENERGIES SE ADRHEDGED
+TUG US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+TUGN US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+TUSB US,Thrivent,edgar-sponsor-2026-05-05,L2-A fund_name: THRIVENT ULTRA SHORT BOND ETF
+TXS US,Texas Capital,edgar-sponsor-2026-05-05,L2-A fund_name: TEXAS CAPITAL TEXAS EQUITY INDEX ETF
+TXUE US,Thornburg,edgar-sponsor-2026-05-05,L2-A fund_name: THORNBURG INTERNATIONAL EQUITY ETF
+TXUG US,Thornburg,edgar-sponsor-2026-05-05,L2-A fund_name: THORNBURG INTERNATIONAL GROWTH ETF
+UFIV US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UGA US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+UMMA US,Listed Funds Trust,edgar-sponsor-2026-05-05,L2-C trust_dict: Listed Funds Trust
+UNG US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+UNL US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+UPAR US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+US7 SW,Amundi,edgar-sponsor-2026-05-05,L2-A fund_name: AMUNDI US TREASURY BOND 7-10Y UCITS ETF
+USAF US,2023 ETF Series,edgar-sponsor-2026-05-05,L2-C trust_dict: 2023 ETF Series Trust/The
+USCI US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+USDX US,Summit Global Inv,edgar-sponsor-2026-05-05,L2-B slash: RBB Fund Inc/Summit Global Inv
+USFE US,First Eagle,edgar-sponsor-2026-05-05,L2-C trust_dict: First Eagle Etf Trust
+USFI US,BrandywineGlobal,edgar-sponsor-2026-05-05,L2-A fund_name: BRANDYWINEGLOBAL US FIXED INCOME ETF
+USL US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+USMC US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL US MEGA-CAP ETF
+USMD US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+USO US,USCF,edgar-sponsor-2026-05-05,L2-C trust_dict: United States Commodities ETFs
+USSE US,Segall Bryant & Hamill,edgar-sponsor-2026-05-05,L2-D EDGAR entity: Segall Bryant & Hamill Trust
+USVN US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UTEN US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UTHY US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UTRE US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UTWO US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UTWY US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+UYLD US,Angel Oak,edgar-sponsor-2026-05-05,L2-A fund_name: ANGEL OAK ULTRASHORT INCOME ETF
+VBND US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+VCOB US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+VETZ US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+VGSR US,Manager Directed Portfolios,edgar-sponsor-2026-05-05,L2-C trust_dict: Manager Directed Portfolios/Ve
+VIDI US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+VMSB US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+VNIE US,Advisors Inner Circle,edgar-sponsor-2026-05-05,L2-C trust_dict: Advisors' Inner Circle Fund II
+VNSE US,Natixis,edgar-sponsor-2026-05-05,L2-A fund_name: NATIXIS VAUGHAN NELSON SELECT ETF
+VOLT US,Tema,edgar-sponsor-2026-05-05,L2-A fund_name: TEMA ELECTRIFICATION ETF
+VOXP US,Distribu,edgar-sponsor-2026-05-05,L2-B slash: Advisors Series Trust/Distribu
+VPX US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+VSLU US,Applie,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Applie
+VUSE US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+VUSI US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust IV
+WABF US,Franklin Templeton,edgar-sponsor-2026-05-05,L2-C trust_dict: Franklin Templeton ETF Trust
+WAGN US,PMC,edgar-sponsor-2026-05-05,L2-C trust_dict: Professionally Managed Portfol
+WBIF US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR VALUE 3000 ETF
+WBIG US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR YIELD 3000 ETF
+WBIK US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR TREND SWITCH US 1000 ETF
+WBIL US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR QUALITY 3000 ETF
+WBIM US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR TREND SWITCH US 2000 ETF
+WBIQ US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR TREND SWITCH US 1000 TOTAL RETURN ETF
+WBIS US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI BULLBEAR TREND SWITCH US 2000 TOTAL RETURN ETF
+WBIY US,WBI,edgar-sponsor-2026-05-05,L2-A fund_name: WBI POWER FACTOR HIGH DIVIDEND ETF
+WCAP US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+WCPB US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+WEEI US,Westwood,edgar-sponsor-2026-05-05,L2-A fund_name: WESTWOOD SALIENT ENHANCED ENERGY INCOME ETF
+WEPN US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+WISD US,Spend Life Wisely,edgar-sponsor-2026-05-05,L2-A fund_name: WISDOM SHORT DURATION INCOME ETF
+WLTG US,Wealth,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Wealth
+WMSB US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+WRTH US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust III
+WSDB US,Northern Lights,edgar-sponsor-2026-05-05,L2-C trust_dict: Northern Lights Fund Trust II/
+WSGE US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+WZRD US,Tuttle,edgar-sponsor-2026-05-05,L2-B slash: ETF Opportunities Trust/Tuttle
+XBIL US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+XCOR US,FundX,edgar-sponsor-2026-05-05,L2-A fund_name: FUNDX ETF
+XFLX US,FundX,edgar-sponsor-2026-05-05,L2-A fund_name: FUNDX FLEXIBLE ETF
+XNAV US,FundX,edgar-sponsor-2026-05-05,L2-A fund_name: FUNDX AGGRESSIVE ETF
+XRLX US,FundX,edgar-sponsor-2026-05-05,L2-A fund_name: FUNDX CONSERVATIVE ETF
+YALL US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+YFFI US,Spinnaker,edgar-sponsor-2026-05-05,L2-C trust_dict: Spinnaker ETF Trust
+YFYA US,Teucrium In,edgar-sponsor-2026-05-05,L2-B slash: Listed Funds Trust/Teucrium In
+YLD US,Principal,edgar-sponsor-2026-05-05,L2-A fund_name: PRINCIPAL ACTIVE HIGH YIELD ETF
+YLDA US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust II
+YLDW US,Westwood,edgar-sponsor-2026-05-05,L2-A fund_name: WESTWOOD ENHANCED INCOME OPPORTUNITY ETF
+YOKE US,EA Series,edgar-sponsor-2026-05-05,L2-C trust_dict: EA Series Trust
+ZECP US,Zacks,edgar-sponsor-2026-05-05,L2-A fund_name: ZACKS EARNINGS CONSISTENT PORTFOLIO ETF
+ZHDG US,Tidal,edgar-sponsor-2026-05-05,L2-C trust_dict: Tidal Trust I
+ZHOG US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+ZIG US,ETF Series Solutions,edgar-sponsor-2026-05-05,L2-C trust_dict: ETF Series Solutions
+ZMUN US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+ZTAX US,X-Square,edgar-sponsor-2026-05-05,L2-A fund_name: X-SQUARE MUNICIPAL INCOME ETF
+ZTEN US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+ZTOP US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+ZTRE US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
+ZTWO US,F/m Investments,edgar-sponsor-2026-05-05,L2-C trust_dict: RBB ETFs/F/m Investments
