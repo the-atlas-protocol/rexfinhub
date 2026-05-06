@@ -384,23 +384,6 @@ renderPills();
 {% endblock %}
 
 {% block market_scripts %}
-<script>
-// Strip " US" suffix from tickers before form submit
-document.addEventListener('DOMContentLoaded', function() {
-  var form = document.getElementById('compareForm');
-  var tickerInput = document.getElementById('tickerInput');
-  if (form && tickerInput) {
-    form.addEventListener('submit', function(e) {
-      var val = tickerInput.value;
-      var cleaned = val.split(',').map(function(t) {
-        return t.trim().replace(/\s+US$/i, '').toUpperCase();
-      }).filter(Boolean).join(', ');
-      tickerInput.value = cleaned;
-    });
-  }
-});
-</script>
-
 {% if fund_data and fund_data[0].aum_history is defined and fund_data[0].aum_history %}
 <script>
 (function() {
