@@ -17,8 +17,15 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 
+_WEAK_SESSION_SECRET = "dev-secret-change-me"
+
+
 def _load_auth_config() -> dict[str, str]:
-    """Load Azure AD config from .env or environment."""
+    """Load Azure AD config from .env or environment.
+
+    SESSION_SECRET: in production (RENDER env set) a missing or known-weak
+    value raises RuntimeError to prevent session forgery attacks.
+    """
     env_vars: dict[str, str] = {}
     env_file = Path(__file__).resolve().parent.parent / "config" / ".env"
     if env_file.exists():
@@ -28,11 +35,23 @@ def _load_auth_config() -> dict[str, str]:
                 key, val = line.split("=", 1)
                 env_vars[key.strip()] = val.strip().strip('"').strip("'")
 
+    session_secret = env_vars.get(
+        "SESSION_SECRET", os.environ.get("SESSION_SECRET", _WEAK_SESSION_SECRET)
+    )
+    if os.environ.get("RENDER") and (
+        not session_secret or session_secret == _WEAK_SESSION_SECRET
+    ):
+        raise RuntimeError(
+            "SESSION_SECRET environment variable is required in production and must "
+            "not be the default value. Generate one with: "
+            "python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
     return {
         "tenant_id": env_vars.get("AZURE_TENANT_ID", os.environ.get("AZURE_TENANT_ID", "")),
         "client_id": env_vars.get("AZURE_CLIENT_ID", os.environ.get("AZURE_CLIENT_ID", "")),
         "client_secret": env_vars.get("AZURE_CLIENT_SECRET", os.environ.get("AZURE_CLIENT_SECRET", "")),
-        "session_secret": env_vars.get("SESSION_SECRET", os.environ.get("SESSION_SECRET", "dev-secret-change-me")),
+        "session_secret": session_secret,
     }
 
 
