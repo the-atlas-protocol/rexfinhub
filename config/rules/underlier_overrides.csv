@@ -1,10 +1,48 @@
-ticker,map_li_underlier,source,notes,fixed_at
-DJTU US,DJT US,audit-2026-05-05,DJTU UA was self-referential (ETF's own ticker suffix UA instead of underlying DJT US Trump Media stock),2026-05-05T21:35:00-04:00
-CCUP US,CRCL US,audit-2026-05-05,CECL US (credit-loss accounting ticker) loaded instead of CRCL US (Circle Internet financial stock),2026-05-05T21:35:00-04:00
-CONX US,COIN US,audit-2026-05-05,BULL US (Parabolic 2x Bull ETF) loaded instead of COIN US (Coinbase) — Bloomberg mapped underlier to wrong fund,2026-05-05T21:35:00-04:00
-HODU US,HOOD US,audit-2026-05-05,BULL US (Parabolic 2x Bull ETF) loaded instead of HOOD US (Robinhood) — Bloomberg mapped underlier to wrong fund,2026-05-05T21:35:00-04:00
-LEUX US,LEU US,audit-2026-05-05,KEY (KeyCorp bank ticker) loaded instead of LEU US (Centrus Energy Corp) — fund name is TRADR 2X LONG LEU DAILY ETF,2026-05-05T21:35:00-04:00
-NBIL US,NBIS US,audit-2026-05-05,NVIS (Nanovision) loaded instead of NBIS US (Nebius Group) — fund name is GRANITESHARES 2X LONG NBIS DAILY ETF,2026-05-05T21:35:00-04:00
-SRPU US,SRPT US,audit-2026-05-05,SPRT US (transposed ticker) loaded instead of SRPT US (Sarepta Therapeutics) — fund name is TRADR 2X LONG SRPT DAILY ETF,2026-05-05T21:35:00-04:00
-GLL US,XAU Curncy,audit-2026-05-05,USDXAU Curncy loaded instead of XAU Curncy — GLL is ProShares Ultrashort Gold; MEDIUM confidence review before applying,2026-05-05T21:35:00-04:00
-ZSL US,XAG Curncy,audit-2026-05-05,SIA Comdty loaded instead of XAG Curncy — ZSL is ProShares Ultrashort Silver; MEDIUM confidence review before applying,2026-05-05T21:35:00-04:00
+ticker,column_name,corrected_value,source,notes,fixed_at
+DJTU US,map_li_underlier,DJT US,audit-2026-05-05,DJTU UA was self-referential (ETF's own ticker suffix UA instead of underlying DJT US Trump Media stock),2026-05-05T21:35:00-04:00
+CCUP US,map_li_underlier,CRCL US,audit-2026-05-05,CECL US (credit-loss accounting ticker) loaded instead of CRCL US (Circle Internet financial stock),2026-05-05T21:35:00-04:00
+CONX US,map_li_underlier,COIN US,audit-2026-05-05,BULL US (Parabolic 2x Bull ETF) loaded instead of COIN US (Coinbase) -- Bloomberg mapped underlier to wrong fund,2026-05-05T21:35:00-04:00
+HODU US,map_li_underlier,HOOD US,audit-2026-05-05,BULL US (Parabolic 2x Bull ETF) loaded instead of HOOD US (Robinhood) -- Bloomberg mapped underlier to wrong fund,2026-05-05T21:35:00-04:00
+LEUX US,map_li_underlier,LEU US,audit-2026-05-05,KEY (KeyCorp bank ticker) loaded instead of LEU US (Centrus Energy Corp) -- fund name is TRADR 2X LONG LEU DAILY ETF,2026-05-05T21:35:00-04:00
+NBIL US,map_li_underlier,NBIS US,audit-2026-05-05,NVIS (Nanovision) loaded instead of NBIS US (Nebius Group) -- fund name is GRANITESHARES 2X LONG NBIS DAILY ETF,2026-05-05T21:35:00-04:00
+SRPU US,map_li_underlier,SRPT US,audit-2026-05-05,SPRT US (transposed ticker) loaded instead of SRPT US (Sarepta Therapeutics) -- fund name is TRADR 2X LONG SRPT DAILY ETF,2026-05-05T21:35:00-04:00
+GLL US,map_li_underlier,XAU Curncy,audit-2026-05-05,USDXAU Curncy loaded instead of XAU Curncy -- GLL is ProShares Ultrashort Gold; MEDIUM confidence review before applying,2026-05-05T21:35:00-04:00
+ZSL US,map_li_underlier,XAG Curncy,audit-2026-05-05,SIA Comdty loaded instead of XAG Curncy -- ZSL is ProShares Ultrashort Silver; MEDIUM confidence review before applying,2026-05-05T21:35:00-04:00
+BCCC US,map_cc_underlier,IBIT US,audit-cc-2026-05-05,BTC stored instead of IBIT US -- BTC is not a valid Bloomberg equity ticker; IBIT US is the standard single-BTC CC underlier,2026-05-05T00:00:00-04:00
+CWY US,map_cc_underlier,CRWV US,audit-cc-2026-05-05,Null map -- GRANITESHARES YIELDBOOST CRWV ETF clearly underlies CRWV US (CoreWeave),2026-05-05T00:00:00-04:00
+MUYY US,map_cc_underlier,MU US,audit-cc-2026-05-05,Null map -- GRANITESHARES YIELDBOOST MU ETF clearly underlies MU US (Micron Technology),2026-05-05T00:00:00-04:00
+TLTX US,map_cc_underlier,TLT US,audit-cc-2026-05-05,TLTX UA stored (self-referential) -- GLOBAL X TREASURY BOND ENHANCED INCOME ETF underlies TLT US,2026-05-05T00:00:00-04:00
+TMYY US,map_cc_underlier,TSM US,audit-cc-2026-05-05,Null map -- GRANITESHARES YIELDBOOST TSM ETF clearly underlies TSM US (Taiwan Semiconductor),2026-05-05T00:00:00-04:00
+XYZY US,map_cc_underlier,XYZ US,audit-cc-2026-05-05,SQ US stored -- YIELDMAX XYZ OPTION INCOME ETF underlies XYZ US (Block Inc); SQ is Block's old ticker,2026-05-05T00:00:00-04:00
+YETH US,map_cc_underlier,ETHA US,audit-cc-2026-05-05,ETH stored (not a Bloomberg equity ticker) -- ROUNDHILL ETHER COVERED CALL underlies ETHA US (iShares Ethereum Trust),2026-05-05T00:00:00-04:00
+BAVA US,map_crypto_underlier,alt-coin only (AVAX),audit-crypto-2026-05-05,Null map -- BITWISE AVALANCHE ETF is a pure AVAX single-asset fund,2026-05-05T00:00:00-04:00
+CRDD US,map_crypto_underlier,alt-coin only (ADA),audit-crypto-2026-05-05,Null map -- CARDANO ETF is a pure ADA/Cardano single-asset fund,2026-05-05T00:00:00-04:00
+NGHT US,map_crypto_underlier,crypto + traditional asset,audit-crypto-2026-05-05,Bitcoin stored -- NICHOLAS BITCOIN AND TREASURIES AFTERDARK ETF explicitly rotates between BTC and Treasuries; hybrid category,2026-05-05T00:00:00-04:00
+XBNB US,map_crypto_underlier,alt-coin only (BNB),audit-crypto-2026-05-05,Null map -- TEUCRIUM 2X LONG DAILY BNB ETF is a pure BNB (Binance Coin) leveraged fund,2026-05-05T00:00:00-04:00
+ORO US,map_crypto_underlier,crypto + traditional asset,audit-crypto-2026-05-05,Null map -- ARROW VALTORO ETF blends gold and Bitcoin exposure; MEDIUM confidence review,2026-05-05T00:00:00-04:00
+TXXH US,map_crypto_underlier,alt-coin only (HYPE),audit-crypto-2026-05-05,Null map -- 21SHARES 2X LONG HYPE ETF targets HYPE (Hyperliquid) token; MEDIUM confidence review,2026-05-05T00:00:00-04:00
+ABUF US,map_defined_category,Ladder,audit-defined-2026-05-05,Buffer stored -- APTUS LADDERED BUFFER ETF is an explicit laddered product per fund name,2026-05-05T00:00:00-04:00
+DDFA US,map_defined_category,Dual Buffer,audit-defined-2026-05-05,Buffer stored -- INNOVATOR EQUITY DUAL DIRECTIONAL 15 BUFFER ETF APRIL is explicitly Dual Directional = Dual Buffer,2026-05-05T00:00:00-04:00
+DDTA US,map_defined_category,Dual Buffer,audit-defined-2026-05-05,Buffer stored -- INNOVATOR EQUITY DUAL DIRECTIONAL 10 BUFFER ETF APRIL is explicitly Dual Directional = Dual Buffer,2026-05-05T00:00:00-04:00
+DLAG US,map_defined_category,Dual Buffer,audit-defined-2026-05-05,Buffer stored -- FT VEST US EQUITY DUAL DIRECTIONAL BUFFER ETF AUGUST is explicitly Dual Directional = Dual Buffer,2026-05-05T00:00:00-04:00
+DLNV US,map_defined_category,Dual Buffer,audit-defined-2026-05-05,Buffer stored -- FT VEST US EQUITY DUAL DIRECTIONAL BUFFER ETF NOVEMBER is explicitly Dual Directional = Dual Buffer,2026-05-05T00:00:00-04:00
+TLDR US,map_defined_category,Ladder,audit-defined-2026-05-05,Null map -- THE LADDERED T-BILL ETF is an explicit laddered product,2026-05-05T00:00:00-04:00
+KBUF US,map_defined_category,Outcome,audit-defined-2026-05-05,Buffer stored -- KRANESHARES 90% KWEB DEFINED OUTCOME ETF is a structured Defined Outcome product; MEDIUM confidence review,2026-05-05T00:00:00-04:00
+KPRO US,map_defined_category,Outcome,audit-defined-2026-05-05,Buffer stored -- KRANESHARES 100% KWEB DEFINED OUTCOME ETF is a structured Defined Outcome product; MEDIUM confidence review,2026-05-05T00:00:00-04:00
+BWEB US,map_thematic_category,Blockchain & Crypto,audit-thematic-2026-05-05,Tech & Communications stored -- BITWISE WEB3 ETF invests in blockchain/web3 ecosystem companies; Blockchain & Crypto is the precise category,2026-05-05T00:00:00-04:00
+COPY US,map_thematic_category,Strategy,audit-thematic-2026-05-05,Cannabis and Psychedelics stored -- TWEEDY BROWNE INSIDER + VALUE ETF is a quantitative value strategy with no cannabis exposure; clear mismatch,2026-05-05T00:00:00-04:00
+CUT US,map_thematic_category,Natural Resources,audit-thematic-2026-05-05,Agriculture stored -- INVESCO MSCI GLOBAL TIMBER ETF invests in timber/forestry companies; Natural Resources is correct,2026-05-05T00:00:00-04:00
+DTCR US,map_thematic_category,Infrastructure,audit-thematic-2026-05-05,5G stored -- GLOBAL X DATA CENTER & DIGITAL INFRASTRUCTURE ETF targets data center infrastructure; not 5G connectivity,2026-05-05T00:00:00-04:00
+GCAD US,map_thematic_category,Defense,audit-thematic-2026-05-05,Space stored -- GABELLI COMMERCIAL AEROSPACE AND DEFENSE ETF explicitly focuses on defense contractors; Defense is correct,2026-05-05T00:00:00-04:00
+JEDI US,map_thematic_category,Defense,audit-thematic-2026-05-05,Null map -- DEFIANCE DRONE AND MODERN WARFARE ETF is a defense/drone warfare fund,2026-05-05T00:00:00-04:00
+LFSC US,map_thematic_category,Healthcare,audit-thematic-2026-05-05,General Thematic stored -- F/M EMERALD LIFE SCIENCES INNOVATION ETF invests in life sciences / biotech; Healthcare is correct,2026-05-05T00:00:00-04:00
+NASA US,map_thematic_category,Space,audit-thematic-2026-05-05,Space & Aerospace stored -- canonical thematic label in DB is Space (not Space & Aerospace); format standardisation,2026-05-05T00:00:00-04:00
+SPCI US,map_thematic_category,Space,audit-thematic-2026-05-05,Space & Aerospace stored -- canonical thematic label in DB is Space (not Space & Aerospace); format standardisation,2026-05-05T00:00:00-04:00
+WOOD US,map_thematic_category,Natural Resources,audit-thematic-2026-05-05,Agriculture stored -- ISHARES GLOBAL TIMBER & FORESTRY ETF invests in timber companies; Natural Resources is correct,2026-05-05T00:00:00-04:00
+ZSC US,map_thematic_category,Natural Resources,audit-thematic-2026-05-05,Clean Energy stored -- USCF SUSTAINABLE COMMODITY STRATEGY FUND is a broad commodity fund (oil/metals/ag); Natural Resources is correct,2026-05-05T00:00:00-04:00
+CVNY US,map_cc_underlier,CVNA US,audit-cc-stream-f-2026-05-05,CVNA stored without exchange suffix -- YIELDMAX CVNA OPTION INCOME STRATEGY ETF underlies CVNA US (Carvana); missing Bloomberg ' US' exchange suffix,2026-05-05T00:00:00-04:00
+RBLY US,map_cc_underlier,RBLX US,audit-cc-stream-f-2026-05-05,RBLX stored without exchange suffix -- YIELDMAX RBLX OPTION INCOME STRATEGY ETF underlies RBLX US (Roblox); missing Bloomberg ' US' exchange suffix,2026-05-05T00:00:00-04:00
+YSPY US,map_cc_underlier,SPY US,audit-cc-stream-f-2026-05-05,SPXL US stored -- GRANITESHARES YIELDBOOST SPY ETF clearly underlies SPY US (S&P 500 ETF); SPXL is a 3x leveraged product not the underlier,2026-05-05T00:00:00-04:00
+HELO US,map_defined_category,Hedged Equity,audit-defined-stream-f-2026-05-05,Ladder stored -- JPMORGAN HEDGED EQUITY LADDERED OVERLAY ETF is a Hedged Equity strategy (not a pure ladder buffer); laddered refers to the overlay structure,2026-05-05T00:00:00-04:00
+HEQQ US,map_defined_category,Hedged Equity,audit-defined-stream-f-2026-05-05,Ladder stored -- JPMORGAN NASDAQ HEDGED EQUITY LADDERED OVERLAY ETF is a Hedged Equity strategy; same overlay structure as HELO,2026-05-05T00:00:00-04:00
+HOLA US,map_defined_category,Hedged Equity,audit-defined-stream-f-2026-05-05,Ladder stored -- JPMORGAN INTERNATIONAL HEDGED EQUITY LADDERED OVERLAY ETF is a Hedged Equity strategy; same overlay structure as HELO,2026-05-05T00:00:00-04:00
