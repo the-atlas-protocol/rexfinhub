@@ -39,6 +39,11 @@ CACHE_ARCHIVE = Path("D:/sec-data/cache/rexfinhub")  # D: USB — cold storage, 
 # Structured notes
 NOTES_PROJECT = Path("C:/Projects/structured-notes")
 
+# Perf fix (Sys-I): CSV staging dir for CSV-first xlsm path.
+# export_sheets.py writes w1-w4 CSVs here; market_sync + classification read them,
+# eliminating the second openpyxl parse (~30-45s saved per daily run).
+_BLOOMBERG_CSV_STAGING = PROJECT_ROOT / "temp" / "bloomberg_sheets"
+
 
 def _market_synced_today() -> bool:
     """Check if market data was already synced from Bloomberg today.
@@ -232,15 +237,61 @@ def run_structured_notes():
 # ===================================================================
 # Step 4: Market Data + Screener Cache
 # ===================================================================
+def _export_bloomberg_sheets() -> Path | None:
+    """Export bloomberg_daily_file.xlsm sheets to CSV staging dir.
+
+    Perf fix (Sys-I): one openpyxl parse → CSVs, then market_sync + classify
+    both read the CSVs.  Eliminates the second openpyxl parse in run_classification()
+    (~30-45s saved per daily run).
+
+    Returns the csv_dir Path on success, or None if export fails (callers fall back
+    to the legacy build_all() xlsm path automatically).
+    """
+    try:
+        from webapp.services.bbg_file import get_bloomberg_file
+        xlsm = get_bloomberg_file()
+    except Exception as e:
+        print(f"  Bloomberg file not found, CSV export skipped: {e}")
+        return None
+
+    csv_dir = _BLOOMBERG_CSV_STAGING
+    csv_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "scripts" / "export_sheets.py"),
+             str(xlsm), str(csv_dir)],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode != 0:
+            print(f"  WARNING: export_sheets.py failed (rc={result.returncode}), "
+                  f"falling back to xlsm: {result.stderr.strip()[:200]}")
+            return None
+        w1_csv = csv_dir / "w1.csv"
+        if not w1_csv.exists():
+            print("  WARNING: w1.csv not produced, falling back to xlsm")
+            return None
+        print(f"  Bloomberg sheets exported to {csv_dir.name}/")
+        return csv_dir
+    except Exception as e:
+        print(f"  WARNING: Bloomberg sheet export failed, falling back to xlsm: {e}")
+        return None
+
+
 def run_market_sync():
     """Sync Bloomberg market data and compute full screener cache."""
     from webapp.database import init_db, SessionLocal
     from webapp.services.market_sync import sync_market_data
 
+    # Perf fix (Sys-I): export xlsm → CSVs once; both market_sync and
+    # run_classification() will read the CSVs (eliminates double openpyxl parse).
+    csv_dir = _export_bloomberg_sheets()
+
     init_db()
     db = SessionLocal()
     try:
-        result = sync_market_data(db)
+        result = sync_market_data(db, csv_dir=csv_dir)
         print(f"  Market: {result['master_rows']} funds, {result['ts_rows']} TS rows")
     finally:
         db.close()
@@ -265,7 +316,7 @@ def run_classification():
     """Run unified auto-classification on full ETP data, then scan for NEW unmapped funds."""
     # Phase 1: Unified auto-classify on full ETP dataset
     try:
-        from webapp.services.data_engine import build_all
+        from webapp.services.data_engine import build_all, build_all_from_csvs
         from market.auto_classify import classify_all
         from market.db_writer import write_classifications, create_pipeline_run
         from webapp.database import init_db, SessionLocal
@@ -273,7 +324,15 @@ def run_classification():
         init_db()
         db = SessionLocal()
         try:
-            result = build_all()
+            # Perf fix (Sys-I): reuse pre-exported CSVs from run_market_sync() when
+            # available — eliminates the second openpyxl parse.  Fall back to build_all()
+            # (xlsm) if CSVs are absent (e.g. classify-only runs).
+            _csv_dir = _BLOOMBERG_CSV_STAGING
+            _w1_ready = (_csv_dir / "w1.csv").exists()
+            if _w1_ready:
+                result = build_all_from_csvs(_csv_dir)
+            else:
+                result = build_all()
             etp = result.get("master", None)
             if etp is not None and not etp.empty:
                 classifications = classify_all(etp)
