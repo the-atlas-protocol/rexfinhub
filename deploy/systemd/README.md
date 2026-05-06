@@ -1,3 +1,18 @@
+## CRITICAL: VPS port 8000 currently exposed
+The uvicorn instance running A.R.C. is bound to 0.0.0.0:8000
+(Shodan-indexed as of 2026-05-02, bypasses nginx auth).
+Operator action required (requires sudo on VPS):
+
+  sudo nano /etc/systemd/system/rexfinhub-api.service
+  # Change: --host 0.0.0.0   →   --host 127.0.0.1
+  sudo ufw deny 8000
+  sudo systemctl daemon-reload && sudo systemctl restart rexfinhub-api
+
+Until this is applied, all nginx auth/rate-limiting can be bypassed by
+hitting http://46.224.126.196:8000 directly (no TLS, no auth).
+
+---
+
 # REX FinHub — systemd Units
 
 All units run as `User=jarvis` on the VPS. The VPS timezone is `America/New_York`; `OnCalendar` expressions that reference a timezone offset use this directly.
@@ -33,6 +48,8 @@ All units run as `User=jarvis` on the VPS. The VPS timezone is `America/New_York
 | `rexfinhub-gate-close.timer` | Fires gate-close after the send window |
 | `rexfinhub-atom-watcher.service` | ATOM feed watcher (new SEC filings) |
 | `rexfinhub-single-filing-worker.service` | Single-filing extraction worker |
+| `rexfinhub-db-backup.service` | Daily SQLite DB backup (7-day rolling retention) |
+| `rexfinhub-db-backup.timer` | Fires db-backup at 23:00 ET nightly |
 
 ---
 

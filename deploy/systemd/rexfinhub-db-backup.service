@@ -1,0 +1,15 @@
+[Unit]
+Description=REX FinHub Daily DB Backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+ExecStart=/bin/bash -c 'mkdir -p data/backups && sqlite3 data/etp_tracker.db ".backup data/backups/etp_tracker_$(date +%%Y%%m%%d).db" && find data/backups -name "etp_tracker_*.db" -mtime +7 -delete'
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

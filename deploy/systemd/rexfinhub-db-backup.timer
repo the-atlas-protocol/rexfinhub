@@ -1,0 +1,10 @@
+[Unit]
+Description=REX FinHub Daily DB Backup at 23:00 ET
+
+[Timer]
+OnCalendar=*-*-* 23:00:00 America/New_York
+Persistent=true
+Unit=rexfinhub-db-backup.service
+
+[Install]
+WantedBy=timers.target
