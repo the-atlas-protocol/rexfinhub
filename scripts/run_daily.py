@@ -519,6 +519,64 @@ def upload_screener_cache_to_render():
         raise RuntimeError(f"Screener cache upload error: {e}") from e
 
 
+def upload_parquets_to_render():
+    """Upload analysis parquets to Render persistent disk (/strategy/* pages depend on these).
+
+    Uploads each parquet in data/analysis/ whose name is on the allowlist.
+    Non-fatal: a missing file is skipped with a warning; a failed upload is
+    logged but does not abort the rest of the upload phase.
+    """
+    import requests
+
+    api_key = _load_api_key()
+    headers = {"X-API-Key": api_key} if api_key else {}
+
+    # Must match ALLOWED_PARQUET_NAMES in webapp/routers/api.py
+    target_parquets = [
+        "whitespace_v4.parquet",
+        "whitespace_candidates.parquet",
+        "filing_race.parquet",
+        "issuer_cadence.parquet",
+        "bbg_timeseries_panel.parquet",
+        "competitor_counts.parquet",
+        "filed_underliers.parquet",
+        "launch_candidates.parquet",
+    ]
+
+    analysis_dir = PROJECT_ROOT / "data" / "analysis"
+    uploaded = 0
+    skipped = 0
+    failed = 0
+
+    for name in target_parquets:
+        path = analysis_dir / name
+        if not path.exists():
+            print(f"  Parquet not found, skipping: {name}")
+            skipped += 1
+            continue
+        size_kb = path.stat().st_size / 1024
+        try:
+            with open(path, "rb") as f:
+                resp = requests.post(
+                    f"{RENDER_API_URL}/parquets/upload",
+                    params={"name": name},
+                    files={"file": (name, f, "application/octet-stream")},
+                    headers=headers,
+                    timeout=120,
+                )
+            if resp.status_code == 200:
+                print(f"  Parquet OK: {name} ({size_kb:.0f} KB)")
+                uploaded += 1
+            else:
+                print(f"  Parquet FAILED: {name} — HTTP {resp.status_code} {resp.text[:120]}")
+                failed += 1
+        except Exception as e:
+            print(f"  Parquet FAILED: {name} — {e}")
+            failed += 1
+
+    print(f"  Parquets: {uploaded} uploaded, {skipped} skipped, {failed} failed")
+
+
 def upload_db_to_render():
     """Upload stripped SQLite DB to Render (no 13F tables)."""
     import gzip
@@ -865,6 +923,12 @@ def main():
             errors.append(f"Screener cache upload: {e}")
             print(f"  FAILED: {e}")
 
+        print("\n[9.5/12] Uploading analysis parquets to Render (/strategy/* pages)...")
+        try:
+            upload_parquets_to_render()
+        except Exception as e:
+            print(f"  Parquet upload failed (non-fatal): {e}")
+
         print("\n[10/12] Uploading DB to Render...")
         try:
             upload_db_to_render()
@@ -1025,6 +1089,11 @@ def main():
             except Exception as e:
                 errors.append(f"Screener cache upload: {e}")
                 print(f"  FAILED: {e}")
+            print("\n[2.5] Uploading analysis parquets...")
+            try:
+                upload_parquets_to_render()
+            except Exception as e:
+                print(f"  Parquet upload failed (non-fatal): {e}")
             print("\n[3] Uploading DB...")
             try:
                 upload_db_to_render()
