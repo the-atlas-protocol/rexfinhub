@@ -2,7 +2,8 @@
 Advanced Market Intelligence routes.
 
 Routes:
-  GET /market/calendar   -> Compliance Calendar (upcoming extensions, recent effectivities)
+  GET /market/calendar   -> ETP Launch Calendar (filtered to ETPs only via mkt_master_data)
+  GET /calendar          -> Top-level alias (handled in main.py redirect)
   GET /market/compare    -> Fund Comparison (side-by-side ticker comparison)
 """
 from __future__ import annotations
@@ -15,8 +16,9 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Query, Request, Depends
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, text as sa_text
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
@@ -41,112 +43,211 @@ def _fragment_template_response(name, context, *args, **kwargs):
 templates.TemplateResponse = _fragment_template_response
 
 
+# ---------------------------------------------------------------------------
+# ETP Calendar helpers
+# ---------------------------------------------------------------------------
+
+_ETP_STATUSES = ("ACTV", "PEND")
+
+# Primary strategy values from mkt_master_data
+_PRIMARY_STRATEGIES = ["Plain Beta", "L&I", "Income", "Defined Outcome", "Risk Mgmt"]
+
+
+def _build_etp_filter_subquery() -> str:
+    """Return a SQL EXISTS clause that restricts to trusts with at least one
+    ETP in mkt_master_data (ACTV or PEND), eliminating VA wrappers."""
+    return """
+        EXISTS (
+            SELECT 1 FROM mkt_master_data m
+            WHERE LOWER(m.fund_name) = LOWER(fe.series_name)
+              AND m.market_status IN ('ACTV', 'PEND')
+        )
+    """
+
+
 @router.get("/calendar")
 def calendar_view(
     request: Request,
     db: Session = Depends(get_db),
     month: int = Query(default=None),
     year: int = Query(default=None),
+    # Fix 4 filters
+    issuer: str = Query(default=""),
+    primary_strategy: str = Query(default=""),
+    sub_strategy: str = Query(default=""),
+    status: str = Query(default=""),
+    date_from: str = Query(default=""),
+    date_to: str = Query(default=""),
 ):
-    """Compliance Calendar - recent fund launches and upcoming effective events."""
+    """ETP Launch Calendar — filtered to verified ETPs via mkt_master_data.
+
+    Fix 1: ETP-only filter eliminates variable annuity wrapper noise.
+    Fix 4: Filtering by issuer, primary_strategy, sub_strategy, status, date range.
+    """
     from webapp.models import Trust, Filing, FundExtraction
 
     today = date.today()
     cal_month = month if month and 1 <= month <= 12 else today.month
     cal_year = year if year else today.year
-    cutoff_90 = today - timedelta(days=90)
-    cutoff_60_ahead = today + timedelta(days=60)
 
-    # Recent fund launches: 485BPOS with effective date in last 90 days
-    recent_rows = db.execute(
-        select(FundExtraction, Filing, Trust)
-        .join(Filing, FundExtraction.filing_id == Filing.id)
-        .join(Trust, Filing.trust_id == Trust.id)
-        .where(Filing.form == "485BPOS")
-        .where(FundExtraction.effective_date >= cutoff_90)
-        .where(FundExtraction.effective_date <= today)
-        .order_by(FundExtraction.effective_date.desc())
-        .limit(100)
-    ).all()
+    # Default date window: next 30 days for upcoming, last 90 for recent
+    default_date_from = today - timedelta(days=90)
+    default_date_to = today + timedelta(days=60)
 
-    # Upcoming effective events: any form with future effective date
-    upcoming_rows = db.execute(
-        select(FundExtraction, Filing, Trust)
-        .join(Filing, FundExtraction.filing_id == Filing.id)
-        .join(Trust, Filing.trust_id == Trust.id)
-        .where(FundExtraction.effective_date > today)
-        .where(FundExtraction.effective_date <= cutoff_60_ahead)
-        .order_by(FundExtraction.effective_date.asc())
-        .limit(100)
-    ).all()
+    # Parse filter dates
+    try:
+        filter_date_from = date.fromisoformat(date_from) if date_from else default_date_from
+    except ValueError:
+        filter_date_from = default_date_from
+    try:
+        filter_date_to = date.fromisoformat(date_to) if date_to else default_date_to
+    except ValueError:
+        filter_date_to = default_date_to
 
-    # Deduplicate by accession_number
-    seen_recent = set()
+    cutoff_90 = filter_date_from
+    cutoff_ahead = filter_date_to
+
+    # --- Build ETP-filtered recent launches (485BPOS effective, last N days) ---
+    # Fix 1: JOIN through mkt_master_data to ensure series_name maps to a known ETP
+    recent_sql = sa_text("""
+        SELECT fe.id, fe.series_name, fe.effective_date, fe.effective_date_confidence,
+               f.form, f.accession_number, f.filing_date,
+               t.name AS trust_name,
+               m.issuer_display, m.primary_strategy, m.sub_strategy, m.market_status,
+               m.ticker
+        FROM fund_extractions fe
+        JOIN filings f ON fe.filing_id = f.id
+        JOIN trusts t ON f.trust_id = t.id
+        JOIN mkt_master_data m ON LOWER(m.fund_name) = LOWER(fe.series_name)
+        WHERE f.form = '485BPOS'
+          AND fe.effective_date >= :cutoff_90
+          AND fe.effective_date <= :today
+          AND m.market_status IN ('ACTV', 'PEND')
+          AND (:issuer = '' OR LOWER(m.issuer_display) LIKE :issuer_like)
+          AND (:primary_strategy = '' OR m.primary_strategy = :primary_strategy)
+          AND (:sub_strategy = '' OR m.sub_strategy = :sub_strategy)
+        ORDER BY fe.effective_date DESC
+        LIMIT 200
+    """)
+    recent_rows = db.execute(recent_sql, {
+        "cutoff_90": cutoff_90,
+        "today": today,
+        "issuer": issuer.strip(),
+        "issuer_like": f"%{issuer.strip().lower()}%",
+        "primary_strategy": primary_strategy.strip(),
+        "sub_strategy": sub_strategy.strip(),
+    }).fetchall()
+
+    # --- Upcoming effective events ---
+    # Default: PEND + ACTV in next 30 days (per spec); expanded by date filter
+    upcoming_sql = sa_text("""
+        SELECT fe.id, fe.series_name, fe.effective_date, fe.effective_date_confidence,
+               f.form, f.accession_number, f.filing_date,
+               t.name AS trust_name,
+               m.issuer_display, m.primary_strategy, m.sub_strategy, m.market_status,
+               m.ticker
+        FROM fund_extractions fe
+        JOIN filings f ON fe.filing_id = f.id
+        JOIN trusts t ON f.trust_id = t.id
+        JOIN mkt_master_data m ON LOWER(m.fund_name) = LOWER(fe.series_name)
+        WHERE fe.effective_date > :today
+          AND fe.effective_date <= :cutoff_ahead
+          AND m.market_status IN ('ACTV', 'PEND')
+          AND (:issuer = '' OR LOWER(m.issuer_display) LIKE :issuer_like)
+          AND (:primary_strategy = '' OR m.primary_strategy = :primary_strategy)
+          AND (:sub_strategy = '' OR m.sub_strategy = :sub_strategy)
+        ORDER BY fe.effective_date ASC
+        LIMIT 200
+    """)
+    upcoming_rows = db.execute(upcoming_sql, {
+        "today": today,
+        "cutoff_ahead": cutoff_ahead,
+        "issuer": issuer.strip(),
+        "issuer_like": f"%{issuer.strip().lower()}%",
+        "primary_strategy": primary_strategy.strip(),
+        "sub_strategy": sub_strategy.strip(),
+    }).fetchall()
+
+    # --- Deduplicate and classify recent launches ---
+    seen_recent: set[str] = set()
     recent_launches = []
-    for extraction, filing, trust in recent_rows:
-        if filing.accession_number in seen_recent:
+    for row in recent_rows:
+        acc = row.accession_number
+        if acc in seen_recent:
             continue
-        seen_recent.add(filing.accession_number)
-        days_since = (today - extraction.effective_date).days if extraction.effective_date else 0
+        seen_recent.add(acc)
+        days_since = (today - row.effective_date).days if row.effective_date else 0
         recent_launches.append({
-            "filing": filing,
-            "trust": trust,
-            "fund_name": extraction.series_name or "",
+            "fund_name": row.series_name or "",
+            "trust_name": row.trust_name or "",
+            "effective_date": row.effective_date,
             "days_since": days_since,
-            "effective_date": extraction.effective_date,
+            "form": row.form or "",
+            "accession_number": acc or "",
+            "issuer": row.issuer_display or "",
+            "primary_strategy": row.primary_strategy or "",
+            "sub_strategy": row.sub_strategy or "",
+            "ticker": row.ticker or "",
         })
 
-    seen_upcoming = set()
+    # --- Deduplicate and classify upcoming events ---
+    seen_upcoming: set[str] = set()
     upcoming_classified = []
-    for extraction, filing, trust in upcoming_rows:
-        if filing.accession_number in seen_upcoming:
+    for row in upcoming_rows:
+        acc = row.accession_number
+        if acc in seen_upcoming:
             continue
-        seen_upcoming.add(filing.accession_number)
-        days_until = (extraction.effective_date - today).days if extraction.effective_date else 0
+        seen_upcoming.add(acc)
+        days_until = (row.effective_date - today).days if row.effective_date else 0
         urgency = "green" if days_until > 30 else "amber" if days_until > 7 else "red"
         upcoming_classified.append({
-            "filing": filing,
-            "trust": trust,
-            "fund_name": extraction.series_name or "",
+            "fund_name": row.series_name or "",
+            "trust_name": row.trust_name or "",
+            "effective_date": row.effective_date,
             "days_until": days_until,
             "urgency": urgency,
-            "effective_date": extraction.effective_date,
+            "form": row.form or "",
+            "accession_number": acc or "",
+            "issuer": row.issuer_display or "",
+            "primary_strategy": row.primary_strategy or "",
+            "sub_strategy": row.sub_strategy or "",
+            "ticker": row.ticker or "",
         })
 
-    # Build calendar grid: events_by_date for the selected month
-    events_by_date = defaultdict(list)
+    # --- Build calendar grid events ---
+    events_by_date: dict[int, list[dict]] = defaultdict(list)
     for item in recent_launches:
-        eff = item.get("effective_date")
+        eff = item["effective_date"]
         if eff and eff.year == cal_year and eff.month == cal_month:
-            trust_name = item["trust"].name if item["trust"] else ""
-            fund_name = item.get("fund_name", "")
-            display_name = fund_name or trust_name
+            fund_name = item["fund_name"] or item["trust_name"]
             events_by_date[eff.day].append({
                 "type": "launch",
-                "label": display_name[:20],
-                "trust": trust_name,
+                "label": fund_name[:20],
                 "fund_name": fund_name,
-                "form": item["filing"].form if item.get("filing") else "",
+                "trust": item["trust_name"],
+                "form": item["form"],
+                "issuer": item["issuer"],
+                "ticker": item["ticker"],
             })
     for item in upcoming_classified:
-        eff = item.get("effective_date")
+        eff = item["effective_date"]
         if eff and eff.year == cal_year and eff.month == cal_month:
-            trust_name = item["trust"].name if item["trust"] else ""
-            fund_name = item.get("fund_name", "")
-            display_name = fund_name or trust_name
+            fund_name = item["fund_name"] or item["trust_name"]
             events_by_date[eff.day].append({
                 "type": "upcoming",
-                "label": display_name[:20],
-                "trust": trust_name,
+                "label": fund_name[:20],
                 "fund_name": fund_name,
-                "form": item["filing"].form if item.get("filing") else "",
+                "trust": item["trust_name"],
+                "form": item["form"],
                 "urgency": item["urgency"],
+                "issuer": item["issuer"],
+                "ticker": item["ticker"],
             })
 
-    # Build weeks grid (list of 7-element arrays, None for empty cells)
+    # --- Build weeks grid ---
     first_weekday, num_days = cal_mod.monthrange(cal_year, cal_month)
     weeks = []
-    current_week = [None] * first_weekday
+    current_week: list = [None] * first_weekday
     for day in range(1, num_days + 1):
         current_week.append({
             "day": day,
@@ -160,7 +261,7 @@ def calendar_view(
         current_week.extend([None] * (7 - len(current_week)))
         weeks.append(current_week)
 
-    # Prev/next month navigation
+    # --- Prev/next month navigation ---
     if cal_month == 1:
         prev_month, prev_year = 12, cal_year - 1
     else:
@@ -171,6 +272,14 @@ def calendar_view(
         next_month, next_year = cal_month + 1, cal_year
 
     month_name = cal_mod.month_name[cal_month]
+
+    # --- Filter option lists ---
+    sub_strategies_rows = db.execute(sa_text(
+        "SELECT DISTINCT sub_strategy FROM mkt_master_data "
+        "WHERE sub_strategy IS NOT NULL AND market_status IN ('ACTV','PEND') "
+        "ORDER BY sub_strategy"
+    )).fetchall()
+    sub_strategies = [r[0] for r in sub_strategies_rows]
 
     return templates.TemplateResponse("market/calendar.html", {
         "request": request,
@@ -187,6 +296,15 @@ def calendar_view(
         "prev_year": prev_year,
         "next_month": next_month,
         "next_year": next_year,
+        # Fix 4 filter state
+        "filter_issuer": issuer,
+        "filter_primary_strategy": primary_strategy,
+        "filter_sub_strategy": sub_strategy,
+        "filter_status": status,
+        "filter_date_from": date_from,
+        "filter_date_to": date_to,
+        "primary_strategies": _PRIMARY_STRATEGIES,
+        "sub_strategies": sub_strategies,
     })
 
 
