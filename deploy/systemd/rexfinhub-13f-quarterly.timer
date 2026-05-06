@@ -1,0 +1,23 @@
+[Unit]
+Description=REX FinHub 13F Quarterly Holdings Timer
+# Fires ~50 days after each quarter end — 5 days after the SEC's 45-day
+# filing deadline. By day 50, the bulk dataset ZIP should be published.
+#
+# Quarter-end -> Filing deadline -> This timer fires:
+#   Mar 31  -> May 15   -> May 20  (month 05, day 20)
+#   Jun 30  -> Aug 14   -> Aug 19  (month 08, day 19)
+#   Sep 30  -> Nov 14   -> Nov 19  (month 11, day 19)
+#   Dec 31  -> Feb 14   -> Feb 19  (month 02, day 19)
+#
+# Run at 06:00 ET (VPS timezone = America/New_York, DST handled automatically).
+# Persistent=true ensures a missed run (e.g. VPS was down) fires on next boot.
+
+[Timer]
+OnCalendar=*-02-19 06:00:00
+OnCalendar=*-05-20 06:00:00
+OnCalendar=*-08-19 06:00:00
+OnCalendar=*-11-19 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

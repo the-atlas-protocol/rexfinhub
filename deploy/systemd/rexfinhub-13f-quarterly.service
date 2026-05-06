@@ -1,0 +1,20 @@
+[Unit]
+Description=REX FinHub 13F Quarterly Holdings Ingestion
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
+# Pull latest code before each ingestion run (same pattern as rexfinhub-daily)
+ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main
+# Run backfill: detects the most recent un-ingested quarter automatically.
+# --backfill is idempotent — quarters already in DB are skipped.
+ExecStart=/home/jarvis/venv/bin/python scripts/fetch_13f.py --backfill
+# 13F bulk ZIPs are large (~100-500 MB each quarter). Allow up to 4 hours.
+TimeoutStartSec=14400
+StandardOutput=journal
+StandardError=journal

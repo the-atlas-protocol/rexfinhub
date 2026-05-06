@@ -1076,3 +1076,174 @@ def api_export_institution_holdings(
 
 
     # home-kpis endpoint moved to dashboard.py so it works without ENABLE_13F
+
+
+# =========================================================================
+# ADMIN ENDPOINTS
+# =========================================================================
+
+@router.post("/holdings/admin/refresh")
+def admin_refresh_holdings(
+    request: Request,
+    quarter: str | None = None,  # YYYY-MM-DD quarter-end date; defaults to most recent
+    db: Session = Depends(get_holdings_db),
+):
+    """Trigger a 13F ingestion run for the most recent quarter (or a specified one).
+
+    Admin-protected: requires is_admin session flag.
+
+    Query params:
+        quarter: Optional quarter-end date (YYYY-MM-DD). Defaults to the most
+                 recent quarter-end date (inferred from today's date).
+
+    Returns:
+        JSON with ingestion stats: institutions_upserted, holdings_inserted,
+        cusips_matched, errors, elapsed_seconds.
+    """
+    import os
+    import time
+
+    # Admin guard
+    if not request.session.get("is_admin"):
+        return JSONResponse({"error": "Unauthorized"}, status_code=403)
+
+    # Block on Render — ingestion must run locally (large downloads)
+    if os.environ.get("RENDER"):
+        return JSONResponse(
+            {
+                "error": "13F ingestion cannot run on Render (large SEC downloads). "
+                         "Run scripts/fetch_13f.py locally and upload the resulting "
+                         "data/13f_holdings.db via the DB upload endpoint.",
+            },
+            status_code=503,
+        )
+
+    # Resolve quarter end date
+    if quarter:
+        try:
+            from datetime import datetime as _dt
+            quarter_end = _dt.strptime(quarter, "%Y-%m-%d").date()
+        except ValueError:
+            return JSONResponse(
+                {"error": f"Invalid quarter format: {quarter!r}. Use YYYY-MM-DD (e.g. 2025-12-31)"},
+                status_code=400,
+            )
+    else:
+        # Auto-detect: most recent quarter end before today
+        today = date.today()
+        month = today.month
+        year = today.year
+        # Quarter ends: Mar 31, Jun 30, Sep 30, Dec 31
+        q_ends = [date(year, 3, 31), date(year, 6, 30), date(year, 9, 30), date(year, 12, 31)]
+        past_ends = [d for d in q_ends if d <= today]
+        if past_ends:
+            quarter_end = past_ends[-1]
+        else:
+            quarter_end = date(year - 1, 12, 31)
+
+    log.info("/holdings/admin/refresh triggered for quarter_end=%s", quarter_end)
+    t0 = time.time()
+
+    try:
+        from webapp.database import init_holdings_db
+        init_holdings_db()
+
+        from etp_tracker.thirteen_f import (
+            seed_cusip_mappings,
+            ingest_13f_dataset,
+        )
+
+        # Map quarter-end to SEC label
+        m = quarter_end.month
+        y = quarter_end.year
+        q_map = {3: 1, 6: 2, 9: 3, 12: 4}
+        report_q = q_map.get(m, 1)
+        filing_q = report_q + 1
+        filing_y = y
+        if filing_q > 4:
+            filing_q = 1
+            filing_y += 1
+        sec_label = f"{filing_y}q{filing_q}"
+
+        # Seed CUSIPs first
+        try:
+            n_cusips = seed_cusip_mappings()
+        except Exception as exc:
+            n_cusips = -1
+            log.warning("CUSIP seed failed (non-fatal): %s", exc)
+
+        # Ingest
+        cache_dir = str(
+            (Path(__file__).resolve().parent.parent.parent / "data" / "13f_cache")
+        )
+        stats = ingest_13f_dataset(
+            sec_label,
+            "REX-ETP-Tracker/2.0 relasmar@rexfin.com",
+            cache_dir,
+        )
+
+        elapsed = round(time.time() - t0, 1)
+        return JSONResponse({
+            "ok": True,
+            "quarter_end": str(quarter_end),
+            "sec_label": sec_label,
+            "cusip_mappings_seeded": n_cusips,
+            "institutions_upserted": stats.get("institutions_upserted", 0),
+            "holdings_inserted": stats.get("holdings_inserted", 0),
+            "cusips_matched": stats.get("cusips_matched", 0),
+            "errors": stats.get("errors", []),
+            "elapsed_seconds": elapsed,
+        })
+
+    except Exception as exc:
+        elapsed = round(time.time() - t0, 1)
+        log.error("/holdings/admin/refresh failed: %s", exc, exc_info=True)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": str(exc),
+                "elapsed_seconds": elapsed,
+            },
+            status_code=500,
+        )
+
+
+@router.get("/holdings/admin/health")
+def admin_holdings_health(
+    request: Request,
+    db: Session = Depends(get_holdings_db),
+):
+    """Quick health check for 13F data — no admin auth required.
+
+    Returns counts for institutions, holdings, CUSIP mappings, and
+    the latest report date available in the DB.
+    """
+    from sqlalchemy import func, distinct as _distinct
+
+    n_institutions = db.execute(select(func.count(Institution.id))).scalar() or 0
+    n_holdings = db.execute(select(func.count(Holding.id))).scalar() or 0
+    n_cusip_mappings = db.execute(select(func.count(CusipMapping.id))).scalar() or 0
+    n_tracked = db.execute(
+        select(func.count(Holding.id)).where(Holding.is_tracked == True)
+    ).scalar() or 0
+
+    latest_date = db.execute(
+        select(func.max(Holding.report_date)).where(Holding.is_tracked == True)
+    ).scalar()
+
+    quarters = db.execute(
+        select(_distinct(Holding.report_date))
+        .where(Holding.report_date.isnot(None))
+        .order_by(Holding.report_date.desc())
+        .limit(8)
+    ).scalars().all()
+
+    return JSONResponse({
+        "institutions": n_institutions,
+        "holdings": n_holdings,
+        "holdings_tracked": n_tracked,
+        "cusip_mappings": n_cusip_mappings,
+        "latest_report_date": str(latest_date) if latest_date else None,
+        "quarters_available": [str(q) for q in quarters],
+        "status": "populated" if n_holdings > 0 else "empty",
+    })
