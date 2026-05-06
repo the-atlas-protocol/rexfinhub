@@ -184,7 +184,7 @@ def run_db_sync(changed_trusts=None):
     db = SessionLocal()
     try:
         seed_trusts(db)
-        sync_all(db, OUTPUT_DIR, only_trusts=changed_trusts if changed_trusts else None)
+        sync_all(db, OUTPUT_DIR, only_trusts=changed_trusts if changed_trusts is not None else None)
     finally:
         db.close()
     print("  Database synced.")

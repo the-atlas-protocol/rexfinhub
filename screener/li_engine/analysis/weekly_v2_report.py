@@ -128,6 +128,44 @@ _TICKER_COMPANY_NAMES: dict[str, str] = {
     "SE": "Sea Limited",
 }
 
+def _load_yaml_overrides(filename, default):
+    """Merge a YAML config file into a default dict or list.
+
+    For dict defaults: YAML keys override matching entries (new keys are added).
+    For list defaults: YAML replaces the list wholesale when the file is present
+    and parses cleanly; otherwise the hardcoded default is returned unchanged.
+    Falls back to *default* silently on any error (missing file, bad YAML, etc.)
+    so a corrupt config never prevents report generation.
+    """
+    import yaml
+    from pathlib import Path
+    path = Path(__file__).resolve().parent.parent.parent.parent / "config" / filename
+    if not path.exists():
+        return default
+    try:
+        with open(path, encoding="utf-8") as f:
+            overrides = yaml.safe_load(f) or {}
+        if isinstance(default, dict) and isinstance(overrides, dict):
+            merged = dict(default)
+            merged.update(overrides)
+            return merged
+        if isinstance(default, list):
+            # ipo_watchlist.yaml uses {high_profile_pre_ipo: [...], recently_priced: [...]}
+            if isinstance(overrides, dict):
+                entries = []
+                for section in overrides.values():
+                    if isinstance(section, list):
+                        entries.extend(section)
+                if entries:
+                    # Normalise: strip extra keys (e.g. last_reviewed) not in IPO_DATA
+                    keep = {"ticker", "company", "date", "valuation", "desc"}
+                    return [{k: v for k, v in e.items() if k in keep} for e in entries]
+            return default
+    except Exception as e:
+        print(f"Warning: failed to load {filename}: {e}")
+    return default
+
+
 COMPANY_LINES = {
     # Launch candidates (REX filed, want to launch)
     "AXTI": "Compound-semiconductor substrates (InP/GaAs) for AI optical interconnects — the +3,941% 1y rally is a real photonics narrative.",
@@ -161,6 +199,8 @@ COMPANY_LINES = {
     "PUMP": "ProPetro — oilfield services / pressure pumping; cyclical energy services.",
     "BWXT": "BWX Technologies — naval nuclear reactor builder + SMR; **hot-theme** play (nuclear).",
 }
+
+COMPANY_LINES = _load_yaml_overrides("company_descriptions.yaml", COMPANY_LINES)
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +292,8 @@ IPO_DATA = [
     {"ticker": "YSWY", "company": "Yesway", "date": "Apr 22, 2026",
      "valuation": "Recently priced", "desc": "Convenience store chain (~440 locations across 9 states)."},
 ]
+
+IPO_DATA = _load_yaml_overrides("ipo_watchlist.yaml", IPO_DATA)
 
 
 def _clean(t):

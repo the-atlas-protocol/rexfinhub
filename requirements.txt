@@ -1,5 +1,5 @@
 # Core dependencies
-requests>=2.31.0
+requests>=2.32.4
 filelock>=3.13.0
 numpy>=1.24.0
 pandas>=2.0.0
@@ -16,8 +16,8 @@ python-dateutil>=2.8.0
 # Web platform (FastAPI)
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
-starlette>=0.41.0,<0.53.0
-jinja2>=3.1.0,<3.1.7
+starlette>=0.49.1,<0.53.0
+jinja2>=3.1.6,<4.0.0
 python-multipart>=0.0.9
 sqlalchemy>=2.0.0
 
@@ -38,4 +38,5 @@ aiolimiter>=1.1.0
 
 # Deployment
 gunicorn>=22.0.0
-yfinance
+yfinance>=0.2.50
+pyyaml>=6.0
