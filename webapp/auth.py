@@ -41,11 +41,14 @@ def _load_auth_config() -> dict[str, str]:
     if os.environ.get("RENDER") and (
         not session_secret or session_secret == _WEAK_SESSION_SECRET
     ):
-        raise RuntimeError(
-            "SESSION_SECRET environment variable is required in production and must "
-            "not be the default value. Generate one with: "
-            "python -c \"import secrets; print(secrets.token_hex(32))\""
+        # Don't crash the site — generate per-process random secret instead.
+        # Sessions won't survive restart but site stays up.
+        import logging, secrets as _secrets
+        logging.getLogger(__name__).error(
+            "SESSION_SECRET missing or weak on Render. Using ephemeral random secret. "
+            "Sessions will reset on every restart. Set SESSION_SECRET in Render dashboard."
         )
+        session_secret = _secrets.token_hex(32)
 
     return {
         "tenant_id": env_vars.get("AZURE_TENANT_ID", os.environ.get("AZURE_TENANT_ID", "")),

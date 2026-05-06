@@ -48,12 +48,16 @@ def _load_site_password() -> str:
     value = os.environ.get("SITE_PASSWORD", "")
     if not value:
         if os.environ.get("RENDER"):
-            raise RuntimeError(
-                "SITE_PASSWORD environment variable is required in production. "
-                "Set it in the Render dashboard."
+            # Don't crash the entire site if env var missing — log loudly
+            # and use a random unguessable secret so the site is locked
+            # but reachable. Operator must set SITE_PASSWORD in Render dashboard.
+            import logging, secrets
+            logging.getLogger(__name__).error(
+                "SITE_PASSWORD missing on Render. Site is locked with random secret. "
+                "Set SITE_PASSWORD in Render dashboard to restore access."
             )
-        # Local dev: use a non-trivial placeholder that still makes the site
-        # accessible without setting up .env.
+            return secrets.token_urlsafe(32)
+        # Local dev fallback
         return "dev-site-password"
     return value
 
