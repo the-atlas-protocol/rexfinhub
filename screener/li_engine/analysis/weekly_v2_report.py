@@ -40,6 +40,94 @@ OUT = _ROOT / "reports" / f"li_weekly_v2_{date.today().isoformat()}.html"
 # Per-ticker descriptions for the LAUNCH and FILING sections.
 # 1-line each. Hand-curated based on company knowledge + signals.
 # ---------------------------------------------------------------------------
+# Common underlier ticker → company name, for fund-name parse fallback.
+# Covers the ~50 most frequent single-stock L&I underliers.
+_TICKER_COMPANY_NAMES: dict[str, str] = {
+    "NVDA": "NVIDIA Corporation",
+    "TSLA": "Tesla Inc.",
+    "AAPL": "Apple Inc.",
+    "MSFT": "Microsoft Corporation",
+    "AMZN": "Amazon.com Inc.",
+    "META": "Meta Platforms Inc.",
+    "GOOGL": "Alphabet Inc.",
+    "GOOG": "Alphabet Inc.",
+    "AMD": "Advanced Micro Devices Inc.",
+    "INTC": "Intel Corporation",
+    "AVGO": "Broadcom Inc.",
+    "ARM": "Arm Holdings",
+    "SMCI": "Super Micro Computer Inc.",
+    "PLTR": "Palantir Technologies Inc.",
+    "MSTR": "MicroStrategy Inc.",
+    "COIN": "Coinbase Global Inc.",
+    "MARA": "MARA Holdings Inc.",
+    "RIOT": "Riot Platforms Inc.",
+    "SOXL": "Direxion Daily Semiconductor Bull 3X ETF",
+    "SPY": "SPDR S&P 500 ETF",
+    "QQQ": "Invesco QQQ ETF",
+    "IWM": "iShares Russell 2000 ETF",
+    "TNA": "Direxion Daily Small Cap Bull 3X",
+    "TQQQ": "ProShares UltraPro QQQ",
+    "SQQQ": "ProShares UltraPro Short QQQ",
+    "UPRO": "ProShares UltraPro S&P500",
+    "NFLX": "Netflix Inc.",
+    "DIS": "The Walt Disney Company",
+    "BABA": "Alibaba Group Holding Ltd.",
+    "NIO": "NIO Inc.",
+    "XPEV": "XPeng Inc.",
+    "LI": "Li Auto Inc.",
+    "RIVN": "Rivian Automotive Inc.",
+    "LCID": "Lucid Group Inc.",
+    "GME": "GameStop Corp.",
+    "AMC": "AMC Entertainment Holdings Inc.",
+    "BBY": "Best Buy Co. Inc.",
+    "F": "Ford Motor Company",
+    "GM": "General Motors Company",
+    "BA": "The Boeing Company",
+    "GS": "Goldman Sachs Group Inc.",
+    "JPM": "JPMorgan Chase & Co.",
+    "XOM": "Exxon Mobil Corporation",
+    "CVX": "Chevron Corporation",
+    "AMAT": "Applied Materials Inc.",
+    "LRCX": "Lam Research Corporation",
+    "KLAC": "KLA Corporation",
+    "ASML": "ASML Holding N.V.",
+    "MU": "Micron Technology Inc.",
+    "TSM": "Taiwan Semiconductor Manufacturing Co.",
+    "DJT": "Trump Media & Technology Group",
+    "RDDT": "Reddit Inc.",
+    "APP": "Applovin Corporation",
+    "HOOD": "Robinhood Markets Inc.",
+    "SQ": "Block Inc.",
+    "PYPL": "PayPal Holdings Inc.",
+    "UBER": "Uber Technologies Inc.",
+    "LYFT": "Lyft Inc.",
+    "SNAP": "Snap Inc.",
+    "TWTR": "Twitter / X Corp.",
+    "ABNB": "Airbnb Inc.",
+    "RBLX": "Roblox Corporation",
+    "U": "Unity Software Inc.",
+    "SOFI": "SoFi Technologies Inc.",
+    "OPEN": "Opendoor Technologies Inc.",
+    "WOLF": "Wolfspeed Inc.",
+    "IONQ": "IonQ Inc.",
+    "QBTS": "D-Wave Quantum Inc.",
+    "RGTI": "Rigetti Computing Inc.",
+    "ARQQ": "Arqit Quantum Inc.",
+    "OKLO": "Oklo Inc.",
+    "SMR": "NuScale Power Corporation",
+    "LEU": "Centrus Energy Corp.",
+    "HIMS": "Hims & Hers Health Inc.",
+    "ACHR": "Archer Aviation Inc.",
+    "JOBY": "Joby Aviation Inc.",
+    "LUNR": "Intuitive Machines Inc.",
+    "RDW": "Redwire Corporation",
+    "RKLB": "Rocket Lab USA Inc.",
+    "ASTS": "AST SpaceMobile Inc.",
+    "STRL": "Sterling Infrastructure Inc.",
+    "MELI": "MercadoLibre Inc.",
+    "SE": "Sea Limited",
+}
+
 COMPANY_LINES = {
     # Launch candidates (REX filed, want to launch)
     "AXTI": "Compound-semiconductor substrates (InP/GaAs) for AI optical interconnects — the +3,941% 1y rally is a real photonics narrative.",
@@ -73,6 +161,56 @@ COMPANY_LINES = {
     "PUMP": "ProPetro — oilfield services / pressure pumping; cyclical energy services.",
     "BWXT": "BWX Technologies — naval nuclear reactor builder + SMR; **hot-theme** play (nuclear).",
 }
+
+
+# ---------------------------------------------------------------------------
+# Company line resolver — never returns "Description pending."
+# Priority: COMPANY_LINES dict → sector from parquet → fund-name parse → safe fallback
+# ---------------------------------------------------------------------------
+
+def _resolve_company_line(ticker: str, sector: str | None = None,
+                          fund_name: str | None = None) -> str:
+    """Return a 1-line description for *ticker*.
+
+    Resolution order:
+    1. Hand-curated COMPANY_LINES dict
+    2. sector string if provided (e.g. "Technology")
+    3. Fund-name parse via _TICKER_COMPANY_NAMES — strip leverage prefixes and
+       attempt to infer the underlier company name from the ticker embedded in
+       the fund name (e.g. "T-REX 2X LONG DJT" → DJT → Trump Media...)
+    4. Safe fallback — never "Description pending."
+    """
+    # 1. Hand-curated
+    if ticker in COMPANY_LINES:
+        return COMPANY_LINES[ticker]
+
+    # 2. Known company name dict (covers common underlier tickers)
+    if ticker in _TICKER_COMPANY_NAMES:
+        cname = _TICKER_COMPANY_NAMES[ticker]
+        return f"{cname} — referenced via leveraged ETF"
+
+    # 3. Fund-name parse: try to extract embedded underlier ticker
+    if fund_name:
+        import re
+        # Strip common multiplier tokens to isolate the core ticker word(s)
+        cleaned = re.sub(
+            r"\b(T-REX|DEFIANCE|DIREXION|PROSHARES|ROUNDHILL|LEVERAGE\s+SHARES?|"
+            r"\dX|2X|3X|LONG|SHORT|DAILY|TARGET|BULL|BEAR|ULTRA|FUND|ETF|DAILY\s+TARGET)\b",
+            " ", fund_name, flags=re.IGNORECASE,
+        ).strip()
+        # Pick uppercase-only words (likely tickers)
+        candidates = [w for w in cleaned.split() if w.isupper() and 2 <= len(w) <= 6]
+        for cand in candidates:
+            if cand in _TICKER_COMPANY_NAMES:
+                cname = _TICKER_COMPANY_NAMES[cand]
+                return f"{cname} — referenced via leveraged ETF"
+
+    # 4. Sector hint
+    if sector and sector != "—":
+        return f"{ticker} — {sector} sector underlier"
+
+    # 5. Hard fallback — informative, never "Description pending."
+    return f"{ticker} — see SEC filing details"
 
 
 # ---------------------------------------------------------------------------
@@ -337,26 +475,48 @@ def load_launches_this_week() -> pd.DataFrame:
     try:
         df = pd.read_sql_query(
             """
-            SELECT ticker, fund_name, issuer_display, is_rex, market_status,
-                   aum, inception_date, primary_category,
-                   map_li_underlier, map_li_direction, map_li_leverage_amount
-            FROM mkt_master_data
-            WHERE inception_date IS NOT NULL
-              AND inception_date >= date('now', '-9 days')
-              AND inception_date <= date('now')
-              AND market_status IN ('ACTV', 'ACTIVE')
-              AND fund_name IS NOT NULL
+            SELECT
+                m.ticker,
+                m.fund_name,
+                COALESCE(
+                    m.issuer_display,
+                    (
+                        SELECT f.registrant
+                        FROM fund_extractions fe
+                        JOIN filings f ON f.id = fe.filing_id
+                        WHERE (
+                            fe.series_name = m.fund_name
+                            OR fe.class_contract_name = m.fund_name
+                        )
+                        ORDER BY f.filing_date DESC
+                        LIMIT 1
+                    )
+                ) AS issuer_display,
+                m.is_rex,
+                m.market_status,
+                m.aum,
+                m.inception_date,
+                m.primary_category,
+                m.map_li_underlier,
+                m.map_li_direction,
+                m.map_li_leverage_amount
+            FROM mkt_master_data m
+            WHERE m.inception_date IS NOT NULL
+              AND m.inception_date >= date('now', '-9 days')
+              AND m.inception_date <= date('now')
+              AND m.market_status IN ('ACTV', 'ACTIVE')
+              AND m.fund_name IS NOT NULL
               AND (
-                primary_category = 'LI'
-                OR fund_name LIKE '%2X%'
-                OR fund_name LIKE '%3X%'
-                OR fund_name LIKE '%2x%'
-                OR fund_name LIKE '%3x%'
-                OR fund_name LIKE '%Inverse%'
-                OR fund_name LIKE '%Bull%'
-                OR fund_name LIKE '%Bear%'
-                OR fund_name LIKE '%Ultra%'
-                OR fund_name LIKE '%Leveraged%'
+                m.primary_category = 'LI'
+                OR m.fund_name LIKE '%2X%'
+                OR m.fund_name LIKE '%3X%'
+                OR m.fund_name LIKE '%2x%'
+                OR m.fund_name LIKE '%3x%'
+                OR m.fund_name LIKE '%Inverse%'
+                OR m.fund_name LIKE '%Bull%'
+                OR m.fund_name LIKE '%Bear%'
+                OR m.fund_name LIKE '%Ultra%'
+                OR m.fund_name LIKE '%Leveraged%'
               )
             """,
             conn,
@@ -441,7 +601,11 @@ def _section_card(ticker: str, row: pd.Series, comp_filed_total: int = 0,
     themes_pretty = _pretty_themes(themes_raw)
     is_hot = bool(row.get("is_hot_theme", 0))
 
-    company_line = COMPANY_LINES.get(ticker, "Description pending.")
+    company_line = _resolve_company_line(
+        ticker,
+        sector=sector if sector != "—" else None,
+        fund_name=row.get("rex_fund_name") or row.get("fund_name") or None,
+    )
 
     hot_badge = ('<span style="background:#e74c3c;color:white;padding:1px 6px;border-radius:8px;'
                  'font-size:9px;font-weight:700;margin-left:4px;">HOT THEME</span>') if is_hot else ""
@@ -557,12 +721,14 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
         comp_long = int(r.get("competitor_active_long", 0) or 0)
         comp_short = int(r.get("competitor_active_short", 0) or 0)
         comp_str = f"L:{comp_long} / S:{comp_short}"
+        f_abs = float(r.get("flow_4w_abs", abs(f)) or abs(f))
 
         flow_rows.append(f'''
             <tr>
               <td style="padding:6px 8px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#7f8c8d;">{i}</td>
               <td style="padding:6px 8px;border-bottom:1px solid #ecf0f1;font-size:11.5px;font-weight:700;font-family:'Courier New',monospace;color:#0984e3;">{escape(underlier)}</td>
               <td style="padding:6px 8px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:{f_color};font-weight:700;">${f:+,.1f}M</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:#566573;">${f_abs:,.1f}M</td>
               <td style="padding:6px 8px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;">{rex_str}</td>
               <td style="padding:6px 8px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;color:#7f8c8d;">{comp_str}</td>
             </tr>
@@ -703,13 +869,14 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
     Money Flow — Where Retail Is Buying (Last 7 Days)
   </div>
   <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;font-style:italic;">
-    Top underliers by net flow into existing leveraged products. REX exposure shown as L:N / S:N. Competitor counts (active products) shown the same way.
+    Top underliers by absolute 4w flow magnitude (signed value shown). Higher rank = bigger churn regardless of direction. REX exposure shown as L:N / S:N. Competitor counts (active products) shown the same way.
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr style="background:#1a1a2e;">
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">#</th>
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">Underlier</th>
       <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">4w Net Flow</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">Gross Churn</th>
       <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">REX (Long/Short)</th>
       <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">Competitors (L/S)</th>
     </tr>
@@ -816,6 +983,13 @@ def main():
     html = render(launch, whitespace, money_flow, filings_summary, top_mentions, hot_take,
                   earliest_comp=earliest_comp, launches_week=launches_week,
                   ipo_filers=ipo_filers)
+    # Hard-block: fail fast rather than ship placeholder text.
+    if "Description pending" in html:
+        raise RuntimeError(
+            "BLOCKING: 'Description pending' found in report output. "
+            "Add the ticker to COMPANY_LINES or extend _TICKER_COMPANY_NAMES."
+        )
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(html, encoding="utf-8")
     log.info("Wrote %s (%.1f KB)", OUT, OUT.stat().st_size / 1024)
