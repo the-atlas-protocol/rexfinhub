@@ -1074,7 +1074,7 @@ def filings_symbols(
     fund name + issuer when known; reserved-without-known-fund = competitor
     pipeline intel."""
     from webapp.services.cboe.cross_reference import (
-        enriched_rows, last_scan, summary_counts,
+        auth_health, enriched_rows, last_scan, summary_counts,
     )
     from webapp.services.cboe.live import is_ticker_query, live_check
 
@@ -1107,6 +1107,7 @@ def filings_symbols(
 
     counts = summary_counts(db)
     last = last_scan(db)
+    health = auth_health(db)
     total_pages = max(1, math.ceil(total / per_page)) if total else 1
 
     base_qs = urllib.parse.urlencode({
@@ -1128,6 +1129,7 @@ def filings_symbols(
         "sort": sort,
         "counts": counts,
         "last_scan": last,
+        "auth_health": health,
         "live_refresh": live_refresh,
         "base_qs": base_qs,
     })

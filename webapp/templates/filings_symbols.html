@@ -3,6 +3,27 @@
 {% block content %}
 {% include "_filings_subnav.html" %}
 
+{% if auth_health and not auth_health.ok %}
+<div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; padding:14px 16px; background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:6px;">
+  <div style="flex-shrink:0; width:20px; height:20px; border-radius:50%; background:#dc2626; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; line-height:1;">!</div>
+  <div style="flex:1; font-size:13px; color:#7f1d1d;">
+    <div style="font-weight:600; margin-bottom:4px;">CBOE session expired — data is stale.</div>
+    <div style="color:#991b1b; line-height:1.5;">
+      The nightly scanner has been failing on auth
+      {% if auth_health.failed_streak %}for <b>{{ auth_health.failed_streak }} consecutive run{{ 's' if auth_health.failed_streak != 1 else '' }}</b>{% endif %}.
+      {% if auth_health.last_completed_at %}
+        Last successful sweep: <b>{{ auth_health.last_completed_at | et_time }}</b>
+        {% if auth_health.days_stale is not none %}({{ auth_health.days_stale }} day{{ 's' if auth_health.days_stale != 1 else '' }} ago){% endif %}.
+      {% endif %}
+      Rotate <code style="background:#fff1f2; padding:1px 5px; border-radius:3px; font-family:'JetBrains Mono', ui-monospace, monospace;">CBOE_SESSION_COOKIE</code> in <code style="background:#fff1f2; padding:1px 5px; border-radius:3px; font-family:'JetBrains Mono', ui-monospace, monospace;">config/.env</code> on the VPS to resume scans.
+      {% if auth_health.error_message %}
+        <div style="margin-top:6px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:#991b1b; opacity:0.8; word-break:break-all;">{{ auth_health.error_message }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:20px;">
   <div>
     <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:4px;">Filings · CBOE</div>
@@ -68,7 +89,8 @@
 
   <label style="display:flex; align-items:center; gap:6px; flex:1;">
     <span style="color:#475569;">Search</span>
-    <input type="text" name="q" value="{{ q|e }}" placeholder="Ticker prefix or fund name…"
+    <input type="text" name="q" value="{{ q|e }}" placeholder="Ticker, fund name, or pattern (AI.., ..AI, A...)"
+           title="Use . as a single-char wildcard (e.g. AI.. matches all 4-letter tickers starting with AI)."
            style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px; width:100%; max-width:340px;">
   </label>
 

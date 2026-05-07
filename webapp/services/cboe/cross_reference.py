@@ -108,11 +108,20 @@ def enriched_rows(
         q = q.filter(CboeSymbol.available.is_(None))
     if search:
         s_upper = search.upper().strip()
-        q = q.filter(
-            (CboeSymbol.ticker.startswith(s_upper))
-            | (mkt.c.fund_name.ilike(f"%{search}%"))
-            | (known.c.name.ilike(f"%{search}%"))
-        )
+        # Pattern syntax: '.' = single char, '*' = any chars (translated to SQL
+        # LIKE _/%). Triggered only when the search contains a wildcard AND is
+        # short — keeps the regular fund-name search behaviour intact.
+        if any(c in s_upper for c in ".*?") and len(s_upper) <= 4:
+            sql_pat = (
+                s_upper.replace(".", "_").replace("?", "_").replace("*", "%")
+            )
+            q = q.filter(CboeSymbol.ticker.like(sql_pat))
+        else:
+            q = q.filter(
+                (CboeSymbol.ticker.startswith(s_upper))
+                | (mkt.c.fund_name.ilike(f"%{search}%"))
+                | (known.c.name.ilike(f"%{search}%"))
+            )
 
     total = q.count()
 
@@ -209,4 +218,62 @@ def last_scan(db: Session) -> dict[str, Any] | None:
         "tier": row.tier,
         "tickers_checked": row.tickers_checked,
         "state_changes_detected": row.state_changes_detected,
+        "error_message": row.error_message,
+    }
+
+
+def auth_health(db: Session) -> dict[str, Any]:
+    """Inspect recent runs to surface cookie-expiry on the page.
+
+    Returns a dict with `ok`, `last_completed_at` (most recent successful full
+    sweep), `failed_streak` (consecutive failed runs since), `error_message`,
+    and `days_stale` (since last completed sweep). When `ok` is False the page
+    renders a red banner asking for cookie rotation.
+    """
+    last_completed = (
+        db.query(CboeScanRun)
+        .filter(CboeScanRun.status == "completed")
+        .order_by(CboeScanRun.started_at.desc())
+        .first()
+    )
+    last_run = (
+        db.query(CboeScanRun)
+        .order_by(CboeScanRun.started_at.desc())
+        .first()
+    )
+    if last_run is None:
+        return {"ok": True, "last_completed_at": None, "failed_streak": 0,
+                "error_message": None, "days_stale": None}
+
+    failed_streak = 0
+    for r in (
+        db.query(CboeScanRun)
+        .order_by(CboeScanRun.started_at.desc())
+        .all()
+    ):
+        if r.status == "failed":
+            failed_streak += 1
+        else:
+            break
+
+    last_completed_at = last_completed.started_at if last_completed else None
+    days_stale: int | None = None
+    if last_completed_at:
+        days_stale = max(0, (datetime.utcnow() - last_completed_at).days)
+
+    auth_failed = (
+        last_run.status == "failed"
+        and last_run.error_message is not None
+        and any(
+            kw in last_run.error_message.lower()
+            for kw in ("cookie", "auth", "redirect", "login", "401", "403", "302")
+        )
+    )
+
+    return {
+        "ok": not auth_failed,
+        "last_completed_at": last_completed_at,
+        "failed_streak": failed_streak,
+        "error_message": last_run.error_message,
+        "days_stale": days_stale,
     }
