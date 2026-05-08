@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Issuers — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div style="margin-bottom:24px;">
+    <nav style="font-size:0.85rem; color:#64748B; margin-bottom:8px;">
+      <a href="/" style="color:#64748B; text-decoration:none;">Home</a>
+      <span style="margin:0 6px;">/</span>
+      <span>Issuers</span>
+    </nav>
+    <h1 style="font-size:1.85rem; font-weight:700; margin:0 0 4px 0;">Issuers</h1>
+    <div style="color:#64748B; font-size:0.9rem;">
+      All ETP issuers, ranked by total AUM. Issuer names are canonicalized — variants like
+      <em>BlackRock Inc</em>, <em>iShares Delaware Trust Sponsor</em>, etc. roll up to their parent.
+      {% if data_as_of %}<span style="margin-left:8px;">Data as of {{ data_as_of }}.</span>{% endif %}
+    </div>
+  </div>
+
+  {% if not issuers %}
+  <div class="alert alert-info">No issuer data available. Run the daily market pipeline to sync Bloomberg data.</div>
+  {% else %}
+  <div class="kpi-row" style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px;">
+    <div class="kpi-card" style="flex:1; min-width:160px; background:#F8FAFC; border:1px solid #E2E8F0; padding:14px 18px; border-radius:8px;">
+      <div style="color:#64748B; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total Issuers</div>
+      <div style="font-size:1.6rem; font-weight:700; color:#0F172A;">{{ total_issuers }}</div>
+    </div>
+    <div class="kpi-card" style="flex:1; min-width:160px; background:#F8FAFC; border:1px solid #E2E8F0; padding:14px 18px; border-radius:8px;">
+      <div style="color:#64748B; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total Funds</div>
+      <div style="font-size:1.6rem; font-weight:700; color:#0F172A;">{{ total_funds }}</div>
+    </div>
+    <div class="kpi-card" style="flex:1; min-width:160px; background:#F8FAFC; border:1px solid #E2E8F0; padding:14px 18px; border-radius:8px;">
+      <div style="color:#64748B; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total AUM</div>
+      <div style="font-size:1.6rem; font-weight:700; color:#0F172A;">{{ total_aum_fmt }}</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:14px;">
+    <input id="issuerFilter" type="text" placeholder="Filter issuers…"
+           autocomplete="off"
+           style="width:100%; max-width:360px; padding:8px 12px; border:1px solid #CBD5E1; border-radius:6px; font-size:0.9rem;"
+           oninput="filterIssuers(this.value)">
+  </div>
+
+  <div class="table-responsive" style="border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+    <table id="issuersTable" class="data-table" style="width:100%; border-collapse:collapse;">
+      <thead style="background:#F1F5F9;">
+        <tr>
+          <th style="text-align:left; padding:10px 14px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; color:#475569;">Issuer</th>
+          <th style="text-align:right; padding:10px 14px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; color:#475569;"># Funds</th>
+          <th style="text-align:right; padding:10px 14px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; color:#475569;">Total AUM</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for iss in issuers %}
+        <tr class="issuer-row" style="border-top:1px solid #E2E8F0;">
+          <td style="padding:10px 14px;">
+            <a href="/issuers/{{ iss.name }}" style="color:#1E40AF; text-decoration:none; font-weight:500;">{{ iss.name }}</a>
+          </td>
+          <td style="padding:10px 14px; text-align:right; font-variant-numeric: tabular-nums;">{{ iss.n_funds }}</td>
+          <td style="padding:10px 14px; text-align:right; font-variant-numeric: tabular-nums;">{{ iss.total_aum_fmt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterIssuers(query) {
+  var q = (query || '').toLowerCase().trim();
+  var rows = document.querySelectorAll('#issuersTable tbody tr.issuer-row');
+  for (var i = 0; i < rows.length; i++) {
+    var nameCell = rows[i].querySelector('a');
+    if (!nameCell) continue;
+    var name = nameCell.textContent.toLowerCase();
+    rows[i].style.display = (q === '' || name.indexOf(q) !== -1) ? '' : 'none';
+  }
+}
+</script>
+{% endblock %}

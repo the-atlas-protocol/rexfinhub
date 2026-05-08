@@ -12,6 +12,7 @@ import json
 import logging
 import math
 import threading
+from pathlib import Path
 from typing import Any
 
 from datetime import datetime as _dt
@@ -23,6 +24,87 @@ from sqlalchemy.orm import Session
 from webapp.models import MktMasterData, MktPipelineRun, MktTimeSeries
 
 log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Read-side issuer canonicalization (PR 2b)
+# ---------------------------------------------------------------------------
+# Write-side normalization in apply_issuer_brands.py / market_sync.py only
+# covers some variants; legacy DB rows still carry raw issuer names like
+# "iShares", "BlackRock Inc", "BlackRock Fund Advisors" instead of the
+# canonical "BlackRock". Apply the AUTO-confidence canon map at READ TIME so
+# every page (issuer detail, summaries, etc.) sees a single canonical issuer.
+# Bad REVIEW rows were purged in Phase 0.1.
+_CANON_MAP_CACHE: dict[str, str] | None = None
+_CANON_MAP_LOCK = threading.Lock()
+
+
+def _get_issuer_canon_map() -> dict[str, str]:
+    """Load AUTO-confidence rows from issuer_canonicalization.csv as variant->canonical map.
+
+    Cached for the lifetime of the process. Only AUTO rows are honored —
+    REVIEW rows (manually curated fuzzy matches) are skipped to prevent
+    silent mis-assignment.
+    """
+    global _CANON_MAP_CACHE
+    if _CANON_MAP_CACHE is not None:
+        return _CANON_MAP_CACHE
+    with _CANON_MAP_LOCK:
+        if _CANON_MAP_CACHE is not None:
+            return _CANON_MAP_CACHE
+        try:
+            csv_path = (
+                Path(__file__).resolve().parent.parent.parent
+                / "config" / "rules" / "issuer_canonicalization.csv"
+            )
+            if not csv_path.exists():
+                log.warning("issuer_canonicalization.csv not found at %s", csv_path)
+                _CANON_MAP_CACHE = {}
+                return _CANON_MAP_CACHE
+            df = pd.read_csv(csv_path, engine="python", on_bad_lines="skip")
+            # CRITICAL: only AUTO rows. REVIEW rows are not safe for read-side apply.
+            if "confidence" in df.columns:
+                df = df[df["confidence"] == "AUTO"]
+            mapping: dict[str, str] = {}
+            for _, row in df.iterrows():
+                variant = str(row.get("variant", "")).strip()
+                canonical = str(row.get("canonical", "")).strip()
+                if variant and canonical:
+                    mapping[variant] = canonical
+            _CANON_MAP_CACHE = mapping
+            log.info("Loaded %d AUTO issuer canon entries", len(mapping))
+            return _CANON_MAP_CACHE
+        except Exception as e:
+            log.error("Failed to load issuer canon map: %s", e)
+            _CANON_MAP_CACHE = {}
+            return _CANON_MAP_CACHE
+
+
+def _apply_issuer_canonicalization(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize the issuer_display column using the canon map.
+
+    Returns a new DataFrame (does not mutate the cached one).
+    """
+    if df is None or df.empty or "issuer_display" not in df.columns:
+        return df
+    canon_map = _get_issuer_canon_map()
+    if not canon_map:
+        return df
+    df = df.copy()
+
+    def _canon(v: Any) -> Any:
+        if v is None:
+            return v
+        try:
+            if isinstance(v, float) and math.isnan(v):
+                return v
+        except Exception:
+            pass
+        s = str(v).strip()
+        return canon_map.get(s, s)
+
+    df["issuer_display"] = df["issuer_display"].map(_canon)
+    return df
 
 # ---------------------------------------------------------------------------
 # In-memory cache (loaded once, reused across requests)
@@ -367,11 +449,16 @@ def get_data_as_of(db: Session) -> str:
 def get_master_data(db: Session, etn_overrides: bool = False) -> pd.DataFrame:
     """Return full fund universe as DataFrame (cached).
 
+    Read-side issuer canonicalization (PR 2b) is applied here so every caller
+    sees a single canonical issuer_display per logical issuer, regardless of
+    the raw variant stored in the DB.
+
     Args:
         etn_overrides: If True, return a copy with MicroSectors ETN proprietary
             data (true AUM + flows).  Only for internal reports/emails.
     """
     df = _load_master(db)
+    df = _apply_issuer_canonicalization(df)
     if etn_overrides:
         df = df.copy()
         _apply_etn_overrides(df)

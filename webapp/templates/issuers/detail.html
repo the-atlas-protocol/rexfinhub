@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ issuer_name }} — Issuer Detail — REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <nav style="font-size:0.85rem; color:#64748B; margin-bottom:8px;">
+    <a href="/" style="color:#64748B; text-decoration:none;">Home</a>
+    <span style="margin:0 6px;">/</span>
+    <a href="/issuers/" style="color:#64748B; text-decoration:none;">Issuers</a>
+    <span style="margin:0 6px;">/</span>
+    <span>{{ issuer_name }}</span>
+  </nav>
+
+  <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:280px;">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h1 style="font-size:1.85rem; font-weight:700; margin:0;">{{ issuer_name }}</h1>
+        {% if issuer_data and issuer_data.is_rex %}
+        <span style="color:#1E40AF; font-size:0.72rem; font-weight:700; background:#EFF6FF; padding:3px 10px; border-radius:20px; letter-spacing:0.05em;">REX ISSUER</span>
+        {% endif %}
+      </div>
+      {% if variants_known_as %}
+      <div style="color:#64748B; font-size:0.82rem; margin-top:6px;">
+        Also known as:
+        {% for v in variants_known_as %}<em>{{ v }}</em>{% if not loop.last %}, {% endif %}{% endfor %}
+      </div>
+      {% endif %}
+      {% if data_as_of %}
+      <div style="color:#94A3B8; font-size:0.75rem; margin-top:4px;">Data as of {{ data_as_of }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not issuer_data %}
+  <div class="alert alert-warning" style="background:#FEF3C7; border:1px solid #FDE68A; padding:14px 18px; border-radius:8px; color:#78350F;">
+    No data found for issuer "{{ issuer_name }}". The name may not exist in the current Bloomberg snapshot.
+    {% if variants_known_as %}<br>Known variants: {{ variants_known_as|join(", ") }}.{% endif %}
+  </div>
+  {% else %}
+
+  <div class="kpi-row" style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px;">
+    <div class="kpi-card" style="flex:1; min-width:160px; background:#F8FAFC; border:1px solid #E2E8F0; padding:14px 18px; border-radius:8px;">
+      <div style="color:#64748B; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total AUM</div>
+      <div style="font-size:1.6rem; font-weight:700; color:#0F172A;">{{ issuer_data.total_aum_fmt }}</div>
+    </div>
+    <div class="kpi-card" style="flex:1; min-width:160px; background:#F8FAFC; border:1px solid #E2E8F0; padding:14px 18px; border-radius:8px;">
+      <div style="color:#64748B; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;"># Funds</div>
+      <div style="font-size:1.6rem; font-weight:700; color:#0F172A;">{{ issuer_data.n_funds }}</div>
+    </div>
+    <div class="kpi-card" style="flex:1; min-width:160px; background:#F8FAFC; border:1px solid #E2E8F0; padding:14px 18px; border-radius:8px;">
+      <div style="color:#64748B; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;"># Categories</div>
+      <div style="font-size:1.6rem; font-weight:700; color:#0F172A;">{{ issuer_data.n_categories }}</div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:20px; margin-bottom:24px;">
+    {% if aum_trend and aum_trend["labels"] %}
+    <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; padding:16px;">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem; font-weight:600; color:#0F172A;">AUM Trend — Last 12 Months</h3>
+      <canvas id="issuerTrendChart" height="200"></canvas>
+    </div>
+    {% endif %}
+
+    {% if categories %}
+    <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; padding:16px;">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem; font-weight:600; color:#0F172A;">AUM by Category</h3>
+      <table class="data-table" style="width:100%; font-size:0.85rem; border-collapse:collapse;">
+        <thead>
+          <tr style="background:#F1F5F9;">
+            <th style="text-align:left; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">Category</th>
+            <th style="text-align:right; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">AUM</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in categories %}
+          <tr style="border-top:1px solid #E2E8F0;">
+            <td style="padding:8px 10px;">{{ c.name | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') }}</td>
+            <td style="padding:8px 10px; text-align:right; font-variant-numeric: tabular-nums;">{{ c.aum_fmt }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; padding:16px;">
+    <h3 style="margin:0 0 12px 0; font-size:0.95rem; font-weight:600; color:#0F172A;">All Products ({{ funds|length }} funds)</h3>
+    {% if funds %}
+    <div class="table-responsive">
+      <table class="data-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+        <thead style="background:#F1F5F9;">
+          <tr>
+            <th style="text-align:left; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">Ticker</th>
+            <th style="text-align:left; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">Fund Name</th>
+            <th style="text-align:left; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">Category</th>
+            <th style="text-align:right; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">AUM</th>
+            <th style="text-align:center; padding:8px 10px; font-size:0.72rem; text-transform:uppercase; color:#475569;">REX</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in funds %}
+          <tr style="border-top:1px solid #E2E8F0; {% if f.is_rex %}background:#EFF6FF;{% endif %}">
+            <td style="padding:8px 10px; font-weight:600;">
+              {% if f.ticker %}<a href="/funds/{{ f.ticker }}" style="color:#1E40AF; text-decoration:none;">{{ f.ticker }}</a>{% endif %}
+            </td>
+            <td style="padding:8px 10px;">{{ f.fund_name }}</td>
+            <td style="padding:8px 10px; font-size:0.78rem; color:#475569;">{{ f.category | replace('Leverage & Inverse - ', 'L&I ') | replace('Income - ', 'Inc ') }}</td>
+            <td style="padding:8px 10px; text-align:right; font-variant-numeric: tabular-nums;">{{ f.aum_fmt }}</td>
+            <td style="padding:8px 10px; text-align:center;">{% if f.is_rex %}<span style="color:#1E40AF; font-weight:700; font-size:0.72rem;">REX</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding:20px; text-align:center; color:#94A3B8;">No products found.</div>
+    {% endif %}
+  </div>
+
+  {% endif %}
+</div>
+
+{% if aum_trend and aum_trend["labels"] %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var ctx = document.getElementById('issuerTrendChart');
+  if (!ctx || typeof Chart === 'undefined') return;
+  new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: {{ aum_trend["labels"] | tojson }},
+      datasets: [{
+        label: '{{ issuer_name }} AUM ($M)',
+        data: {{ aum_trend["values"] | tojson }},
+        borderColor: '#1E40AF',
+        backgroundColor: 'rgba(30, 64, 175, 0.10)',
+        borderWidth: 2,
+        tension: 0.25,
+        fill: true,
+        pointRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(v) {
+              if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(1) + 'B';
+              return '$' + v.toFixed(0) + 'M';
+            }
+          }
+        }
+      }
+    }
+  });
+});
+</script>
+{% endif %}
+{% endblock %}

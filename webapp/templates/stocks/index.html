@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% macro fmt_money(v) -%}
+  {%- if v is none or v == '' or v == 0 -%}—
+  {%- elif (v|float) >= 1e9 -%}${{ "%.2f"|format((v|float)/1e9) }}B
+  {%- elif (v|float) >= 1e6 -%}${{ "%.1f"|format((v|float)/1e6) }}M
+  {%- elif (v|float) >= 1e3 -%}${{ "%.0f"|format((v|float)/1e3) }}K
+  {%- else -%}${{ "%.0f"|format(v|float) }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% block title %}Stocks — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/market/rex">Market</a><span class="sep">/</span>
+    <span>Stocks</span>
+  </div>
+  <h1>Stocks</h1>
+  <div class="date">
+    {{ total_count }} stocks tracked &middot;
+    {{ filtered_count }} match current filters
+    {% if filtered_count > render_count %} &middot; showing first {{ render_count }}{% endif %}
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" action="/market/stocks/" style="margin-bottom:14px;">
+  <div class="filter-bar" style="border-radius:8px;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search ticker or name..."
+           style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px; min-width:200px;">
+    <select name="sector" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
+      <option value="">All Sectors</option>
+      {% for s in sectors %}
+      <option value="{{ s }}" {% if sector == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select name="has_etp" style="padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px;">
+      <option value="">ETP Coverage: Any</option>
+      <option value="yes" {% if has_etp == 'yes' %}selected{% endif %}>Has ETP</option>
+      <option value="no" {% if has_etp == 'no' %}selected{% endif %}>No ETP</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    {% if q or sector or has_etp %}
+    <a href="/market/stocks/" class="btn btn-sm">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- Table -->
+{% if stocks %}
+<div class="table-responsive">
+  <table id="stocksTable" class="data-table">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="sortTable('stocksTable', 0)">Ticker</th>
+        <th class="sortable" onclick="sortTable('stocksTable', 1)">Name</th>
+        <th class="sortable" onclick="sortTable('stocksTable', 2)">Sector</th>
+        <th class="sortable num-cell" onclick="sortTable('stocksTable', 3)">Market Cap</th>
+        <th class="sortable num-cell" onclick="sortTable('stocksTable', 4)"># ETPs</th>
+        <th class="sortable num-cell" onclick="sortTable('stocksTable', 5)">Score</th>
+        <th class="sortable num-cell" onclick="sortTable('stocksTable', 6)">Pctile</th>
+        <th class="sortable num-cell" onclick="sortTable('stocksTable', 7)">Mentions 24h</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in stocks %}
+      <tr>
+        <td><a href="/stocks/{{ s.ticker }}" style="font-family:'JetBrains Mono', monospace; font-weight:600;">{{ s.ticker }}</a></td>
+        <td>{{ s.name or '—' }}</td>
+        <td>{{ s.sector or '—' }}</td>
+        <td class="num-cell">{{ fmt_money(s.market_cap) }}</td>
+        <td class="num-cell">{{ s.n_etps }}</td>
+        <td class="num-cell">{% if s.has_signal and s.composite_score %}{{ "%.2f"|format(s.composite_score) }}{% else %}—{% endif %}</td>
+        <td class="num-cell">{% if s.has_signal and s.score_pct %}{{ "%.0f"|format(s.score_pct) }}%{% else %}—{% endif %}</td>
+        <td class="num-cell">{% if s.has_signal and s.mentions_24h %}{{ "%.0f"|format(s.mentions_24h) }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-info" style="margin-top:20px;">
+  No stocks match the current filters.
+</div>
+{% endif %}
+
+{% endblock %}

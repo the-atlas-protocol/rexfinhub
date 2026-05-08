@@ -470,12 +470,27 @@ def _fund_compare_impl(
 
 
 @router.get("/fund/{ticker}")
-def market_fund_detail(
+def market_fund_detail_redirect(ticker: str):
+    """301 /market/fund/{ticker} -> /funds/{ticker}.
+
+    PR 2a (rexfinhub v3): the canonical fund detail surface lives at
+    /funds/{ticker}. The old SEC-only /funds/{series_id} URL has been
+    refactored into a single /funds/{key} dispatcher (see funds.py).
+    """
+    clean = ticker.upper().replace(" US", "").strip()
+    return RedirectResponse(f"/funds/{clean}", status_code=301)
+
+
+def _market_fund_detail_legacy(
     ticker: str,
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Standalone market fund page — Bloomberg DES-style overview."""
+    """Legacy Bloomberg-only fund page — retained for reference / rollback.
+
+    Not registered as a route. The merged page lives at /funds/{ticker} via
+    webapp.routers.funds._load_bloomberg_context, which mirrors this logic.
+    """
     import pandas as pd
     from webapp.services.market_data import get_master_data, data_available, _fmt_currency, _fmt_flow, get_data_as_of
 

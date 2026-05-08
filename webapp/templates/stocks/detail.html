@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% macro fmt_num(v, suffix='', dp=2) -%}
+  {%- if v is none or v == '' -%}—{%- else -%}{{ "%.{}f".format(dp) | format(v|float) }}{{ suffix }}{%- endif -%}
+{%- endmacro %}
+
+{% macro fmt_pct(v, dp=1) -%}
+  {%- if v is none or v == '' -%}—{%- else -%}{{ "%.{}f".format(dp) | format(v|float) }}%{%- endif -%}
+{%- endmacro %}
+
+{% macro fmt_money(v) -%}
+  {%- if v is none or v == '' or v == 0 -%}—
+  {%- elif (v|float) >= 1e9 -%}${{ "%.2f"|format((v|float)/1e9) }}B
+  {%- elif (v|float) >= 1e6 -%}${{ "%.1f"|format((v|float)/1e6) }}M
+  {%- elif (v|float) >= 1e3 -%}${{ "%.0f"|format((v|float)/1e3) }}K
+  {%- else -%}${{ "%.2f"|format(v|float) }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% block title %}{{ ticker }} — Stock Detail — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/market/stocks/">Stocks</a><span class="sep">/</span>
+    <span>{{ ticker }}</span>
+  </div>
+
+  <div style="display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap; margin-top:12px;">
+    <div>
+      <h1 style="margin:0 0 4px 0;">
+        <span style="font-family:'JetBrains Mono', monospace;">{{ ticker }}</span>
+        {% if header_name %}<span style="color:#888; font-weight:400; font-size:1rem; margin-left:10px;">{{ header_name }}</span>{% endif %}
+      </h1>
+      <div style="color:#666; font-size:0.85rem; display:flex; gap:14px; flex-wrap:wrap;">
+        {% if header_sector %}<span><strong>Sector:</strong> {{ header_sector }}</span>{% endif %}
+        {% if header_exchange %}<span><strong>Exchange:</strong> {{ header_exchange }}</span>{% endif %}
+        {% if header_market_cap %}<span><strong>Market Cap:</strong> {{ fmt_money(header_market_cap) }}</span>{% endif %}
+        {% if signal_source %}<span style="color:#1E40AF; font-weight:600;">Signal: {{ signal_source }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not has_data %}
+<div class="alert alert-info" style="margin:24px 0;">
+  <strong>No signals yet for {{ ticker }}.</strong>
+  This ticker is not present in <code>whitespace_v4</code>, <code>launch_candidates</code>,
+  any 485APOS filing whitespace, or as an underlier of any tracked ETP.
+</div>
+{% endif %}
+
+{# ============================================================ #}
+{#  SIGNAL PANEL                                                  #}
+{# ============================================================ #}
+{% if signal %}
+<div class="chart-box" style="margin-top:20px;">
+  <h3 style="margin-top:0;">Signals
+    {% if signal.is_hot_theme %}
+      <span style="background:#fef3c7; color:#92400e; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:700; margin-left:8px;">HOT THEME</span>
+    {% endif %}
+  </h3>
+
+  <!-- Composite + KPIs -->
+  <div class="kpi-row" style="margin-bottom:16px;">
+    <div class="kpi">
+      <div class="num">{{ fmt_num(signal.composite_score, dp=2) }}</div>
+      <div class="label">Composite Score</div>
+    </div>
+    <div class="kpi">
+      <div class="num">{{ fmt_num(signal.score_pct, suffix='%', dp=1) }}</div>
+      <div class="label">Score Percentile</div>
+    </div>
+    <div class="kpi">
+      <div class="num">{{ fmt_num(signal.mentions_24h, dp=0) }}</div>
+      <div class="label">Mentions 24h
+        {% if signal.mentions_z %}<br><small>z={{ fmt_num(signal.mentions_z, dp=2) }}</small>{% endif %}
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="num">{{ fmt_pct(signal.si_ratio) if signal.si_ratio else '—' }}</div>
+      <div class="label">Short Interest</div>
+    </div>
+  </div>
+
+  <!-- Signal data table -->
+  <div class="table-responsive">
+    <table class="data-table" style="font-size:0.85rem;">
+      <thead>
+        <tr>
+          <th colspan="2" style="background:#f5f5f5; text-align:left;">Performance</th>
+          <th colspan="2" style="background:#f5f5f5; text-align:left;">Volatility</th>
+          <th colspan="2" style="background:#f5f5f5; text-align:left;">Ownership</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Return 1m</strong></td><td class="num-cell">{{ fmt_pct(signal.ret_1m) }}</td>
+          <td><strong>RVol 30d</strong></td><td class="num-cell">{{ fmt_num(signal.rvol_30d, dp=2) }}</td>
+          <td><strong>Insider %</strong></td><td class="num-cell">{{ fmt_pct(signal.insider_pct) }}</td>
+        </tr>
+        <tr>
+          <td><strong>Return 3m</strong></td><td class="num-cell">{{ fmt_pct(signal.ret_3m) }}</td>
+          <td><strong>RVol 90d</strong></td><td class="num-cell">{{ fmt_num(signal.rvol_90d, dp=2) }}</td>
+          <td><strong>Inst Own %</strong></td><td class="num-cell">{{ fmt_pct(signal.inst_own_pct) }}</td>
+        </tr>
+        <tr>
+          <td><strong>Return 1y</strong></td><td class="num-cell">{{ fmt_pct(signal.ret_1y) }}</td>
+          <td><strong>SI Ratio</strong></td><td class="num-cell">{{ fmt_num(signal.si_ratio, dp=2) }}</td>
+          <td><strong># REX Products</strong></td><td class="num-cell">{{ signal.n_rex_products if signal.n_rex_products else '—' }}</td>
+        </tr>
+        <tr>
+          <td><strong>Last Price</strong></td><td class="num-cell">{{ fmt_money(signal.last_price) if signal.last_price else '—' }}</td>
+          <td><strong>52w High</strong></td><td class="num-cell">{{ fmt_money(signal.high_52w) if signal.high_52w else '—' }}</td>
+          <td><strong># Comp Products</strong></td><td class="num-cell">{{ signal.n_comp_products if signal.n_comp_products else '—' }}</td>
+        </tr>
+        <tr>
+          <td><strong>ADV 30d</strong></td><td class="num-cell">{{ fmt_money(signal.adv_30d) if signal.adv_30d else '—' }}</td>
+          <td><strong>52w Low</strong></td><td class="num-cell">{{ fmt_money(signal.low_52w) if signal.low_52w else '—' }}</td>
+          <td><strong>Total OI</strong></td><td class="num-cell">{{ fmt_num(signal.total_oi, dp=0) if signal.total_oi else '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% if signal.themes %}
+  <div style="margin-top:14px;">
+    <strong>Themes:</strong>
+    {% for t in (signal.themes if signal.themes is string else '')|string|split(',') %}
+      {% if t.strip() %}
+        <span style="background:#eff6ff; color:#1E40AF; font-size:0.75rem; padding:3px 10px; border-radius:12px; margin-right:6px; display:inline-block; margin-top:4px;">{{ t.strip() }}</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Z-scores (collapsed-look but always visible) -->
+  <div style="margin-top:14px; font-size:0.78rem; color:#666;">
+    <strong>Z-scores:</strong>
+    rvol_30d_z={{ fmt_num(signal.rvol_30d_z, dp=2) }} ·
+    rvol_90d_z={{ fmt_num(signal.rvol_90d_z, dp=2) }} ·
+    ret_1m_z={{ fmt_num(signal.ret_1m_z, dp=2) }} ·
+    ret_1y_z={{ fmt_num(signal.ret_1y_z, dp=2) }} ·
+    si_ratio_z={{ fmt_num(signal.si_ratio_z, dp=2) }} ·
+    insider_pct_z={{ fmt_num(signal.insider_pct_z, dp=2) }} ·
+    inst_own_pct_z={{ fmt_num(signal.inst_own_pct_z, dp=2) }}
+  </div>
+</div>
+{% endif %}
+
+{# ============================================================ #}
+{#  ETP COVERAGE                                                  #}
+{# ============================================================ #}
+<div class="chart-box" style="margin-top:20px;">
+  <h3 style="margin-top:0;">ETP Coverage <span style="color:#888; font-weight:400; font-size:0.85rem;">({{ etp_count }} product{{ 's' if etp_count != 1 else '' }} tracking {{ ticker }})</span></h3>
+  {% if etps %}
+  <div class="table-responsive">
+    <table class="data-table" id="etpCoverageTable">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Fund Name</th>
+          <th>Issuer</th>
+          <th>Type</th>
+          <th>Direction</th>
+          <th>Leverage</th>
+          <th class="num-cell">AUM</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in etps %}
+        <tr>
+          <td><a href="/funds/{{ e.ticker_clean }}" style="font-family:'JetBrains Mono', monospace; font-weight:600;">{{ e.ticker_clean or e.ticker }}</a></td>
+          <td>{{ e.fund_name }}</td>
+          <td>{% if e.issuer %}<a href="/issuers/{{ e.issuer }}">{{ e.issuer }}</a>{% else %}—{% endif %}</td>
+          <td>{{ e.coverage_type }}</td>
+          <td>{{ e.direction or '—' }}</td>
+          <td>{{ e.leverage or '—' }}</td>
+          <td class="num-cell">{{ fmt_money(e.aum) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:#666; margin:0;">No ETPs currently track {{ ticker }} as a leveraged or covered-call underlier.</p>
+  {% endif %}
+</div>
+
+{# ============================================================ #}
+{#  FILING WHITESPACE                                             #}
+{# ============================================================ #}
+<div class="chart-box" style="margin-top:20px;">
+  <h3 style="margin-top:0;">Filing Whitespace</h3>
+  {% if filing_data %}
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="num">{{ filing_data.n_filings_total or '—' }}</div>
+      <div class="label">485APOS Filings Naming {{ ticker }}</div>
+    </div>
+    <div class="kpi">
+      <div class="num">{{ filing_data.n_distinct_registrants or '—' }}</div>
+      <div class="label">Distinct Registrants</div>
+    </div>
+    <div class="kpi">
+      <div class="num">{{ filing_data.last_filing_date or '—' }}</div>
+      <div class="label">Last Filing</div>
+    </div>
+    <div class="kpi">
+      <div class="num">{{ filing_data.days_since_last_filing if filing_data.days_since_last_filing is not none else '—' }}</div>
+      <div class="label">Days Since Last</div>
+    </div>
+  </div>
+  {% if filing_data.sample_fund_name or filing_data.sample_registrant %}
+  <div style="margin-top:12px; font-size:0.85rem; color:#555;">
+    {% if filing_data.first_filing_date %}<div><strong>First filing:</strong> {{ filing_data.first_filing_date }}</div>{% endif %}
+    {% if filing_data.sample_fund_name %}<div><strong>Sample fund:</strong> {{ filing_data.sample_fund_name }}</div>{% endif %}
+    {% if filing_data.sample_registrant %}<div><strong>Sample registrant:</strong> {{ filing_data.sample_registrant }}</div>{% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <p style="color:#666; margin:0;">No 485APOS filings on record name {{ ticker }} as a sub-fund underlier.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

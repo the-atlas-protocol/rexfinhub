@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Trusts — REX Financial Intelligence Hub{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 1.5rem 2rem;">
+
+  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1.25rem;">
+    <div>
+      <h1 style="margin:0; font-size:1.75rem;">Trusts</h1>
+      <p style="margin:0.35rem 0 0; opacity:0.7; font-size:0.95rem;">
+        SEC-registered statutory trusts we monitor — {{ total_count }} active trusts.
+      </p>
+    </div>
+    <input type="text" id="trustSearch" placeholder="Filter by name or CIK..."
+           style="padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:6px;
+                  background:var(--card-bg); color:var(--text); min-width:280px;"
+           oninput="filterTrusts()">
+  </div>
+
+  <div class="card" style="overflow:hidden;">
+    <table class="data-table" style="width:100%; border-collapse:collapse;" id="trustsTable">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border); text-align:left; background: var(--card-bg-2);">
+          <th style="padding:0.75rem 1rem;">Trust</th>
+          <th style="padding:0.75rem 0.5rem;">CIK</th>
+          <th style="padding:0.75rem 0.5rem;">Act</th>
+          <th style="padding:0.75rem 0.5rem; text-align:right;">Total Funds</th>
+          <th style="padding:0.75rem 0.5rem; text-align:right;">Effective</th>
+          <th style="padding:0.75rem 0.5rem; text-align:right;">Pending</th>
+          <th style="padding:0.75rem 1rem; text-align:right;">Filings 30d</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trusts %}
+        <tr class="trust-row" style="border-bottom:1px solid var(--border-subtle);"
+            data-search="{{ t.name | lower }} {{ t.cik }}">
+          <td style="padding:0.7rem 1rem;">
+            <a href="/trusts/{{ t.slug }}"
+               style="color: var(--accent); text-decoration:none; font-weight:500;">
+              {{ t.name }}
+            </a>
+          </td>
+          <td style="padding:0.7rem 0.5rem; font-family:var(--mono); font-size:0.85rem; opacity:0.75;">
+            {{ t.cik }}
+          </td>
+          <td style="padding:0.7rem 0.5rem; font-size:0.8rem;">
+            {% if t.regulatory_act == '33_act' %}
+              <span style="background:#0e3a5f; color:#9ec5ff; padding:2px 6px; border-radius:3px;">33</span>
+            {% elif t.regulatory_act == '40_act' %}
+              <span style="background:#3a1f5f; color:#caa3ff; padding:2px 6px; border-radius:3px;">40</span>
+            {% else %}
+              <span style="opacity:0.4;">—</span>
+            {% endif %}
+          </td>
+          <td style="padding:0.7rem 0.5rem; text-align:right; font-variant-numeric:tabular-nums;">
+            {{ t.n_funds }}
+          </td>
+          <td style="padding:0.7rem 0.5rem; text-align:right; font-variant-numeric:tabular-nums; color: #4ade80;">
+            {{ t.n_effective }}
+          </td>
+          <td style="padding:0.7rem 0.5rem; text-align:right; font-variant-numeric:tabular-nums; color: #fbbf24;">
+            {{ t.n_pending if t.n_pending else '' }}
+          </td>
+          <td style="padding:0.7rem 1rem; text-align:right; font-variant-numeric:tabular-nums;">
+            {% if t.n_recent_filings_30d %}
+              <strong>{{ t.n_recent_filings_30d }}</strong>
+            {% else %}
+              <span style="opacity:0.3;">0</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+function filterTrusts() {
+  const q = document.getElementById('trustSearch').value.toLowerCase().trim();
+  document.querySelectorAll('.trust-row').forEach(row => {
+    const hay = row.dataset.search || '';
+    row.style.display = (!q || hay.includes(q)) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

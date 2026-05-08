@@ -43,6 +43,61 @@ def _expected_effective(form: str | None, filing_date: date | None, eff_date: da
     return None
 
 
+@router.get("/")
+def trusts_index(request: Request, db: Session = Depends(get_db)):
+    """Browse-all trusts index — closes the discoverability gap (PR 2d)."""
+    # Per-trust fund counts via subquery
+    fund_counts = db.execute(
+        select(
+            FundStatus.trust_id,
+            func.count(FundStatus.id).label("total"),
+            func.sum(func.iif(FundStatus.status == "EFFECTIVE", 1, 0)).label("effective"),
+            func.sum(func.iif(FundStatus.status == "PENDING", 1, 0)).label("pending"),
+        )
+        .group_by(FundStatus.trust_id)
+    ).all()
+    counts_by_trust: dict[int, dict] = {
+        r.trust_id: {"total": r.total or 0, "effective": r.effective or 0, "pending": r.pending or 0}
+        for r in fund_counts
+    }
+
+    # Recent-filing counts (last 30 days) per trust
+    cutoff = date.today() - timedelta(days=30)
+    recent_filings_q = db.execute(
+        select(Filing.trust_id, func.count(Filing.id).label("n"))
+        .where(Filing.filing_date >= cutoff)
+        .group_by(Filing.trust_id)
+    ).all()
+    recent_by_trust: dict[int, int] = {r.trust_id: r.n for r in recent_filings_q}
+
+    trusts = db.execute(
+        select(Trust).where(Trust.is_active == True).order_by(Trust.name)
+    ).scalars().all()
+
+    rows = []
+    for t in trusts:
+        c = counts_by_trust.get(t.id, {})
+        rows.append({
+            "slug": t.slug,
+            "name": t.name,
+            "cik": t.cik,
+            "regulatory_act": t.regulatory_act or "",
+            "n_funds": c.get("total", 0),
+            "n_effective": c.get("effective", 0),
+            "n_pending": c.get("pending", 0),
+            "n_recent_filings_30d": recent_by_trust.get(t.id, 0),
+        })
+
+    # Sort: most active first (recent filings desc, then total funds desc)
+    rows.sort(key=lambda r: (-r["n_recent_filings_30d"], -r["n_funds"], r["name"]))
+
+    return templates.TemplateResponse("trusts_index.html", {
+        "request": request,
+        "trusts": rows,
+        "total_count": len(rows),
+    })
+
+
 @router.get("/{slug}")
 def trust_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     trust = db.execute(select(Trust).where(Trust.slug == slug)).scalar_one_or_none()

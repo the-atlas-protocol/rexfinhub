@@ -1,42 +1,93 @@
 {% extends "base.html" %}
-{% block title %}{{ fund.fund_name }} - REX Financial Intelligence Hub{% endblock %}
+{% block title %}{{ page_name or page_ticker or (fund.fund_name if fund else 'Fund') }} - REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/market.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
 {% block content %}
+{# ============================================================== #}
+{# Section 1 — Breadcrumb (Home -> Filings -> Trust -> {ticker})   #}
+{# Preserved from Page A. Ticker shown when known, else series id. #}
+{# ============================================================== #}
 <div class="header">
   <div class="breadcrumb">
     <a href="/">Home</a><span class="sep">/</span>
     <a href="/filings">Filings</a><span class="sep">/</span>
     {% if trust %}<a href="/trusts/{{ trust.slug }}">{{ trust.name }}</a><span class="sep">/</span>{% endif %}
-    <span>Fund Detail</span>
+    <span>{{ page_ticker or (fund.series_id if fund else 'Fund Detail') }}</span>
   </div>
-  <h1>{{ fund.fund_name }}</h1>
-  <div class="date">
-    {% if trust %}<a href="/trusts/{{ trust.slug }}">{{ trust.name }}</a> &middot; {% endif %}
-    Series ID: {{ fund.series_id or 'N/A' }}
+
+  {# ============================================================ #}
+  {# Section 2 — Header (ticker / REX badge / name / issuer / pills #}
+  {# ============================================================ #}
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-top:8px;">
+    <div>
+      <h1 style="margin:0 0 4px;">
+        {% if page_ticker %}<span class="ticker-col">{{ page_ticker }}</span>{% endif %}
+        {% if bbg_fund and bbg_fund.is_rex %}<span style="background:#059669; color:#fff; padding:2px 8px; border-radius:4px; font-size:11px; vertical-align:middle; margin-left:6px;">REX</span>{% endif %}
+      </h1>
+      <div style="font-size:15px; color:#0f172a; font-weight:500;">{{ page_name }}</div>
+      <div class="date" style="margin-top:4px;">
+        {% if bbg_fund and bbg_fund.issuer %}
+          <a href="/issuers/{{ bbg_fund.issuer | urlencode }}">{{ bbg_fund.issuer }}</a>
+          {% if bbg_fund.category %}&middot; {{ bbg_fund.category }}{% endif %}
+          {% if bbg_fund.fund_type %}&middot; {{ bbg_fund.fund_type }}{% endif %}
+        {% elif trust %}
+          <a href="/trusts/{{ trust.slug }}">{{ trust.name }}</a>
+        {% endif %}
+        {% if fund and fund.series_id %} &middot; Series ID: {{ fund.series_id }}{% endif %}
+      </div>
+      {% if bbg_fund and (bbg_fund.leverage or bbg_fund.direction or bbg_fund.underlier) %}
+      <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+        {% if bbg_fund.leverage %}<span style="background:#1e3a5f; color:#fff; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:700;">{{ bbg_fund.leverage }}x</span>{% endif %}
+        {% if bbg_fund.direction %}<span style="background:{{ '#059669' if bbg_fund.direction == 'Long' else '#dc2626' if bbg_fund.direction in ('Short','Inverse') else '#d97706' }}; color:#fff; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:600;">{{ bbg_fund.direction }}</span>{% endif %}
+        {% if bbg_fund.underlier %}
+          <a href="/stocks/{{ bbg_fund.underlier }}" style="background:#f1f5f9; color:#334155; padding:2px 10px; border-radius:4px; font-size:12px; border:1px solid #e5e7eb; text-decoration:none;">{{ bbg_fund.underlier }}</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# ========================================================== #}
+    {# Section 3 — Action buttons (SEC Filings anchor, Compare)   #}
+    {# ========================================================== #}
+    <div style="display:flex; gap:8px; align-items:center;">
+      {% if extractions %}
+      <a href="#filing-history" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">SEC Filings</a>
+      {% endif %}
+      {% if page_ticker %}
+      <a href="/tools/compare/etps?tickers={{ page_ticker }}" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">Compare</a>
+      {% endif %}
+    </div>
   </div>
 </div>
 
-<!-- Fund metadata -->
+{# ============================================================== #}
+{# Section 4 — SEC Meta grid (always; degrades to "—")            #}
+{# ============================================================== #}
+{% if fund %}
 <div class="meta-grid">
   <div class="meta-item">
     <div class="meta-label">Status</div>
-    <div class="meta-value"><span class="status-{{ fund.status|lower }}">{{ fund.status }}</span></div>
+    <div class="meta-value"><span class="status-{{ fund.status|lower }}">{{ fund.status or '—' }}</span></div>
   </div>
   <div class="meta-item">
     <div class="meta-label">Ticker</div>
-    <div class="meta-value ticker-col">{{ fund.ticker or 'N/A' }}</div>
+    <div class="meta-value ticker-col">{{ fund.ticker or '—' }}</div>
   </div>
   <div class="meta-item">
     <div class="meta-label">Effective Date</div>
-    <div class="meta-value">{{ fund.effective_date or 'N/A' }}</div>
+    <div class="meta-value">{{ fund.effective_date or '—' }}</div>
   </div>
   <div class="meta-item">
     <div class="meta-label">Latest Form</div>
-    <div class="meta-value">{{ fund.latest_form or 'N/A' }}</div>
+    <div class="meta-value">{{ fund.latest_form or '—' }}</div>
   </div>
   <div class="meta-item">
     <div class="meta-label">Latest Filing Date</div>
-    <div class="meta-value">{{ fund.latest_filing_date or 'N/A' }}</div>
+    <div class="meta-value">{{ fund.latest_filing_date or '—' }}</div>
   </div>
   {% if fund.status_reason %}
   <div class="meta-item" style="grid-column: span 2;">
@@ -51,10 +102,228 @@
   </div>
   {% endif %}
 </div>
+{% endif %}
 
-<!-- Name History -->
+{# ============================================================== #}
+{# Bloomberg sections (5-11, 15) — render only when bbg row exists #}
+{# ============================================================== #}
+{% if bbg_fund %}
+
+{# Section 5 — Key Metrics row #}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin: 24px 0;">
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">AUM</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{{ bbg_fund.aum_fmt }}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Expense Ratio</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if bbg_fund.expense_ratio is not none %}{{ '{:.2f}'.format(bbg_fund.expense_ratio) }}%{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Spread</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if bbg_fund.spread is not none %}{{ '{:.2f}'.format(bbg_fund.spread) }}%{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Avg Vol 30D</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if bbg_fund.volume_30d is not none %}{{ '{:,.0f}'.format(bbg_fund.volume_30d) }}{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Short Interest</div>
+    <div style="font-size:18px; font-weight:700; color:#0f172a;">{% if bbg_fund.short_interest is not none %}{{ '{:.2f}'.format(bbg_fund.short_interest) }}%{% else %}N/A{% endif %}</div>
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Inception</div>
+    <div style="font-size:14px; font-weight:700; color:#0f172a;">{{ bbg_fund.inception or 'N/A' }}</div>
+  </div>
+</div>
+
+{# Section 6 — 3-Axis Taxonomy + Legacy Category #}
+{% if bbg_fund.primary_strategy or bbg_fund.asset_class or bbg_fund.sub_strategy %}
+<div style="margin-bottom:20px; padding:12px 16px; background:#f8fafc; border:1px solid #e5e7eb; border-left:3px solid #2563eb; border-radius:0 6px 6px 0;">
+  <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:8px;">Fund Classification</div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    {% if bbg_fund.primary_strategy %}
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Strategy</span>
+      <span style="background:#1e3a5f; color:#fff; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600;">{{ bbg_fund.primary_strategy }}</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.asset_class %}
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Asset Class</span>
+      <span style="background:#059669; color:#fff; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600;">{{ bbg_fund.asset_class }}</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.sub_strategy %}
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Sub-Strategy</span>
+      <span style="background:#f1f5f9; color:#334155; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:500; border:1px solid #e5e7eb;">{{ bbg_fund.sub_strategy }}</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.category %}
+    <div style="display:flex; flex-direction:column; gap:2px; margin-left:4px; padding-left:12px; border-left:1px solid #e5e7eb;">
+      <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Legacy Category</span>
+      <span style="color:#64748b; font-size:12px; font-weight:500;">{{ bbg_fund.category }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{# Section 7 — Total Returns table #}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">Total Returns</h3>
+  <table class="data-table" style="font-variant-numeric:tabular-nums; font-size:13px;">
+    <thead>
+      <tr>
+        {% for period in ['1D','1W','1M','3M','6M','YTD','1Y','3Y'] %}
+        <th style="text-align:right;">{{ period }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for period in ['1D','1W','1M','3M','6M','YTD','1Y','3Y'] %}
+        {% set val = bbg_fund.returns.get(period) %}
+        <td class="num-cell {% if val is not none %}{{ 'positive' if val > 0 else 'negative' if val < 0 else '' }}{% endif %}" style="text-align:right;">
+          {% if val is not none %}{{ '{:+.2f}'.format(val) }}%{% else %}N/A{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# Section 8 — Fund Flows table #}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">Fund Flows ($M)</h3>
+  <table class="data-table" style="font-variant-numeric:tabular-nums; font-size:13px;">
+    <thead>
+      <tr>
+        {% for period in ['1D','1W','1M','3M','6M','YTD','1Y'] %}
+        <th style="text-align:right;">{{ period }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for key in ['1d','1w','1m','3m','6m','ytd','1y'] %}
+        {% set val = flows.get(key, 0) %}
+        <td class="num-cell {% if val != 0 %}{{ 'positive' if val > 0 else 'negative' }}{% endif %}" style="text-align:right;">
+          {{ flows_fmt.get(key, 'N/A') }}
+        </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{# Section 9 — Additional Metrics grid #}
+{% if bbg_fund.premium_discount is not none or bbg_fund.nav_tracking_error is not none or bbg_fund.annualized_yield is not none or bbg_fund.open_interest is not none or bbg_fund.leverage or bbg_fund.underlier %}
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">Additional Metrics</h3>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px;">
+    {% if bbg_fund.annualized_yield is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Annualized Yield</span>
+      <span style="font-weight:600;">{{ '{:.2f}'.format(bbg_fund.annualized_yield) }}%</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.premium_discount is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Premium/Discount</span>
+      <span style="font-weight:600; color:{{ '#059669' if bbg_fund.premium_discount >= 0 else '#dc2626' }};">{{ '{:+.2f}'.format(bbg_fund.premium_discount) }}%</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.nav_tracking_error is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">NAV Tracking Error</span>
+      <span style="font-weight:600;">{{ '{:.4f}'.format(bbg_fund.nav_tracking_error) }}</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.open_interest is not none %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Open Interest</span>
+      <span style="font-weight:600;">{{ '{:,.0f}'.format(bbg_fund.open_interest) }}</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.leverage %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Leverage</span>
+      <span style="font-weight:600;">{{ bbg_fund.leverage }}x {{ bbg_fund.direction }}</span>
+    </div>
+    {% endif %}
+    {% if bbg_fund.underlier %}
+    <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-radius:4px; font-size:13px;">
+      <span style="color:#64748b;">Underlier</span>
+      <span style="font-weight:600;"><a href="/stocks/{{ bbg_fund.underlier }}">{{ bbg_fund.underlier }}</a></span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{# Section 10 — AUM Chart #}
+{% if aum_history %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div class="chart-title" style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">AUM Over Time — Last 12 Months ($M)</div>
+  <canvas id="aumChart" height="180"></canvas>
+</div>
+{% endif %}
+
+{# Section 11 — Total Return Chart (Growth of $10K) #}
+{% if total_returns and total_returns.stats %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <div class="chart-title" style="font-size:14px; font-weight:600; color:#0f172a; margin:0;">Total Return — Growth of $10,000</div>
+    <div class="range-pills" id="trRangePills">
+      <button class="range-pill" onclick="setTRRange('1m', event)">1M</button>
+      <button class="range-pill" onclick="setTRRange('3m', event)">3M</button>
+      <button class="range-pill" onclick="setTRRange('6m', event)">6M</button>
+      <button class="range-pill" onclick="setTRRange('1y', event)">1Y</button>
+      <button class="range-pill" onclick="setTRRange('ytd', event)">YTD</button>
+      <button class="range-pill active" onclick="setTRRange('max', event)">Max</button>
+    </div>
+  </div>
+  <canvas id="totalReturnChart" height="200"></canvas>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:24px;">
+  {% set s = total_returns.stats %}
+  {% if s.overall_return is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Overall Return</div>
+    <div style="font-size:18px; font-weight:700; color:{{ '#059669' if (s.overall_return or 0) >= 0 else '#dc2626' }};">{{ '{:+.2f}'.format(s.overall_return or 0) }}%</div>
+  </div>
+  {% endif %}
+  {% if s.annualized_return is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Annualized</div>
+    <div style="font-size:18px; font-weight:700;">{{ '{:+.2f}'.format(s.annualized_return or 0) }}%/yr</div>
+  </div>
+  {% endif %}
+  {% if s.growth_of_10k is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Growth of $10K</div>
+    <div style="font-size:18px; font-weight:700;">${{ '{:,.0f}'.format(s.growth_of_10k or 0) }}</div>
+  </div>
+  {% endif %}
+  {% if s.current_drawdown is defined %}
+  <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:12px; text-align:center;">
+    <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Current Drawdown</div>
+    <div style="font-size:18px; font-weight:700; color:#dc2626;">{{ '{:.2f}'.format(s.current_drawdown or 0) }}%</div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endif %}{# /bbg_fund #}
+
+{# ============================================================== #}
+{# Section 12 — Name History (SEC)                                #}
+{# ============================================================== #}
 {% if names %}
-<div class="section-header">
+<div class="section-header" style="margin-top:30px">
   <h2>Name History</h2>
   <span class="badge">{{ names|length }}</span>
 </div>
@@ -82,14 +351,15 @@
 </table>
 {% endif %}
 
-<!-- Filing History -->
+{# ============================================================== #}
+{# Section 13 — Filing History (SEC)                              #}
+{# ============================================================== #}
 {% if extractions %}
-<div class="section-header" style="margin-top:30px">
+<div class="section-header" id="filing-history" style="margin-top:30px">
   <h2>Filing History</h2>
   <span class="badge">{{ extractions|length }}</span>
 </div>
 
-<!-- Form type filter pills -->
 <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
   <span class="form-pill active" onclick="filterFilings('ALL', this)">All</span>
   <span class="form-pill" onclick="filterFilings('485APOS', this)">485APOS</span>
@@ -150,7 +420,7 @@
         <a href="{{ row.primary_link }}" target="_blank" style="font-size:12px;">View</a>
         {% endif %}
         {% if row.filing_id %}
-        <a href="/analysis/filing/{{ row.filing_id }}" style="font-size:12px; margin-left:8px;">Analyze</a>
+        <a href="/filings/{{ row.filing_id }}" style="font-size:12px; margin-left:8px;">Analyze</a>
         {% endif %}
       </td>
     </tr>
@@ -159,7 +429,9 @@
 </table>
 {% endif %}
 
-<!-- Institutional Holders (13F) -->
+{# ============================================================== #}
+{# Section 14 — Institutional Holders (13F scaffold; dormant)     #}
+{# ============================================================== #}
 {% if holders_13f %}
 <div class="section-header" style="margin-top:30px">
   <h2>Institutional Holders (13F)</h2>
@@ -217,6 +489,59 @@
 </div>
 <p style="font-size:var(--text-sm); color:var(--muted);">No 13F data available for {{ holders_ticker }}.</p>
 {% endif %}
+
+{# ============================================================== #}
+{# Section 15 — Competitors (Bloomberg)                           #}
+{# ============================================================== #}
+{% if competitors %}
+<div style="margin: 30px 0 24px;">
+  <h3 style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:8px;">
+    {% if bbg_fund and bbg_fund.underlier %}Competitors ({{ bbg_fund.underlier }}){% else %}Category Peers{% endif %}
+  </h3>
+  <div class="table-responsive">
+    <table class="data-table" style="font-variant-numeric:tabular-nums; font-size:13px;">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Name</th>
+          <th>Issuer</th>
+          <th style="text-align:right;">AUM</th>
+          <th style="text-align:right;">Exp Ratio</th>
+          <th style="text-align:right;">1M Flow</th>
+          <th style="text-align:right;">YTD Return</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in competitors %}
+        <tr>
+          <td>
+            <a href="/funds/{{ c.ticker }}" style="font-weight:600; color:#1F3864;">{{ c.ticker }}</a>
+            {% if c.is_rex %}<span style="background:#059669; color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; margin-left:3px;">REX</span>{% endif %}
+          </td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.name }}</td>
+          <td>{{ c.issuer }}</td>
+          <td class="num-cell" style="text-align:right;">{{ c.aum_fmt }}</td>
+          <td class="num-cell" style="text-align:right;">{{ '{:.2f}'.format(c.expense_ratio) }}%</td>
+          <td class="num-cell {% if c.flow_1m > 0 %}positive{% elif c.flow_1m < 0 %}negative{% endif %}" style="text-align:right;">
+            {{ '{:+,.1f}'.format(c.flow_1m) }}M
+          </td>
+          <td class="num-cell {% if c.return_ytd > 0 %}positive{% elif c.return_ytd < 0 %}negative{% endif %}" style="text-align:right;">
+            {{ '{:+.2f}'.format(c.return_ytd) }}%
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<style>
+  .range-pills { display:flex; gap:4px; }
+  .range-pill { padding:3px 10px; border:1px solid #ccc; border-radius:4px; font-size:12px; cursor:pointer; background:#fff; color:#444; }
+  .range-pill:hover { border-color:#1F3864; color:#1F3864; }
+  .range-pill.active { background:#1F3864; color:#fff; border-color:#1F3864; }
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -234,4 +559,136 @@ function filterFilings(form, btn) {
   btn.classList.add('active');
 }
 </script>
+
+{% if bbg_fund and aum_history %}
+<script>
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var labels = (function() {
+    var l = [];
+    var now = new Date();
+    for (var i = 12; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      l.push(d.toLocaleDateString('en-US', {month:'short', year:'2-digit'}));
+    }
+    return l;
+  })();
+  var ctx = document.getElementById('aumChart');
+  if (!ctx) return;
+  new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '{{ page_ticker }}',
+        data: {{ aum_history | tojson }},
+        borderColor: '#1F3864',
+        backgroundColor: 'rgba(31,56,100,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.2,
+        spanGaps: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+        y: {
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); }, font: { size: 10 } },
+          grid: { color: '#f0f0f0' }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% if total_returns and total_returns.stats %}
+<script>
+(function() {
+  if (typeof Chart === 'undefined') return;
+  const allDates = {{ total_returns.dates_json|safe }};
+  const allSeries = {{ total_returns.series_json|safe }};
+  let trChart = null;
+
+  function getDateCutoff(range) {
+    if (range === 'max') return 0;
+    const now = new Date(allDates[allDates.length - 1]);
+    if (range === '1m') now.setMonth(now.getMonth() - 1);
+    else if (range === '3m') now.setMonth(now.getMonth() - 3);
+    else if (range === '6m') now.setMonth(now.getMonth() - 6);
+    else if (range === '1y') now.setFullYear(now.getFullYear() - 1);
+    else if (range === 'ytd') { now.setMonth(0); now.setDate(1); }
+    const cutoff = now.toISOString().slice(0, 10);
+    return allDates.findIndex(d => d >= cutoff);
+  }
+
+  function getStartIdx() {
+    const vals = allSeries['{{ page_ticker }}'] || [];
+    return vals.findIndex(v => v !== null && v > 0);
+  }
+
+  window.setTRRange = function(range, evt) {
+    document.querySelectorAll('#trRangePills .range-pill').forEach(b => b.classList.remove('active'));
+    if (evt && evt.target) evt.target.classList.add('active');
+
+    let startIdx = Math.max(getStartIdx(), 0);
+    const cutoff = getDateCutoff(range);
+    if (cutoff > startIdx) startIdx = cutoff;
+
+    const dates = allDates.slice(startIdx);
+    const vals = (allSeries['{{ page_ticker }}'] || []).slice(startIdx);
+
+    const baseVal = vals.find(v => v !== null && v > 0) || 1;
+    const rebased = vals.map(v => v !== null ? (v / baseVal) * 10000 : null);
+
+    if (trChart) trChart.destroy();
+    trChart = new Chart(document.getElementById('totalReturnChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: '{{ page_ticker }}',
+          data: rebased,
+          borderColor: '#1F3864',
+          backgroundColor: 'rgba(31,56,100,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.1,
+          spanGaps: true
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return '$' + ctx.parsed.y.toLocaleString(undefined, {maximumFractionDigits: 0});
+              }
+            }
+          }
+        },
+        scales: {
+          x: { type: 'category', ticks: { maxTicksLimit: 8, font: { size: 10 } }, grid: { display: false } },
+          y: {
+            ticks: { callback: function(v) { return '$' + v.toLocaleString(); }, font: { size: 10 } },
+            grid: { color: '#f0f0f0' }
+          }
+        }
+      }
+    });
+  };
+
+  setTRRange('max');
+})();
+</script>
+{% endif %}
 {% endblock %}

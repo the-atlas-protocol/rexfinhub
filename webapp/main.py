@@ -348,6 +348,10 @@ def create_app() -> FastAPI:
     app.include_router(tools_tickers.router)
     app.include_router(tools_calendar.router)
     app.include_router(filings_detail.router)
+    from webapp.routers import issuers
+    app.include_router(issuers.router)
+    from webapp.routers import stocks
+    app.include_router(stocks.router)
 
     # Health check -- Render uses this for zero-downtime deploys.
     # Returns 503 until caches are warm so Render keeps the old instance
