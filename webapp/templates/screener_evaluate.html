@@ -228,7 +228,7 @@ async function evaluateTickers() {
   btn.textContent = 'Scoring...';
 
   try {
-    const resp = await fetch('/filings/evaluator', {
+    const resp = await fetch('/tools/li/candidates', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({tickers: tickers}),

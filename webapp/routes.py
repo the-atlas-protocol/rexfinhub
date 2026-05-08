@@ -63,9 +63,14 @@ ROUTES: dict[str, str] = {
 }
 
 
-def url(name: str, **kwargs: Any) -> str:
-    """Resolve a named route to its URL with parameters substituted."""
-    if name not in ROUTES:
-        raise KeyError(f"Unknown route name: {name!r}. Add it to ROUTES in webapp/routes.py")
-    template = ROUTES[name]
+def url(_route: str, **kwargs: Any) -> str:
+    """Resolve a named route to its URL with parameters substituted.
+
+    First arg is `_route` (underscore prefix) so it doesn't collide with
+    path parameters like `/issuers/{name}` when called as
+    url('issuers.detail', name='BlackRock').
+    """
+    if _route not in ROUTES:
+        raise KeyError(f"Unknown route name: {_route!r}. Add it to ROUTES in webapp/routes.py")
+    template = ROUTES[_route]
     return template.format(**kwargs) if kwargs else template
