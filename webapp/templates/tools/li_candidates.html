@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}L&amp;I Candidates — REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<style>
+  /* Page-local styles to mirror weekly_v2_report card layout. */
+  .li-page-header { margin: var(--sp-4) 0 var(--sp-3); }
+  .li-page-header h1 { margin: 0 0 4px 0; font-family: 'Inter Tight', system-ui, sans-serif; font-weight: 700; }
+  .li-page-header .subtitle { color: var(--text-muted, #64748b); font-size: 0.9rem; }
+
+  .li-section { margin: var(--sp-5) 0; }
+  .li-section-title {
+    font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;
+    padding-bottom: 6px; border-bottom: 2px solid #2563eb;
+  }
+  .li-section-title.green { border-bottom-color: #059669; }
+  .li-section-title.dark  { border-bottom-color: #0f172a; }
+  .li-section-desc { font-size: 0.78rem; color: #64748b; margin: 4px 0 12px; font-style: italic; }
+
+  .card-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+  @media (max-width: 980px) { .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .card-grid { grid-template-columns: 1fr; } }
+
+  .li-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .li-card-launch  { border-left: 4px solid #059669; }
+  .li-card-whitespace { border-left: 4px solid #2563eb; }
+
+  .li-card-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .li-card-ticker {
+    font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700;
+    color: #2563eb;
+  }
+  .li-card-sector { color: #64748b; font-size: 0.72rem; }
+  .li-badge { font-size: 0.62rem; padding: 1px 6px; border-radius: 8px; font-weight: 700; }
+  .li-badge-hot { background: #dc2626; color: white; }
+  .li-badge-theme { background: #059669; color: white; font-weight: 600; }
+  .li-badge-rex { background: #2563eb; color: white; }
+
+  .li-card-line {
+    font-size: 0.78rem; color: #334155; line-height: 1.45;
+  }
+  .li-signal-strip {
+    background: #f1f5f9; border-radius: 4px; padding: 6px 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #475569;
+    line-height: 1.55;
+  }
+  .li-signal-strip strong { color: #0f172a; }
+
+  .li-card-row {
+    display: flex; justify-content: space-between; gap: 6px;
+    font-size: 0.7rem; color: #475569; border-top: 1px dashed #cbd5e1; padding-top: 6px;
+  }
+  .li-card-row strong { color: #0f172a; }
+
+  .li-score-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    background: #eef2ff; color: #3730a3; font-size: 0.7rem; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Inline evaluator panel */
+  .evaluator-panel {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 16px; margin-top: 8px;
+  }
+  .evaluator-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .evaluator-form input[type=text] {
+    flex: 1; min-width: 220px; padding: 8px 10px;
+    border: 1px solid #cbd5e1; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+  }
+  .evaluator-form button {
+    padding: 8px 16px; background: #2563eb; color: white;
+    border: 0; border-radius: 4px; font-weight: 600; cursor: pointer;
+  }
+  .evaluator-form button:disabled { opacity: 0.5; cursor: wait; }
+  .evaluator-results { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .eval-result {
+    border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px 12px;
+    background: #fafbfc;
+  }
+  .eval-result-head {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .eval-result-ticker {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #2563eb;
+  }
+  .eval-driver {
+    font-size: 0.72rem; color: #475569; padding: 2px 0;
+    display: flex; justify-content: space-between; gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .eval-driver-pos { color: #059669; }
+  .eval-driver-neg { color: #dc2626; }
+  .eval-not-found { color: #94a3b8; font-style: italic; font-size: 0.8rem; }
+
+  /* Money flow table */
+  .li-flow-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .li-flow-table th {
+    background: #0f172a; color: white; padding: 7px 8px; text-align: left;
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .li-flow-table td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+  .li-flow-pos { color: #059669; font-weight: 700; }
+  .li-flow-neg { color: #dc2626; font-weight: 700; }
+  .li-flow-table .num-cell { text-align: right; font-family: 'JetBrains Mono', monospace; }
+</style>
+{% endblock %}
+
+{% macro fmt_signed_pct(v) -%}
+  {%- if v is none -%}—{%- else -%}{{ "%+.0f"|format(v|float) }}%{%- endif -%}
+{%- endmacro %}
+
+{% macro fmt_score(v) -%}
+  {%- if v is none -%}—{%- else -%}{{ "%+.2f"|format(v|float) }}{%- endif -%}
+{%- endmacro %}
+
+{% macro fmt_pct1(v) -%}
+  {%- if v is none -%}—{%- else -%}{{ "%.1f"|format(v|float) }}{%- endif -%}
+{%- endmacro %}
+
+{% macro card_block(card, kind) %}
+<div class="li-card li-card-{{ kind }}">
+  <div class="li-card-head">
+    <span class="li-card-ticker">{{ card.ticker }}</span>
+    <span class="li-card-sector">{{ card.sector }}</span>
+    {% if card.is_hot_theme %}<span class="li-badge li-badge-hot">HOT THEME</span>{% endif %}
+    {% if card.themes %}<span class="li-badge li-badge-theme">{{ card.themes }}</span>{% endif %}
+    <span style="margin-left:auto;" class="li-score-pill" title="composite_score / score_pct">
+      {{ fmt_score(card.composite_score) }} · {{ fmt_pct1(card.score_pct) }}%
+    </span>
+  </div>
+
+  <div class="li-card-line">{{ card.company_line }}</div>
+
+  <div class="li-signal-strip">
+    Mkt Cap: <strong>{{ card.market_cap }}</strong> ·
+    Vol90: <strong>{{ "%.0f"|format(card.rvol_90d) }}%</strong> ·
+    1m: <strong>{{ fmt_signed_pct(card.ret_1m) }}</strong> ·
+    1y: <strong>{{ fmt_signed_pct(card.ret_1y) }}</strong> ·
+    OI: <strong>{{ card.open_interest }}</strong> ·
+    SI: <strong>{{ "%.1f"|format(card.si_ratio) }}</strong> ·
+    Mentions: <strong>{{ card.mentions }}</strong>
+  </div>
+
+  {% if kind == 'launch' %}
+    <div class="li-card-row">
+      <span>Filers:
+        {% if card.competitor_filed and card.competitor_filed > 0 %}
+          <strong>{{ card.competitor_filed }}</strong>
+          {% if card.earliest_issuer %}filed by {{ card.earliest_issuer }}{% endif %}
+          {% if card.earliest_filing_date %}(earliest {{ card.earliest_filing_date }}){% endif %}
+        {% else %}
+          <strong>0</strong> — clean greenfield
+        {% endif %}
+      </span>
+    </div>
+    <div class="li-card-row">
+      <span>
+        {% if card.closest_effective_date %}
+          Closest effective date: <strong>{{ card.closest_effective_date }}</strong>
+        {% elif card.projected_effective_date %}
+          Projected effective: <strong>{{ card.projected_effective_date }}</strong>
+          {% if card.projected_basis %}<span style="color:#94a3b8;">({{ card.projected_basis }})</span>{% endif %}
+        {% else %}
+          Closest effective date: <strong>n/a</strong>
+        {% endif %}
+      </span>
+      {% if card.rex_ticker %}
+        <span><span class="li-badge li-badge-rex">REX</span> {{ card.rex_ticker }}</span>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="li-card-row">
+      <span>Filers:
+        {% if card.n_filings_total and card.n_filings_total > 0 %}
+          <strong>{{ card.n_filings_total }}</strong> 485APOS filing{{ 's' if card.n_filings_total != 1 else '' }} reference {{ card.ticker }}
+        {% else %}
+          <strong>0</strong> — true whitespace
+        {% endif %}
+      </span>
+    </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="li-page-header">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/tools/li/candidates">Tools</a><span class="sep">/</span>
+    <span>L&amp;I Candidates</span>
+  </div>
+  <h1>L&amp;I Filing &amp; Launch Candidates</h1>
+  <div class="subtitle">
+    Mirror of the weekly recommender email — parquet-backed (whitespace_v4 + launch_candidates +
+    filed_underliers + bbg_timeseries_panel).
+  </div>
+</div>
+
+{# ============================================================ #}
+{#  1. HERO KPI BAR                                              #}
+{# ============================================================ #}
+<div class="kpi-row">
+  <div class="kpi kpi-filing">
+    <div class="num">{{ kpis.li_485apos if kpis.li_485apos is not none else '—' }}</div>
+    <div class="label">L&amp;I 485APOS This Week
+      {% if kpis.week_start and kpis.week_end %}
+        <br><small>{{ kpis.week_start }} → {{ kpis.week_end }}</small>
+      {% endif %}
+    </div>
+  </div>
+  <div class="kpi kpi-market">
+    <div class="num">{{ kpis.rex_li_filings if kpis.rex_li_filings is not none else '—' }}</div>
+    <div class="label">REX L&amp;I Filings</div>
+  </div>
+  <div class="kpi kpi-ownership">
+    <div class="num">{{ kpis.new_stocks_filed if kpis.new_stocks_filed is not none else '—' }}</div>
+    <div class="label">New Underliers</div>
+  </div>
+  <div class="kpi kpi-notes">
+    <div class="num">{{ kpis.top_mention_ticker or '—' }}</div>
+    <div class="label">Top Retail Mention
+      <br><small>{{ kpis.top_mention_count or 0 }} mentions on ApeWisdom</small>
+    </div>
+  </div>
+</div>
+
+{# ============================================================ #}
+{#  2. LAUNCH QUEUE                                              #}
+{# ============================================================ #}
+<div class="li-section">
+  <div class="li-section-title green">Launch Queue — REX Filed, Awaiting Launch</div>
+  <div class="li-section-desc">
+    Stocks where REX has filed but not yet launched, AND no competitor has an active 2x product.
+    Ranked by composite_score. # Filed Competitors = other issuers in the queue on the same underlier.
+  </div>
+
+  {% if launches %}
+    <div class="card-grid">
+      {% for card in launches %}
+        {{ card_block(card, 'launch') }}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">No launch candidates with signal data this week.</div>
+  {% endif %}
+</div>
+
+{# ============================================================ #}
+{#  3. FILING WHITESPACE                                         #}
+{# ============================================================ #}
+<div class="li-section">
+  <div class="li-section-title">Filing Whitespace — True Greenfield</div>
+  <div class="li-section-desc">
+    Zero active competitor 2x products + zero REX filings ever + no competitor 485APOS in last 180d.
+    Hot themes (AI, Quantum, Chips, Space, Nuclear) get a score boost. Filer count = total 485APOS filings naming the underlier.
+  </div>
+
+  {% if whitespace %}
+    <div class="card-grid">
+      {% for card in whitespace %}
+        {{ card_block(card, 'whitespace') }}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">Whitespace parquet not available.</div>
+  {% endif %}
+</div>
+
+{# ============================================================ #}
+{#  4. INLINE EVALUATOR                                          #}
+{# ============================================================ #}
+<div class="li-section">
+  <div class="li-section-title dark">Inline Evaluator</div>
+  <div class="li-section-desc">
+    Look up any ticker in the engine's parquets — returns composite_score, percentile, and the top
+    weighted-driver contributions from <code>compute_score_v3()</code>.
+  </div>
+  <div class="evaluator-panel">
+    <form id="evaluatorForm" class="evaluator-form" method="post" action="/tools/li/candidates/evaluate">
+      <input type="text" name="tickers" id="evaluatorTickers" placeholder="NVDA, MSTR, RXT, SLS"
+             autocomplete="off">
+      <button type="submit" id="evaluatorBtn">Evaluate</button>
+    </form>
+    <div id="evaluatorResults" class="evaluator-results"></div>
+  </div>
+</div>
+
+{# ============================================================ #}
+{#  5. MONEY FLOW                                                #}
+{# ============================================================ #}
+{% if has_money_flow %}
+<div class="li-section">
+  <div class="li-section-title dark">Money Flow — Where Retail Is Buying (Last 28 Days)</div>
+  <div class="li-section-desc">
+    Top underliers by absolute 4w flow magnitude (signed value shown). Higher rank = bigger churn
+    regardless of direction.
+  </div>
+  <div class="table-responsive">
+    <table class="li-flow-table">
+      <thead>
+        <tr>
+          <th style="width:30px;">#</th>
+          <th>Underlier</th>
+          <th class="num-cell">4w Net Flow ($M)</th>
+          <th class="num-cell">Gross Churn ($M)</th>
+          <th class="num-cell">Competitors (L / S)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in money_flow %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <a href="/stocks/{{ row.ticker }}" style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#2563eb;">
+              {{ row.ticker }}
+            </a>
+          </td>
+          <td class="num-cell {{ 'li-flow-pos' if row.flow_4w >= 0 else 'li-flow-neg' }}">
+            {{ "%+.1f"|format(row.flow_4w) }}
+          </td>
+          <td class="num-cell">{{ "%.1f"|format(row.churn_4w) }}</td>
+          <td class="num-cell">L:{{ row.competitor_long }} / S:{{ row.competitor_short }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function(){
+  var form    = document.getElementById('evaluatorForm');
+  var input   = document.getElementById('evaluatorTickers');
+  var btn     = document.getElementById('evaluatorBtn');
+  var results = document.getElementById('evaluatorResults');
+  if (!form) return;
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function renderResults(payload){
+    var rows = (payload && payload.results) || [];
+    if (!rows.length){
+      results.innerHTML = '<div class="eval-not-found">No results.</div>';
+      return;
+    }
+    var html = rows.map(function(r){
+      if (!r.found){
+        return '<div class="eval-result"><div class="eval-result-head">' +
+               '<span class="eval-result-ticker">' + escapeHtml(r.ticker) + '</span>' +
+               '<span class="eval-not-found">' + escapeHtml(r.message || 'no data') + '</span>' +
+               '</div></div>';
+      }
+      var driverHtml = (r.top_drivers || []).map(function(d){
+        var contrib = Number(d.contribution || 0);
+        var cls = contrib >= 0 ? 'eval-driver-pos' : 'eval-driver-neg';
+        return '<div class="eval-driver"><span>' + escapeHtml(d.signal) +
+               ' (w=' + Number(d.weight).toFixed(2) + ', z=' + Number(d.z).toFixed(2) + ')' +
+               '</span><span class="' + cls + '">' +
+               (contrib >= 0 ? '+' : '') + contrib.toFixed(3) +
+               '</span></div>';
+      }).join('');
+
+      var hot = r.is_hot_theme ? ' <span class="li-badge li-badge-hot">HOT THEME</span>' : '';
+      var themesPart = r.themes ? ' <span class="li-badge li-badge-theme">' + escapeHtml(r.themes) + '</span>' : '';
+      return '<div class="eval-result">' +
+        '<div class="eval-result-head">' +
+          '<span class="eval-result-ticker">' + escapeHtml(r.ticker) + '</span>' +
+          '<span style="color:#64748b;font-size:0.75rem;">' + escapeHtml(r.sector || '') + '</span>' +
+          hot + themesPart +
+          '<span style="margin-left:auto;" class="li-score-pill">' +
+            'score ' + Number(r.composite_score).toFixed(2) +
+            ' · pct ' + Number(r.score_pct).toFixed(1) + '%' +
+            ' · src ' + escapeHtml(r.source || '') +
+          '</span>' +
+        '</div>' +
+        '<div style="font-size:0.75rem;color:#475569;margin-bottom:4px;">Top weighted drivers:</div>' +
+        driverHtml +
+      '</div>';
+    }).join('');
+    results.innerHTML = html;
+  }
+
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var tickers = (input.value || '').trim();
+    if (!tickers){ results.innerHTML = ''; return; }
+    btn.disabled = true;
+    results.innerHTML = '<div class="eval-not-found">Evaluating…</div>';
+    var fd = new FormData();
+    fd.append('tickers', tickers);
+    fetch('/tools/li/candidates/evaluate', {method:'POST', body: fd, credentials:'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(renderResults)
+      .catch(function(err){
+        results.innerHTML = '<div class="eval-not-found">Error: ' + escapeHtml(err && err.message || err) + '</div>';
+      })
+      .finally(function(){ btn.disabled = false; });
+  });
+})();
+</script>
+{% endblock %}
