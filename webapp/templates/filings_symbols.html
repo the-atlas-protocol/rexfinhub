@@ -3,7 +3,7 @@
 {% block content %}
 {% include "_filings_subnav.html" %}
 
-{% if auth_health and not auth_health.ok %}
+{% if auth_health and auth_health.state == 'expired' %}
 <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; padding:14px 16px; background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:6px;">
   <div style="flex-shrink:0; width:20px; height:20px; border-radius:50%; background:#dc2626; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; line-height:1;">!</div>
   <div style="flex:1; font-size:13px; color:#7f1d1d;">
@@ -19,6 +19,20 @@
       {% if auth_health.error_message %}
         <div style="margin-top:6px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:#991b1b; opacity:0.8; word-break:break-all;">{{ auth_health.error_message }}</div>
       {% endif %}
+    </div>
+  </div>
+</div>
+{% elif auth_health and auth_health.state == 'refreshing' %}
+<div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; padding:14px 16px; background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #2563eb; border-radius:6px;">
+  <div style="flex-shrink:0; width:20px; height:20px; border-radius:50%; background:#2563eb; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; line-height:1;">↻</div>
+  <div style="flex:1; font-size:13px; color:#1e3a8a;">
+    <div style="font-weight:600; margin-bottom:4px;">Recovery sweep in progress — refreshing CBOE data.</div>
+    <div style="color:#1e40af; line-height:1.5;">
+      Scan started <b>{{ auth_health.running_started_at | et_time }}</b>
+      {% if auth_health.tickers_checked %}· <b>{{ '{:,}'.format(auth_health.tickers_checked) }}</b> tickers processed so far{% endif %}.
+      Full 475,254-ticker sweep typically completes in ~45 min; data on this page reflects the
+      {% if auth_health.last_completed_at %}previous successful sweep ({{ auth_health.last_completed_at | et_time }}){% else %}prior snapshot{% endif %}
+      until the refresh lands.
     </div>
   </div>
 </div>

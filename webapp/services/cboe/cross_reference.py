@@ -223,12 +223,19 @@ def last_scan(db: Session) -> dict[str, Any] | None:
 
 
 def auth_health(db: Session) -> dict[str, Any]:
-    """Inspect recent runs to surface cookie-expiry on the page.
+    """Inspect recent runs to surface scanner state on the page.
 
-    Returns a dict with `ok`, `last_completed_at` (most recent successful full
-    sweep), `failed_streak` (consecutive failed runs since), `error_message`,
-    and `days_stale` (since last completed sweep). When `ok` is False the page
-    renders a red banner asking for cookie rotation.
+    Returns `state` ∈ {"ok", "refreshing", "expired"} plus context fields:
+      - last_completed_at  : most recent successful full sweep
+      - failed_streak      : consecutive failed runs at the top
+      - error_message      : latest run's error (when failed)
+      - days_stale         : days since last completed sweep
+      - running_started_at : when the in-flight scan kicked off (refreshing)
+      - tickers_checked    : progress count for the in-flight scan
+
+    Template renders a red banner on `state=='expired'` and a blue
+    "refreshing" banner on `state=='refreshing'`. `ok` is preserved as a
+    backward-compatible boolean equivalent to `state != 'expired'`.
     """
     last_completed = (
         db.query(CboeScanRun)
@@ -242,8 +249,10 @@ def auth_health(db: Session) -> dict[str, Any]:
         .first()
     )
     if last_run is None:
-        return {"ok": True, "last_completed_at": None, "failed_streak": 0,
-                "error_message": None, "days_stale": None}
+        return {"state": "ok", "ok": True, "last_completed_at": None,
+                "failed_streak": 0, "error_message": None,
+                "days_stale": None, "running_started_at": None,
+                "tickers_checked": None}
 
     failed_streak = 0
     for r in (
@@ -270,10 +279,20 @@ def auth_health(db: Session) -> dict[str, Any]:
         )
     )
 
+    if last_run.status == "running":
+        state = "refreshing"
+    elif auth_failed:
+        state = "expired"
+    else:
+        state = "ok"
+
     return {
-        "ok": not auth_failed,
+        "state": state,
+        "ok": state != "expired",
         "last_completed_at": last_completed_at,
         "failed_streak": failed_streak,
         "error_message": last_run.error_message,
         "days_stale": days_stale,
+        "running_started_at": last_run.started_at if last_run.status == "running" else None,
+        "tickers_checked": last_run.tickers_checked if last_run.status == "running" else None,
     }
