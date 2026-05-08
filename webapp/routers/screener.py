@@ -25,34 +25,36 @@ log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# 301 redirects — old screener URLs → new /filings/ URLs
+# 301 redirects — old screener URLs → new v3 pillar URLs
+# (Phase 1 dual-route: targets updated from /filings/* to canonical /sec/etp/*
+#  and /tools/li/* destinations.)
 # ---------------------------------------------------------------------------
 
 @router.get("/")
 def screener_landing_redirect(request: Request):
     qs = str(request.url.query)
-    url = "/filings/landscape" + ("?" + qs if qs else "")
+    url = "/sec/etp/leverageandinverse" + ("?" + qs if qs else "")
     return RedirectResponse(url=url, status_code=301)
 
 
 @router.get("/3x-analysis")
 def screener_3x_redirect():
-    return RedirectResponse(url="/filings/candidates", status_code=301)
+    return RedirectResponse(url="/tools/li/candidates", status_code=301)
 
 
 @router.get("/4x")
 def screener_4x_redirect():
-    return RedirectResponse(url="/filings/candidates", status_code=301)
+    return RedirectResponse(url="/tools/li/candidates", status_code=301)
 
 
 @router.get("/evaluate")
 def screener_evaluate_redirect():
-    return RedirectResponse(url="/filings/evaluator", status_code=301)
+    return RedirectResponse(url="/tools/li/candidates", status_code=301)
 
 
 @router.post("/evaluate")
 def screener_evaluate_post_redirect():
-    return RedirectResponse(url="/filings/evaluator", status_code=307)
+    return RedirectResponse(url="/tools/li/candidates", status_code=308)
 
 
 # ---------------------------------------------------------------------------

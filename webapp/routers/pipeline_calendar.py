@@ -10,10 +10,23 @@ Shows multiple event types on a single month calendar:
 All events are colored by type. Day cells show event counts. Click a day
 to see a side panel with everything happening that day.
 
-The /pipeline/products page is the "home of operations" combining summary
+The pipeline products page is the "home of operations" combining summary
 KPIs with the full product table, sortable columns, and CSV export.
 
 No admin auth — intentionally public so the whole REX team can see it.
+
+Phase 1 of the v3 URL migration: handler implementations have been
+renamed to ``_*_impl`` and are imported by ``webapp.routers.operations``
+to be mounted under ``/operations/{pipeline,calendar}``. The old
+``/pipeline/*`` routes shrink to 301 redirects pointing at the new
+canonical URLs.
+
+Legacy URL → new canonical URL:
+    GET /pipeline/                          → /operations/calendar
+    GET /pipeline/summary                   → /operations/calendar/summary
+    GET /pipeline/products                  → /operations/pipeline
+    GET /pipeline/distributions/export.csv  → /operations/calendar/distributions/export.csv
+    GET /pipeline/{year}/{month}            → /operations/calendar/{year}/{month}
 """
 from __future__ import annotations
 
@@ -62,13 +75,15 @@ EVENT_TYPES = {
 ALLOWED_TYPES = set(EVENT_TYPES.keys())
 
 
-@router.get("", response_class=HTMLResponse)
-@router.get("/", response_class=HTMLResponse)
-def pipeline_home(
+def _pipeline_root_impl(
     request: Request,
     types: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
+    """Render the pipeline calendar at the current month.
+
+    Mounted at /operations/calendar in PR 1.
+    """
     today = date.today()
     return _render_month(request, db, today.year, today.month, types)
 
@@ -117,14 +132,16 @@ def _rex_only_filter(query):
     )
 
 
-@router.get("/summary")
-def pipeline_summary(request: Request):
-    """Redirect old summary URL to the new products page."""
-    return RedirectResponse(url="/pipeline/products", status_code=301)
+def _pipeline_summary_impl(request: Request):
+    """Legacy alias that points users at the pipeline products page.
+
+    Mounted at /operations/calendar/summary in PR 1; redirects forward
+    to the canonical /operations/pipeline page.
+    """
+    return RedirectResponse(url="/operations/pipeline", status_code=301)
 
 
-@router.get("/products", response_class=HTMLResponse)
-def pipeline_products(
+def _pipeline_products_impl(
     request: Request,
     status: str | None = None,
     suite: str | None = None,
@@ -137,6 +154,7 @@ def pipeline_products(
     """Pipeline Home of Operations — KPIs + full product table.
 
     Public (no admin auth). Edit controls hidden for non-admins.
+    Mounted at /operations/pipeline in PR 1.
     """
     from webapp.models import RexProduct, FundDistribution
 
@@ -367,8 +385,7 @@ def pipeline_products(
     })
 
 
-@router.get("/distributions/export.csv")
-def distributions_csv(
+def _pipeline_distributions_impl(
     request: Request,
     year: int | None = None,
     db: Session = Depends(get_db),
@@ -376,7 +393,8 @@ def distributions_csv(
     """Export distribution schedule as CSV, optionally filtered by year.
 
     Joins FundDistribution with MktMasterData (on normalized ticker) to
-    include CUSIP.
+    include CUSIP. Mounted at /operations/calendar/distributions/export.csv
+    in PR 1.
     """
     from webapp.models import FundDistribution, MktMasterData
 
@@ -426,14 +444,17 @@ def distributions_csv(
     )
 
 
-@router.get("/{year}/{month}", response_class=HTMLResponse)
-def pipeline_month(
+def _pipeline_month_impl(
     year: int,
     month: int,
     request: Request,
     types: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
+    """Render the pipeline calendar at a specific (year, month).
+
+    Mounted at /operations/calendar/{year}/{month} in PR 1.
+    """
     if not (1 <= month <= 12) or not (2020 <= year <= 2035):
         return _render_month(request, db, date.today().year, date.today().month, types)
     return _render_month(request, db, year, month, types)
@@ -621,3 +642,35 @@ def _render_month(
         "suite_colors": SUITE_COLORS,
         "today": today,
     })
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 legacy redirects (old URL → new canonical URL).
+# All five paths are GETs, so 301 is appropriate.
+# ---------------------------------------------------------------------------
+
+
+@router.get("", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
+def pipeline_root_redirect():
+    return RedirectResponse("/operations/calendar", status_code=301)
+
+
+@router.get("/summary")
+def pipeline_summary_redirect():
+    return RedirectResponse("/operations/calendar/summary", status_code=301)
+
+
+@router.get("/products", response_class=HTMLResponse)
+def pipeline_products_redirect():
+    return RedirectResponse("/operations/pipeline", status_code=301)
+
+
+@router.get("/distributions/export.csv")
+def pipeline_distributions_redirect():
+    return RedirectResponse("/operations/calendar/distributions/export.csv", status_code=301)
+
+
+@router.get("/{year}/{month}", response_class=HTMLResponse)
+def pipeline_month_redirect(year: int, month: int):
+    return RedirectResponse(f"/operations/calendar/{year}/{month}", status_code=301)

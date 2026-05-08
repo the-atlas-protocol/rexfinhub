@@ -54,45 +54,20 @@ _DATE_RANGE_MAP = {"7": 7, "30": 30, "90": 90, "365": 365}
 
 
 # ===================================================================
-# Hub (root landing page)
+# Hub root — KILLED; both /filings/ and /filings/hub now 301 → /sec/etp/
 # ===================================================================
 
 @router.get("/")
-def filings_hub(request: Request, db: Session = Depends(get_db)):
-    """Filings Hub - landing page for the Filings pillar."""
-    # KPIs — names must match template: todays_filings, weekly_filings, effective_funds, trusts_monitored
-    todays_filings = db.execute(
-        select(func.count(Filing.id)).where(Filing.filing_date == date.today())
-    ).scalar() or 0
-
-    cutoff_7d = date.today() - timedelta(days=7)
-    weekly_filings = db.execute(
-        select(func.count(Filing.id)).where(Filing.filing_date >= cutoff_7d)
-    ).scalar() or 0
-
-    effective_funds = db.execute(
-        select(func.count(FundStatus.id)).where(FundStatus.status == "EFFECTIVE")
-    ).scalar() or 0
-
-    trusts_monitored = db.execute(
-        select(func.count()).select_from(Trust).where(Trust.is_active == True)
-    ).scalar() or 0
-
-    return templates.TemplateResponse("filings_hub.html", {
-        "request": request,
-        "todays_filings": todays_filings,
-        "weekly_filings": weekly_filings,
-        "effective_funds": effective_funds,
-        "trusts_monitored": trusts_monitored,
-    })
+def _filings_root_redirect():
+    """301 the legacy filings hub root to the new SEC ETP dashboard."""
+    return RedirectResponse(url="/sec/etp/", status_code=301)
 
 
 # ===================================================================
 # Explorer (was GET /, now GET /explorer)
 # ===================================================================
 
-@router.get("/explorer")
-def filing_explorer(
+def _filing_explorer_impl(
     request: Request,
     mode: str = "funds",
     q: str = "",
@@ -105,7 +80,8 @@ def filing_explorer(
     per_page: int = Query(default=25, ge=10, le=250),
     db: Session = Depends(get_db),
 ):
-    """Filing Explorer - dual-mode page for searching funds and filings."""
+    """Filing Explorer — registered at /sec/etp/filings via sec_etp.py.
+    Old /filings/explorer 301s to the new URL."""
 
     # Validate mode
     if mode not in ("funds", "filings"):
@@ -136,13 +112,19 @@ def filing_explorer(
 
 
 # ===================================================================
-# Hub redirect (old /hub URL)
+# Old-URL 301 redirects (legacy /filings/* → new pillar URLs)
 # ===================================================================
 
+@router.get("/explorer")
+def _filing_explorer_redirect():
+    """301 the legacy explorer URL to /sec/etp/filings."""
+    return RedirectResponse(url="/sec/etp/filings", status_code=301)
+
+
 @router.get("/hub")
-def filings_hub_redirect():
-    """Redirect old /filings/hub to /filings/."""
-    return RedirectResponse(url="/filings/", status_code=301)
+def _filings_hub_redirect():
+    """Redirect old /filings/hub to /sec/etp/."""
+    return RedirectResponse(url="/sec/etp/", status_code=301)
 
 
 # ===================================================================
@@ -281,8 +263,7 @@ _STATUS_LABELS = {
 TRUST_PAGE_SIZE = 60
 
 
-@router.get("/dashboard")
-def filings_dashboard(
+def _dashboard_impl(
     request: Request,
     added: str = "",
     days: int = 7,
@@ -295,6 +276,8 @@ def filings_dashboard(
     per_page: int = Query(default=10, ge=10, le=200),
     db: Session = Depends(get_db),
 ):
+    """Filings Dashboard — registered at /sec/etp/ via sec_etp.py.
+    Old /filings/dashboard 301s to the new URL."""
     all_trusts = _trust_stats(db)
 
     # Filter by entity_type if specified
@@ -485,6 +468,12 @@ def filings_dashboard(
     })
 
 
+@router.get("/dashboard")
+def _dashboard_redirect():
+    """301 the legacy dashboard URL to /sec/etp/."""
+    return RedirectResponse(url="/sec/etp/", status_code=301)
+
+
 # ===================================================================
 # Filing Landscape (moved from screener.py)
 # ===================================================================
@@ -522,8 +511,7 @@ def _filter_fund_rows(
     return filtered
 
 
-@router.get("/landscape")
-def filing_landscape(
+def _landscape_impl(
     request: Request,
     db: Session = Depends(get_db),
     mode: str = Query("filings"),
@@ -533,7 +521,8 @@ def filing_landscape(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=50, ge=10, le=200),
 ):
-    """L&I Landscape - filing matrix (SEC) and product data (Bloomberg)."""
+    """L&I Landscape — registered at /sec/etp/leverageandinverse via sec_etp.py.
+    Old /filings/landscape 301s to the new URL."""
     if mode not in ("filings", "products"):
         mode = "filings"
 
@@ -629,14 +618,15 @@ def _stream_landscape_csv(header: list[str], row_generator):
         yield buf.getvalue()
 
 
-@router.get("/landscape/export")
-def landscape_export(
+def _landscape_export_impl(
     db: Session = Depends(get_db),
     leverage: str = Query("all"),
     view: str = Query("all"),
     q: str = Query(""),
 ):
-    """Export filtered landscape fund rows as CSV."""
+    """Export filtered landscape fund rows as CSV.
+    Registered at /sec/etp/leverageandinverse/export via sec_etp.py.
+    Old /filings/landscape/export 301s to the new URL."""
     from webapp.services.filing_landscape import build_filing_landscape
 
     data = build_filing_landscape(db)
@@ -671,13 +661,29 @@ def landscape_export(
     )
 
 
+@router.get("/landscape")
+def _landscape_redirect(request: Request):
+    """301 the legacy landscape URL to /sec/etp/leverageandinverse (preserve querystring)."""
+    qs = str(request.url.query)
+    target = "/sec/etp/leverageandinverse" + (("?" + qs) if qs else "")
+    return RedirectResponse(url=target, status_code=301)
+
+
+@router.get("/landscape/export")
+def _landscape_export_redirect(request: Request):
+    """301 the legacy landscape CSV export to /sec/etp/leverageandinverse/export."""
+    qs = str(request.url.query)
+    target = "/sec/etp/leverageandinverse/export" + (("?" + qs) if qs else "")
+    return RedirectResponse(url=target, status_code=301)
+
+
 # ===================================================================
 # LI Filing Candidates (moved from screener.py /3x-analysis)
 # ===================================================================
 
-@router.get("/candidates")
-def filing_candidates(request: Request):
-    """LI Filing Candidates - unified 2x/3x/4x leverage analysis."""
+def _candidates_impl(request: Request):
+    """LI Filing Candidates — registered at /tools/li/candidates via tools_li.py.
+    Old /filings/candidates 301s to the new URL."""
     analysis = get_3x_data()
 
     if analysis is None:
@@ -712,12 +718,14 @@ def filing_candidates(request: Request):
 
 
 # ===================================================================
-# Candidate Evaluator (moved from screener.py /evaluate)
+# Candidate Evaluator (merged into /tools/li/candidates in PR 3)
 # ===================================================================
 
-@router.get("/evaluator")
-def filing_evaluator_page(request: Request):
-    """Interactive candidate evaluator page."""
+def _evaluator_get_impl(request: Request):
+    """Interactive candidate evaluator page.
+    Registered at /tools/li/candidates via tools_li.py — for PR 1, candidates
+    impl renders the page; this handler stays available for the merged UI in PR 3.
+    Old /filings/evaluator 301s to the new URL."""
     return templates.TemplateResponse("screener_evaluate.html", {
         "request": request,
         "tab": "evaluate",
@@ -726,12 +734,13 @@ def filing_evaluator_page(request: Request):
     })
 
 
-@router.post("/evaluator")
-def filing_evaluator_api(
+def _evaluator_post_impl(
     request: Request,
     tickers: list[str] = Body(..., embed=True),
 ):
-    """API endpoint: evaluate candidate tickers and return JSON results."""
+    """API endpoint: evaluate candidate tickers and return JSON results.
+    Registered at POST /tools/li/candidates via tools_li.py.
+    Old POST /filings/evaluator 301s (308) to the new URL."""
     if not tickers:
         return JSONResponse({"error": "No tickers provided"}, status_code=400)
 
@@ -777,6 +786,24 @@ def filing_evaluator_api(
         clean_results.append(serialize_eval(asdict(r)))
 
     return JSONResponse({"results": clean_results})
+
+
+@router.get("/candidates")
+def _candidates_redirect():
+    """301 the legacy candidates URL to /tools/li/candidates."""
+    return RedirectResponse(url="/tools/li/candidates", status_code=301)
+
+
+@router.get("/evaluator")
+def _evaluator_get_redirect():
+    """301 the legacy evaluator GET to /tools/li/candidates."""
+    return RedirectResponse(url="/tools/li/candidates", status_code=301)
+
+
+@router.post("/evaluator")
+def _evaluator_post_redirect():
+    """308 the legacy evaluator POST to /tools/li/candidates (preserve method+body)."""
+    return RedirectResponse(url="/tools/li/candidates", status_code=308)
 
 
 # ===================================================================
@@ -1058,8 +1085,7 @@ def _handle_filings_mode(
 # Symbols — CBOE symbol-reservation availability + competitor pipeline intel
 # ===================================================================
 
-@router.get("/symbols")
-def filings_symbols(
+def _symbols_impl(
     request: Request,
     db: Session = Depends(get_db),
     length: str = Query("all"),
@@ -1069,10 +1095,11 @@ def filings_symbols(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=100, ge=10, le=500),
 ):
-    """CBOE symbol-reservation table — available / reserved / active across the
-    1-4 letter ticker space. Joined to mkt_master_data so taken symbols show
-    fund name + issuer when known; reserved-without-known-fund = competitor
-    pipeline intel."""
+    """CBOE symbol-reservation table — registered at /tools/tickers via tools_tickers.py.
+    Available / reserved / active across the 1-4 letter ticker space. Joined to
+    mkt_master_data so taken symbols show fund name + issuer when known;
+    reserved-without-known-fund = competitor pipeline intel.
+    Old /filings/symbols 301s to the new URL."""
     from webapp.services.cboe.cross_reference import (
         auth_health, enriched_rows, last_scan, summary_counts,
     )
@@ -1133,3 +1160,11 @@ def filings_symbols(
         "live_refresh": live_refresh,
         "base_qs": base_qs,
     })
+
+
+@router.get("/symbols")
+def _symbols_redirect(request: Request):
+    """301 the legacy CBOE symbols URL to /tools/tickers (preserve querystring)."""
+    qs = str(request.url.query)
+    target = "/tools/tickers" + (("?" + qs) if qs else "")
+    return RedirectResponse(url=target, status_code=301)

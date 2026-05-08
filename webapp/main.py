@@ -321,6 +321,34 @@ def create_app() -> FastAPI:
     from webapp.routers import strategy
     app.include_router(strategy.router)
 
+    # ====================================================================
+    # v3 URL migration (Phase 1, dual-route): new section-prefix routes.
+    # Old URLs (e.g. /filings/dashboard) 301-redirect to the new canonical
+    # destinations registered below. See docs/website_FINAL_PLAN_2026-05-08.md
+    # ====================================================================
+    from webapp.routers import (
+        operations,
+        sec_etp,
+        sec_notes,
+        sec_13f,
+        tools_compare,
+        tools_li,
+        tools_simulators,
+        tools_tickers,
+        tools_calendar,
+        filings_detail,
+    )
+    app.include_router(operations.router)
+    app.include_router(sec_etp.router)
+    app.include_router(sec_notes.router)
+    app.include_router(sec_13f.router)
+    app.include_router(tools_compare.router)
+    app.include_router(tools_li.router)
+    app.include_router(tools_simulators.router)
+    app.include_router(tools_tickers.router)
+    app.include_router(tools_calendar.router)
+    app.include_router(filings_detail.router)
+
     # Health check -- Render uses this for zero-downtime deploys.
     # Returns 503 until caches are warm so Render keeps the old instance
     # serving traffic until the new one is fully ready.

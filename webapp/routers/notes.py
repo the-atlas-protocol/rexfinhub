@@ -1,4 +1,17 @@
-"""Structured Notes — market overview from extraction database."""
+"""Structured Notes — market overview from extraction database.
+
+Phase 1 of the v3 URL migration: this file now holds two pieces:
+
+1. The handler implementations (renamed to ``_*_impl``) which are imported
+   by ``webapp.routers.sec_notes`` and registered under ``/sec/notes/*``.
+2. Legacy 301 redirects from the old ``/notes/*`` paths to the new
+   canonical URLs. These keep external bookmarks/emails working until
+   PR 5 deletes the stubs.
+
+The ``/notes/issuers`` route is being merged into ``/sec/notes/`` (the
+overview page) per the Phase 1 plan, so its old handler has been removed
+entirely and replaced with a 301 redirect.
+"""
 from __future__ import annotations
 
 import logging
@@ -6,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 log = logging.getLogger(__name__)
@@ -107,9 +121,8 @@ def _load_stats() -> dict:
     return stats
 
 
-@router.get("/notes/")
-def notes_overview(request: Request):
-    """Structured notes market overview."""
+def _notes_overview_impl(request: Request):
+    """Structured notes market overview. Mounted at /sec/notes/ in PR 1."""
     stats = _load_stats()
     return templates.TemplateResponse("notes_overview.html", {
         "request": request,
@@ -117,19 +130,8 @@ def notes_overview(request: Request):
     })
 
 
-@router.get("/notes/issuers")
-def notes_issuers(request: Request):
-    """Issuer breakdown."""
-    stats = _load_stats()
-    return templates.TemplateResponse("notes_issuers.html", {
-        "request": request,
-        "stats": stats,
-    })
-
-
-@router.get("/notes/search")
-def notes_search(request: Request, issuer: str = "", type: str = "", underlier: str = ""):
-    """Product search."""
+def _notes_search_impl(request: Request, issuer: str = "", type: str = "", underlier: str = ""):
+    """Product search. Mounted at /sec/notes/filings in PR 1."""
     import sqlite3
 
     results = []
@@ -199,3 +201,24 @@ def notes_search(request: Request, issuer: str = "", type: str = "", underlier: 
         "filter_type": type,
         "filter_underlier": underlier,
     })
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 legacy redirects (old URL → new canonical URL).
+# ---------------------------------------------------------------------------
+
+
+@router.get("/notes/")
+def notes_overview_redirect():
+    return RedirectResponse("/sec/notes/", status_code=301)
+
+
+@router.get("/notes/issuers")
+def notes_issuers_redirect():
+    """The old issuer breakdown page is being merged into /sec/notes/."""
+    return RedirectResponse("/sec/notes/", status_code=301)
+
+
+@router.get("/notes/search")
+def notes_search_redirect():
+    return RedirectResponse("/sec/notes/filings", status_code=301)

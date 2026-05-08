@@ -1,10 +1,12 @@
 """
 Advanced Market Intelligence routes.
 
-Routes:
-  GET /market/calendar   -> ETP Launch Calendar (filtered to ETPs only via mkt_master_data)
-  GET /calendar          -> Top-level alias (handled in main.py redirect)
-  GET /market/compare    -> Fund Comparison (side-by-side ticker comparison)
+Phase 1 v3 URL migration:
+  - /market/calendar -> 301 to /tools/calendar
+    (impl _calendar_view_impl is imported by webapp.routers.tools_calendar)
+  - /market/compare  -> 301 to /tools/compare/etps
+    (impl _fund_compare_impl is imported by webapp.routers.tools_compare)
+  - /market/api/ticker-search and /market/fund/{ticker} are unchanged.
 """
 from __future__ import annotations
 
@@ -79,7 +81,12 @@ def _build_etp_filter_subquery() -> str:
 
 
 @router.get("/calendar")
-def calendar_view(
+def _calendar_view_redirect():
+    """301 /market/calendar -> /tools/calendar."""
+    return RedirectResponse("/tools/calendar", status_code=301)
+
+
+def _calendar_view_impl(
     request: Request,
     db: Session = Depends(get_db),
     month: int = Query(default=None),
@@ -357,7 +364,15 @@ def ticker_search_api(
 
 
 @router.get("/compare")
-def compare_view(
+def _fund_compare_redirect(tickers: str = Query(default="")):
+    """301 /market/compare -> /tools/compare/etps (preserve ?tickers=)."""
+    target = "/tools/compare/etps"
+    if tickers:
+        target = f"{target}?tickers={tickers}"
+    return RedirectResponse(target, status_code=301)
+
+
+def _fund_compare_impl(
     request: Request,
     tickers: str = Query(default=""),
     db: Session = Depends(get_db),

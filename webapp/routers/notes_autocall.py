@@ -1,4 +1,11 @@
-"""Autocallable note simulator — page render + bootstrap data endpoint."""
+"""Autocallable note simulator — page render + bootstrap data endpoint.
+
+Phase 1 of the v3 URL migration: the handler implementations have been
+renamed to ``_*_impl`` and are imported by
+``webapp.routers.tools_simulators`` to be mounted under
+``/tools/simulators/autocall``. The old ``/notes/tools/autocall*``
+routes shrink to 301/307 redirects pointing at the new canonical URLs.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +13,7 @@ import json
 from datetime import datetime
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,8 +43,7 @@ templates = Jinja2Templates(directory="webapp/templates")
 _REF_CATEGORIES = ("underlying", "strategy_underlying")
 
 
-@router.get("/notes/tools/autocall")
-def autocall_page(request: Request):
+def _autocall_page_impl(request: Request):
     """Render the autocallable simulator shell. Data is fetched client-side."""
     return templates.TemplateResponse(
         "notes_autocall.html",
@@ -45,8 +51,7 @@ def autocall_page(request: Request):
     )
 
 
-@router.get("/notes/tools/autocall/data")
-def autocall_data(db: Session = Depends(get_db)):
+def _autocall_data_impl(db: Session = Depends(get_db)):
     """Bootstrap JSON: metadata, presets, and level history per ticker."""
     metadata_rows = db.execute(
         select(AutocallIndexMetadata)
@@ -126,8 +131,7 @@ def _hash_params(refs: list[str], params_dict: dict, coupon_mode: str) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-@router.post("/notes/tools/autocall/sweep")
-def autocall_sweep(
+def _autocall_sweep_impl(
     body: dict = Body(...),
     db: Session = Depends(get_db),
 ):
@@ -197,8 +201,7 @@ def autocall_sweep(
     return payload
 
 
-@router.post("/notes/tools/autocall/suggest-coupon")
-def autocall_suggest_coupon(
+def _autocall_suggest_coupon_impl(
     body: dict = Body(...),
     db: Session = Depends(get_db),
 ):
@@ -244,3 +247,29 @@ def autocall_suggest_coupon(
             "reason": "Insufficient history (need ~1y of returns).",
         }
     return {"coupon_pa_pct": sc, "method": "heuristic"}
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 legacy redirects (old URL → new canonical URL).
+# GET → 301 (permanent). POST → 307 (preserve method).
+# ---------------------------------------------------------------------------
+
+
+@router.get("/notes/tools/autocall")
+def autocall_page_redirect():
+    return RedirectResponse("/tools/simulators/autocall", status_code=301)
+
+
+@router.get("/notes/tools/autocall/data")
+def autocall_data_redirect():
+    return RedirectResponse("/tools/simulators/autocall/data", status_code=301)
+
+
+@router.post("/notes/tools/autocall/sweep")
+def autocall_sweep_redirect():
+    return RedirectResponse("/tools/simulators/autocall/sweep", status_code=307)
+
+
+@router.post("/notes/tools/autocall/suggest-coupon")
+def autocall_suggest_coupon_redirect():
+    return RedirectResponse("/tools/simulators/autocall/suggest-coupon", status_code=307)

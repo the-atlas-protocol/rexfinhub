@@ -1,5 +1,11 @@
 """
-Analysis router - On-demand Claude AI analysis of SEC filings.
+Analysis router — On-demand Claude AI analysis of SEC filings.
+
+Phase 1 v3 URL migration:
+  - /analysis/filing/{filing_id} (GET + POST) -> 301/307 to /filings/{filing_id}
+  - The handler implementations (_filing_analysis_get_impl,
+    _filing_analysis_post_impl) are imported by
+    webapp.routers.filings_detail, which serves the canonical URL.
 """
 from __future__ import annotations
 
@@ -8,6 +14,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -66,7 +73,18 @@ def _usage_today(db: Session) -> int:
 
 
 @router.get("/analysis/filing/{filing_id}")
-def analysis_page(request: Request, filing_id: int, db: Session = Depends(get_db)):
+def _analysis_filing_get_redirect(filing_id: int):
+    """301 GET /analysis/filing/{id} -> /filings/{id}."""
+    return RedirectResponse(f"/filings/{filing_id}", status_code=301)
+
+
+@router.post("/analysis/filing/{filing_id}")
+def _analysis_filing_post_redirect(filing_id: int):
+    """307 POST /analysis/filing/{id} -> /filings/{id} (preserves method + body)."""
+    return RedirectResponse(f"/filings/{filing_id}", status_code=307)
+
+
+def _filing_analysis_get_impl(request: Request, filing_id: int, db: Session = Depends(get_db)):
     """Show analysis options for a filing."""
     filing = db.get(Filing, filing_id)
     if not filing:
@@ -106,8 +124,7 @@ def analysis_page(request: Request, filing_id: int, db: Session = Depends(get_db
     })
 
 
-@router.post("/analysis/filing/{filing_id}")
-def run_analysis(
+def _filing_analysis_post_impl(
     request: Request,
     filing_id: int,
     analysis_type: str = Form(...),

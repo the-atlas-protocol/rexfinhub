@@ -3,10 +3,15 @@
 Public (site-auth) page showing all CapM products in a tabbed, sortable table.
 Admin users can edit individual product records inline.
 
-Routes:
-    GET  /capm/           — Main product list (filterable by suite, searchable)
-    GET  /capm/export.csv — CSV export with current filters
-    POST /capm/update/{id} — Admin-only product update
+Phase 1 of the v3 URL migration: the handler implementations have been
+renamed to ``_*_impl`` and are imported by ``webapp.routers.operations``
+to be mounted under ``/operations/products``. The old ``/capm/*`` routes
+shrink to 301/307 redirects pointing at the new canonical URLs.
+
+Legacy URL → new canonical URL:
+    GET  /capm/                     → /operations/products
+    GET  /capm/export.csv           → /operations/products/export.csv
+    POST /capm/update/{product_id}  → /operations/products/update/{product_id}
 """
 from __future__ import annotations
 
@@ -40,16 +45,14 @@ def _parse_date(s: str | None) -> date | None:
         return None
 
 
-@router.get("", response_class=HTMLResponse)
-@router.get("/", response_class=HTMLResponse)
-def capm_page(
+def _capm_index_impl(
     request: Request,
     suite: str | None = None,
     q: str | None = None,
     tab: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """Capital Markets product list page."""
+    """Capital Markets product list page. Mounted at /operations/products in PR 1."""
     from webapp.models import CapMProduct, CapMTrustAP
 
     active_tab = "trust_aps" if tab == "trust_aps" else "products"
@@ -134,14 +137,13 @@ def capm_page(
     })
 
 
-@router.get("/export.csv")
-def export_csv(
+def _capm_export_impl(
     request: Request,
     suite: str | None = None,
     q: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """Export filtered product list as CSV."""
+    """Export filtered product list as CSV. Mounted at /operations/products/export.csv in PR 1."""
     from webapp.models import CapMProduct
 
     query = db.query(CapMProduct)
@@ -207,7 +209,7 @@ def export_csv(
     )
 
 
-# Whitelist of fields that /capm/update/{id} will write.
+# Whitelist of fields that the products-update endpoint will write.
 # Maps form field name -> (CapMProduct attribute, type_coercer).
 # Anything not in this map is silently ignored — keeps injection attack
 # surface tight.
@@ -252,17 +254,19 @@ def _coerce_capm(coerce_type: str, raw: str):
     raise HTTPException(500, f"Unknown coercer: {coerce_type}")
 
 
-@router.post("/update/{product_id}")
-async def update_product(
+async def _capm_update_impl(
     product_id: int,
     request: Request,
     db: Session = Depends(get_db),
 ):
     """Admin-only: update a CapM product record.
 
+    Mounted at /operations/products/update/{product_id} in PR 1.
+
     Accepts partial updates — only fields that appear in the submitted form
-    are modified. This supports inline cell-by-cell editing on the /capm/
-    page while remaining compatible with full-form submissions.
+    are modified. This supports inline cell-by-cell editing on the
+    /operations/products page while remaining compatible with full-form
+    submissions.
     """
     if not request.session.get("is_admin"):
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -293,4 +297,26 @@ async def update_product(
     suite_param = ""
     if "suite_source" in submitted and submitted["suite_source"]:
         suite_param = f"&suite={submitted['suite_source']}"
-    return RedirectResponse(url=f"/capm/?msg=updated{suite_param}", status_code=302)
+    return RedirectResponse(url=f"/operations/products/?msg=updated{suite_param}", status_code=302)
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 legacy redirects (old URL → new canonical URL).
+# GET → 301 (permanent). POST → 307 (preserve method).
+# ---------------------------------------------------------------------------
+
+
+@router.get("", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
+def capm_index_redirect():
+    return RedirectResponse("/operations/products", status_code=301)
+
+
+@router.get("/export.csv")
+def capm_export_redirect():
+    return RedirectResponse("/operations/products/export.csv", status_code=301)
+
+
+@router.post("/update/{product_id}")
+def capm_update_redirect(product_id: int):
+    return RedirectResponse(f"/operations/products/update/{product_id}", status_code=307)
