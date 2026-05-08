@@ -6,7 +6,7 @@
  *   - Observation log table (sortable, sticky header, CSV export)
  *   - URL state sync (encode every input as query param, debounced writeback)
  *   - Compare mode (Scenario B with dual chart series + dual KPI panel)
- *   - Distribution sweep tab (POST /notes/tools/autocall/sweep)
+ *   - Distribution sweep tab (POST /tools/simulators/autocall/sweep)
  */
 (function (global) {
   'use strict';
@@ -789,7 +789,7 @@
       if (!refs.length || !state.issueDateISO) return;
       var p = readParamsRaw();
       setBsLoading(true);
-      fetch('/notes/tools/autocall/suggest-coupon', {
+      fetch('/tools/simulators/autocall/suggest-coupon', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -2175,7 +2175,7 @@
     if (errSlot) errSlot.textContent = '';
     if (cachedBadge) cachedBadge.style.display = 'none';
 
-    fetch('/notes/tools/autocall/sweep', {
+    fetch('/tools/simulators/autocall/sweep', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },

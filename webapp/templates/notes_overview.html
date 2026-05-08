@@ -106,7 +106,7 @@
         <td style="white-space:nowrap">{{ p.date }}</td>
         <td><strong>{{ p.issuer }}</strong></td>
         <td>{{ p.type }}</td>
-        <td style="font-family: var(--font-mono); font-size: 11px;">{% if p.underliers %}<a href="/notes/search?underlier={{ p.underliers|urlencode }}" title="Search products with this underlier" style="color: var(--blue); text-decoration: none;">{{ p.underliers }}</a>{% else %}&mdash;{% endif %}</td>
+        <td style="font-family: var(--font-mono); font-size: 11px;">{% if p.underliers %}<a href="/sec/notes/filings?underlier={{ p.underliers|urlencode }}" title="Search products with this underlier" style="color: var(--blue); text-decoration: none;">{{ p.underliers }}</a>{% else %}&mdash;{% endif %}</td>
         <td style="font-family: var(--font-mono);">{{ p.coupon }}</td>
         <td style="font-family: var(--font-mono);">{{ p.barrier }}</td>
         <td>{% if p.filing_url %}<a href="{{ p.filing_url }}" target="_blank" style="font-size: 11px;">View</a>{% else %}--{% endif %}</td>

@@ -78,7 +78,7 @@
   </div>
 </div>
 
-<form method="get" action="/filings/symbols" style="display:flex; gap:12px; align-items:center; margin-bottom:16px; padding:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; font-size:13px;">
+<form method="get" action="/tools/tickers" style="display:flex; gap:12px; align-items:center; margin-bottom:16px; padding:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; font-size:13px;">
   <label style="display:flex; align-items:center; gap:6px;">
     <span style="color:#475569;">Length</span>
     <select name="length" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
@@ -120,7 +120,7 @@
 
   <button type="submit" style="padding:5px 14px; background:#2563eb; color:#fff; border:0; border-radius:4px; font-size:13px; font-weight:500; cursor:pointer;">Apply</button>
   {% if length != 'all' or state != 'all' or q or sort != 'last_checked_desc' %}
-    <a href="/filings/symbols" style="color:#94a3b8; font-size:12px; text-decoration:none;">Clear</a>
+    <a href="/tools/tickers" style="color:#94a3b8; font-size:12px; text-decoration:none;">Clear</a>
   {% endif %}
 </form>
 

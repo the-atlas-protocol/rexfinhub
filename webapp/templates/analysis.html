@@ -69,7 +69,7 @@
     Daily analysis limit reached ({{ daily_limit }} per day). Try again tomorrow.
   </div>
   {% else %}
-  <form method="post" action="/analysis/filing/{{ filing.id }}"
+  <form method="post" action="/filings/{{ filing.id }}"
         onsubmit="return confirm('Run AI analysis?\n\nUsage: {{ usage_today }}/{{ daily_limit }} today{% if cost_estimate %}\nEstimated cost: ${{ cost_estimate.cost_est_usd }}{% endif %}\n\nProceed?');">
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
       {% for key, type in analysis_types.items() %}

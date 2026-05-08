@@ -147,8 +147,8 @@
 
 <!-- ==================== MODE TABS ==================== -->
 <div class="landscape-tabs">
-  <a href="/filings/landscape?mode=filings" class="landscape-tab{% if mode == 'filings' %} active{% endif %}">Filings</a>
-  <a href="/filings/landscape?mode=products" class="landscape-tab{% if mode == 'products' %} active{% endif %}">Products</a>
+  <a href="/sec/etp/leverageandinverse?mode=filings" class="landscape-tab{% if mode == 'filings' %} active{% endif %}">Filings</a>
+  <a href="/sec/etp/leverageandinverse?mode=products" class="landscape-tab{% if mode == 'products' %} active{% endif %}">Products</a>
 </div>
 
 {% if mode == 'filings' %}
@@ -200,7 +200,7 @@
 </div>
 <div class="top-underlier-grid">
   {% for u in top_underliers %}
-  <a href="/filings/landscape?mode=filings&q={{ u.underlier }}" class="top-underlier-chip">
+  <a href="/sec/etp/leverageandinverse?mode=filings&q={{ u.underlier }}" class="top-underlier-chip">
     <span>
       <span class="name">{{ u.underlier }}</span>
       <span class="levs">{{ u.leverages|join(', ') }}</span>
@@ -216,7 +216,7 @@
   <h2>Fund Filings</h2>
   <div style="display:flex; align-items:center; gap:12px;">
     <span class="sg-badge landscape-row-count">{{ "{:,}".format(total_rows) }} funds</span>
-    <a href="/filings/landscape/export?leverage={{ leverage }}&view={{ view }}&q={{ q|urlencode }}" class="export-btn">
+    <a href="/sec/etp/leverageandinverse/export?leverage={{ leverage }}&view={{ view }}&q={{ q|urlencode }}" class="export-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export CSV
     </a>

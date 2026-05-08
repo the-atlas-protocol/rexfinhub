@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/v1/
+Disallow: /auth/
+Allow: /
+
+Sitemap: https://rexfinhub.com/sitemap.xml

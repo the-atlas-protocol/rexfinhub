@@ -700,7 +700,7 @@
       <li><a href="/market/rex">REX View</a><span class="ha-link-desc">AUM, flows, competitive positioning</span></li>
       <li><a href="/market/category">Category View</a><span class="ha-link-desc">8 ETP categories with trends</span></li>
       <li><a href="/market/issuer">Issuer Analysis</a><span class="ha-link-desc">Rank by AUM and market share</span></li>
-      <li><a href="/market/compare">Compare Products</a><span class="ha-link-desc">Side-by-side ticker comparison</span></li>
+      <li><a href="/tools/compare/etps">Compare Products</a><span class="ha-link-desc">Side-by-side ticker comparison</span></li>
     </ul>
   </div>
 
@@ -714,11 +714,11 @@
       <span class="ha-pillar-badge">2,475 trusts</span>
     </div>
     <ul class="ha-pillar-links">
-      <li><a href="/filings/dashboard">Filings Dashboard</a><span class="ha-link-desc">Real-time SEC filing monitor</span></li>
+      <li><a href="/sec/etp/">Filings Dashboard</a><span class="ha-link-desc">Real-time SEC filing monitor</span></li>
       <li><a href="/trusts/rex-etf-trust">REX ETF Trust</a><span class="ha-link-desc">REX fund filings and statuses</span></li>
       <li><a href="/trusts/etf-opportunities-trust">ETF Opportunities Trust</a><span class="ha-link-desc">T-REX, Tuttle, and partner filings</span></li>
-      <li><a href="/filings/landscape">L&I Landscape</a><span class="ha-link-desc">2x/3x/4x/5x competitive matrix</span></li>
-      <li><a href="/filings/candidates">L&I Filing Candidates</a><span class="ha-link-desc">2x/3x/4x scored pipeline</span></li>
+      <li><a href="/sec/etp/leverageandinverse">L&I Landscape</a><span class="ha-link-desc">2x/3x/4x/5x competitive matrix</span></li>
+      <li><a href="/tools/li/candidates">L&I Filing Candidates</a><span class="ha-link-desc">2x/3x/4x scored pipeline</span></li>
     </ul>
   </div>
 
@@ -756,9 +756,9 @@
       <span class="ha-pillar-badge">{{ "{:,.0f}".format(notes_product_count|default(0)) if notes_product_count else "598K" }} products</span>
     </div>
     <ul class="ha-pillar-links">
-      <li><a href="/notes/">Market Overview</a><span class="ha-link-desc">Aggregate issuance and trends</span></li>
-      <li><a href="/notes/issuers">Issuer Dashboard</a><span class="ha-link-desc">19 issuers, market share</span></li>
-      <li><a href="/notes/search">Product Search</a><span class="ha-link-desc">CUSIP and term search</span></li>
+      <li><a href="/sec/notes/">Market Overview</a><span class="ha-link-desc">Aggregate issuance and trends</span></li>
+      <li><a href="/sec/notes/">Issuer Dashboard</a><span class="ha-link-desc">19 issuers, market share</span></li>
+      <li><a href="/sec/notes/filings">Product Search</a><span class="ha-link-desc">CUSIP and term search</span></li>
     </ul>
   </div>
 
@@ -772,9 +772,9 @@
       <span class="ha-pillar-badge">{{ capm_product_count|default(0) }} products</span>
     </div>
     <ul class="ha-pillar-links">
-      <li><a href="/capm/">Product List</a><span class="ha-link-desc">Fees, LMMs, custodians by suite</span></li>
-      <li><a href="/capm/?suite=T-REX">T-REX Suite</a><span class="ha-link-desc">2x leveraged single-stock ETFs</span></li>
-      <li><a href="/capm/?suite=BMO">BMO MicroSectors</a><span class="ha-link-desc">ETN products</span></li>
+      <li><a href="/operations/products">Product List</a><span class="ha-link-desc">Fees, LMMs, custodians by suite</span></li>
+      <li><a href="/operations/products?suite=T-REX">T-REX Suite</a><span class="ha-link-desc">2x leveraged single-stock ETFs</span></li>
+      <li><a href="/operations/products?suite=BMO">BMO MicroSectors</a><span class="ha-link-desc">ETN products</span></li>
     </ul>
   </div>
 

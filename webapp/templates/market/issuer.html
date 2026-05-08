@@ -107,7 +107,7 @@
         <tr class="{{ 'rex-highlight' if iss.is_rex else '' }} issuer-row" data-name="{{ iss.issuer_name|lower }}">
           <td>{{ loop.index }}</td>
           <td>
-            <a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}" class="text-link" style="font-weight:500;">
+            <a href="/issuers/{{ iss.issuer_name|urlencode }}" class="text-link" style="font-weight:500;">
               {{ iss.issuer_name }}
             </a>
             {% if iss.is_rex %}<span style="color:#1E40AF;font-weight:600;font-size:0.7rem;margin-left:4px;">REX</span>{% endif %}
@@ -118,7 +118,7 @@
           <td class="num-cell {{ 'positive' if iss.flow_1m > 0 else 'negative' if iss.flow_1m < 0 else '' }}">{{ iss.flow_1m_fmt }}</td>
           <td class="num-cell">{{ iss.num_products }}</td>
           <td style="text-align:center;">
-            <a href="/market/issuer/detail?issuer={{ iss.issuer_name|urlencode }}"
+            <a href="/issuers/{{ iss.issuer_name|urlencode }}"
                style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#1F3864;color:#fff;border-radius:4px;font-size:14px;text-decoration:none;font-weight:600;"
                title="View {{ iss.issuer_name }} profile">&#8594;</a>
           </td>

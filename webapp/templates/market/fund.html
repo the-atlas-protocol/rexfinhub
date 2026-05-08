@@ -39,7 +39,7 @@
     {% if series_id %}
     <a href="/funds/{{ series_id }}" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">SEC Filings</a>
     {% endif %}
-    <a href="/market/compare?tickers={{ ticker }}" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">Compare</a>
+    <a href="/tools/compare/etps?tickers={{ ticker }}" style="padding:6px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; color:#1F3864; text-decoration:none; font-weight:500;">Compare</a>
   </div>
 </div>
 
@@ -275,7 +275,7 @@
         {% for c in competitors %}
         <tr>
           <td>
-            <a href="/market/fund/{{ c.ticker }}" style="font-weight:600; color:#1F3864;">{{ c.ticker }}</a>
+            <a href="/funds/{{ c.ticker }}" style="font-weight:600; color:#1F3864;">{{ c.ticker }}</a>
             {% if c.is_rex %}<span style="background:#059669; color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; margin-left:3px;">REX</span>{% endif %}
           </td>
           <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.name }}</td>

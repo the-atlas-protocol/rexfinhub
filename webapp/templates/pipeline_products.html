@@ -194,7 +194,7 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 
   {# ---- Filter Bar ---- #}
   <h2>Products</h2>
-  <form method="get" action="/pipeline/products" class="filter-panel">
+  <form method="get" action="/operations/pipeline" class="filter-panel">
     <div class="filter-row">
       <label>Search</label>
       <input type="text" name="q" placeholder="Ticker, name, underlier, trust..." value="{{ filter_q }}" style="flex:1; min-width:220px;">
@@ -216,18 +216,18 @@ table.pipeline-table tr:hover { background:#fafbfc; }
       </select>
 
       <button type="submit" class="btn btn-primary">Apply</button>
-      <a href="/pipeline/products" class="btn">Clear</a>
+      <a href="/operations/pipeline" class="btn">Clear</a>
     </div>
 
     <div class="filter-row">
       <label>Quick</label>
       <div class="urgency-pills">
-        <a href="/pipeline/products" class="urgency-pill {% if not filter_urgency %}active{% endif %}">All</a>
-        <a href="/pipeline/products?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}">Urgent &lt;14d <span class="count">{{ urgency_counts.urgent }}</span></a>
-        <a href="/pipeline/products?urgency=upcoming" class="urgency-pill {% if filter_urgency == 'upcoming' %}active{% endif %}">Next 60d <span class="count">{{ urgency_counts.upcoming }}</span></a>
-        <a href="/pipeline/products?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}">Overdue <span class="count">{{ urgency_counts.overdue }}</span></a>
-        <a href="/pipeline/products?urgency=recent_filings" class="urgency-pill {% if filter_urgency == 'recent_filings' %}active{% endif %}">Recent Filings <span class="count">{{ urgency_counts.recent_filings }}</span></a>
-        <a href="/pipeline/products?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
+        <a href="/operations/pipeline" class="urgency-pill {% if not filter_urgency %}active{% endif %}">All</a>
+        <a href="/operations/pipeline?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}">Urgent &lt;14d <span class="count">{{ urgency_counts.urgent }}</span></a>
+        <a href="/operations/pipeline?urgency=upcoming" class="urgency-pill {% if filter_urgency == 'upcoming' %}active{% endif %}">Next 60d <span class="count">{{ urgency_counts.upcoming }}</span></a>
+        <a href="/operations/pipeline?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}">Overdue <span class="count">{{ urgency_counts.overdue }}</span></a>
+        <a href="/operations/pipeline?urgency=recent_filings" class="urgency-pill {% if filter_urgency == 'recent_filings' %}active{% endif %}">Recent Filings <span class="count">{{ urgency_counts.recent_filings }}</span></a>
+        <a href="/operations/pipeline?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
       </div>
     </div>
   </form>

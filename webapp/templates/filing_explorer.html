@@ -43,8 +43,8 @@
 
 {# ── Mode Toggle Tabs ── #}
 <div style="display:flex; border-bottom:1px solid #e5e7eb; margin-bottom:24px;">
-  <a href="/filings/explorer?mode=funds" style="padding:10px 20px 12px; font-size:14px; font-weight:500; text-decoration:none; border-bottom:2px solid {% if mode == 'funds' %}#2563eb{% else %}transparent{% endif %}; color:{% if mode == 'funds' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px;">Funds</a>
-  <a href="/filings/explorer?mode=filings" style="padding:10px 20px 12px; font-size:14px; font-weight:500; text-decoration:none; border-bottom:2px solid {% if mode == 'filings' %}#2563eb{% else %}transparent{% endif %}; color:{% if mode == 'filings' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px;">Filings</a>
+  <a href="/sec/etp/filings?mode=funds" style="padding:10px 20px 12px; font-size:14px; font-weight:500; text-decoration:none; border-bottom:2px solid {% if mode == 'funds' %}#2563eb{% else %}transparent{% endif %}; color:{% if mode == 'funds' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px;">Funds</a>
+  <a href="/sec/etp/filings?mode=filings" style="padding:10px 20px 12px; font-size:14px; font-weight:500; text-decoration:none; border-bottom:2px solid {% if mode == 'filings' %}#2563eb{% else %}transparent{% endif %}; color:{% if mode == 'filings' %}#0f172a{% else %}#64748b{% endif %}; margin-bottom:-1px;">Filings</a>
 </div>
 
 {% if mode == 'funds' %}
@@ -53,7 +53,7 @@
 {# ══════════════════════════════════════════ #}
 
 {# Filter bar #}
-<form method="get" action="/filings/explorer" style="margin-bottom:16px;">
+<form method="get" action="/sec/etp/filings" style="margin-bottom:16px;">
   <input type="hidden" name="mode" value="funds">
   <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px; padding:12px 16px;">
     <input type="text" name="q" value="{{ q }}" placeholder="Search by fund name or ticker..."
@@ -72,7 +72,7 @@
     </select>
     <button type="submit" style="padding:8px 20px; font-size:13px; font-weight:500; font-family:inherit; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; background:#0f172a; color:#ffffff;">Filter</button>
     {% if q or status or trust_id %}
-    <a href="/filings/explorer?mode=funds" style="font-size:12px; color:#64748b; margin-left:4px;">Clear</a>
+    <a href="/sec/etp/filings?mode=funds" style="font-size:12px; color:#64748b; margin-left:4px;">Clear</a>
     {% endif %}
   </div>
 </form>
@@ -88,7 +88,7 @@
     <thead>
       <tr>
         {% set th_style = "background:#ffffff; font-size:12px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.04em; padding:10px 16px; text-align:left; border-bottom:2px solid #e5e7eb; position:sticky; top:0; z-index:2; cursor:pointer;" %}
-        {% set base_url = "/filings/explorer?mode=funds" ~ ("&q=" ~ q if q else "") ~ ("&status=" ~ status if status else "") ~ ("&trust_id=" ~ trust_id if trust_id else "") %}
+        {% set base_url = "/sec/etp/filings?mode=funds" ~ ("&q=" ~ q if q else "") ~ ("&status=" ~ status if status else "") ~ ("&trust_id=" ~ trust_id if trust_id else "") %}
         <th style="{{ th_style }}"><a href="{{ base_url }}&sort={% if sort == 'name' %}name_desc{% else %}name{% endif %}" style="color:inherit;text-decoration:none;">Fund Name {% if sort == 'name' %}▲{% elif sort == 'name_desc' %}▼{% endif %}</a></th>
         <th style="{{ th_style }} width:80px;"><a href="{{ base_url }}&sort={% if sort == 'ticker' %}ticker_desc{% else %}ticker{% endif %}" style="color:inherit;text-decoration:none;">Ticker {% if sort == 'ticker' %}▲{% elif sort == 'ticker_desc' %}▼{% endif %}</a></th>
         <th style="{{ th_style }}">Trust</th>
@@ -160,7 +160,7 @@
   <div style="display:flex; align-items:center; gap:4px;">
     {% set base_params = "mode=funds&q=" ~ q ~ "&status=" ~ status ~ "&trust_id=" ~ trust_id ~ "&per_page=" ~ per_page %}
     {% if page > 1 %}
-    <a href="/filings/explorer?{{ base_params }}&page={{ page - 1 }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151;">Prev</a>
+    <a href="/sec/etp/filings?{{ base_params }}&page={{ page - 1 }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151;">Prev</a>
     {% else %}
     <span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; font-size:12px; font-weight:500; border-radius:4px; background:#f3f4f6; color:#374151; opacity:0.4; cursor:default;">Prev</span>
     {% endif %}
@@ -170,7 +170,7 @@
         {% if p == page %}
         <span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; background:#0f172a; color:#ffffff; border-radius:4px; font-size:12px; font-weight:600; min-width:32px;">{{ p }}</span>
         {% else %}
-        <a href="/filings/explorer?{{ base_params }}&page={{ p }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151; min-width:32px;">{{ p }}</a>
+        <a href="/sec/etp/filings?{{ base_params }}&page={{ p }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151; min-width:32px;">{{ p }}</a>
         {% endif %}
       {% endfor %}
     {% else %}
@@ -188,14 +188,14 @@
         {% if p == page %}
         <span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; background:#0f172a; color:#ffffff; border-radius:4px; font-size:12px; font-weight:600; min-width:32px;">{{ p }}</span>
         {% else %}
-        <a href="/filings/explorer?{{ base_params }}&page={{ p }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151; min-width:32px;">{{ p }}</a>
+        <a href="/sec/etp/filings?{{ base_params }}&page={{ p }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151; min-width:32px;">{{ p }}</a>
         {% endif %}
         {% if prev_p.append(p) %}{% endif %}
       {% endfor %}
     {% endif %}
 
     {% if page < total_pages %}
-    <a href="/filings/explorer?{{ base_params }}&page={{ page + 1 }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151;">Next</a>
+    <a href="/sec/etp/filings?{{ base_params }}&page={{ page + 1 }}" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; font-size:12px; font-weight:500; border-radius:4px; text-decoration:none; background:#f3f4f6; color:#374151;">Next</a>
     {% else %}
     <span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; font-size:12px; font-weight:500; border-radius:4px; background:#f3f4f6; color:#374151; opacity:0.4; cursor:default;">Next</span>
     {% endif %}
@@ -209,7 +209,7 @@
 {# ══════════════════════════════════════════ #}
 
 {# Filter bar #}
-<form method="get" action="/filings/explorer" style="margin-bottom:16px;">
+<form method="get" action="/sec/etp/filings" style="margin-bottom:16px;">
   <input type="hidden" name="mode" value="filings">
   <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px; padding:12px 16px;">
     <input type="text" name="q" value="{{ q }}" placeholder="Search filings..."
@@ -235,7 +235,7 @@
     </select>
     <button type="submit" style="padding:8px 20px; font-size:13px; font-weight:500; font-family:inherit; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; background:#0f172a; color:#ffffff;">Filter</button>
     {% if q or form_type or trust_id or date_range != 'all' %}
-    <a href="/filings/explorer?mode=filings" style="font-size:12px; color:#64748b; margin-left:4px;">Clear</a>
+    <a href="/sec/etp/filings?mode=filings" style="font-size:12px; color:#64748b; margin-left:4px;">Clear</a>
     {% endif %}
   </div>
 </form>
@@ -320,7 +320,7 @@
           {% endif %}
         </td>
         <td style="font-size:13px; padding:10px 16px; height:40px; vertical-align:middle;">
-          <a href="/analysis/filing/{{ f.id }}" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:500;">Analyze</a>
+          <a href="/filings/{{ f.id }}" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:500;">Analyze</a>
         </td>
       </tr>
       {% endfor %}
@@ -367,7 +367,7 @@
 <div style="text-align:center; padding:40px; color:#64748b; font-size:14px;">
   {% if q or form_type or trust_id or date_range != 'all' %}
   No filings match the selected filters.
-  <br><a href="/filings/explorer?mode=filings" style="font-size:13px; margin-top:8px; display:inline-block; color:#2563eb;">Clear all filters</a>
+  <br><a href="/sec/etp/filings?mode=filings" style="font-size:13px; margin-top:8px; display:inline-block; color:#2563eb;">Clear all filters</a>
   {% else %}
   No filings found in the database.
   {% endif %}

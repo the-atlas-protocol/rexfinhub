@@ -160,11 +160,11 @@ table.capm tr:hover { background:#fafbfc; }
 
   <!-- Section tabs: Products | Trust & APs -->
   <div class="section-tabs">
-    <a href="/capm/{% if filter_suite %}?suite={{ filter_suite }}{% if filter_q %}&q={{ filter_q }}{% endif %}{% elif filter_q %}?q={{ filter_q }}{% endif %}"
+    <a href="/operations/products{% if filter_suite %}?suite={{ filter_suite }}{% if filter_q %}&q={{ filter_q }}{% endif %}{% elif filter_q %}?q={{ filter_q }}{% endif %}"
        class="section-tab {% if active_tab == 'products' %}active{% endif %}">
       Products <span class="count">{{ total }}</span>
     </a>
-    <a href="/capm/?tab=trust_aps" class="section-tab {% if active_tab == 'trust_aps' %}active{% endif %}">
+    <a href="/operations/products?tab=trust_aps" class="section-tab {% if active_tab == 'trust_aps' %}active{% endif %}">
       Trust &amp; APs <span class="count">{{ trust_count }}</span>
     </a>
   </div>
@@ -172,9 +172,9 @@ table.capm tr:hover { background:#fafbfc; }
   {% if active_tab == 'products' %}
   <!-- Suite tabs -->
   <div class="suite-tabs">
-    <a href="/capm/{% if filter_q %}?q={{ filter_q }}{% endif %}" class="suite-tab {% if not filter_suite %}active{% endif %}">All <span class="count">{{ total }}</span></a>
+    <a href="/operations/products{% if filter_q %}?q={{ filter_q }}{% endif %}" class="suite-tab {% if not filter_suite %}active{% endif %}">All <span class="count">{{ total }}</span></a>
     {% for s in valid_suites %}
-    <a href="/capm/?suite={{ s }}{% if filter_q %}&q={{ filter_q }}{% endif %}" class="suite-tab {% if filter_suite == s %}active{% endif %}">
+    <a href="/operations/products?suite={{ s }}{% if filter_q %}&q={{ filter_q }}{% endif %}" class="suite-tab {% if filter_suite == s %}active{% endif %}">
       {{ s }} <span class="count">{{ suite_counts.get(s, 0) }}</span>
     </a>
     {% endfor %}
@@ -187,10 +187,10 @@ table.capm tr:hover { background:#fafbfc; }
       <input type="text" name="q" placeholder="Search ticker, fund name, underlier, LMM..." value="{{ filter_q }}" style="min-width:280px; flex:1;">
       <button type="submit" class="btn">Search</button>
       {% if filter_q or filter_suite %}
-        <a href="/capm/" class="btn" style="color:#dc2626;">Clear</a>
+        <a href="/operations/products" class="btn" style="color:#dc2626;">Clear</a>
       {% endif %}
     </form>
-    <a href="/capm/export.csv?{{ request.url.query }}" class="btn">Export CSV</a>
+    <a href="/operations/products/export.csv?{{ request.url.query }}" class="btn">Export CSV</a>
     <span style="font-size:12px; color:#64748b;">{{ filtered_count }} of {{ total }}</span>
   </div>
 

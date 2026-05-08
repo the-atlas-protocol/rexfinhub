@@ -404,14 +404,14 @@ document.addEventListener('DOMContentLoaded', function() {
     { name: 'Filing Landscape', url: '/screener/', pillar: 'Filings', desc: '3x/4x/5x matrix' },
     { name: 'Bloomberg Scoring', url: '/screener/3x-analysis', pillar: 'Filings', desc: 'Product recommendations' },
     { name: 'Search Funds', url: '/funds/', pillar: 'Filings', desc: 'Fund search by name/ticker' },
-    { name: 'Search Filings', url: '/filings/', pillar: 'Filings', desc: 'Filing search by date/form' },
+    { name: 'Search Filings', url: '/sec/notes/filings', pillar: 'Filings', desc: 'Filing search by date/form' },
     { name: 'Market Overview', url: '/intel/', pillar: 'Ownership', desc: '$289B ETP ownership' },
     { name: 'REX Quarter Report', url: '/intel/rex', pillar: 'Ownership', desc: 'REX institutional holders' },
     { name: 'Browse Institutions', url: '/holdings/', pillar: 'Ownership', desc: '10,535 institutions' },
     { name: 'Sales Intelligence', url: '/intel/rex/sales', pillar: 'Ownership', desc: 'Momentum, concentration' },
-    { name: 'Structured Notes', url: '/notes/', pillar: 'Notes', desc: '594K products overview' },
-    { name: 'Issuer Dashboard', url: '/notes/issuers', pillar: 'Notes', desc: '19 issuers market share' },
-    { name: 'Product Search', url: '/notes/search', pillar: 'Notes', desc: 'Filter by issuer/type' },
+    { name: 'Structured Notes', url: '/sec/notes/', pillar: 'Notes', desc: '594K products overview' },
+    { name: 'Issuer Dashboard', url: '/sec/notes/', pillar: 'Notes', desc: '19 issuers market share' },
+    { name: 'Product Search', url: '/sec/notes/filings', pillar: 'Notes', desc: 'Filter by issuer/type' },
     { name: 'Data Exports', url: '/downloads/', pillar: 'Tools', desc: 'CSV/Excel downloads' },
     { name: 'Evaluate Ticker', url: '/screener/evaluate', pillar: 'Filings', desc: 'Score ticker viability' },
     { name: 'Crossover Analysis', url: '/holdings/crossover', pillar: 'Ownership', desc: 'Prospect identification' }
@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:0.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
         + 'Products</div>';
       data.products.forEach(function(p) {
-        var url = '/market/fund/' + encodeURIComponent(p.ticker);
+        var url = '/funds/' + encodeURIComponent(p.ticker);
         html += '<a href="' + url + '" class="search-result-item">'
           + '<div class="sri-main">'
           + '<div class="sri-title"><span class="sri-ticker">' + escapeHtml(p.ticker) + '</span> ' + escapeHtml(p.fund_name) + '</div>'
@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         + 'SEC Funds</div>';
       data.funds.forEach(function(f) {
         var statusStyle = f.status === 'EFFECTIVE' ? 'color:var(--green)' : f.status === 'PENDING' ? 'color:var(--orange)' : f.status === 'DELAYED' ? 'color:var(--red)' : '';
-        html += '<a href="/funds/' + escapeHtml(f.series_id) + '" class="search-result-item">'
+        html += '<a href="/funds/series/' + escapeHtml(f.series_id) + '" class="search-result-item">'
           + '<div class="sri-main">'
           + '<div class="sri-title">' + escapeHtml(f.fund_name) + '</div>'
           + '<div class="sri-sub">' + escapeHtml(f.trust_name) + (f.ticker ? ' &middot; ' + escapeHtml(f.ticker) : '') + '</div>'
@@ -572,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
         + 'Filings</div>';
       data.filings.forEach(function(fl) {
-        html += '<a href="/analysis/filing/' + fl.id + '" class="search-result-item">'
+        html += '<a href="/filings/' + fl.id + '" class="search-result-item">'
           + '<div class="sri-main">'
           + '<div class="sri-title">' + escapeHtml(fl.form) + ' - ' + escapeHtml(fl.trust_name) + '</div>'
           + '<div class="sri-sub">' + escapeHtml(fl.accession) + (fl.filing_date ? ' &middot; ' + escapeHtml(fl.filing_date) : '') + '</div>'

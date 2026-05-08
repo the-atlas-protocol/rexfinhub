@@ -91,7 +91,7 @@
           <td class="num-cell">{{ issuer.aum_fmt }}</td>
           <td class="num-cell">{{ "%.1f%%"|format(issuer.pct) }}</td>
           <td class="num-cell">{{ issuer.num_products }}</td>
-          <td><a href="/market/issuer/detail?issuer={{ issuer.name|urlencode }}" class="btn btn-sm" style="font-size:0.7rem; padding:2px 6px;">&rarr;</a></td>
+          <td><a href="/issuers/{{ issuer.name|urlencode }}" class="btn btn-sm" style="font-size:0.7rem; padding:2px 6px;">&rarr;</a></td>
         </tr>
         {% endfor %}
       </tbody>

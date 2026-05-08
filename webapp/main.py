@@ -12,8 +12,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 
+from datetime import datetime
+
 from fastapi import FastAPI, Form, Header, Query, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -89,7 +91,7 @@ def _safe_redirect(url: str) -> str:
 
 
 # Paths that don't require site auth
-_PUBLIC_PREFIXES = ("/login", "/static/", "/health", "/api/v1/", "/favicon")
+_PUBLIC_PREFIXES = ("/login", "/static/", "/health", "/api/v1/", "/favicon", "/robots.txt", "/sitemap.xml")
 
 
 class SiteAuthMiddleware(BaseHTTPMiddleware):
@@ -151,6 +153,10 @@ templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
 
 # Expose feature flags to all templates (used by base.html for conditional nav)
 templates.env.globals["enable_13f"] = bool(os.environ.get("ENABLE_13F"))
+
+# Canonical URL registry — templates can call {{ url('funds.detail', ticker='NVDX') }}
+from webapp.routes import url as _route_url
+templates.env.globals["url"] = _route_url
 
 
 
@@ -235,6 +241,39 @@ def create_app() -> FastAPI:
     static_dir = WEBAPP_DIR / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    # --- robots.txt + sitemap.xml (public, registered before SiteAuth blocks) ---
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots_txt():
+        return FileResponse(WEBAPP_DIR / "static" / "robots.txt", media_type="text/plain")
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    def sitemap_xml():
+        """Generate sitemap from public, indexable routes."""
+        from webapp.routes import ROUTES
+        base = "https://rexfinhub.com"
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        # Only public list/dashboard pages — no detail surfaces (too many) and no admin/api
+        PUBLIC = [
+            "home", "data",
+            "operations.products", "operations.pipeline", "operations.calendar",
+            "market.rex", "market.category", "market.issuer", "market.underlier", "market.stocks",
+            "sec.etp.dashboard", "sec.etp.filings", "sec.etp.leverageandinverse",
+            "sec.notes.dashboard", "sec.notes.filings",
+            "tools.compare.etps", "tools.li.candidates", "tools.simulators.autocall",
+            "tools.tickers", "tools.calendar",
+            "funds.index", "issuers.index", "trusts.index",
+        ]
+        urls_xml = "\n".join(
+            f'  <url><loc>{base}{ROUTES[name]}</loc><lastmod>{today}</lastmod></url>'
+            for name in PUBLIC if name in ROUTES
+        )
+        body = f'''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{urls_xml}
+</urlset>'''
+        return Response(content=body, media_type="application/xml")
 
     # --- Login / Logout routes (before routers) ---
 

@@ -14,7 +14,7 @@
 {# ------------------------------------------------------------------ #}
 {# Fix 4: Filter form                                                  #}
 {# ------------------------------------------------------------------ #}
-<form method="get" action="/calendar/" style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:14px 18px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+<form method="get" action="/tools/calendar" style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:14px 18px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
   <div style="display:flex; flex-direction:column; gap:3px; min-width:180px;">
     <label style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">Issuer</label>
     <input type="text" name="issuer" value="{{ filter_issuer }}" placeholder="e.g. REX, ProShares..."
@@ -53,7 +53,7 @@
   <input type="hidden" name="year" value="{{ cal_year }}">
   <button type="submit" style="background:#1F3864; color:#fff; border:none; border-radius:4px; padding:7px 16px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">Apply</button>
   {% if filter_issuer or filter_primary_strategy or filter_sub_strategy or filter_date_from or filter_date_to %}
-  <a href="/calendar/?month={{ cal_month }}&year={{ cal_year }}" style="display:inline-flex; align-items:center; font-size:12px; color:#64748b; text-decoration:none; padding:7px 10px; border:1px solid #d1d5db; border-radius:4px; background:#fff;">Clear</a>
+  <a href="/tools/calendar?month={{ cal_month }}&year={{ cal_year }}" style="display:inline-flex; align-items:center; font-size:12px; color:#64748b; text-decoration:none; padding:7px 10px; border:1px solid #d1d5db; border-radius:4px; background:#fff;">Clear</a>
   {% endif %}
 </form>
 
@@ -61,9 +61,9 @@
 {% if weeks is defined and weeks %}
 <div style="margin-bottom:24px;">
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-    <a href="/calendar/?month={{ prev_month }}&year={{ prev_year }}{% if filter_issuer %}&issuer={{ filter_issuer|urlencode }}{% endif %}{% if filter_primary_strategy %}&primary_strategy={{ filter_primary_strategy|urlencode }}{% endif %}{% if filter_sub_strategy %}&sub_strategy={{ filter_sub_strategy|urlencode }}{% endif %}" class="btn btn-sm" style="padding:4px 12px;">&larr; Prev</a>
+    <a href="/tools/calendar?month={{ prev_month }}&year={{ prev_year }}{% if filter_issuer %}&issuer={{ filter_issuer|urlencode }}{% endif %}{% if filter_primary_strategy %}&primary_strategy={{ filter_primary_strategy|urlencode }}{% endif %}{% if filter_sub_strategy %}&sub_strategy={{ filter_sub_strategy|urlencode }}{% endif %}" class="btn btn-sm" style="padding:4px 12px;">&larr; Prev</a>
     <h3 style="margin:0; font-size:1.1rem;">{{ month_name }}</h3>
-    <a href="/calendar/?month={{ next_month }}&year={{ next_year }}{% if filter_issuer %}&issuer={{ filter_issuer|urlencode }}{% endif %}{% if filter_primary_strategy %}&primary_strategy={{ filter_primary_strategy|urlencode }}{% endif %}{% if filter_sub_strategy %}&sub_strategy={{ filter_sub_strategy|urlencode }}{% endif %}" class="btn btn-sm" style="padding:4px 12px;">Next &rarr;</a>
+    <a href="/tools/calendar?month={{ next_month }}&year={{ next_year }}{% if filter_issuer %}&issuer={{ filter_issuer|urlencode }}{% endif %}{% if filter_primary_strategy %}&primary_strategy={{ filter_primary_strategy|urlencode }}{% endif %}{% if filter_sub_strategy %}&sub_strategy={{ filter_sub_strategy|urlencode }}{% endif %}" class="btn btn-sm" style="padding:4px 12px;">Next &rarr;</a>
   </div>
 
   <div class="cal-grid">
@@ -132,7 +132,7 @@
         <tr>
           <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust_name }}">
             {% if item.ticker %}
-            <a href="/market/fund/{{ item.ticker }}" class="text-link" style="font-weight:500;">
+            <a href="/funds/{{ item.ticker }}" class="text-link" style="font-weight:500;">
               {{ item.fund_name if item.fund_name else item.trust_name }}
             </a>
             {% else %}
@@ -183,7 +183,7 @@
         <tr>
           <td style="min-width:220px; white-space:normal; line-height:1.4; padding:8px 10px;" title="{{ item.trust_name }}">
             {% if item.ticker %}
-            <a href="/market/fund/{{ item.ticker }}" class="text-link" style="font-weight:500;">
+            <a href="/funds/{{ item.ticker }}" class="text-link" style="font-weight:500;">
               {{ item.fund_name if item.fund_name else item.trust_name }}
             </a>
             {% else %}
@@ -250,7 +250,7 @@ function showCalEvents(day) {
     var fundName = ev.fund_name || ev.trust || '';
     var fundLink = fundName
       ? (ev.ticker
-          ? '<a href="/market/fund/' + escCalHtml(ev.ticker) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>'
+          ? '<a href="/funds/' + escCalHtml(ev.ticker) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>'
           : '<a href="/funds?q=' + encodeURIComponent(fundName) + '" class="text-link" style="font-weight:500;">' + escCalHtml(fundName) + '</a>')
       : '';
     html += '<tr>';
