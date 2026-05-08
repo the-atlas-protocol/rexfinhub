@@ -53,6 +53,19 @@ _ETP_STATUSES = ("ACTV", "PEND")
 _PRIMARY_STRATEGIES = ["Plain Beta", "L&I", "Income", "Defined Outcome", "Risk Mgmt"]
 
 
+def _coerce_date(value):
+    """SQLite returns date columns as strings under raw sa_text() queries.
+    Coerce to datetime.date so arithmetic and template formatting work."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except (ValueError, TypeError):
+        return None
+
+
 def _build_etp_filter_subquery() -> str:
     """Return a SQL EXISTS clause that restricts to trusts with at least one
     ETP in mkt_master_data (ACTV or PEND), eliminating VA wrappers."""
@@ -176,11 +189,12 @@ def calendar_view(
         if acc in seen_recent:
             continue
         seen_recent.add(acc)
-        days_since = (today - row.effective_date).days if row.effective_date else 0
+        eff = _coerce_date(row.effective_date)
+        days_since = (today - eff).days if eff else 0
         recent_launches.append({
             "fund_name": row.series_name or "",
             "trust_name": row.trust_name or "",
-            "effective_date": row.effective_date,
+            "effective_date": eff,
             "days_since": days_since,
             "form": row.form or "",
             "accession_number": acc or "",
@@ -198,12 +212,13 @@ def calendar_view(
         if acc in seen_upcoming:
             continue
         seen_upcoming.add(acc)
-        days_until = (row.effective_date - today).days if row.effective_date else 0
+        eff = _coerce_date(row.effective_date)
+        days_until = (eff - today).days if eff else 0
         urgency = "green" if days_until > 30 else "amber" if days_until > 7 else "red"
         upcoming_classified.append({
             "fund_name": row.series_name or "",
             "trust_name": row.trust_name or "",
-            "effective_date": row.effective_date,
+            "effective_date": eff,
             "days_until": days_until,
             "urgency": urgency,
             "form": row.form or "",

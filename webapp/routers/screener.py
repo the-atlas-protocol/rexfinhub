@@ -55,11 +55,6 @@ def screener_evaluate_post_redirect():
     return RedirectResponse(url="/filings/evaluator", status_code=307)
 
 
-@router.get("/report")
-def screener_report_redirect():
-    return RedirectResponse(url="/filings/report", status_code=301)
-
-
 # ---------------------------------------------------------------------------
 # Market Landscape (stays in screener)
 # ---------------------------------------------------------------------------
