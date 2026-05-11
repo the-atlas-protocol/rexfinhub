@@ -193,8 +193,9 @@ def _pipeline_products_impl(
     sort: str | None = None,
     dir: str | None = None,
     page: int = 1,
-    per_page: int = 50,
+    per_page: str | int = 50,
     show_cold: int = 0,
+    recent_days: int = 14,
     db: Session = Depends(get_db),
 ):
     """Pipeline Home of Operations — PM dashboard + paginated table.
@@ -205,6 +206,11 @@ def _pipeline_products_impl(
     Default view excludes "cold" rows (Delisted; Listed > 365d ago) so the
     funnel and table focus on what's actively in motion. ``?show_cold=1``
     re-includes them.
+
+    Phase 2 additions:
+      - ``per_page`` accepts 20/50/100/all (string ``"all"`` => no LIMIT)
+      - ``recent_days`` (7/14/30/90) drives Recent Activity window
+      - ``sort`` map extended to include lifecycle dates + days_in_stage
     """
     from webapp.models import RexProduct, FundDistribution
 
@@ -214,17 +220,31 @@ def _pipeline_products_impl(
     quarter_ahead = today + timedelta(days=90)
     cold_cutoff = today - timedelta(days=365)
 
-    # Pagination guards
+    # Pagination guards — accept "all" as a sentinel for no LIMIT.
     try:
         page = max(1, int(page))
     except (TypeError, ValueError):
         page = 1
+
+    per_page_raw = str(per_page).strip().lower() if per_page is not None else "50"
+    show_all = per_page_raw == "all"
+    if show_all:
+        per_page_value = 0  # unused when show_all=True
+    else:
+        try:
+            per_page_value = int(per_page_raw)
+        except (TypeError, ValueError):
+            per_page_value = 50
+        if per_page_value not in (20, 50, 100):
+            per_page_value = 50
+
+    # Recent Activity window guard
     try:
-        per_page = int(per_page)
+        recent_days_value = int(recent_days)
     except (TypeError, ValueError):
-        per_page = 50
-    if per_page not in (25, 50, 100, 200):
-        per_page = 50
+        recent_days_value = 14
+    if recent_days_value not in (7, 14, 30, 90):
+        recent_days_value = 14
 
     show_cold_flag = bool(show_cold)
 
@@ -347,17 +367,32 @@ def _pipeline_products_impl(
         funnel.append({"label": label, "count": n, "statuses": statuses})
     funnel_max = max((f["count"] for f in funnel), default=1) or 1
 
-    # ---- Recent Activity (last 14 days of any updated_at touch) ----
+    # ---- Recent Activity (last N days of any updated_at touch) ----
     # Phase-1 proxy: there's no rex_product_status_history table yet, so we
     # use updated_at as a stand-in for "something changed". When the audit
     # log lands (audit doc Phase 2), swap this to the history join.
+    # Phase 2: window is now configurable via ``?recent_days=N`` (7/14/30/90).
+    # Phase 2.1 (2026-05): the brand filter (_rex_only_filter) was previously
+    # applied here, which silently dropped legitimate activity whenever a bulk
+    # DB sync touched non-REX rows that happen to live in the same trusts
+    # (e.g. ETF Opportunities Trust). For an "activity feed" the user wants
+    # to see ALL pipeline movement, not just REX-branded — so we no longer
+    # restrict by brand. The empty-state copy still references the REX
+    # last-updated timestamp via ``last_updated_overall``.
+    cutoff_dt = datetime.combine(today - timedelta(days=recent_days_value), datetime.min.time())
     activity_rows = (
-        _rex_only_filter(db.query(RexProduct))
+        db.query(RexProduct)
         .filter(RexProduct.updated_at.isnot(None))
-        .filter(RexProduct.updated_at >= datetime.combine(today - timedelta(days=14), datetime.min.time()))
+        .filter(RexProduct.updated_at >= cutoff_dt)
         .order_by(RexProduct.updated_at.desc())
         .limit(20)
         .all()
+    )
+    # Latest updated_at across the whole table — surfaced in the empty
+    # state so users understand WHY there's no recent activity (e.g. the
+    # whole table hasn't been touched in weeks).
+    last_updated_overall = (
+        db.query(func.max(RexProduct.updated_at)).scalar()
     )
     recent_activity = []
     now_dt = datetime.utcnow()
@@ -461,32 +496,60 @@ def _pipeline_products_impl(
     sort_col = sort or "status"
     sort_dir = dir or "asc"
     _asc = sort_dir != "desc"
+    # Sort map accepts BOTH the short legacy keys (filed/effective/listed)
+    # and the long explicit keys that match the th data-sort attributes
+    # in the template (initial_filing_date, estimated_effective_date,
+    # official_listed_date, latest_form). This keeps Phase-1 URLs working
+    # while enabling Phase-2 sortable headers.
     sort_map = {
         "status": RexProduct.status,
         "effective": RexProduct.estimated_effective_date,
+        "estimated_effective_date": RexProduct.estimated_effective_date,
         "name": RexProduct.name,
         "ticker": RexProduct.ticker,
         "suite": RexProduct.product_suite,
         "filed": RexProduct.initial_filing_date,
+        "initial_filing_date": RexProduct.initial_filing_date,
         "listed": RexProduct.official_listed_date,
+        "official_listed_date": RexProduct.official_listed_date,
+        "latest_form": RexProduct.latest_form,
     }
     col = sort_map.get(sort_col)
     if col is not None:
         query = query.order_by(col.asc().nulls_last() if _asc else col.desc().nulls_last())
     else:
-        query = query.order_by(
-            RexProduct.status.asc(),
-            RexProduct.estimated_effective_date.asc().nulls_last(),
-            RexProduct.name.asc(),
-        )
+        # ``days_in_stage`` is a derived/computed value — we can't push it
+        # into SQL cleanly, so we order by updated_at as the closest proxy
+        # (the same field that drives the day-count fallback). Real sort
+        # happens in Python after the slice is materialized.
+        if sort_col == "days_in_stage":
+            query = query.order_by(
+                RexProduct.updated_at.asc().nulls_last() if _asc
+                else RexProduct.updated_at.desc().nulls_last()
+            )
+        else:
+            query = query.order_by(
+                RexProduct.status.asc(),
+                RexProduct.estimated_effective_date.asc().nulls_last(),
+                RexProduct.name.asc(),
+            )
 
     # ---- Pagination ----
     total_count = query.count()
-    total_pages = max(1, (total_count + per_page - 1) // per_page)
-    if page > total_pages:
-        page = total_pages
-    offset = (page - 1) * per_page
-    products_page = query.offset(offset).limit(per_page).all()
+    if show_all:
+        # No LIMIT — single page that holds everything.
+        total_pages = 1
+        page = 1
+        offset = 0
+        products_page = query.all()
+        effective_per_page = total_count or 1
+    else:
+        total_pages = max(1, (total_count + per_page_value - 1) // per_page_value)
+        if page > total_pages:
+            page = total_pages
+        offset = (page - 1) * per_page_value
+        products_page = query.offset(offset).limit(per_page_value).all()
+        effective_per_page = per_page_value
 
     # ---- Days in current stage (rough proxy) ----
     # Use the most-recent meaningful stage timestamp on the row, fall back
@@ -508,20 +571,37 @@ def _pipeline_products_impl(
             days_in_stage = None
         products_view.append({"p": p, "days_in_stage": days_in_stage})
 
+    # Post-slice sort for the derived ``days_in_stage`` column. Done in
+    # Python because the value isn't a real SQL column. Within-page only
+    # so pages are still stable across navigation.
+    if sort_col == "days_in_stage":
+        products_view.sort(
+            key=lambda r: (r["days_in_stage"] is None, r["days_in_stage"] or 0),
+            reverse=(sort_dir == "desc"),
+        )
+
     # Preserve every active query param (other than page) so pagination
-    # links don't drop the user's filters.
+    # links don't drop the user's filters. ``per_page`` is preserved as
+    # the raw token so "all" round-trips correctly.
     base_qs_parts = []
-    if status:        base_qs_parts.append(("status", status))
-    if suite:         base_qs_parts.append(("suite", suite))
-    if q:             base_qs_parts.append(("q", q))
-    if urgency:       base_qs_parts.append(("urgency", urgency))
-    if sort:          base_qs_parts.append(("sort", sort))
-    if dir:           base_qs_parts.append(("dir", dir))
-    if per_page != 50: base_qs_parts.append(("per_page", str(per_page)))
-    if show_cold_flag: base_qs_parts.append(("show_cold", "1"))
+    if status:           base_qs_parts.append(("status", status))
+    if suite:            base_qs_parts.append(("suite", suite))
+    if q:                base_qs_parts.append(("q", q))
+    if urgency:          base_qs_parts.append(("urgency", urgency))
+    if sort:             base_qs_parts.append(("sort", sort))
+    if dir:              base_qs_parts.append(("dir", dir))
+    if show_all:         base_qs_parts.append(("per_page", "all"))
+    elif per_page_value != 50: base_qs_parts.append(("per_page", str(per_page_value)))
+    if recent_days_value != 14: base_qs_parts.append(("recent_days", str(recent_days_value)))
+    if show_cold_flag:   base_qs_parts.append(("show_cold", "1"))
     from urllib.parse import urlencode
     base_qs = urlencode(base_qs_parts)
     base_qs_no_show_cold = urlencode([(k, v) for (k, v) in base_qs_parts if k != "show_cold"])
+    # For per_page / recent_days / sort toggles we want the URL minus
+    # the param being toggled, so the new value can be appended cleanly.
+    base_qs_no_per_page = urlencode([(k, v) for (k, v) in base_qs_parts if k != "per_page"])
+    base_qs_no_recent_days = urlencode([(k, v) for (k, v) in base_qs_parts if k != "recent_days"])
+    base_qs_no_sort = urlencode([(k, v) for (k, v) in base_qs_parts if k not in ("sort", "dir")])
 
     is_admin = request.session.get("is_admin", False)
 
@@ -561,11 +641,18 @@ def _pipeline_products_impl(
         "products": products_page,  # legacy alias
         "filtered_count": total_count,
         "page": page,
-        "per_page": per_page,
+        "per_page": per_page_value,
+        "per_page_token": "all" if show_all else str(per_page_value),
+        "show_all_rows": show_all,
+        "effective_per_page": effective_per_page,
+        "per_page_warning": show_all and total_count > 500,
         "total_pages": total_pages,
         "page_offset": offset,
         "base_qs": base_qs,
         "base_qs_no_show_cold": base_qs_no_show_cold,
+        "base_qs_no_per_page": base_qs_no_per_page,
+        "base_qs_no_recent_days": base_qs_no_recent_days,
+        "base_qs_no_sort": base_qs_no_sort,
         # Filter state
         "valid_statuses": VALID_STATUSES,
         "valid_suites": VALID_SUITES,
@@ -577,6 +664,9 @@ def _pipeline_products_impl(
         "show_cold": show_cold_flag,
         "sort_col": sort_col,
         "sort_dir": sort_dir,
+        # Recent Activity window state
+        "recent_days": recent_days_value,
+        "last_updated_overall": last_updated_overall,
     })
 
 

@@ -153,9 +153,9 @@ h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; l
 
 table.pipeline-table { width:100%; border-collapse:collapse; font-size:12px; }
 table.pipeline-table th {
-  background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px;
+  background:#f8fafc; padding:0; text-align:left; font-size:10px;
   text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb;
-  letter-spacing:0.04em; white-space:nowrap; cursor:pointer; user-select:none;
+  letter-spacing:0.04em; white-space:nowrap; user-select:none;
   position:sticky; top:0;
 }
 table.pipeline-table th:hover { color:#0f172a; }
@@ -208,9 +208,12 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fde68a;
 }
 
-/* Server-side sortable column headers (anchor links wrapping th text) */
+/* Server-side sortable column headers — anchor link FILLS the cell so the
+   entire header is clickable (not just the text). The <th> has padding:0 so
+   the <a> owns the click area; the cursor:pointer lives on the <a>. */
 table.pipeline-table th a.th-sort {
-  color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:4px;
+  color:inherit; text-decoration:none; display:flex; align-items:center;
+  gap:4px; padding:8px 10px; cursor:pointer; width:100%; box-sizing:border-box;
 }
 table.pipeline-table th a.th-sort:hover { color:#0f172a; }
 table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size:10px; }
@@ -338,10 +341,13 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
           {% endfor %}
         {% else %}
           <div class="activity-empty">
-            No status changes in the last {{ recent_days }} days.
+            No product updates in the last {{ recent_days }} days.
             {% if last_updated_overall %}
+              {% set last_days_ago = (today - last_updated_overall.date()).days %}
               <div style="margin-top:6px; font-size:11px; color:#cbd5e1;">
-                rex_products last updated {{ last_updated_overall.strftime('%Y-%m-%d') }}.
+                rex_products last updated {{ last_updated_overall.strftime('%Y-%m-%d') }}
+                ({{ last_days_ago }}d ago).
+                {% if last_days_ago > recent_days %}Try the 30d or 90d window above.{% endif %}
               </div>
             {% endif %}
           </div>
