@@ -440,13 +440,17 @@ def _build_unified_row(
     else:
         status_display = "—"
 
-    # Fund type — capm gets first say, then mkt for ETN flag, then category fallback
-    fund_type_display = (
-        (capm.product_type if capm else None)
-        or (mkt.fund_type if mkt else None)
-        or (capm.category if capm else None)
-        or "—"
-    )
+    # Fund type — legal structure ONLY (ETF / ETN). Bloomberg mkt.fund_type
+    # is the canonical source. capm.product_type contains the suite name
+    # (T-REX / Premium Income / etc.) which is wrong for this column; never
+    # use it as fund_type. Fall back to "ETF" only if rex.product_suite
+    # equals "MicroSectors ETN" (the only REX ETN family), else default ETF.
+    if mkt and mkt.fund_type:
+        fund_type_display = mkt.fund_type
+    elif rex and rex.product_suite == "MicroSectors ETN":
+        fund_type_display = "ETN"
+    else:
+        fund_type_display = "ETF"
 
     # Prospectus — prefer the live SEC link from the pipeline, fall back
     # to the legacy xlsx-imported link.
