@@ -2,6 +2,11 @@
 {% block title %}Filings Dashboard — REX Financial Intelligence Hub{% endblock %}
 
 {% block content %}
+{# Trust search dropdown only shows trusts that have at least one extracted
+   fund. Otherwise the embedded JS array balloons to 15k entries (300+ KB).
+   Trusts without funds aren't useful targets in a "find a trust" search box —
+   their /trusts/{slug} page would be empty. #}
+{% set searchable_trusts = trusts|selectattr('total', 'gt', 0)|list %}
 <style>
 /* Form type pill badges */
 .form-badge {
@@ -143,7 +148,7 @@
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px; margin-bottom:32px;">
   <div>
     <div style="font-size:16px; font-weight:600; color:#0f172a; margin-bottom:12px;">Find a Trust</div>
-    <input type="text" id="trustSearch" placeholder="Search {{ trusts|length }} trusts by name..."
+    <input type="text" id="trustSearch" placeholder="Search {{ searchable_trusts|length }} trusts by name..."
       style="width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:6px; font-size:14px; font-family:inherit;"
       onkeyup="filterTrusts(this.value)">
     <div id="trustResults" style="margin-top:12px; max-height:200px; overflow-y:auto;"></div>
@@ -161,7 +166,7 @@
 
 <script>
 (function() {
-  var trusts = [{% for t in trusts %}{name:"{{ t.name|replace('"', '\\"') }}",slug:"{{ t.slug }}",funds:{{ t.total or 0 }},rex:{{ 'true' if t.is_rex else 'false' }}},{% endfor %}];
+  var trusts = [{% for t in searchable_trusts %}{name:"{{ t.name|replace('"', '\\"') }}",slug:"{{ t.slug }}",funds:{{ t.total or 0 }},rex:{{ 'true' if t.is_rex else 'false' }}},{% endfor %}];
 
   window.filterTrusts = function(q) {
     var results = document.getElementById('trustResults');

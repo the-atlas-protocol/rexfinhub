@@ -223,22 +223,28 @@
   </div>
 </div>
 
-<div class="sg-filter-bar">
-  {# Leverage filter pills — client-side JS #}
-  <button class="sg-pill active" data-filter="leverage" data-value="all" onclick="setFilter('leverage','all')">All</button>
+<form method="get" action="/sec/etp/leverageandinverse" class="sg-filter-bar">
+  <input type="hidden" name="mode" value="filings">
+  {# Leverage filter pills — server-side via URL params #}
+  <a href="/sec/etp/leverageandinverse?mode=filings{% if view and view != 'all' %}&view={{ view }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}" class="sg-pill{% if leverage == 'all' or not leverage %} active{% endif %}">All</a>
   {% for lev in ['-1x', '1.25x', '1.5x', '2x', '3x', '4x', '5x'] %}
   {% if leverage_counts.get(lev, 0) > 0 %}
-  <button class="sg-pill" data-filter="leverage" data-value="{{ lev }}" onclick="setFilter('leverage','{{ lev }}')">{{ lev }}</button>
+  <a href="/sec/etp/leverageandinverse?mode=filings&leverage={{ lev }}{% if view and view != 'all' %}&view={{ view }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}" class="sg-pill{% if leverage == lev %} active{% endif %}">{{ lev }}</a>
   {% endif %}
   {% endfor %}
   <span class="sg-divider"></span>
-  <button class="sg-pill active" data-filter="view" data-value="all" onclick="setFilter('view','all')">All Names</button>
-  <button class="sg-pill" data-filter="view" data-value="rex-only" onclick="setFilter('view','rex-only')">REX / T-REX</button>
-  <button class="sg-pill" data-filter="view" data-value="missing" onclick="setFilter('view','missing')">Competitors</button>
+  <a href="/sec/etp/leverageandinverse?mode=filings{% if leverage and leverage != 'all' %}&leverage={{ leverage }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}" class="sg-pill{% if view == 'all' or not view %} active{% endif %}">All Names</a>
+  <a href="/sec/etp/leverageandinverse?mode=filings&view=rex-only{% if leverage and leverage != 'all' %}&leverage={{ leverage }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}" class="sg-pill{% if view == 'rex-only' %} active{% endif %}">REX / T-REX</a>
+  <a href="/sec/etp/leverageandinverse?mode=filings&view=missing{% if leverage and leverage != 'all' %}&leverage={{ leverage }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}" class="sg-pill{% if view == 'missing' %} active{% endif %}">Competitors</a>
   <span class="sg-divider"></span>
-  <input type="text" id="landscapeSearch" placeholder="Search fund, underlier, issuer..." class="sg-search" oninput="applyFilters()">
-  <button class="sg-pill" style="font-size:12px; padding:4px 10px; display:none;" id="clearSearch" onclick="document.getElementById('landscapeSearch').value='';applyFilters();this.style.display='none';">Clear</button>
-</div>
+  <input type="hidden" name="leverage" value="{{ leverage or 'all' }}">
+  <input type="hidden" name="view" value="{{ view or 'all' }}">
+  <input type="text" name="q" id="landscapeSearch" value="{{ q or '' }}" placeholder="Search fund, underlier, issuer..." class="sg-search">
+  <button type="submit" class="sg-pill" style="font-size:12px; padding:4px 10px;">Search</button>
+  {% if q %}
+  <a href="/sec/etp/leverageandinverse?mode=filings{% if leverage and leverage != 'all' %}&leverage={{ leverage }}{% endif %}{% if view and view != 'all' %}&view={{ view }}{% endif %}" class="sg-pill" style="font-size:12px; padding:4px 10px;">Clear</a>
+  {% endif %}
+</form>
 
 <!-- ==================== FUND TABLE (server-side paginated) ==================== -->
 <div class="screener-wrap">
@@ -259,7 +265,7 @@
   </thead>
   <tbody>
     {% for r in fund_rows %}
-    <tr class="fund-row{% if r.issuer in ('T-REX', 'REX') %} scorecard-rex{% endif %}" data-leverage="{{ r.leverage }}" data-issuer="{{ r.issuer }}" data-search="{{ r.fund_name|lower }} {{ (r.ticker or '')|lower }} {{ r.issuer|lower }} {{ r.underlier|lower }} {{ r.trust|lower }}">
+    <tr class="fund-row{% if r.issuer in ('T-REX', 'REX') %} scorecard-rex{% endif %}">
       <td style="text-align:center;">
         <span class="lev-badge lev-{{ r.leverage }}">{{ r.leverage }}</span>
       </td>
@@ -302,20 +308,43 @@
 </div>
 </div>
 
-<div id="noResults" style="text-align:center; padding:40px; color:#64748b; font-size:14px; display:none;">
+{% if total_rows == 0 %}
+<div style="text-align:center; padding:40px; color:#64748b; font-size:14px;">
   No funds match the selected filters.
 </div>
+{% endif %}
 
-<div id="paginationBar" style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 0;">
-  <div id="pageInfo" style="font-size:13px; color:#94a3b8;"></div>
-  <div id="pageButtons" style="display:flex; align-items:center; gap:4px;"></div>
-  <select id="perPageSelect" style="padding:4px 8px; font-size:12px; border:1px solid #e5e7eb; border-radius:4px; color:#0f172a; background:#ffffff; font-family:inherit;" onchange="currentPerPage=parseInt(this.value);currentPage=1;applyFilters();">
-    <option value="50" selected>50/page</option>
-    <option value="100">100/page</option>
-    <option value="200">200/page</option>
-    <option value="9999">All</option>
+{% if total_pages > 1 or total_rows > per_page %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 0;">
+  <div style="font-size:13px; color:#94a3b8;">
+    Showing {{ (page - 1) * per_page + 1 }}&ndash;{{ [page * per_page, total_rows]|min }} of {{ "{:,}".format(total_rows) }} funds
+    &middot; page {{ page }} of {{ total_pages }}
+  </div>
+  <div style="display:flex; align-items:center; gap:4px;">
+    {% if page > 1 %}
+    <a href="?{{ base_qs }}&page={{ page - 1 }}" class="sg-pill" style="font-size:12px; padding:4px 12px;">Prev</a>
+    {% else %}
+    <span class="sg-pill" style="font-size:12px; padding:4px 12px; opacity:0.4; cursor:default;">Prev</span>
+    {% endif %}
+    {% set start_p = [1, page - 2]|max %}
+    {% set end_p = [total_pages + 1, page + 3]|min %}
+    {% for p in range(start_p, end_p) %}
+    <a href="?{{ base_qs }}&page={{ p }}" class="sg-pill{% if p == page %} active{% endif %}" style="font-size:12px; padding:4px 10px; min-width:32px; justify-content:center;">{{ p }}</a>
+    {% endfor %}
+    {% if page < total_pages %}
+    <a href="?{{ base_qs }}&page={{ page + 1 }}" class="sg-pill" style="font-size:12px; padding:4px 12px;">Next</a>
+    {% else %}
+    <span class="sg-pill" style="font-size:12px; padding:4px 12px; opacity:0.4; cursor:default;">Next</span>
+    {% endif %}
+  </div>
+  <select style="padding:4px 8px; font-size:12px; border:1px solid #e5e7eb; border-radius:4px; color:#0f172a; background:#ffffff; font-family:inherit;"
+          onchange="location='?{{ base_qs }}&page=1&per_page='+this.value">
+    {% for n in [25, 50, 100, 200] %}
+    <option value="{{ n }}"{{ ' selected' if n == per_page else '' }}>{{ n }}/page</option>
+    {% endfor %}
   </select>
 </div>
+{% endif %}
 
 <!-- ==================== MATRIX VIEW (collapsible) ==================== -->
 <details style="margin-top:32px;">
@@ -336,7 +365,7 @@
     <button type="button" class="sg-pill" data-filter-group="matrix-view" data-value="missing" onclick="setMatrixFilter(this)">Gaps</button>
     <span class="sg-divider"></span>
     <input type="text" id="matrixSearch" placeholder="Search underlier..." class="sg-search" oninput="filterMatrix()">
-    <span class="sg-badge landscape-row-count" id="matrixRowCount">{{ flat_rows|length }} rows</span>
+    <span class="sg-badge landscape-row-count" id="matrixRowCount">{{ flat_rows|length }} rows{% if flat_rows_total and flat_rows_total > flat_rows|length %} (top {{ matrix_cap }} of {{ flat_rows_total }} by issuer count){% endif %}</span>
   </div>
 
   <div class="screener-wrap">
@@ -548,103 +577,6 @@ function filterProducts() {
     if (counter) counter.textContent = visible + ' products';
 }
 
-/* ===== CLIENT-SIDE FILTERING FOR FILINGS MODE ===== */
-var currentLeverage = 'all';
-var currentView = 'all';
-var currentPage = 1;
-var currentPerPage = 50;
-var REX_ISSUERS = ['T-REX', 'REX'];
-
-function setFilter(type, value) {
-    if (type === 'leverage') currentLeverage = value;
-    if (type === 'view') currentView = value;
-    currentPage = 1;
-
-    /* Update pill active states */
-    document.querySelectorAll('[data-filter="' + type + '"]').forEach(function(btn) {
-        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
-    });
-    applyFilters();
-}
-
-function applyFilters() {
-    var rows = document.querySelectorAll('#fundTable tbody .fund-row');
-    if (!rows.length) return;
-
-    var q = (document.getElementById('landscapeSearch') || {}).value || '';
-    q = q.toLowerCase().trim();
-    var clearBtn = document.getElementById('clearSearch');
-    if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
-
-    var visible = [];
-    rows.forEach(function(row) {
-        var lev = row.getAttribute('data-leverage');
-        var issuer = row.getAttribute('data-issuer');
-        var search = row.getAttribute('data-search');
-
-        var show = true;
-        if (currentLeverage !== 'all' && lev !== currentLeverage) show = false;
-        if (currentView === 'rex-only' && REX_ISSUERS.indexOf(issuer) === -1) show = false;
-        if (currentView === 'missing' && REX_ISSUERS.indexOf(issuer) !== -1) show = false;
-        if (q && search.indexOf(q) === -1) show = false;
-
-        if (show) visible.push(row);
-        row.style.display = 'none';
-    });
-
-    /* Pagination */
-    var total = visible.length;
-    var totalPages = Math.max(1, Math.ceil(total / currentPerPage));
-    if (currentPage > totalPages) currentPage = totalPages;
-    var start = (currentPage - 1) * currentPerPage;
-    var end = Math.min(start + currentPerPage, total);
-
-    for (var i = start; i < end; i++) {
-        visible[i].style.display = '';
-    }
-
-    /* No results message */
-    var noRes = document.getElementById('noResults');
-    if (noRes) noRes.style.display = total === 0 ? 'block' : 'none';
-
-    /* Page info */
-    var info = document.getElementById('pageInfo');
-    if (info) info.textContent = total.toLocaleString() + ' funds \u00b7 page ' + currentPage + ' of ' + totalPages;
-
-    /* Page buttons */
-    var btns = document.getElementById('pageButtons');
-    if (btns) {
-        btns.innerHTML = '';
-        if (totalPages <= 1) return;
-
-        function mkBtn(label, pg, active) {
-            var el = document.createElement('button');
-            el.textContent = label;
-            el.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;font-size:12px;font-weight:500;border-radius:4px;border:none;cursor:pointer;min-width:32px;font-family:inherit;';
-            if (active) {
-                el.style.background = '#0f172a'; el.style.color = '#ffffff'; el.style.fontWeight = '600';
-            } else if (pg === null) {
-                el.style.background = '#f3f4f6'; el.style.color = '#374151'; el.style.opacity = '0.4'; el.style.cursor = 'default';
-            } else {
-                el.style.background = '#f3f4f6'; el.style.color = '#374151';
-                el.onclick = function() { currentPage = pg; applyFilters(); };
-            }
-            btns.appendChild(el);
-        }
-
-        mkBtn('Prev', currentPage > 1 ? currentPage - 1 : null, false);
-        var sp = Math.max(1, currentPage - 2);
-        var ep = Math.min(totalPages, currentPage + 2);
-        for (var p = sp; p <= ep; p++) mkBtn(String(p), p, p === currentPage);
-        mkBtn('Next', currentPage < totalPages ? currentPage + 1 : null, false);
-    }
-}
-
-/* Initialize on load */
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.querySelectorAll('#fundTable tbody .fund-row').length > 0) {
-        applyFilters();
-    }
-});
+/* Filings-mode fund table is now server-side paginated \u2014 no JS pagination needed. */
 </script>
 {% endblock %}

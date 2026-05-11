@@ -36,6 +36,31 @@ templates = Jinja2Templates(directory="webapp/templates")
 log = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# In-memory TTL cache for heavy aggregations.
+# build_filing_landscape() takes ~2.5 s and _trust_stats() takes ~1 s — both
+# scan the full Filing/FundStatus tables and return data that only changes
+# when the daily pipeline runs. A 5-minute TTL is well below the pipeline
+# cadence and keeps repeat page loads under the 1 s budget.
+# ---------------------------------------------------------------------------
+import time as _time
+
+_AGG_CACHE: dict[str, tuple[float, object]] = {}
+_AGG_TTL_SECONDS = 300.0
+
+
+def _cached(key: str, builder, ttl: float = _AGG_TTL_SECONDS):
+    """Return cached value or rebuild it. Single-process, single-thread safe."""
+    now = _time.monotonic()
+    hit = _AGG_CACHE.get(key)
+    if hit is not None and (now - hit[0]) < ttl:
+        return hit[1]
+    val = builder()
+    _AGG_CACHE[key] = (now, val)
+    return val
+
+
+
 def _et_time(dt) -> str:
     """Format a naive UTC datetime as ET ('YYYY-MM-DD HH:MM ET'). Empty string for None."""
     if dt is None:
@@ -87,14 +112,30 @@ def _filing_explorer_impl(
     if mode not in ("funds", "filings"):
         mode = "funds"
 
-    # Common data: trusts for dropdowns, global counts for KPIs
-    trusts = db.execute(
-        select(Trust).where(Trust.is_active == True).order_by(Trust.name)
-    ).scalars().all()
+    # Common data: trusts for dropdowns, global counts for KPIs.
+    # Restrict dropdown to trusts with filings or fund records — otherwise
+    # the <select> renders 15k+ <option>s (1.4 MB of dead HTML).
+    # Cache: dropdown + KPI counts only change when the pipeline runs.
+    trusts = _cached("explorer_trusts_dropdown", lambda: db.execute(
+        select(Trust.id, Trust.name)
+        .where(Trust.is_active == True)
+        .where(or_(
+            Trust.id.in_(select(Filing.trust_id).distinct()),
+            Trust.id.in_(select(FundStatus.trust_id).distinct()),
+        ))
+        .order_by(Trust.name)
+    ).all())
 
-    fund_count = db.execute(select(func.count()).select_from(FundStatus)).scalar() or 0
-    filing_count = db.execute(select(func.count()).select_from(Filing)).scalar() or 0
-    trust_count = len(trusts)
+    counts = _cached("explorer_global_counts", lambda: {
+        "fund_count": db.execute(select(func.count()).select_from(FundStatus)).scalar() or 0,
+        "filing_count": db.execute(select(func.count()).select_from(Filing)).scalar() or 0,
+        "trust_count": db.execute(
+            select(func.count()).select_from(Trust).where(Trust.is_active == True)
+        ).scalar() or 0,
+    })
+    fund_count = counts["fund_count"]
+    filing_count = counts["filing_count"]
+    trust_count = counts["trust_count"]
 
     if mode == "funds":
         return _handle_funds_mode(
@@ -278,7 +319,10 @@ def _dashboard_impl(
 ):
     """Filings Dashboard — registered at /sec/etp/ via sec_etp.py.
     Old /filings/dashboard 301s to the new URL."""
-    all_trusts = _trust_stats(db)
+    # Cached for 5 minutes — _trust_stats scans 15k+ trusts and joins on
+    # FundStatus + Filing aggregates (~1 s uncached). The pipeline only
+    # mutates these tables a few times a day, so a 5 min TTL is safe.
+    all_trusts = _cached("trust_stats", lambda: _trust_stats(db))
 
     # Filter by entity_type if specified
     if entity_type:
@@ -320,56 +364,103 @@ def _dashboard_impl(
     if days not in _ALLOWED_DAYS:
         days = 7
 
-    # Recent filings with configurable filters (prospectus-related only)
+    # Recent filings with configurable filters (prospectus-related only).
+    # Two-step query: paginate Filing+Trust first, then backfill fund_names
+    # for the visible page. The previous single-query GROUP_CONCAT pattern
+    # forced SQLite to materialize the full grouped result before COUNT,
+    # adding seconds for no benefit.
     _PROSPECTUS_PREFIXES = ("485A", "485B", "497", "S-1", "S-3", "EFFECT", "POS AM")
-    filing_query = (
+    base_filing_q = (
         select(
             Filing,
             Trust.name.label("trust_name"),
             Trust.slug.label("trust_slug"),
-            func.group_concat(FundExtraction.series_name.distinct()).label("fund_names"),
         )
         .join(Trust, Trust.id == Filing.trust_id)
-        .outerjoin(FundExtraction, FundExtraction.filing_id == Filing.id)
     )
 
     if days > 0:
         cutoff = date.today() - timedelta(days=days)
-        filing_query = filing_query.where(Filing.filing_date >= cutoff)
+        base_filing_q = base_filing_q.where(Filing.filing_date >= cutoff)
 
     if form_type:
-        filing_query = filing_query.where(Filing.form.ilike(f"{form_type}%"))
+        base_filing_q = base_filing_q.where(Filing.form.ilike(f"{form_type}%"))
     else:
-        # Default: only prospectus-related forms on the dashboard
-        filing_query = filing_query.where(
+        base_filing_q = base_filing_q.where(
             or_(*(Filing.form.ilike(f"{p}%") for p in _PROSPECTUS_PREFIXES))
         )
 
     if filing_trust_id:
-        filing_query = filing_query.where(Filing.trust_id == filing_trust_id)
+        base_filing_q = base_filing_q.where(Filing.trust_id == filing_trust_id)
 
-    filing_query = (
-        filing_query
-        .group_by(Filing.id)
-        .order_by(Filing.filing_date.desc())
+    base_filing_q = base_filing_q.order_by(Filing.filing_date.desc())
+
+    # Cheap count on Filing (no GROUP BY)
+    count_filing_q = select(func.count(Filing.id)).select_from(Filing).join(
+        Trust, Trust.id == Filing.trust_id
     )
+    if days > 0:
+        count_filing_q = count_filing_q.where(Filing.filing_date >= cutoff)
+    if form_type:
+        count_filing_q = count_filing_q.where(Filing.form.ilike(f"{form_type}%"))
+    else:
+        count_filing_q = count_filing_q.where(
+            or_(*(Filing.form.ilike(f"{p}%") for p in _PROSPECTUS_PREFIXES))
+        )
+    if filing_trust_id:
+        count_filing_q = count_filing_q.where(Filing.trust_id == filing_trust_id)
 
-    # Count total filings before applying pagination
-    total_filings = db.execute(
-        select(func.count()).select_from(filing_query.subquery())
-    ).scalar() or 0
+    total_filings = db.execute(count_filing_q).scalar() or 0
     total_pages = max(1, math.ceil(total_filings / per_page))
     page = min(page, total_pages)
 
-    # Apply pagination
-    recent_filings = db.execute(
-        filing_query.offset((page - 1) * per_page).limit(per_page)
+    page_filings = db.execute(
+        base_filing_q.offset((page - 1) * per_page).limit(per_page)
     ).all()
 
-    # Trust list for filing filter dropdown
+    # Backfill fund_names per visible page.
+    page_fids = [r.Filing.id for r in page_filings]
+    fund_names_map: dict[int, str] = {}
+    if page_fids:
+        fund_rows_dash = db.execute(
+            select(
+                FundExtraction.filing_id,
+                func.group_concat(FundExtraction.series_name.distinct()).label("names"),
+            )
+            .where(FundExtraction.filing_id.in_(page_fids))
+            .group_by(FundExtraction.filing_id)
+        ).all()
+        fund_names_map = {fid: names for fid, names in fund_rows_dash}
+
+    class _DashFilingRow:
+        __slots__ = ("Filing", "trust_name", "trust_slug", "fund_names")
+
+        def __init__(self, src, fund_names):
+            self.Filing = src.Filing
+            self.trust_name = src.trust_name
+            self.trust_slug = src.trust_slug
+            self.fund_names = fund_names
+
+    recent_filings = [
+        _DashFilingRow(r, fund_names_map.get(r.Filing.id, ""))
+        for r in page_filings
+    ]
+
+    # Trust list for filing filter dropdown.
+    # Only trusts that filed in the last 365 days can meaningfully appear in
+    # the dashboard's recent-filings table (max window is 90d, default 7d) —
+    # the unfiltered set is 15k+ rows and dominates page weight (~250 KB).
+    one_year_ago = date.today() - timedelta(days=365)
     filing_trusts = db.execute(
-        select(Trust).where(Trust.is_active == True).order_by(Trust.name)
-    ).scalars().all()
+        select(Trust.id, Trust.name)
+        .where(Trust.is_active == True)
+        .where(Trust.id.in_(
+            select(Filing.trust_id)
+            .where(Filing.filing_date >= one_year_ago)
+            .distinct()
+        ))
+        .order_by(Trust.name)
+    ).all()
 
     # Build query string preserving current filters (without page)
     qs_params = {}
@@ -532,48 +623,85 @@ def _landscape_impl(
 
     # ------------------------------------------------------------------
     # Filings mode: SEC filing matrix + fund-level rows
+    # Server-side filter + paginate the fund table; cap the matrix view.
+    # Previously dumped all 3k+ fund rows + 1k+ matrix rows × 10 issuer cols
+    # in a single response (~5.7 MB). Now: paginated fund table + capped
+    # matrix = under 500 KB and under 1s.
     # ------------------------------------------------------------------
     if mode == "filings":
         from webapp.services.filing_landscape import build_filing_landscape
 
-        data = build_filing_landscape(db)
+        # Cached for 5 minutes — build_filing_landscape aggregates the entire
+        # L&I universe (~2.5 s uncached) and only changes when the pipeline runs.
+        data = _cached("filing_landscape", lambda: build_filing_landscape(db))
         matrices = data["matrices"]
 
-        # Build flat rows for the matrix view (backward compat)
+        # Apply server-side filters to fund rows
+        all_fund_rows = data["fund_rows"]
+        filtered_rows = _filter_fund_rows(all_fund_rows, leverage, view, q)
+
+        # Pagination
+        total_rows = len(filtered_rows)
+        total_pages = max(1, math.ceil(total_rows / per_page))
+        page = min(page, total_pages)
+        page_start = (page - 1) * per_page
+        page_rows = filtered_rows[page_start : page_start + per_page]
+
+        # Build flat rows for the matrix view, capped to top 100 underliers
+        # by fund count (matrix is behind a collapsed <details>, rarely opened —
+        # full set explodes the page; users filter via Top Underliers chips).
+        MATRIX_CAP = 100
         all_issuers_ordered = data["all_active_issuers"]
-        flat_rows = []
+        flat_rows_unranked = []
         for lev in ("2x", "3x", "4x", "5x"):
             for underlier in sorted(matrices.get(lev, {}).keys()):
                 issuers_map = matrices[lev][underlier]
                 has_rex = any(i in REX_ISSUERS for i in issuers_map)
-                flat_rows.append({
+                flat_rows_unranked.append({
                     "underlier": underlier,
                     "leverage": lev,
                     "issuers": issuers_map,
                     "has_rex": has_rex,
+                    "_score": len(issuers_map),
                 })
+        flat_rows_unranked.sort(key=lambda r: (-r["_score"], r["underlier"]))
+        flat_rows_total = len(flat_rows_unranked)
+        flat_rows = flat_rows_unranked[:MATRIX_CAP]
+        for r in flat_rows:
+            r.pop("_score", None)
 
-        # All fund rows sent to client — filtering is 100% client-side JS
-        all_fund_rows = data["fund_rows"]
+        # Build base_qs preserving filters (excludes page so pager can append)
+        qs_params = {"mode": "filings"}
+        if leverage and leverage != "all":
+            qs_params["leverage"] = leverage
+        if view and view != "all":
+            qs_params["view"] = view
+        if q:
+            qs_params["q"] = q
+        if per_page != 50:
+            qs_params["per_page"] = per_page
+        base_qs = urllib.parse.urlencode(qs_params)
 
         return templates.TemplateResponse("screener_landscape.html", {
             "request": request,
             "mode": "filings",
             "kpis": data["kpis"],
             "flat_rows": flat_rows,
+            "flat_rows_total": flat_rows_total,
+            "matrix_cap": MATRIX_CAP,
             "all_issuers": all_issuers_ordered,
             "issuer_scorecard": data["issuer_scorecard"],
             "generated_at": data["generated_at"],
-            "leverage": "all",
-            "view": "all",
-            "q": "",
-            # All fund rows — client-side filtering + pagination via JS
-            "fund_rows": all_fund_rows,
-            "page": 1,
-            "per_page": 50,
-            "total_rows": len(all_fund_rows),
-            "total_pages": max(1, math.ceil(len(all_fund_rows) / 50)),
-            "base_qs": "mode=filings",
+            "leverage": leverage,
+            "view": view,
+            "q": q,
+            # Server-side paginated rows
+            "fund_rows": page_rows,
+            "page": page,
+            "per_page": per_page,
+            "total_rows": total_rows,
+            "total_pages": total_pages,
+            "base_qs": base_qs,
             "top_underliers": data["top_underliers"],
             "leverage_counts": data["leverage_counts"],
         })
@@ -629,7 +757,7 @@ def _landscape_export_impl(
     Old /filings/landscape/export 301s to the new URL."""
     from webapp.services.filing_landscape import build_filing_landscape
 
-    data = build_filing_landscape(db)
+    data = _cached("filing_landscape", lambda: build_filing_landscape(db))
     filtered = _filter_fund_rows(data["fund_rows"], leverage, view, q)
 
     header = [
@@ -890,9 +1018,38 @@ def _handle_funds_mode(
     if trust_id:
         query = query.where(FundStatus.trust_id == trust_id)
 
-    # Count total
-    count_q = select(func.count()).select_from(query.subquery())
-    total_results = db.execute(count_q).scalar() or 0
+    # Direct COUNT (no subquery wrapper). When the user has applied no extra
+    # filters, the count of "ETF funds with non-blank names" is stable per
+    # session — cache it for 5 min to skip the 23-NOT-ILIKE table scan.
+    has_filters = bool(q or status or trust_id)
+    if not has_filters:
+        cache_key = "explorer_funds_count"
+        total_results = _cached(
+            cache_key,
+            lambda: db.execute(
+                select(func.count(FundStatus.id))
+                .where(FundStatus.fund_name.notin_(["", "-", " "]))
+                .where(*[~FundStatus.fund_name.ilike(p) for p in MUTUAL_FUND_EXCLUSIONS])
+            ).scalar() or 0,
+        )
+    else:
+        # Count directly on FundStatus — Trust join unnecessary for COUNT
+        # since we only filter on FundStatus.trust_id (no Trust columns).
+        count_q = select(func.count(FundStatus.id)).where(
+            FundStatus.fund_name.notin_(["", "-", " "])
+        )
+        for pattern in MUTUAL_FUND_EXCLUSIONS:
+            count_q = count_q.where(~FundStatus.fund_name.ilike(pattern))
+        if q:
+            count_q = count_q.where(or_(
+                FundStatus.fund_name.ilike(f"%{q}%"),
+                FundStatus.ticker.ilike(f"%{q}%"),
+            ))
+        if status:
+            count_q = count_q.where(FundStatus.status == status.upper())
+        if trust_id:
+            count_q = count_q.where(FundStatus.trust_id == trust_id)
+        total_results = db.execute(count_q).scalar() or 0
     total_pages = max(1, math.ceil(total_results / per_page))
 
     if page > total_pages:
@@ -953,17 +1110,18 @@ def _handle_filings_mode(
     if per_page not in (25, 50, 100, 200):
         per_page = 50
 
-    query = (
+    # Step 1: paginate Filing+Trust only (fast index scan).
+    # Step 2: fetch fund_names for the visible page in one extra query.
+    # The previous single-query GROUP_CONCAT-with-COUNT pattern took ~3 s for
+    # the count alone because SQLite materialized the entire grouped result.
+    base_q = (
         select(
             Filing,
             Trust.name.label("trust_name"),
             Trust.slug.label("trust_slug"),
             Trust.is_rex.label("is_rex"),
-            func.group_concat(FundExtraction.series_name.distinct()).label("fund_names"),
         )
         .join(Trust, Trust.id == Filing.trust_id)
-        .outerjoin(FundExtraction, FundExtraction.filing_id == Filing.id)
-        .group_by(Filing.id)
     )
 
     # Text search
@@ -972,7 +1130,7 @@ def _handle_filings_mode(
             select(FundExtraction.filing_id)
             .where(FundExtraction.series_name.ilike(f"%{q}%"))
         )
-        query = query.where(or_(
+        base_q = base_q.where(or_(
             Filing.accession_number.ilike(f"%{q}%"),
             Trust.name.ilike(f"%{q}%"),
             Filing.form.ilike(f"%{q}%"),
@@ -981,32 +1139,80 @@ def _handle_filings_mode(
 
     # Form type filter
     if form_type:
-        query = query.where(Filing.form.ilike(f"{form_type}%"))
+        base_q = base_q.where(Filing.form.ilike(f"{form_type}%"))
 
     # Date range filter
     days = _DATE_RANGE_MAP.get(date_range)
     cutoff = None
     if days:
         cutoff = date.today() - timedelta(days=days)
-        query = query.where(Filing.filing_date >= cutoff)
+        base_q = base_q.where(Filing.filing_date >= cutoff)
 
     # Trust filter
     if trust_id:
-        query = query.where(Filing.trust_id == trust_id)
+        base_q = base_q.where(Filing.trust_id == trust_id)
 
-    query = query.order_by(Filing.filing_date.desc())
+    base_q = base_q.order_by(Filing.filing_date.desc())
 
-    # Count total before pagination
-    total_filings = db.execute(
-        select(func.count()).select_from(query.subquery())
-    ).scalar() or 0
+    # Cheap COUNT on Filing (no GROUP BY).
+    count_q = select(func.count(Filing.id)).select_from(Filing).join(
+        Trust, Trust.id == Filing.trust_id
+    )
+    if q:
+        count_q = count_q.where(or_(
+            Filing.accession_number.ilike(f"%{q}%"),
+            Trust.name.ilike(f"%{q}%"),
+            Filing.form.ilike(f"%{q}%"),
+            Filing.id.in_(
+                select(FundExtraction.filing_id)
+                .where(FundExtraction.series_name.ilike(f"%{q}%"))
+            ),
+        ))
+    if form_type:
+        count_q = count_q.where(Filing.form.ilike(f"{form_type}%"))
+    if cutoff is not None:
+        count_q = count_q.where(Filing.filing_date >= cutoff)
+    if trust_id:
+        count_q = count_q.where(Filing.trust_id == trust_id)
+
+    total_filings = db.execute(count_q).scalar() or 0
     total_pages = max(1, math.ceil(total_filings / per_page))
     page = min(page, total_pages)
 
-    # Paginated results
-    results = db.execute(
-        query.offset((page - 1) * per_page).limit(per_page)
+    # Paginated rows (no fund_names yet)
+    page_rows = db.execute(
+        base_q.offset((page - 1) * per_page).limit(per_page)
     ).all()
+
+    # Backfill fund_names per page in a single query.
+    page_filing_ids = [r.Filing.id for r in page_rows]
+    fund_names_map: dict[int, str] = {}
+    if page_filing_ids:
+        fund_rows = db.execute(
+            select(
+                FundExtraction.filing_id,
+                func.group_concat(FundExtraction.series_name.distinct()).label("names"),
+            )
+            .where(FundExtraction.filing_id.in_(page_filing_ids))
+            .group_by(FundExtraction.filing_id)
+        ).all()
+        fund_names_map = {fid: names for fid, names in fund_rows}
+
+    # Wrap each Row with a fund_names attr for template compatibility.
+    class _FilingRow:
+        __slots__ = ("Filing", "trust_name", "trust_slug", "is_rex", "fund_names")
+
+        def __init__(self, src, fund_names):
+            self.Filing = src.Filing
+            self.trust_name = src.trust_name
+            self.trust_slug = src.trust_slug
+            self.is_rex = src.is_rex
+            self.fund_names = fund_names
+
+    results = [
+        _FilingRow(r, fund_names_map.get(r.Filing.id, ""))
+        for r in page_rows
+    ]
 
     # Form type counts (for summary bar) - respect current filters except form_type
     count_query = select(Filing.form, func.count(Filing.id).label("cnt"))
