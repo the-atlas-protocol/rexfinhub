@@ -299,6 +299,16 @@ def _capm_index_impl(
         avg_fees[s] = round(sum(nums) / len(nums)) if nums else None
 
     # ------------------------------------------------------------------
+    # LIVE-ONLY default (per Ryu 2026-05-11): /operations/products is the
+    # live REX product registry, not a pipeline view. Filter to Listed
+    # funds only. Pipeline/pre-effective filings live on /operations/pipeline.
+    # ?include_all=1 query param opens the full set for admin review.
+    # ------------------------------------------------------------------
+    include_all = bool(request.query_params.get("include_all"))
+    if not include_all:
+        unified = [u for u in unified if (u.status_display or "").lower() == "listed"]
+
+    # ------------------------------------------------------------------
     # Filter (suite + free-text) AFTER stats so KPIs stay stable and users
     # see consistent header counts regardless of active filter.
     # ------------------------------------------------------------------
