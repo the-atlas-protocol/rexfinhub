@@ -88,7 +88,50 @@ def _pipeline_root_impl(
     return _render_month(request, db, today.year, today.month, types)
 
 
-VALID_STATUSES = ["Research", "Target List", "Filed", "Awaiting Effective", "Listed", "Delisted"]
+# Lifecycle status enum — extended from 6 to 15 values to capture the full
+# Counsel → Board → Filed → Effective → Listed workflow extracted from the
+# board approval emails. Strictly additive: every legacy 6-value row keeps
+# its existing status. Order below mirrors lifecycle progression so UI
+# dropdowns and filter pills read top-to-bottom.
+VALID_STATUSES = [
+    "Research",
+    "Target List",
+    "Counsel Review",          # NEW — under outside-counsel review
+    "Counsel Approved",        # NEW — counsel cleared for board
+    "Counsel Withdrawn",       # NEW — counsel pulled prior to board
+    "Pending Board",           # NEW — awaiting board vote
+    "Board Approved",          # NEW — board greenlit, pre-filing
+    "Not Approved by Board",   # NEW — board rejected
+    "Filed",
+    "Filed (485A)",            # NEW — 485APOS specifically
+    "Filed (485B)",            # NEW — 485BPOS specifically
+    "Awaiting Effective",
+    "Effective",               # NEW — effective but not yet listed
+    "Listed",
+    "Delisted",
+]
+
+# Color palette for status badges — tuned for 15 distinct lifecycle stages.
+# Greys for early/idle stages, ambers/oranges for review-in-flight, greens
+# for approved/effective/listed, reds for rejected/withdrawn/delisted.
+STATUS_COLORS = {
+    "Research":              "#94a3b8",  # slate
+    "Target List":           "#64748b",  # darker slate
+    "Counsel Review":        "#fbbf24",  # amber
+    "Counsel Approved":      "#22c55e",  # light green
+    "Counsel Withdrawn":     "#f87171",  # light red
+    "Pending Board":         "#f59e0b",  # orange
+    "Board Approved":        "#16a34a",  # green
+    "Not Approved by Board": "#dc2626",  # red
+    "Filed":                 "#2563eb",  # blue
+    "Filed (485A)":          "#3b82f6",  # blue (lighter)
+    "Filed (485B)":          "#1d4ed8",  # blue (darker)
+    "Awaiting Effective":    "#0891b2",  # cyan
+    "Effective":             "#0d9488",  # teal
+    "Listed":                "#059669",  # dark green
+    "Delisted":              "#6b7280",  # dim grey
+}
+
 VALID_SUITES = list(SUITE_COLORS.keys())
 
 
@@ -376,6 +419,7 @@ def _pipeline_products_impl(
         # Filter state
         "valid_statuses": VALID_STATUSES,
         "valid_suites": VALID_SUITES,
+        "status_colors": STATUS_COLORS,
         "filter_status": status or "",
         "filter_suite": suite or "",
         "filter_q": q or "",
@@ -578,6 +622,40 @@ def _render_month(
             })
             holiday_set.add(h.holiday_date)
             counts_by_type["holiday"] += 1
+
+    # ---- Status-change markers (TASK 4) ----
+    # We can't reconstruct full status-transition history without an audit
+    # log, but RexProduct.updated_at is populated whenever any field
+    # (including status) is mutated through the admin update endpoint.
+    # Surface a count of products touched per day in this month so the
+    # calendar shows lifecycle activity. Future work: dedicated
+    # rex_product_status_history table for true transition events.
+    try:
+        status_changes = (
+            db.query(RexProduct.id, RexProduct.ticker, RexProduct.name,
+                     RexProduct.status, RexProduct.updated_at)
+            .filter(RexProduct.updated_at.isnot(None))
+            .filter(func.date(RexProduct.updated_at).between(
+                first_day.isoformat(), last_day.isoformat()))
+            .all()
+        )
+        for sc in status_changes:
+            if sc.updated_at is None:
+                continue
+            d = sc.updated_at.date() if hasattr(sc.updated_at, "date") else sc.updated_at
+            if not (first_day <= d <= last_day):
+                continue
+            events_by_day[d].append({
+                "type": "status_change",
+                "ticker": sc.ticker or "",
+                "name": sc.name,
+                "status": sc.status,
+                "color": "#8b5cf6",  # violet — distinct from other event types
+            })
+    except Exception:
+        # Defensive: never break the calendar if updated_at is missing or
+        # the column doesn't exist on legacy schemas.
+        pass
 
     # ---- Build KPIs (always, regardless of type filter) ----
     total = db.query(RexProduct).count()

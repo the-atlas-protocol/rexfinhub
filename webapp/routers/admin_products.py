@@ -33,7 +33,10 @@ router = APIRouter(prefix="/admin/products", tags=["admin-products"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 ADMIN_PASSWORD = load_admin_password()
-VALID_STATUSES = ["Research", "Target List", "Filed", "Awaiting Effective", "Listed", "Delisted"]
+# Single source of truth in pipeline_calendar.py (15 lifecycle statuses, additive
+# expansion 2026-05-11 added Counsel Review/Approved/Withdrawn, Pending Board,
+# Board Approved, Not Approved by Board, Filed (485A)/(485B), Effective).
+from webapp.routers.pipeline_calendar import VALID_STATUSES
 VALID_SUITES = ["T-REX", "Premium Income", "Growth & Income", "IncomeMax", "Crypto", "Thematic", "Autocallable", "T-Bill", "MicroSectors ETN"]
 
 

@@ -98,12 +98,26 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 .ticker-col { font-family:monospace; font-weight:700; color:#1F3864; }
 .name-col { max-width:280px; overflow:hidden; text-overflow:ellipsis; }
 
-.status-pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; text-transform:uppercase; }
-.status-Listed { background:#ecfdf5; color:#059669; }
-.status-Filed { background:#eff6ff; color:#2563eb; }
-.status-Research, .status-Target-List { background:#fffbeb; color:#d97706; }
-.status-Delisted { background:#fef2f2; color:#dc2626; }
-.status-Awaiting-Effective { background:#fef3c7; color:#b45309; }
+/* Status badges — color comes from inline style driven by status_colors dict
+   passed from pipeline_calendar.py. The 15-value lifecycle uses distinct
+   hex colors (greys for early, ambers for review, greens for approved/
+   effective/listed, reds for not-approved/delisted). Background is the
+   color at 12% alpha; border at 33% alpha; text at full color. */
+.status-pill {
+  display:inline-block; padding:2px 8px; border-radius:3px;
+  font-size:10px; font-weight:600; text-transform:uppercase;
+  white-space:nowrap;
+}
+/* Inline status <select> for admin mode — replaces click-to-edit for status */
+.status-select {
+  font-size:10px; font-weight:600; padding:2px 4px;
+  border:1px solid #e5e7eb; border-radius:3px;
+  background:#fff; color:#0f172a; font-family:inherit;
+  cursor:pointer; max-width:170px;
+}
+.status-select:hover { border-color:#1F3864; }
+.status-select.saving { background:#ecfdf5; border-color:#059669; }
+.status-select.failed { background:#fef2f2; border-color:#dc2626; }
 
 .suite-pill { display:inline-block; padding:2px 6px; border-radius:3px; font-size:10px; font-weight:600; }
 
@@ -230,6 +244,23 @@ table.pipeline-table tr:hover { background:#fafbfc; }
         <a href="/operations/pipeline?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
       </div>
     </div>
+
+    {# Status filter pills — covers the new lifecycle stages from the board-approval workflow.
+       Pills are color-coded to match the badge palette. Counts come from status_counts. #}
+    <div class="filter-row">
+      <label>Status</label>
+      <div class="urgency-pills">
+        {% for s in ['Counsel Review', 'Pending Board', 'Board Approved', 'Not Approved by Board'] %}
+          {% set sc = status_colors.get(s, '#64748b') %}
+          {% set cnt = status_counts.get(s, 0) %}
+          <a href="/operations/pipeline?status={{ s | urlencode }}"
+             class="urgency-pill {% if filter_status == s %}active{% endif %}"
+             style="border-color:{{ sc }}77; {% if filter_status == s %}background:{{ sc }}; color:#fff;{% else %}color:{{ sc }};{% endif %}">
+            {{ s }} <span class="count">{{ cnt }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
   </form>
 
   {# ---- Action Bar ---- #}
@@ -284,7 +315,24 @@ table.pipeline-table tr:hover { background:#fafbfc; }
           <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
           <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:55] }}</td>
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
-          <td data-sort="{{ p.status }}" data-field="status" data-field-type="select" data-field-options="{{ valid_statuses|join('|') }}"><span class="status-pill status-{{ p.status.replace(' ', '-') }}">{{ p.status }}</span></td>
+          {# Status cell: admin gets an inline <select>; everyone else sees a color-coded badge. #}
+          {% set s_color = status_colors.get(p.status, '#64748b') %}
+          <td data-sort="{{ p.status }}">
+            {% if is_admin %}
+              <select class="status-select"
+                      data-product-id="{{ p.id }}"
+                      data-prev="{{ p.status }}"
+                      style="color:{{ s_color }}; border-color:{{ s_color }}55;"
+                      onchange="updateProductStatus(this)">
+                {% for s in valid_statuses %}
+                <option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <span class="status-pill"
+                    style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ p.status }}</span>
+            {% endif %}
+          </td>
           <td data-sort="{{ (p.underlier or '').lower() }}" data-field="underlier">{{ p.underlier or '---' }}</td>
           <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
           <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}" data-field="estimated_effective_date" data-field-type="date">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
@@ -433,6 +481,41 @@ function scrollPipelineTable(delta) {
 }
 
 {% if is_admin %}
+/* Inline status update — fires when admin picks a new value from the
+   per-row <select>. POSTs to the same admin update endpoint as inline
+   field edits. Visual feedback: green tint on success, red + revert on
+   failure (e.g. server-side validator rejecting an unknown status). */
+function updateProductStatus(sel) {
+    var prev = sel.dataset.prev;
+    var newVal = sel.value;
+    if (newVal === prev) return;
+    var pid = sel.dataset.productId;
+    var body = new FormData();
+    body.append('status', newVal);
+    sel.classList.remove('failed');
+    sel.classList.add('saving');
+    fetch('/admin/products/update/' + pid, {
+        method: 'POST', body: body, credentials: 'same-origin'
+    }).then(function(res) {
+        sel.classList.remove('saving');
+        if (res.ok) {
+            sel.dataset.prev = newVal;
+            showToast('Status: ' + newVal);
+            // refresh visual color so the select hue matches the new status
+            setTimeout(function() { window.location.reload(); }, 600);
+        } else {
+            sel.classList.add('failed');
+            sel.value = prev;
+            showToast('Save failed (' + res.status + ')', true);
+        }
+    }).catch(function(err) {
+        sel.classList.remove('saving');
+        sel.classList.add('failed');
+        sel.value = prev;
+        showToast('Error: ' + err, true);
+    });
+}
+
 /* Add-product modal (kept as fallback for creating new rows) */
 function openAddModal() { document.getElementById('addModal').classList.add('open'); }
 function closeModal() { document.getElementById('addModal').classList.remove('open'); }
