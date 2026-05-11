@@ -324,7 +324,13 @@ def run_market_sync():
     # safeguard protects all curated values. Audit log in classification_audit_log.
     print("  Applying classification sweep (HIGH-confidence only)...")
     try:
-        _r3 = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "apply_classification_sweep.py"), "--apply"],
+        # --apply-medium added 2026-05-11 per Ryu's batch approval of the MEDIUM
+        # buckets (1,038 Plain Beta + 150 Income + 69 Defined Outcome). Without
+        # this, the manual approvals get wiped on every daily sync. LOW
+        # confidence proposals still queue for admin review (mostly Plain Beta
+        # defaults for generic equity funds — not auto-applied).
+        _r3 = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "apply_classification_sweep.py"),
+                       "--apply", "--apply-medium"],
                       capture_output=True, text=True, timeout=600)
         if _r3.returncode != 0:
             print(f"  WARN: classification_sweep exit={_r3.returncode}: {_r3.stderr[:200]}")
