@@ -456,6 +456,30 @@ class MktMasterData(Base):
     strategy: Mapped[str | None] = mapped_column(String(50))
     strategy_confidence: Mapped[str | None] = mapped_column(String(10))
     underlier_type: Mapped[str | None] = mapped_column(String(50))
+    # 3-axis taxonomy (CLASSIFICATION_SYSTEM_PLAN.md — populated via classification sweep)
+    asset_class: Mapped[str | None] = mapped_column(String(30))
+    primary_strategy: Mapped[str | None] = mapped_column(String(40))
+    sub_strategy: Mapped[str | None] = mapped_column(String(80))
+    concentration: Mapped[str | None] = mapped_column(String(10))
+    underlier_name: Mapped[str | None] = mapped_column(String(60))
+    underlier_is_wrapper: Mapped[bool | None] = mapped_column(Boolean)
+    root_underlier_name: Mapped[str | None] = mapped_column(String(60))
+    wrapper_type: Mapped[str | None] = mapped_column(String(20))
+    mechanism: Mapped[str | None] = mapped_column(String(20))
+    leverage_ratio: Mapped[float | None] = mapped_column(Float)
+    direction: Mapped[str | None] = mapped_column(String(10))
+    reset_period: Mapped[str | None] = mapped_column(String(15))
+    distribution_freq: Mapped[str | None] = mapped_column(String(15))
+    outcome_period_months: Mapped[int | None] = mapped_column(Integer)
+    cap_pct: Mapped[float | None] = mapped_column(Float)
+    buffer_pct: Mapped[float | None] = mapped_column(Float)
+    accelerator_multiplier: Mapped[float | None] = mapped_column(Float)
+    barrier_pct: Mapped[float | None] = mapped_column(Float)
+    region: Mapped[str | None] = mapped_column(String(30))
+    duration_bucket: Mapped[str | None] = mapped_column(String(20))
+    credit_quality: Mapped[str | None] = mapped_column(String(20))
+    tax_structure: Mapped[str | None] = mapped_column(String(20))
+    qualified_dividends: Mapped[bool | None] = mapped_column(Boolean)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     __table_args__ = (
@@ -596,6 +620,41 @@ class ClassificationProposal(Base):
     __table_args__ = (
         Index("idx_cls_proposal_ticker", "ticker"),
         Index("idx_cls_proposal_status", "status"),
+    )
+
+
+class ClassificationAuditLog(Base):
+    """Audit log for every value written by the classification sweep.
+
+    Records every change to mkt_master_data classification columns (the 3-axis
+    taxonomy + ~20 attribute columns). Used to verify the no-overwrite safeguard
+    held and to roll back if a sweep misbehaves. Append-only.
+
+    source values:
+      'sweep_high'    HIGH-confidence auto-apply
+      'sweep_medium'  MED-confidence auto-apply (if --apply-medium passed)
+      'proposal'      Wrote to ClassificationProposal queue (no DB change)
+      'conflict'      Skipped — existing value differs from suggestion
+      'rollback'      Manual rollback action
+    """
+    __tablename__ = "classification_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sweep_run_id: Mapped[str | None] = mapped_column(String(40))  # ISO timestamp tag
+    ticker: Mapped[str] = mapped_column(String(30), nullable=False)
+    column_name: Mapped[str] = mapped_column(String(60), nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text)
+    new_value: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str | None] = mapped_column(String(30))
+    confidence: Mapped[str | None] = mapped_column(String(10))
+    reason: Mapped[str | None] = mapped_column(Text)
+    dry_run: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("idx_cls_audit_ticker", "ticker"),
+        Index("idx_cls_audit_run", "sweep_run_id"),
+        Index("idx_cls_audit_source", "source"),
     )
 
 

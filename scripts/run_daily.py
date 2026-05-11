@@ -317,6 +317,24 @@ def run_market_sync():
     except Exception as e:
         print(f"  WARN: brand application skipped: {e}")
 
+    # Classification sweep (3-axis taxonomy: asset_class x primary_strategy
+    # x sub_strategy + 14 attribute columns). Bloomberg sync also clears
+    # these to NULL on re-import. HIGH-confidence only auto-applies; MED/LOW
+    # go to ClassificationProposal queue for admin review. Strict no-overwrite
+    # safeguard protects all curated values. Audit log in classification_audit_log.
+    print("  Applying classification sweep (HIGH-confidence only)...")
+    try:
+        _r3 = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "apply_classification_sweep.py"), "--apply"],
+                      capture_output=True, text=True, timeout=600)
+        if _r3.returncode != 0:
+            print(f"  WARN: classification_sweep exit={_r3.returncode}: {_r3.stderr[:200]}")
+        # Echo summary lines from sweep output
+        for line in _r3.stdout.splitlines():
+            if any(k in line for k in ["HIGH-conf fills:", "MED/LOW skipped:", "Conflicts:", "Overwrites:", "Proposals queued:"]):
+                print(f"  {line.strip()}")
+    except Exception as e:
+        print(f"  WARN: classification sweep skipped: {e}")
+
     # Recompute screener cache (includes candidates, evaluator, li_products)
     print("  Computing screener cache...")
     from webapp.services.screener_3x_cache import compute_and_cache

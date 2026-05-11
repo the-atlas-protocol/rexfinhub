@@ -142,6 +142,93 @@
   </div>
 {% endmacro %}
 
+<!-- ===== SWEEP STATUS (task #98) ===== -->
+<div class="cs-section">
+  <h2>Categorization Sweep Status</h2>
+  <span class="cs-section-note">3-axis taxonomy (asset_class &times; primary_strategy &times; sub_strategy + attributes)</span>
+</div>
+
+<div class="cs-kpis">
+  {% if last_sweep %}
+  <div class="cs-kpi accent-new">
+    <div class="cs-kpi-value">{{ "{:,}".format(last_sweep.high_fills) }}</div>
+    <div class="cs-kpi-label">HIGH-conf Fills (last sweep)</div>
+    <div class="cs-kpi-sub">{{ last_sweep.sweep_run_id }}{% if last_sweep.dry_run %} <span style="color:#d97706;">[DRY-RUN]</span>{% endif %}</div>
+  </div>
+  <div class="cs-kpi">
+    <div class="cs-kpi-value">{{ "{:,}".format(last_sweep.med_fills) }}</div>
+    <div class="cs-kpi-label">MED-conf Fills (last sweep)</div>
+    <div class="cs-kpi-sub">--apply-medium only</div>
+  </div>
+  <div class="cs-kpi accent-legacy">
+    <div class="cs-kpi-value">{{ "{:,}".format(last_sweep.conflicts) }}</div>
+    <div class="cs-kpi-label">Conflicts (NOT overwritten)</div>
+    <div class="cs-kpi-sub">existing curated values preserved</div>
+  </div>
+  <div class="cs-kpi">
+    <div class="cs-kpi-value">{{ "{:,}".format(pending_proposals) }}</div>
+    <div class="cs-kpi-label">Pending Proposals</div>
+    <div class="cs-kpi-sub"><a href="/admin/" style="color:#2563eb;">review queue &rarr;</a></div>
+  </div>
+  {% else %}
+  <div class="cs-kpi" style="grid-column: span 2;">
+    <div class="cs-kpi-value" style="font-size:14px; line-height:1.4; color:#64748b;">
+      No sweep has been run yet.<br>
+      <code style="background:#f1f5f9; padding:2px 6px; border-radius:3px; font-size:12px;">python scripts/apply_classification_sweep.py --dry-run</code>
+    </div>
+    <div class="cs-kpi-label">Sweep Status</div>
+  </div>
+  <div class="cs-kpi">
+    <div class="cs-kpi-value">{{ "{:,}".format(pending_proposals) }}</div>
+    <div class="cs-kpi-label">Pending Proposals</div>
+    <div class="cs-kpi-sub"><a href="/admin/" style="color:#2563eb;">review queue &rarr;</a></div>
+  </div>
+  {% endif %}
+</div>
+
+{% if latest_conflicts_csv %}
+<div style="font-size:12px; color:#64748b; margin: 8px 0 24px;">
+  Latest conflicts file: <code>docs/{{ latest_conflicts_csv }}</code> &mdash;
+  <span style="color:#94a3b8;">manual review queue for cases where the classifier suggested a value but a curated one already exists.</span>
+</div>
+{% endif %}
+
+<!-- ===== PER-COLUMN COVERAGE ===== -->
+<div class="cs-section">
+  <h2>Per-Column Coverage (3-axis taxonomy)</h2>
+  <span class="cs-section-note">{{ per_column_coverage|length }} columns &mdash; ACTV/PEND only</span>
+</div>
+<table class="cs-table">
+  <thead>
+    <tr>
+      <th>Column</th>
+      <th>Fill</th>
+      <th class="num">Populated</th>
+      <th class="num">Total</th>
+      <th class="num">%</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in per_column_coverage %}
+    <tr>
+      <td class="bucket-name"><code style="background:#f8fafc; padding:2px 6px; border-radius:3px; font-size:12px;">{{ c.column }}</code></td>
+      <td>
+        <div class="cs-bar-wrap">
+          <div class="cs-bar-bg">
+            <div class="cs-bar-fill" style="width:{{ c.pct }}%; background:{% if c.pct >= 80 %}#059669{% elif c.pct >= 30 %}#d97706{% else %}#dc2626{% endif %};"></div>
+          </div>
+        </div>
+      </td>
+      <td class="num">{{ "{:,}".format(c.populated) }}</td>
+      <td class="num cs-comp">{{ "{:,}".format(c.total) }}</td>
+      <td class="num">{{ c.pct }}%</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="color:#94a3b8; text-align:center; padding:20px;">No data.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 <!-- ===== BY PRIMARY STRATEGY ===== -->
 <div class="cs-section">
   <h2>By Primary Strategy</h2>

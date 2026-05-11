@@ -885,12 +885,91 @@ def classification_stats(request: Request, db: Session = Depends(get_db)):
         coverage["pct"] = 0
         coverage["legacy_pct"] = 0
 
+    # Per-column coverage % across the full 3-axis taxonomy + attribute set
+    # (introduced for the categorization application sweep — task #98).
+    per_column_coverage: list[dict] = []
+    target_cols = [
+        "asset_class", "primary_strategy", "sub_strategy",
+        "concentration", "underlier_name", "mechanism",
+        "leverage_ratio", "direction", "reset_period", "distribution_freq",
+        "cap_pct", "buffer_pct", "barrier_pct",
+        "region", "duration_bucket", "credit_quality",
+    ]
+    for col in target_cols:
+        try:
+            row = db.execute(sa_text(f"""
+                SELECT COUNT(*) AS total,
+                       SUM(CASE WHEN {col} IS NOT NULL AND {col} != '' THEN 1 ELSE 0 END) AS pop
+                FROM mkt_master_data
+                WHERE market_status IN ('ACTV','PEND')
+            """)).fetchone()
+            t = row[0] or 0
+            p = row[1] or 0
+            pct = round(100 * p / t, 1) if t else 0
+            per_column_coverage.append({
+                "column": col, "populated": int(p), "total": int(t), "pct": pct,
+            })
+        except Exception as e:
+            log.warning("per-column coverage query failed for %s: %s", col, e)
+
+    # Last sweep summary (from classification_audit_log)
+    last_sweep = None
+    try:
+        last_row = db.execute(sa_text("""
+            SELECT sweep_run_id,
+                   MIN(created_at) AS started_at,
+                   COUNT(*) AS rows_logged,
+                   SUM(CASE WHEN source = 'sweep_high' THEN 1 ELSE 0 END) AS high_fills,
+                   SUM(CASE WHEN source = 'sweep_medium' THEN 1 ELSE 0 END) AS med_fills,
+                   SUM(CASE WHEN source = 'conflict' THEN 1 ELSE 0 END) AS conflicts,
+                   MAX(CASE WHEN dry_run = 1 THEN 1 ELSE 0 END) AS any_dry_run
+            FROM classification_audit_log
+            WHERE sweep_run_id IS NOT NULL
+            GROUP BY sweep_run_id
+            ORDER BY started_at DESC
+            LIMIT 1
+        """)).fetchone()
+        if last_row:
+            last_sweep = {
+                "sweep_run_id": last_row[0],
+                "started_at": str(last_row[1]) if last_row[1] else "",
+                "rows_logged": int(last_row[2] or 0),
+                "high_fills": int(last_row[3] or 0),
+                "med_fills": int(last_row[4] or 0),
+                "conflicts": int(last_row[5] or 0),
+                "dry_run": bool(last_row[6]),
+            }
+    except Exception as e:
+        log.warning("last sweep query failed (table may not exist yet): %s", e)
+
+    # Pending proposals queue size
+    pending_proposals = 0
+    try:
+        pending_proposals = db.execute(sa_text(
+            "SELECT COUNT(*) FROM classification_proposals WHERE status='pending'"
+        )).scalar() or 0
+    except Exception:
+        pending_proposals = 0
+
+    # Latest conflicts CSV link (file generated under docs/classification_conflicts_YYYY-MM-DD.csv)
+    from pathlib import Path
+    docs_dir = Path(__file__).resolve().parent.parent.parent / "docs"
+    latest_conflicts_csv = None
+    if docs_dir.exists():
+        candidates = sorted(docs_dir.glob("classification_conflicts_*.csv"), reverse=True)
+        if candidates:
+            latest_conflicts_csv = candidates[0].name  # filename only — link as docs path
+
     return templates.TemplateResponse("admin_classification_stats.html", {
         "request": request,
         "by_primary_strategy": by_primary_strategy,
         "by_asset_class": by_asset_class,
         "by_sub_strategy": by_sub_strategy,
         "coverage": coverage,
+        "per_column_coverage": per_column_coverage,
+        "last_sweep": last_sweep,
+        "pending_proposals": int(pending_proposals),
+        "latest_conflicts_csv": latest_conflicts_csv,
     })
 
 
