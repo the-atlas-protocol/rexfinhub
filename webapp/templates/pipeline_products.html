@@ -87,6 +87,16 @@ h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; l
 .activity-when { font-size:11px; color:#64748b; text-align:right; font-family:monospace; }
 .activity-empty { padding:20px 14px; font-size:12px; color:#94a3b8; text-align:center; }
 
+/* Recent Activity day-window pills (7/14/30/90) */
+.recent-pills { display:inline-flex; gap:4px; margin-left:auto; margin-right:10px; }
+.recent-pill {
+  padding:3px 8px; border:1px solid #e5e7eb; border-radius:12px; font-size:10px;
+  color:#64748b; text-decoration:none; background:#fff; font-weight:600;
+  text-transform:uppercase; letter-spacing:0.04em;
+}
+.recent-pill:hover { border-color:#1F3864; color:#0f172a; }
+.recent-pill.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+
 .quick-list { padding:8px 14px; }
 .quick-list-item { display:flex; justify-content:space-between; padding:5px 0; font-size:12px; border-bottom:1px solid #f1f5f9; }
 .quick-list-item:last-child { border-bottom:none; }
@@ -184,6 +194,27 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 .prospect-link { font-size:11px; color:#2563eb; text-decoration:none; }
 .prospect-link:hover { text-decoration:underline; }
 
+/* Page-size pills (Show: 20 / 50 / 100 / All) */
+.pagesize-pills { display:inline-flex; gap:4px; align-items:center; }
+.pagesize-pills .ps-label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; font-weight:600; margin-right:2px; }
+.pagesize-pill {
+  padding:4px 10px; border:1px solid #e5e7eb; border-radius:14px; font-size:11px;
+  color:#64748b; text-decoration:none; background:#fff; font-weight:600;
+}
+.pagesize-pill:hover { border-color:#1F3864; color:#0f172a; }
+.pagesize-pill.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+.pagesize-warn {
+  display:inline-block; margin-left:10px; padding:3px 8px; border-radius:3px;
+  font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fde68a;
+}
+
+/* Server-side sortable column headers (anchor links wrapping th text) */
+table.pipeline-table th a.th-sort {
+  color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:4px;
+}
+table.pipeline-table th a.th-sort:hover { color:#0f172a; }
+table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size:10px; }
+
 /* Pagination */
 .pagination { display:flex; gap:4px; align-items:center; justify-content:center; padding:14px 0; flex-wrap:wrap; }
 .pagination a, .pagination span {
@@ -245,22 +276,26 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   {# ============================================================== #}
   <h2>Urgency</h2>
   <div class="urgency-grid">
-    <a class="urgency-card urgent" href="/operations/pipeline?urgency=urgent">
-      <div class="label">Urgent (next 14d)</div>
+    <a class="urgency-card urgent" href="/operations/pipeline?urgency=urgent"
+       title="Filed / Awaiting Effective with estimated effective date in the next 14 days.">
+      <div class="label">Upcoming Filings (14D)</div>
       <div class="num">{{ urgency_counts.urgent }}</div>
-      <div class="sub">Effective date inside 2 weeks</div>
+      <div class="sub">Filed / Awaiting Effective inside 2 weeks</div>
     </a>
-    <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming">
+    <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming"
+       title="Filed / Awaiting Effective with estimated effective date in the next 60 days.">
       <div class="label">Upcoming (next 60d)</div>
       <div class="num">{{ urgency_counts.upcoming }}</div>
       <div class="sub">Filed / Awaiting Effective</div>
     </a>
-    <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue">
-      <div class="label">Overdue</div>
+    <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue"
+       title="Filed products where the estimated effective date has passed but they haven't gone Effective/Listed. Often means launch was delayed.">
+      <div class="label">Past Effective Date</div>
       <div class="num">{{ urgency_counts.overdue }}</div>
-      <div class="sub">Past est. effective, not Listed</div>
+      <div class="sub">Est. effective passed, not yet Effective/Listed</div>
     </a>
-    <a class="urgency-card recent" href="/operations/pipeline?urgency=recent_filings">
+    <a class="urgency-card recent" href="/operations/pipeline?urgency=recent_filings"
+       title="Products with an initial filing date in the last 14 days.">
       <div class="label">Recent filings (14d)</div>
       <div class="num">{{ urgency_counts.recent_filings }}</div>
       <div class="sub">New 485 in last 2 weeks</div>
@@ -272,9 +307,19 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   {# ============================================================== #}
   <div class="activity-row">
     <div class="activity-card">
-      <div class="activity-head" onclick="toggleSection('activityBody', this)">
-        <span>Recent Activity (last 14d)</span>
-        <span class="toggle-label">Hide</span>
+      <div class="activity-head">
+        <span>Recent Activity (last {{ recent_days }}d)</span>
+        <span class="recent-pills" role="tablist" aria-label="Recent activity window">
+          {% set qs_no_recent_prefix = (base_qs_no_recent_days ~ '&') if base_qs_no_recent_days else '' %}
+          {% for opt in [7, 14, 30, 90] %}
+            {% if opt == recent_days %}
+              <span class="recent-pill active" aria-current="true">{{ opt }}d</span>
+            {% else %}
+              <a class="recent-pill" href="/operations/pipeline?{{ qs_no_recent_prefix }}recent_days={{ opt }}">{{ opt }}d</a>
+            {% endif %}
+          {% endfor %}
+        </span>
+        <span class="toggle-label" onclick="toggleSection('activityBody', this)" style="cursor:pointer;">Hide</span>
       </div>
       <div class="activity-body" id="activityBody">
         {% if recent_activity %}
@@ -292,7 +337,14 @@ table.pipeline-table tr:hover { background:#fafbfc; }
             </div>
           {% endfor %}
         {% else %}
-          <div class="activity-empty">No status changes in the last 14 days.</div>
+          <div class="activity-empty">
+            No status changes in the last {{ recent_days }} days.
+            {% if last_updated_overall %}
+              <div style="margin-top:6px; font-size:11px; color:#cbd5e1;">
+                rex_products last updated {{ last_updated_overall.strftime('%Y-%m-%d') }}.
+              </div>
+            {% endif %}
+          </div>
         {% endif %}
       </div>
     </div>
@@ -361,9 +413,11 @@ table.pipeline-table tr:hover { background:#fafbfc; }
       <label>Quick</label>
       <div class="urgency-pills">
         <a href="/operations/pipeline" class="urgency-pill {% if not filter_urgency %}active{% endif %}">All</a>
-        <a href="/operations/pipeline?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}">Urgent &lt;14d <span class="count">{{ urgency_counts.urgent }}</span></a>
+        <a href="/operations/pipeline?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}"
+           title="Filed / Awaiting Effective with estimated effective date in the next 14 days.">Upcoming Filings (14D) <span class="count">{{ urgency_counts.urgent }}</span></a>
         <a href="/operations/pipeline?urgency=upcoming" class="urgency-pill {% if filter_urgency == 'upcoming' %}active{% endif %}">Next 60d <span class="count">{{ urgency_counts.upcoming }}</span></a>
-        <a href="/operations/pipeline?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}">Overdue <span class="count">{{ urgency_counts.overdue }}</span></a>
+        <a href="/operations/pipeline?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}"
+           title="Filed products where the estimated effective date has passed but they haven't gone Effective/Listed. Often means launch was delayed.">Past Effective Date <span class="count">{{ urgency_counts.overdue }}</span></a>
         <a href="/operations/pipeline?urgency=recent_filings" class="urgency-pill {% if filter_urgency == 'recent_filings' %}active{% endif %}">Recent Filings <span class="count">{{ urgency_counts.recent_filings }}</span></a>
         <a href="/operations/pipeline?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
       </div>
@@ -373,16 +427,38 @@ table.pipeline-table tr:hover { background:#fafbfc; }
   {# ============================================================== #}
   {# ROW 5 — Action bar + table + pagination                          #}
   {# ============================================================== #}
+  {# Build prefix used by the page-size pills so they preserve every other
+     active filter (status, suite, q, urgency, sort/dir, recent_days, show_cold). #}
+  {% set qs_no_per_page_prefix = (base_qs_no_per_page ~ '&') if base_qs_no_per_page else '' %}
+
   <div class="action-bar">
     {% if is_admin %}
     <button onclick="openAddModal()" class="btn btn-primary">+ Add Product</button>
     {% endif %}
     <a href="/pipeline/distributions/export.csv?year={{ today.year }}" class="btn">Export Distributions CSV</a>
     <a href="/operations/calendar" class="btn">Pipeline Calendar</a>
+
+    <span class="pagesize-pills" role="tablist" aria-label="Rows per page">
+      <span class="ps-label">Show</span>
+      {% for opt in ['20', '50', '100', 'all'] %}
+        {% if opt == per_page_token %}
+          <span class="pagesize-pill active" aria-current="true">{% if opt == 'all' %}All{% else %}{{ opt }}{% endif %}</span>
+        {% else %}
+          <a class="pagesize-pill" href="/operations/pipeline?{{ qs_no_per_page_prefix }}per_page={{ opt }}">{% if opt == 'all' %}All{% else %}{{ opt }}{% endif %}</a>
+        {% endif %}
+      {% endfor %}
+      {% if per_page_warning %}
+        <span class="pagesize-warn" title="Rendering all rows can be slow on older machines.">!  {{ filtered_count }} rows — heavy</span>
+      {% endif %}
+    </span>
+
     <span style="flex:1;"></span>
     <span class="pager-meta">
       {% if filtered_count == 0 %}
         No products match.
+      {% elif show_all_rows %}
+        Showing all {{ filtered_count }} rows
+        {% if not show_cold %}<span style="color:#94a3b8;">(cold hidden)</span>{% endif %}
       {% else %}
         Showing {{ page_offset + 1 }}&ndash;{{ [page_offset + per_page, filtered_count] | min }} of {{ filtered_count }}
         {% if not show_cold %}<span style="color:#94a3b8;">(cold hidden)</span>{% endif %}
@@ -393,17 +469,34 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 
   <div class="table-scroll" id="pipelineTableScroll">
     <table class="pipeline-table {% if is_admin %}admin-edit{% endif %}" id="pipelineTable">
+      {# Server-side sort: header click → ?sort=col&dir=asc|desc. The
+         backend sort_map in pipeline_calendar.py accepts the same keys
+         used in data-sort. Click the active column to flip direction. #}
+      {% set qs_no_sort_prefix = (base_qs_no_sort ~ '&') if base_qs_no_sort else '' %}
+      {% macro sort_th(key, label) %}
+        {% set is_active = sort_col == key %}
+        {% set next_dir = 'desc' if (is_active and sort_dir == 'asc') else 'asc' %}
+        {% set arrow = '&#9650;' if (is_active and sort_dir == 'asc') else ('&#9660;' if is_active else '&#8597;') %}
+        <th data-sort="{{ key }}"
+            class="{% if is_active %}sort-{{ sort_dir }}{% endif %}"
+            title="Sort by {{ label }} ({{ next_dir }})">
+          <a class="th-sort"
+             href="/operations/pipeline?{{ qs_no_sort_prefix }}sort={{ key }}&dir={{ next_dir }}">
+            {{ label }} <span class="sort-arrow {% if is_active %}active{% endif %}">{{ arrow | safe }}</span>
+          </a>
+        </th>
+      {% endmacro %}
       <thead>
         <tr>
-          <th onclick="sortTable(0, 'text')">Ticker <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(1, 'text')">Name <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(2, 'text')">Suite <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(3, 'text')">Status <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(4, 'number')">Days in stage <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(5, 'date')">Filed <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(6, 'date')">Est. Effective <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(7, 'date')">Listed <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(8, 'text')">Latest Form <span class="sort-arrow">&#9650;&#9660;</span></th>
+          {{ sort_th('ticker', 'Ticker') }}
+          {{ sort_th('name', 'Name') }}
+          {{ sort_th('suite', 'Suite') }}
+          {{ sort_th('status', 'Status') }}
+          {{ sort_th('days_in_stage', 'Days in stage') }}
+          {{ sort_th('initial_filing_date', 'Filed') }}
+          {{ sort_th('estimated_effective_date', 'Est. Effective') }}
+          {{ sort_th('official_listed_date', 'Listed') }}
+          {{ sort_th('latest_form', 'Latest Form') }}
         </tr>
       </thead>
       <tbody>
