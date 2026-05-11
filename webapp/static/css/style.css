@@ -51,7 +51,7 @@
   --text-lg: 16px; --text-xl: 20px; --text-2xl: 24px; --text-3xl: 32px;
 
   /* ===== LAYOUT ===== */
-  --container-width: 1280px;
+  --container-width: min(100% - 32px, 1900px);
   --nav-height: 48px;
   --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-pill: 100px;
 
@@ -141,6 +141,16 @@ a { color: var(--blue); text-decoration: none; transition: color var(--transitio
 a:hover { color: var(--blue-hover); text-decoration: none; }
 
 .container { max-width: var(--container-width); margin: 0 auto; padding: var(--sp-5) var(--sp-6); }
+
+/* Full-width page wrapper — used by REX Ops pages and any new
+   high-information-density layout. Replaces per-template .page-wrap
+   max-width: 1100-1500px declarations. Reserves 16px gutters and caps
+   at 1900px so on ultra-wide monitors content stays scan-able. */
+.full-width-page {
+  max-width: min(100% - 32px, 1900px);
+  margin: 0 auto;
+  padding: var(--sp-5, 16px) var(--sp-6, 20px);
+}
 
 /* Global tabular numerals — single highest-ROI CSS change */
 .tnum,
@@ -1257,7 +1267,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   margin-top: var(--sp-12);
 }
 .footer-grid {
-  max-width: 1280px;
+  max-width: min(100% - 32px, 1900px);
   margin: 0 auto;
   padding: 0 32px;
   display: grid;
@@ -1310,7 +1320,7 @@ tr.risk-high-row:hover { background: #ffe0b2; }
   font-size: 12px;
 }
 .footer-bottom {
-  max-width: 1280px;
+  max-width: min(100% - 32px, 1900px);
   margin: 32px auto 0;
   padding: 16px 32px 0;
   border-top: 1px solid rgba(255,255,255,0.08);

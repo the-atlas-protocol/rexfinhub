@@ -341,6 +341,22 @@ def run_market_sync():
     except Exception as e:
         print(f"  WARN: classification sweep skipped: {e}")
 
+    # Capital Markets product registry import — pulls from xlsx in user Downloads.
+    # Currently file-based; future Phase 2 could derive as SQL view over rex_products.
+    # On Render the source xlsx is absent — import_capm.py exits 0 with a "skipping"
+    # message in that case, so this hook is safe to leave wired in everywhere.
+    print("  Importing Capital Markets product registry...")
+    try:
+        _r4 = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "import_capm.py")],
+                      capture_output=True, text=True, timeout=60)
+        if _r4.returncode != 0:
+            print(f"  WARN: import_capm exit={_r4.returncode}: {_r4.stderr[:200]}")
+        for line in _r4.stdout.splitlines():
+            if any(k in line.lower() for k in ("inserted:", "updated:", "trust & aps:", "skipping")):
+                print(f"  {line.strip()}")
+    except Exception as e:
+        print(f"  WARN: capm import skipped: {e}")
+
     # Recompute screener cache (includes candidates, evaluator, li_products)
     print("  Computing screener cache...")
     from webapp.services.screener_3x_cache import compute_and_cache

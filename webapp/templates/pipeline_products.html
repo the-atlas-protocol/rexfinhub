@@ -1,48 +1,106 @@
 {% extends "base.html" %}
-{% block title %}Pipeline Products — REX Financial{% endblock %}
+{% block title %}Pipeline — REX Financial{% endblock %}
 
 {% block head %}
 <style>
-.page-wrap { max-width:1500px; margin:0 auto; padding:20px; }
+/* Wide layout per audit doc width refactor — local override (Agent C
+   handles the global style.css change). Caps at 1900px so line length
+   stays readable on ultrawide monitors. */
+.page-wrap { max-width: min(100% - 32px, 1900px); margin: 0 auto; padding: 20px; }
 .breadcrumb { font-size:12px; color:#94a3b8; margin-bottom:8px; }
 .breadcrumb a { color:#1F3864; text-decoration:none; }
 .breadcrumb a:hover { text-decoration:underline; }
-h1 { font-size:22px; font-weight:700; color:#0f172a; margin:0 0 4px; }
+h1 { font-size:24px; font-weight:700; color:#0f172a; margin:0 0 4px; }
 .subtitle { font-size:13px; color:#64748b; margin-bottom:20px; }
-h2 { font-size:13px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.05em; margin:28px 0 12px; }
+h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; margin:24px 0 10px; }
 
-/* KPI Grid */
-.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:12px; }
-.kpi { background:#f8fafc; border:1px solid #e5e7eb; border-left:3px solid #0f172a; border-radius:6px; padding:12px 16px; }
-.kpi .num { font-size:28px; font-weight:800; color:#0f172a; line-height:1; }
-.kpi .label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:5px; }
-.kpi.green  { border-left-color:#059669; } .kpi.green  .num { color:#059669; }
-.kpi.blue   { border-left-color:#2563eb; } .kpi.blue   .num { color:#2563eb; }
-.kpi.amber  { border-left-color:#d97706; } .kpi.amber  .num { color:#d97706; }
-.kpi.red    { border-left-color:#dc2626; } .kpi.red    .num { color:#dc2626; }
-.kpi.cyan   { border-left-color:#0891b2; } .kpi.cyan   .num { color:#0891b2; }
-
-/* Next Launches card */
-.next-launches-card {
-  background:#fff; border:1px solid #e5e7eb; border-left:3px solid #059669;
-  border-radius:6px; padding:14px 18px; margin-bottom:12px;
+/* ---------------------------------------------------------------- *
+ * ROW 1 — Funnel
+ * ---------------------------------------------------------------- */
+.funnel { display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; margin-bottom:18px; }
+.funnel-stage {
+  background:#fff; border:1px solid #e5e7eb; border-radius:6px;
+  padding:10px 12px; text-decoration:none; color:#0f172a;
+  display:flex; flex-direction:column; gap:6px; min-height:78px;
+  transition: border-color .15s, box-shadow .15s;
 }
-.next-launches-card .card-title {
-  font-size:11px; font-weight:700; color:#059669; text-transform:uppercase;
-  letter-spacing:0.05em; margin-bottom:10px;
-}
-.nl-row { display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #f1f5f9; }
-.nl-row:last-child { border-bottom:none; }
-.nl-ticker { font-family:monospace; font-weight:700; color:#1F3864; min-width:60px; }
-.nl-name { flex:1; font-size:12px; color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nl-date { font-size:11px; color:#64748b; font-family:monospace; min-width:80px; text-align:right; }
-.nl-countdown { font-size:11px; font-weight:700; min-width:50px; text-align:right; }
-.nl-countdown.urgent { color:#dc2626; }
-.nl-countdown.soon { color:#d97706; }
-.nl-countdown.ok { color:#64748b; }
+.funnel-stage:hover { border-color:#1F3864; box-shadow:0 1px 3px rgba(15,23,42,0.06); }
+.funnel-stage.active { border-color:#0f172a; background:#f8fafc; }
+.funnel-stage .label { font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; }
+.funnel-stage .num { font-size:22px; font-weight:800; color:#0f172a; line-height:1; }
+.funnel-bar { height:4px; background:#e5e7eb; border-radius:2px; overflow:hidden; }
+.funnel-bar-fill { height:100%; background:#0f172a; border-radius:2px; }
+.funnel-stage.zero .num { color:#cbd5e1; }
+.funnel-stage.zero .funnel-bar-fill { background:#cbd5e1; }
 
-/* Filter panel */
-.filter-panel { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:14px 18px; margin-bottom:14px; }
+@media (max-width: 1100px) {
+  .funnel { grid-template-columns:repeat(4, 1fr); }
+}
+
+/* ---------------------------------------------------------------- *
+ * ROW 2 — Urgency cards
+ * ---------------------------------------------------------------- */
+.urgency-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:18px; }
+.urgency-card {
+  background:#fff; border:1px solid #e5e7eb; border-left:3px solid #64748b;
+  border-radius:6px; padding:12px 16px; text-decoration:none;
+  display:flex; flex-direction:column; gap:4px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.urgency-card:hover { box-shadow:0 1px 3px rgba(15,23,42,0.08); }
+.urgency-card .label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; font-weight:600; }
+.urgency-card .num { font-size:30px; font-weight:800; line-height:1; color:#0f172a; }
+.urgency-card .sub { font-size:11px; color:#64748b; }
+.urgency-card.urgent { border-left-color:#dc2626; } .urgency-card.urgent .num { color:#dc2626; }
+.urgency-card.upcoming { border-left-color:#d97706; } .urgency-card.upcoming .num { color:#d97706; }
+.urgency-card.overdue { border-left-color:#b91c1c; } .urgency-card.overdue .num { color:#b91c1c; }
+.urgency-card.recent { border-left-color:#2563eb; } .urgency-card.recent .num { color:#2563eb; }
+
+@media (max-width: 900px) { .urgency-grid { grid-template-columns:repeat(2, 1fr); } }
+
+/* ---------------------------------------------------------------- *
+ * ROW 3 — Recent Activity + quick stats
+ * ---------------------------------------------------------------- */
+.activity-row { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:18px; }
+@media (max-width: 1100px) { .activity-row { grid-template-columns:1fr; } }
+
+.activity-card, .quick-card {
+  background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;
+}
+.activity-head, .quick-head {
+  padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb;
+  display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+  font-size:11px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.04em;
+}
+.activity-head:hover, .quick-head:hover { background:#f1f5f9; }
+.activity-body, .quick-body { display:block; max-height:340px; overflow-y:auto; }
+.activity-body.collapsed, .quick-body.collapsed { display:none; }
+.activity-row-item {
+  display:grid; grid-template-columns:60px 1fr 130px 70px;
+  gap:8px; align-items:center;
+  padding:6px 14px; border-bottom:1px solid #f1f5f9; font-size:12px;
+}
+.activity-row-item:last-child { border-bottom:none; }
+.activity-ticker { font-family:monospace; font-weight:700; color:#1F3864; }
+.activity-name { color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.activity-status { font-size:10px; }
+.activity-when { font-size:11px; color:#64748b; text-align:right; font-family:monospace; }
+.activity-empty { padding:20px 14px; font-size:12px; color:#94a3b8; text-align:center; }
+
+.quick-list { padding:8px 14px; }
+.quick-list-item { display:flex; justify-content:space-between; padding:5px 0; font-size:12px; border-bottom:1px solid #f1f5f9; }
+.quick-list-item:last-child { border-bottom:none; }
+.quick-list-item .qval { font-weight:700; color:#0f172a; font-family:monospace; }
+
+/* ---------------------------------------------------------------- *
+ * ROW 4 — Sticky filter bar
+ * ---------------------------------------------------------------- */
+.filter-panel {
+  background:#fff; border:1px solid #e5e7eb; border-radius:6px;
+  padding:12px 16px; margin-bottom:14px;
+  position:sticky; top:0; z-index:50;
+  box-shadow:0 1px 2px rgba(15,23,42,0.04);
+}
 .filter-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
 .filter-row:last-child { margin-bottom:0; }
 .filter-row label { font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:600; letter-spacing:0.04em; }
@@ -57,22 +115,23 @@ h2 { font-size:13px; font-weight:700; color:#0f172a; text-transform:uppercase; l
 .urgency-pill.active { background:#0f172a; color:#fff; border-color:#0f172a; }
 .urgency-pill .count { opacity:0.7; margin-left:4px; }
 
-/* Action bar */
-.action-bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
-.btn { padding:7px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; cursor:pointer; background:#fff; color:#0f172a; text-decoration:none; font-weight:500; }
+.cold-toggle { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#64748b; cursor:pointer; padding:5px 10px; border:1px solid #e5e7eb; border-radius:4px; }
+.cold-toggle input { margin:0; cursor:pointer; }
+.cold-toggle:hover { border-color:#1F3864; }
+
+/* ---------------------------------------------------------------- *
+ * ROW 5 — Action bar + table + pagination
+ * ---------------------------------------------------------------- */
+.action-bar { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
+.btn { padding:6px 12px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; cursor:pointer; background:#fff; color:#0f172a; text-decoration:none; font-weight:500; }
 .btn:hover { background:#f8fafc; border-color:#1F3864; }
 .btn-primary { background:#0f172a; color:#fff; border-color:#0f172a; }
 .btn-primary:hover { background:#1e293b; }
-.btn-sm { padding:4px 8px; font-size:11px; }
+.btn[disabled], .btn.disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
+.pager-meta { font-size:12px; color:#64748b; }
 
-/* Table */
 .table-scroll { overflow-x:auto; background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
-.scroll-hint { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#64748b; padding:6px 10px; background:#f8fafc; border:1px solid #e5e7eb; border-bottom:none; border-radius:6px 6px 0 0; }
-.scroll-hint .hint-text { font-weight:500; letter-spacing:0.02em; }
-.scroll-hint button { background:#fff; border:1px solid #e5e7eb; border-radius:3px; font-size:11px; padding:3px 8px; cursor:pointer; color:#0f172a; font-weight:600; }
-.scroll-hint button:hover { background:#eef2ff; border-color:#1F3864; }
-.scroll-hint .arrows { display:flex; gap:4px; }
-.table-scroll.has-hint { border-radius:0 0 6px 6px; }
+
 /* Inline edit affordance (admin only) */
 .admin-edit td[data-field] { cursor:pointer; position:relative; }
 .admin-edit td[data-field]:hover { background:#eef2ff; outline:1px dashed #6366f1; outline-offset:-1px; }
@@ -81,12 +140,13 @@ h2 { font-size:13px; font-weight:700; color:#0f172a; text-transform:uppercase; l
 .edit-toast { position:fixed; bottom:20px; right:20px; background:#059669; color:#fff; padding:10px 16px; border-radius:4px; font-size:13px; font-weight:500; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:2000; opacity:0; transition:opacity 0.2s; }
 .edit-toast.show { opacity:1; }
 .edit-toast.error { background:#dc2626; }
+
 table.pipeline-table { width:100%; border-collapse:collapse; font-size:12px; }
 table.pipeline-table th {
   background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px;
   text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb;
   letter-spacing:0.04em; white-space:nowrap; cursor:pointer; user-select:none;
-  position:relative;
+  position:sticky; top:0;
 }
 table.pipeline-table th:hover { color:#0f172a; }
 table.pipeline-table th .sort-arrow { font-size:9px; margin-left:3px; opacity:0.3; }
@@ -96,19 +156,13 @@ table.pipeline-table td { padding:6px 10px; border-bottom:1px solid #f1f5f9; ver
 table.pipeline-table tr:hover { background:#fafbfc; }
 
 .ticker-col { font-family:monospace; font-weight:700; color:#1F3864; }
-.name-col { max-width:280px; overflow:hidden; text-overflow:ellipsis; }
+.name-col { max-width:300px; overflow:hidden; text-overflow:ellipsis; }
 
-/* Status badges — color comes from inline style driven by status_colors dict
-   passed from pipeline_calendar.py. The 15-value lifecycle uses distinct
-   hex colors (greys for early, ambers for review, greens for approved/
-   effective/listed, reds for not-approved/delisted). Background is the
-   color at 12% alpha; border at 33% alpha; text at full color. */
 .status-pill {
   display:inline-block; padding:2px 8px; border-radius:3px;
   font-size:10px; font-weight:600; text-transform:uppercase;
   white-space:nowrap;
 }
-/* Inline status <select> for admin mode — replaces click-to-edit for status */
 .status-select {
   font-size:10px; font-weight:600; padding:2px 4px;
   border:1px solid #e5e7eb; border-radius:3px;
@@ -125,30 +179,20 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 .days-badge.urgent { background:#fef2f2; color:#dc2626; }
 .days-badge.soon { background:#fffbeb; color:#d97706; }
 .days-badge.ok { background:#f1f5f9; color:#64748b; }
+.days-badge.stuck { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
 
 .prospect-link { font-size:11px; color:#2563eb; text-decoration:none; }
 .prospect-link:hover { text-decoration:underline; }
 
-/* Suite breakdown */
-.suite-breakdown { background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; margin-top:20px; }
-.suite-breakdown-header {
-  padding:10px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb;
-  display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+/* Pagination */
+.pagination { display:flex; gap:4px; align-items:center; justify-content:center; padding:14px 0; flex-wrap:wrap; }
+.pagination a, .pagination span {
+  padding:5px 10px; border:1px solid #e5e7eb; border-radius:4px;
+  font-size:12px; color:#0f172a; text-decoration:none; background:#fff;
 }
-.suite-breakdown-header:hover { background:#f1f5f9; }
-.suite-breakdown-title { font-size:12px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.04em; }
-.suite-breakdown-toggle { font-size:11px; color:#64748b; }
-.suite-breakdown-body { display:none; }
-.suite-breakdown-body.open { display:block; }
-.suite-row {
-  display:flex; align-items:center; gap:10px; padding:8px 14px;
-  border-bottom:1px solid #f1f5f9;
-}
-.suite-row:last-child { border-bottom:none; }
-.suite-row .suite-name { flex:1; font-size:13px; font-weight:600; color:#0f172a; border-left:3px solid #64748b; padding-left:8px; }
-.suite-row .suite-counts { font-size:11px; color:#64748b; font-family:monospace; min-width:160px; }
-.suite-row .suite-bar { width:150px; height:6px; background:#e5e7eb; border-radius:3px; overflow:hidden; }
-.suite-row .suite-bar-fill { height:100%; border-radius:3px; }
+.pagination a:hover { background:#f8fafc; border-color:#1F3864; }
+.pagination .current { background:#0f172a; color:#fff; border-color:#0f172a; font-weight:600; }
+.pagination .ellipsis { border:none; background:transparent; color:#94a3b8; padding:5px 4px; }
 
 /* Edit modal (admin only) */
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; align-items:flex-start; justify-content:center; padding-top:40px; }
@@ -165,50 +209,122 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 {% endblock %}
 
 {% block content %}
+{# Build a "?<qs>&" prefix once so pagination + cold-toggle links stay
+   compact in the markup. Empty when there are no other params. #}
+{% set qs_prefix = (base_qs ~ '&') if base_qs else '' %}
+{% set qs_no_cold_prefix = (base_qs_no_show_cold ~ '&') if base_qs_no_show_cold else '' %}
+
 <div class="page-wrap">
   <div class="breadcrumb">
-    <a href="/pipeline">Pipeline Calendar</a> / <span>Products</span>
+    <a href="/operations/calendar">Operations</a> / <span>Pipeline</span>
   </div>
-  <h1>Pipeline Home of Operations</h1>
-  <div class="subtitle">Product lifecycle, KPIs, and operational status — {{ today.strftime('%B %d, %Y') }}</div>
+  <h1>REX Pipeline</h1>
+  <div class="subtitle">As of {{ today.strftime('%B %d, %Y') }} &middot; lifecycle of REX-branded products from research to listing.</div>
 
-  {# ---- KPI Section ---- #}
-  <h2>Lifecycle</h2>
-  <div class="kpi-grid">
-    <div class="kpi"><div class="num">{{ total }}</div><div class="label">Total Products</div></div>
-    <div class="kpi green"><div class="num">{{ listed }}</div><div class="label">Live (Listed)</div></div>
-    <div class="kpi blue"><div class="num">{{ filed }}</div><div class="label">Filed</div></div>
-    <div class="kpi cyan"><div class="num">{{ awaiting }}</div><div class="label">Awaiting Effective</div></div>
-    <div class="kpi amber"><div class="num">{{ research }}</div><div class="label">Research / Target</div></div>
-  </div>
-
-  <h2>Activity</h2>
-  <div class="kpi-grid">
-    <div class="kpi blue"><div class="num">{{ filings_last_7d }}</div><div class="label">Filings - Last 7d</div></div>
-    <div class="kpi green"><div class="num">{{ launches_last_30d }}</div><div class="label">Launches - Last 30d</div></div>
-    <div class="kpi cyan"><div class="num">{{ effectives_next_30d }}</div><div class="label">Effectives - Next 30d</div></div>
-    <div class="kpi cyan"><div class="num">{{ effectives_next_90d }}</div><div class="label">Effectives - Next 90d</div></div>
-  </div>
-
-  {# ---- Next Launches Card ---- #}
-  {% if next_launches %}
-  <div class="next-launches-card">
-    <div class="card-title">Next Launches (90-Day Window)</div>
-    {% for p in next_launches %}
-    {% set days_left = (p.estimated_effective_date - today).days %}
-    <div class="nl-row">
-      <span class="nl-ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}TBD{% endif %}</span>
-      <span class="nl-name" title="{{ p.name }}">{{ p.name[:60] }}</span>
-      <span class="nl-date">{{ p.estimated_effective_date.strftime('%b %d, %Y') }}</span>
-      <span class="nl-countdown {% if days_left <= 7 %}urgent{% elif days_left <= 21 %}soon{% else %}ok{% endif %}">{{ days_left }}d</span>
-    </div>
+  {# ============================================================== #}
+  {# ROW 1 — STAGE FUNNEL                                            #}
+  {# ============================================================== #}
+  <h2>Pipeline Funnel</h2>
+  <div class="funnel">
+    {% for stage in funnel %}
+      {% set primary_status = stage.statuses[0] %}
+      {% set is_active = filter_status in stage.statuses %}
+      {% set pct = (100 * stage.count / funnel_max) if funnel_max else 0 %}
+      <a class="funnel-stage{% if is_active %} active{% endif %}{% if stage.count == 0 %} zero{% endif %}"
+         href="/operations/pipeline?status={{ primary_status | urlencode }}{% if show_cold %}&show_cold=1{% endif %}"
+         title="Filter to {{ stage.label }}">
+        <div class="label">{{ stage.label }}</div>
+        <div class="num">{{ stage.count }}</div>
+        <div class="funnel-bar"><div class="funnel-bar-fill" style="width:{{ pct }}%;"></div></div>
+      </a>
     {% endfor %}
   </div>
-  {% endif %}
 
-  {# ---- Filter Bar ---- #}
-  <h2>Products</h2>
-  <form method="get" action="/operations/pipeline" class="filter-panel">
+  {# ============================================================== #}
+  {# ROW 2 — URGENCY CARDS                                           #}
+  {# ============================================================== #}
+  <h2>Urgency</h2>
+  <div class="urgency-grid">
+    <a class="urgency-card urgent" href="/operations/pipeline?urgency=urgent">
+      <div class="label">Urgent (next 14d)</div>
+      <div class="num">{{ urgency_counts.urgent }}</div>
+      <div class="sub">Effective date inside 2 weeks</div>
+    </a>
+    <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming">
+      <div class="label">Upcoming (next 60d)</div>
+      <div class="num">{{ urgency_counts.upcoming }}</div>
+      <div class="sub">Filed / Awaiting Effective</div>
+    </a>
+    <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue">
+      <div class="label">Overdue</div>
+      <div class="num">{{ urgency_counts.overdue }}</div>
+      <div class="sub">Past est. effective, not Listed</div>
+    </a>
+    <a class="urgency-card recent" href="/operations/pipeline?urgency=recent_filings">
+      <div class="label">Recent filings (14d)</div>
+      <div class="num">{{ urgency_counts.recent_filings }}</div>
+      <div class="sub">New 485 in last 2 weeks</div>
+    </a>
+  </div>
+
+  {# ============================================================== #}
+  {# ROW 3 — RECENT ACTIVITY + QUICK STATS                           #}
+  {# ============================================================== #}
+  <div class="activity-row">
+    <div class="activity-card">
+      <div class="activity-head" onclick="toggleSection('activityBody', this)">
+        <span>Recent Activity (last 14d)</span>
+        <span class="toggle-label">Hide</span>
+      </div>
+      <div class="activity-body" id="activityBody">
+        {% if recent_activity %}
+          {% for a in recent_activity %}
+            {% set s_color = status_colors.get(a.status, '#64748b') %}
+            <div class="activity-row-item">
+              <span class="activity-ticker">
+                {% if a.ticker %}<a href="/funds/{{ a.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ a.ticker }}</a>{% else %}---{% endif %}
+              </span>
+              <span class="activity-name" title="{{ a.name }}">{{ a.name[:60] }}</span>
+              <span class="activity-status">
+                <span class="status-pill" style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ a.status }}</span>
+              </span>
+              <span class="activity-when">{{ a.ago }}</span>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="activity-empty">No status changes in the last 14 days.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="quick-card">
+      <div class="quick-head" onclick="toggleSection('quickBody', this)">
+        <span>Quick Stats</span>
+        <span class="toggle-label">Hide</span>
+      </div>
+      <div class="quick-body" id="quickBody">
+        <div class="quick-list">
+          <div class="quick-list-item"><span>Total products (all)</span><span class="qval">{{ total }}</span></div>
+          <div class="quick-list-item"><span>Live (Listed)</span><span class="qval">{{ listed }}</span></div>
+          <div class="quick-list-item"><span>Filed</span><span class="qval">{{ filed }}</span></div>
+          <div class="quick-list-item"><span>Awaiting Effective</span><span class="qval">{{ awaiting }}</span></div>
+          <div class="quick-list-item"><span>Research / Target</span><span class="qval">{{ research }}</span></div>
+          <div class="quick-list-item"><span>Filings &mdash; last 7d</span><span class="qval">{{ filings_last_7d }}</span></div>
+          <div class="quick-list-item"><span>Launches &mdash; last 30d</span><span class="qval">{{ launches_last_30d }}</span></div>
+          <div class="quick-list-item"><span>Effectives &mdash; next 30d</span><span class="qval">{{ effectives_next_30d }}</span></div>
+          <div class="quick-list-item"><span>Effectives &mdash; next 90d</span><span class="qval">{{ effectives_next_90d }}</span></div>
+          {% if avg_cycle is not none %}
+          <div class="quick-list-item"><span>Avg cycle (filed&rarr;listed)</span><span class="qval">{{ avg_cycle }}d</span></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ============================================================== #}
+  {# ROW 4 — STICKY FILTER BAR                                       #}
+  {# ============================================================== #}
+  <form method="get" action="/operations/pipeline" class="filter-panel" id="filterPanel">
     <div class="filter-row">
       <label>Search</label>
       <input type="text" name="q" placeholder="Ticker, name, underlier, trust..." value="{{ filter_q }}" style="flex:1; min-width:220px;">
@@ -229,6 +345,14 @@ table.pipeline-table tr:hover { background:#fafbfc; }
         {% endfor %}
       </select>
 
+      {# Cold-state toggle — preserves all other query params via the
+         qs_no_cold_prefix sandwich. #}
+      <a class="cold-toggle"
+         href="/operations/pipeline?{{ qs_no_cold_prefix }}{% if not show_cold %}show_cold=1{% endif %}">
+        <input type="checkbox" {% if show_cold %}checked{% endif %} onclick="return false;" tabindex="-1">
+        Show cold (Delisted, Listed &gt;1yr)
+      </a>
+
       <button type="submit" class="btn btn-primary">Apply</button>
       <a href="/operations/pipeline" class="btn">Clear</a>
     </div>
@@ -244,55 +368,30 @@ table.pipeline-table tr:hover { background:#fafbfc; }
         <a href="/operations/pipeline?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
       </div>
     </div>
-
-    {# Status filter pills — covers the new lifecycle stages from the board-approval workflow.
-       Pills are color-coded to match the badge palette. Counts come from status_counts. #}
-    <div class="filter-row">
-      <label>Status</label>
-      <div class="urgency-pills">
-        {% for s in ['Counsel Review', 'Pending Board', 'Board Approved', 'Not Approved by Board'] %}
-          {% set sc = status_colors.get(s, '#64748b') %}
-          {% set cnt = status_counts.get(s, 0) %}
-          <a href="/operations/pipeline?status={{ s | urlencode }}"
-             class="urgency-pill {% if filter_status == s %}active{% endif %}"
-             style="border-color:{{ sc }}77; {% if filter_status == s %}background:{{ sc }}; color:#fff;{% else %}color:{{ sc }};{% endif %}">
-            {{ s }} <span class="count">{{ cnt }}</span>
-          </a>
-        {% endfor %}
-      </div>
-    </div>
   </form>
 
-  {# ---- Action Bar ---- #}
+  {# ============================================================== #}
+  {# ROW 5 — Action bar + table + pagination                          #}
+  {# ============================================================== #}
   <div class="action-bar">
     {% if is_admin %}
     <button onclick="openAddModal()" class="btn btn-primary">+ Add Product</button>
     {% endif %}
     <a href="/pipeline/distributions/export.csv?year={{ today.year }}" class="btn">Export Distributions CSV</a>
-    <a href="/pipeline" class="btn">Pipeline Calendar</a>
+    <a href="/operations/calendar" class="btn">Pipeline Calendar</a>
     <span style="flex:1;"></span>
-    <span style="font-size:12px; color:#64748b;">Showing {{ filtered_count }} of {{ total }}</span>
+    <span class="pager-meta">
+      {% if filtered_count == 0 %}
+        No products match.
+      {% else %}
+        Showing {{ page_offset + 1 }}&ndash;{{ [page_offset + per_page, filtered_count] | min }} of {{ filtered_count }}
+        {% if not show_cold %}<span style="color:#94a3b8;">(cold hidden)</span>{% endif %}
+        &middot; Page {{ page }} of {{ total_pages }}
+      {% endif %}
+    </span>
   </div>
 
-  {# ---- Products Table ---- #}
-  {% if is_admin %}
-  <div class="scroll-hint">
-    <span class="hint-text">Click any cell to edit &middot; Enter to save &middot; Esc to cancel</span>
-    <span class="arrows">
-      <button type="button" onclick="scrollPipelineTable(-200)" title="Scroll left">&larr; scroll</button>
-      <button type="button" onclick="scrollPipelineTable(200)" title="Scroll right">scroll &rarr;</button>
-    </span>
-  </div>
-  {% else %}
-  <div class="scroll-hint">
-    <span class="hint-text">&larr; scroll horizontally to see all columns &rarr;</span>
-    <span class="arrows">
-      <button type="button" onclick="scrollPipelineTable(-200)" title="Scroll left">&larr;</button>
-      <button type="button" onclick="scrollPipelineTable(200)" title="Scroll right">&rarr;</button>
-    </span>
-  </div>
-  {% endif %}
-  <div class="table-scroll has-hint" id="pipelineTableScroll">
+  <div class="table-scroll" id="pipelineTableScroll">
     <table class="pipeline-table {% if is_admin %}admin-edit{% endif %}" id="pipelineTable">
       <thead>
         <tr>
@@ -300,22 +399,21 @@ table.pipeline-table tr:hover { background:#fafbfc; }
           <th onclick="sortTable(1, 'text')">Name <span class="sort-arrow">&#9650;&#9660;</span></th>
           <th onclick="sortTable(2, 'text')">Suite <span class="sort-arrow">&#9650;&#9660;</span></th>
           <th onclick="sortTable(3, 'text')">Status <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(4, 'text')">Underlier <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(4, 'number')">Days in stage <span class="sort-arrow">&#9650;&#9660;</span></th>
           <th onclick="sortTable(5, 'date')">Filed <span class="sort-arrow">&#9650;&#9660;</span></th>
           <th onclick="sortTable(6, 'date')">Est. Effective <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(7, 'number')">In <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(8, 'date')">Listed <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable(9, 'text')">Form <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(7, 'date')">Listed <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable(8, 'text')">Latest Form <span class="sort-arrow">&#9650;&#9660;</span></th>
         </tr>
       </thead>
       <tbody>
-        {% for p in products %}
+        {% for row in products_view %}
+        {% set p = row.p %}
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
         <tr data-id="{{ p.id }}">
           <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
-          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:55] }}</td>
+          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}</td>
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
-          {# Status cell: admin gets an inline <select>; everyone else sees a color-coded badge. #}
           {% set s_color = status_colors.get(p.status, '#64748b') %}
           <td data-sort="{{ p.status }}">
             {% if is_admin %}
@@ -333,19 +431,16 @@ table.pipeline-table tr:hover { background:#fafbfc; }
                     style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ p.status }}</span>
             {% endif %}
           </td>
-          <td data-sort="{{ (p.underlier or '').lower() }}" data-field="underlier">{{ p.underlier or '---' }}</td>
-          <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
-          <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}" data-field="estimated_effective_date" data-field-type="date">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
-          <td data-sort="{% if p.estimated_effective_date and p.status in ['Filed', 'Awaiting Effective'] %}{{ (p.estimated_effective_date - today).days }}{% else %}9999{% endif %}">
-            {% if p.estimated_effective_date and p.status in ['Filed', 'Awaiting Effective'] %}
-              {% set days_left = (p.estimated_effective_date - today).days %}
-              {% if days_left >= 0 %}
-                <span class="days-badge {% if days_left <= 3 %}urgent{% elif days_left <= 14 %}soon{% else %}ok{% endif %}">{{ days_left }}d</span>
-              {% else %}
-                <span class="days-badge urgent">{{ days_left }}d</span>
-              {% endif %}
+          <td data-sort="{{ row.days_in_stage if row.days_in_stage is not none else -1 }}">
+            {% if row.days_in_stage is not none %}
+              {% set d = row.days_in_stage %}
+              <span class="days-badge {% if d > 60 %}stuck{% elif d > 30 %}urgent{% elif d > 14 %}soon{% else %}ok{% endif %}">{{ d }}d</span>
+            {% else %}
+              <span style="color:#cbd5e1;">---</span>
             {% endif %}
           </td>
+          <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
+          <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}" data-field="estimated_effective_date" data-field-type="date">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
           <td data-sort="{{ p.official_listed_date.isoformat() if p.official_listed_date else '' }}" data-field="official_listed_date" data-field-type="date">{{ p.official_listed_date.strftime('%Y-%m-%d') if p.official_listed_date else '---' }}</td>
           <td data-sort="{{ (p.latest_form or '').lower() }}">
             {% if p.latest_prospectus_link %}
@@ -360,28 +455,41 @@ table.pipeline-table tr:hover { background:#fafbfc; }
     </table>
   </div>
 
-  {# ---- Per-Suite Breakdown ---- #}
-  <div class="suite-breakdown">
-    <div class="suite-breakdown-header" onclick="toggleSuiteBreakdown()">
-      <span class="suite-breakdown-title">Breakdown by Suite</span>
-      <span class="suite-breakdown-toggle" id="suiteToggleLabel">Show</span>
-    </div>
-    <div class="suite-breakdown-body" id="suiteBreakdownBody">
-      {% for s, stats in suite_breakdown.items() | sort(attribute='1.total', reverse=true) %}
-      <div class="suite-row">
-        <div class="suite-name" style="border-left-color:{{ suite_colors.get(s, '#64748b') }};">{{ s }}</div>
-        <div class="suite-counts">
-          {{ stats.listed }} live &middot;
-          {{ stats.filed }} filed &middot;
-          {{ stats.total }} total
-        </div>
-        <div class="suite-bar">
-          <div class="suite-bar-fill" style="width:{{ (100 * stats.listed / stats.total) | round if stats.total else 0 }}%; background:{{ suite_colors.get(s, '#64748b') }};"></div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
+  {# Pagination — preserves all active query params via qs_prefix #}
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a href="/operations/pipeline?{{ qs_prefix }}page={{ page - 1 }}">&laquo; Prev</a>
+    {% else %}
+      <span class="disabled" style="opacity:0.4;">&laquo; Prev</span>
+    {% endif %}
+
+    {# Compact page list: first, current-2..current+2, last #}
+    {% set window_lo = [1, page - 2] | max %}
+    {% set window_hi = [total_pages, page + 2] | min %}
+    {% if window_lo > 1 %}
+      <a href="/operations/pipeline?{{ qs_prefix }}page=1">1</a>
+      {% if window_lo > 2 %}<span class="ellipsis">&hellip;</span>{% endif %}
+    {% endif %}
+    {% for p in range(window_lo, window_hi + 1) %}
+      {% if p == page %}
+        <span class="current">{{ p }}</span>
+      {% else %}
+        <a href="/operations/pipeline?{{ qs_prefix }}page={{ p }}">{{ p }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if window_hi < total_pages %}
+      {% if window_hi < total_pages - 1 %}<span class="ellipsis">&hellip;</span>{% endif %}
+      <a href="/operations/pipeline?{{ qs_prefix }}page={{ total_pages }}">{{ total_pages }}</a>
+    {% endif %}
+
+    {% if page < total_pages %}
+      <a href="/operations/pipeline?{{ qs_prefix }}page={{ page + 1 }}">Next &raquo;</a>
+    {% else %}
+      <span class="disabled" style="opacity:0.4;">Next &raquo;</span>
+    {% endif %}
   </div>
+  {% endif %}
 </div>
 
 {# ---- Add Modal (admin only — edits happen inline) ---- #}
@@ -438,6 +546,20 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 {% endif %}
 
 <script>
+/* Section collapse helper (Recent Activity / Quick Stats) */
+function toggleSection(bodyId, headEl) {
+    var body = document.getElementById(bodyId);
+    if (!body) return;
+    var label = headEl.querySelector('.toggle-label');
+    if (body.classList.contains('collapsed')) {
+        body.classList.remove('collapsed');
+        if (label) label.textContent = 'Hide';
+    } else {
+        body.classList.add('collapsed');
+        if (label) label.textContent = 'Show';
+    }
+}
+
 /* Client-side column sort */
 function sortTable(colIdx, type) {
     var table = document.querySelector('.pipeline-table');
@@ -461,30 +583,10 @@ function sortTable(colIdx, type) {
     rows.forEach(function(r) { tbody.appendChild(r); });
 }
 
-/* Suite breakdown toggle */
-function toggleSuiteBreakdown() {
-    var body = document.getElementById('suiteBreakdownBody');
-    var label = document.getElementById('suiteToggleLabel');
-    if (body.classList.contains('open')) {
-        body.classList.remove('open');
-        label.textContent = 'Show';
-    } else {
-        body.classList.add('open');
-        label.textContent = 'Hide';
-    }
-}
-
-/* Horizontal table scroll helper */
-function scrollPipelineTable(delta) {
-    var s = document.getElementById('pipelineTableScroll');
-    if (s) s.scrollBy({ left: delta, behavior: 'smooth' });
-}
-
 {% if is_admin %}
 /* Inline status update — fires when admin picks a new value from the
    per-row <select>. POSTs to the same admin update endpoint as inline
-   field edits. Visual feedback: green tint on success, red + revert on
-   failure (e.g. server-side validator rejecting an unknown status). */
+   field edits. */
 function updateProductStatus(sel) {
     var prev = sel.dataset.prev;
     var newVal = sel.value;
@@ -501,7 +603,6 @@ function updateProductStatus(sel) {
         if (res.ok) {
             sel.dataset.prev = newVal;
             showToast('Status: ' + newVal);
-            // refresh visual color so the select hue matches the new status
             setTimeout(function() { window.location.reload(); }, 600);
         } else {
             sel.classList.add('failed');
@@ -516,14 +617,14 @@ function updateProductStatus(sel) {
     });
 }
 
-/* Add-product modal (kept as fallback for creating new rows) */
+/* Add-product modal */
 function openAddModal() { document.getElementById('addModal').classList.add('open'); }
 function closeModal() { document.getElementById('addModal').classList.remove('open'); }
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) closeModal();
 });
 
-/* ---- Inline-editable table (admin only) ---- */
+/* Inline-editable table (admin only) */
 window._isAdmin = true;
 
 function showToast(msg, isError) {
@@ -546,7 +647,6 @@ function makeInlineEditable(tableSelector, updateUrl) {
             var field = td.dataset.field;
             var fieldType = td.dataset.fieldType || 'text';
             var rowId = td.closest('tr').dataset.id;
-            // Extract raw text (stripping pills, etc.)
             var oldDisplay = td.textContent.trim();
             var oldVal = oldDisplay === '---' ? '' : oldDisplay;
 

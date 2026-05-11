@@ -192,12 +192,19 @@ def _pipeline_products_impl(
     urgency: str | None = None,
     sort: str | None = None,
     dir: str | None = None,
+    page: int = 1,
+    per_page: int = 50,
+    show_cold: int = 0,
     db: Session = Depends(get_db),
 ):
-    """Pipeline Home of Operations — KPIs + full product table.
+    """Pipeline Home of Operations — PM dashboard + paginated table.
 
     Public (no admin auth). Edit controls hidden for non-admins.
     Mounted at /operations/pipeline in PR 1.
+
+    Default view excludes "cold" rows (Delisted; Listed > 365d ago) so the
+    funnel and table focus on what's actively in motion. ``?show_cold=1``
+    re-includes them.
     """
     from webapp.models import RexProduct, FundDistribution
 
@@ -205,6 +212,34 @@ def _pipeline_products_impl(
     week_ago = today - timedelta(days=7)
     month_ahead = today + timedelta(days=30)
     quarter_ahead = today + timedelta(days=90)
+    cold_cutoff = today - timedelta(days=365)
+
+    # Pagination guards
+    try:
+        page = max(1, int(page))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(per_page)
+    except (TypeError, ValueError):
+        per_page = 50
+    if per_page not in (25, 50, 100, 200):
+        per_page = 50
+
+    show_cold_flag = bool(show_cold)
+
+    def _apply_cold_filter(qry):
+        """Hide Delisted + stale-Listed rows unless show_cold=1."""
+        if show_cold_flag:
+            return qry
+        return qry.filter(
+            RexProduct.status != "Delisted",
+            or_(
+                RexProduct.status != "Listed",
+                RexProduct.official_listed_date.is_(None),
+                RexProduct.official_listed_date >= cold_cutoff,
+            ),
+        )
 
     # ---- KPIs (REX-branded products only) ----
     total = _rex_only_filter(db.query(RexProduct)).count()
@@ -266,6 +301,10 @@ def _pipeline_products_impl(
     max_cycle = max(cycle_days) if cycle_days else None
 
     # ---- Urgency counts (unfiltered, for pill badges) ----
+    # Overdue: estimated_effective_date passed but product not yet
+    # Effective/Listed/Delisted. Falls back from the old target_listing_date
+    # check (only 11% of rows had it) to the much-better-populated
+    # estimated_effective_date column.
     urgency_counts = {
         "urgent": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
@@ -276,9 +315,9 @@ def _pipeline_products_impl(
             .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=60)))
             .count(),
         "overdue": _rex_only_filter(db.query(RexProduct))
-            .filter(RexProduct.status.notin_(["Listed", "Delisted"]))
-            .filter(RexProduct.target_listing_date.isnot(None))
-            .filter(RexProduct.target_listing_date < today)
+            .filter(RexProduct.estimated_effective_date.isnot(None))
+            .filter(RexProduct.estimated_effective_date < today)
+            .filter(RexProduct.status.notin_(["Listed", "Delisted", "Effective"]))
             .count(),
         "recent_filings": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
@@ -287,6 +326,60 @@ def _pipeline_products_impl(
             .filter(RexProduct.official_listed_date >= today - timedelta(days=30))
             .count(),
     }
+
+    # ---- Pipeline funnel (lifecycle stages) ----
+    funnel_stages = [
+        ("Research / Target", ["Research", "Target List"]),
+        ("Counsel",           ["Counsel Review", "Counsel Approved", "Counsel Withdrawn"]),
+        ("Board",             ["Pending Board", "Board Approved", "Not Approved by Board"]),
+        ("Filed",             ["Filed", "Filed (485A)", "Filed (485B)"]),
+        ("Awaiting Effective",["Awaiting Effective"]),
+        ("Effective / Live",  ["Effective", "Listed"]),
+        ("Delisted",          ["Delisted"]),
+    ]
+    funnel = []
+    for label, statuses in funnel_stages:
+        n = (
+            _rex_only_filter(db.query(RexProduct))
+            .filter(RexProduct.status.in_(statuses))
+            .count()
+        )
+        funnel.append({"label": label, "count": n, "statuses": statuses})
+    funnel_max = max((f["count"] for f in funnel), default=1) or 1
+
+    # ---- Recent Activity (last 14 days of any updated_at touch) ----
+    # Phase-1 proxy: there's no rex_product_status_history table yet, so we
+    # use updated_at as a stand-in for "something changed". When the audit
+    # log lands (audit doc Phase 2), swap this to the history join.
+    activity_rows = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.updated_at.isnot(None))
+        .filter(RexProduct.updated_at >= datetime.combine(today - timedelta(days=14), datetime.min.time()))
+        .order_by(RexProduct.updated_at.desc())
+        .limit(20)
+        .all()
+    )
+    recent_activity = []
+    now_dt = datetime.utcnow()
+    for p in activity_rows:
+        delta = now_dt - p.updated_at
+        if delta.days >= 1:
+            ago = f"{delta.days}d ago"
+        elif delta.seconds >= 3600:
+            ago = f"{delta.seconds // 3600}h ago"
+        elif delta.seconds >= 60:
+            ago = f"{delta.seconds // 60}m ago"
+        else:
+            ago = "just now"
+        recent_activity.append({
+            "id": p.id,
+            "ticker": p.ticker or "",
+            "name": p.name,
+            "status": p.status,
+            "suite": p.product_suite or "",
+            "ago": ago,
+            "updated_at": p.updated_at,
+        })
 
     # Status/suite counts (REX-branded only)
     status_counts = dict(
@@ -322,6 +415,12 @@ def _pipeline_products_impl(
     # ---- Build filtered product query (REX-branded only) ----
     query = _rex_only_filter(db.query(RexProduct))
 
+    # Cold-state filter — applied unless user opts in via ?show_cold=1.
+    # Hides Delisted + Listed-more-than-365-days-ago so the table opens on
+    # what's actually in motion. Counts above (KPIs, status_counts) stay
+    # full so the funnel/breakdown still reflects everything.
+    query = _apply_cold_filter(query)
+
     if status:
         query = query.filter(RexProduct.status == status)
     if suite:
@@ -349,10 +448,9 @@ def _pipeline_products_impl(
         )
     elif urgency == "overdue":
         query = query.filter(
-            RexProduct.status != "Listed",
-            RexProduct.status != "Delisted",
-            RexProduct.target_listing_date.isnot(None),
-            RexProduct.target_listing_date < today,
+            RexProduct.estimated_effective_date.isnot(None),
+            RexProduct.estimated_effective_date < today,
+            RexProduct.status.notin_(["Listed", "Delisted", "Effective"]),
         )
     elif urgency == "recent_filings":
         query = query.filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
@@ -382,7 +480,48 @@ def _pipeline_products_impl(
             RexProduct.name.asc(),
         )
 
-    products = query.limit(1000).all()
+    # ---- Pagination ----
+    total_count = query.count()
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+    offset = (page - 1) * per_page
+    products_page = query.offset(offset).limit(per_page).all()
+
+    # ---- Days in current stage (rough proxy) ----
+    # Use the most-recent meaningful stage timestamp on the row, fall back
+    # to updated_at. Capped at None when no signal at all.
+    products_view = []
+    for p in products_page:
+        stage_anchors = [
+            p.initial_filing_date,
+            p.official_listed_date,
+            p.target_listing_date,
+        ]
+        if p.updated_at:
+            stage_anchors.append(p.updated_at.date() if hasattr(p.updated_at, "date") else p.updated_at)
+        stage_anchors = [d for d in stage_anchors if d is not None]
+        if stage_anchors:
+            anchor = max(stage_anchors)
+            days_in_stage = max(0, (today - anchor).days)
+        else:
+            days_in_stage = None
+        products_view.append({"p": p, "days_in_stage": days_in_stage})
+
+    # Preserve every active query param (other than page) so pagination
+    # links don't drop the user's filters.
+    base_qs_parts = []
+    if status:        base_qs_parts.append(("status", status))
+    if suite:         base_qs_parts.append(("suite", suite))
+    if q:             base_qs_parts.append(("q", q))
+    if urgency:       base_qs_parts.append(("urgency", urgency))
+    if sort:          base_qs_parts.append(("sort", sort))
+    if dir:           base_qs_parts.append(("dir", dir))
+    if per_page != 50: base_qs_parts.append(("per_page", str(per_page)))
+    if show_cold_flag: base_qs_parts.append(("show_cold", "1"))
+    from urllib.parse import urlencode
+    base_qs = urlencode(base_qs_parts)
+    base_qs_no_show_cold = urlencode([(k, v) for (k, v) in base_qs_parts if k != "show_cold"])
 
     is_admin = request.session.get("is_admin", False)
 
@@ -410,12 +549,23 @@ def _pipeline_products_impl(
         "urgency_counts": urgency_counts,
         "status_counts": status_counts,
         "suite_counts": suite_counts,
+        # Funnel + activity (NEW for PM redesign)
+        "funnel": funnel,
+        "funnel_max": funnel_max,
+        "recent_activity": recent_activity,
         # Suite breakdown
         "suite_breakdown": suite_breakdown,
         "suite_colors": SUITE_COLORS,
-        # Products
-        "products": products,
-        "filtered_count": len(products),
+        # Products (paginated)
+        "products_view": products_view,
+        "products": products_page,  # legacy alias
+        "filtered_count": total_count,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+        "page_offset": offset,
+        "base_qs": base_qs,
+        "base_qs_no_show_cold": base_qs_no_show_cold,
         # Filter state
         "valid_statuses": VALID_STATUSES,
         "valid_suites": VALID_SUITES,
@@ -424,6 +574,7 @@ def _pipeline_products_impl(
         "filter_suite": suite or "",
         "filter_q": q or "",
         "filter_urgency": urgency or "",
+        "show_cold": show_cold_flag,
         "sort_col": sort_col,
         "sort_dir": sort_dir,
     })

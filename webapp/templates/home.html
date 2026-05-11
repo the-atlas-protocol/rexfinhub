@@ -10,7 +10,7 @@
 
 /* Full-width container */
 .home-container {
-  max-width: 1280px;
+  max-width: min(100% - 32px, 1900px);
   margin: 0 auto;
   padding: 0 32px;
 }
@@ -762,12 +762,12 @@
     </ul>
   </div>
 
-  <!-- Capital Markets -->
+  <!-- REX Products -->
   <div class="ha-pillar-card">
     <div class="ha-pillar-header">
       <div class="ha-pillar-title">
         <span class="ha-pillar-dot" style="background:#0d9488;"></span>
-        Capital Markets
+        REX Products
       </div>
       <span class="ha-pillar-badge">{{ capm_product_count|default(0) }} products</span>
     </div>

@@ -3,7 +3,7 @@
 
 {% block head %}
 <style>
-.page-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+/* width handled by global .full-width-page */
 h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
 .subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
 .breadcrumb { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
@@ -66,7 +66,7 @@ table.pipe tr:hover { background: #fafbfc; }
 {% endblock %}
 
 {% block content %}
-<div class="page-wrap">
+<div class="full-width-page">
   <div class="breadcrumb">
     <a href="/pipeline">Pipeline Calendar</a> / <span>Summary</span>
   </div>
