@@ -296,6 +296,27 @@ def run_market_sync():
     finally:
         db.close()
 
+    # Brand application — Bloomberg sync clears issuer_display to NULL.
+    # Re-derive (Layer 1 regex) + apply so iShares/SPDR/Invesco/etc don't
+    # show as NULL in /issuers/, /market/issuer, etc. (~3,500 fund impact)
+    print("  Deriving + applying issuer brands...")
+    import subprocess as _sp
+    try:
+        _r1 = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "derive_issuer_brands.py")],
+                      capture_output=True, text=True, timeout=120)
+        if _r1.returncode != 0:
+            print(f"  WARN: derive_issuer_brands exit={_r1.returncode}: {_r1.stderr[:200]}")
+        _r2 = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "apply_issuer_brands.py")],
+                      capture_output=True, text=True, timeout=120)
+        if _r2.returncode != 0:
+            print(f"  WARN: apply_issuer_brands exit={_r2.returncode}: {_r2.stderr[:200]}")
+        # Echo summary lines from apply output
+        for line in _r2.stdout.splitlines():
+            if "Applied:" in line or "No-ops:" in line:
+                print(f"  {line.strip()}")
+    except Exception as e:
+        print(f"  WARN: brand application skipped: {e}")
+
     # Recompute screener cache (includes candidates, evaluator, li_products)
     print("  Computing screener cache...")
     from webapp.services.screener_3x_cache import compute_and_cache
