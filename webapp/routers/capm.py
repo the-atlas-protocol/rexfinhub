@@ -21,6 +21,7 @@ import json
 import logging
 from datetime import date, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -90,6 +91,67 @@ def _audit_log(
         log.warning("Audit log insert failed (non-fatal): %s", e)
 
 
+def _names_overlap(a: str | None, b: str | None) -> bool:
+    """True if two fund names share a meaningful token.
+
+    Used when one ticker maps to one capm row but multiple rex rows
+    (recycled placeholder tickers during pre-launch). Only the rex row
+    whose name actually matches the capm row should inherit the curated
+    fields.
+
+    Heuristic: split on whitespace, drop boilerplate ("REX","T-REX","2X",
+    "DAILY","TARGET","ETF","ETN","STRATEGY","INCOMEMAX","LONG","INVERSE",
+    "SHORT"), then check intersection. If either name is missing we
+    optimistically attach (fail-open — ticker match is strong on its own
+    when there's no name conflict).
+    """
+    if not a or not b:
+        return True
+    boilerplate = {
+        "REX", "T-REX", "REX-OSPREY", "OSPREY", "2X", "3X", "DAILY",
+        "TARGET", "ETF", "ETN", "STRATEGY", "INCOMEMAX", "LONG", "INVERSE",
+        "SHORT", "PREMIUM", "INCOME", "GROWTH", "AND", "&", "THE", "OF",
+        "MICROSECTORS", "FUND", "TRUST",
+    }
+    def _toks(s: str) -> set[str]:
+        return {t.upper().strip(",.()-") for t in s.split() if t} - boilerplate
+    return bool(_toks(a) & _toks(b))
+
+
+def _classify_rex_suite(name: str | None) -> str:
+    """Classify a rex_products name into the REX suite tab buckets.
+
+    Used when a row only exists in rex_products (not capm_products) so the
+    suite filter still works. Mirrors the visible naming convention:
+      - "T-REX 2X ..." → T-REX
+      - "REX-Osprey ..." → REX-OSPREY
+      - "REX ..." (income, premium, crypto, autocallable, etc.) → REX
+      - "MicroSectors ..." → REX (legacy ETN family)
+    """
+    upper = (name or "").upper()
+    if "OSPREY" in upper:
+        return "REX-OSPREY"
+    if upper.startswith("T-REX"):
+        return "T-REX"
+    if upper.startswith("REX") or "MICROSECTORS" in upper:
+        return "REX"
+    return "REX"  # default — these are all REX-branded by virtue of _rex_only_filter
+
+
+# Status sort priority for the unified table — Listed first (operational
+# focus), then awaiting/filed (in-flight), then research/delisted at bottom.
+_UNIFIED_STATUS_PRIORITY = {
+    "Listed": 0,
+    "Awaiting Effective": 1,
+    "Filed": 2,
+    "Filed (485A)": 3,
+    "Pending": 4,
+    "Research": 5,
+    "Target List": 6,
+    "Delisted": 9,
+}
+
+
 def _capm_index_impl(
     request: Request,
     suite: str | None = None,
@@ -97,7 +159,26 @@ def _capm_index_impl(
     tab: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """Capital Markets product list page. Mounted at /operations/products in PR 1."""
+    """REX product list page. Mounted at /operations/products in PR 1.
+
+    Unified view: shows EVERY REX-branded product, not just the 74 with
+    curated CapM data. Sources merged in priority order:
+
+      1. rex_products (REX-branded only via _rex_only_filter) — broad base
+         covering the full filing pipeline (~552 rows)
+      2. capm_products (74 curated rows) — joined on ticker, contributes
+         fees, custodian, LMM, AP-relevant fields. ONLY these rows are
+         editable inline (capm_products is the curated maintenance table).
+      3. mkt_master_data (96 with is_rex=1) — joined on ticker_clean,
+         contributes live AUM, fund_type (ETF/ETN), market_status.
+      4. capm_products with no rex_products match — appended at the end so
+         no curated product disappears even if it's not REX-branded
+         (e.g. BMO suite, legacy entries).
+
+    For tickerless rex_products rows, the row is keyed by `(name|trust)`
+    so each survives independently. ~414 of 552 REX rows lack tickers —
+    they are pre-launch filings still resolving Series/Class IDs.
+    """
     from webapp.models import (
         CapMProduct,
         CapMTrustAP,
@@ -105,108 +186,141 @@ def _capm_index_impl(
         RexProduct,
         MktMasterData,
     )
+    # Imported lazily to avoid module-level circular import — pipeline_calendar
+    # imports from capm in some downstream code paths.
+    from webapp.routers.pipeline_calendar import _rex_only_filter
 
     active_tab = "trust_aps" if tab == "trust_aps" else "products"
 
-    query = db.query(CapMProduct)
-
-    if suite and suite in VALID_SUITES:
-        query = query.filter(CapMProduct.suite_source == suite)
-
-    if q:
-        like = f"%{q}%"
-        query = query.filter(or_(
-            CapMProduct.fund_name.ilike(like),
-            CapMProduct.ticker.ilike(like),
-            CapMProduct.underlying_name.ilike(like),
-            CapMProduct.underlying_ticker.ilike(like),
-            CapMProduct.lmm.ilike(like),
-            CapMProduct.custodian.ilike(like),
-        ))
-
-    products = query.order_by(
-        CapMProduct.suite_source.asc().nulls_last(),
-        CapMProduct.ticker.asc(),
-    ).all()
-
     # ------------------------------------------------------------------
-    # Per-row enrichment: status + fund_type + latest prospectus link.
-    # Sourced via two side-table joins so the underlying capm_products
-    # row can stay simple while still surfacing operational truth.
+    # Pull all three sources in full. Filtering happens in Python after
+    # the merge so suite/q apply to the unified set, not just one side.
     # ------------------------------------------------------------------
-    tickers = sorted({(p.ticker or "").upper() for p in products if p.ticker})
+    rex_rows = _rex_only_filter(db.query(RexProduct)).all()
+    capm_rows = db.query(CapMProduct).all()
 
-    rex_by_ticker: dict[str, RexProduct] = {}
+    # Index capm by uppercase ticker — every capm row has a ticker today
+    capm_by_ticker: dict[str, CapMProduct] = {}
+    for c in capm_rows:
+        if c.ticker:
+            capm_by_ticker[c.ticker.upper().strip()] = c
+
+    # mkt_master_data: keyed by ticker_clean (e.g. "AAPX" not "AAPX US")
     mkt_by_ticker: dict[str, MktMasterData] = {}
-    if tickers:
-        rex_rows = (
-            db.query(RexProduct)
-            .filter(func.upper(RexProduct.ticker).in_(tickers))
-            .all()
-        )
-        # If multiple rex_products rows match a ticker, prefer Listed > others.
-        _status_priority = {"Listed": 0, "Awaiting Effective": 1, "Filed": 2}
-        for r in rex_rows:
-            key = (r.ticker or "").upper()
-            if not key:
-                continue
-            cur = rex_by_ticker.get(key)
-            if cur is None or _status_priority.get(r.status, 9) < _status_priority.get(cur.status, 9):
-                rex_by_ticker[key] = r
-
+    rex_tickers_upper = {(r.ticker or "").upper().strip() for r in rex_rows if r.ticker}
+    capm_tickers_upper = set(capm_by_ticker.keys())
+    needed_mkt_tickers = rex_tickers_upper | capm_tickers_upper
+    if needed_mkt_tickers:
         mkt_rows = (
             db.query(MktMasterData)
-            .filter(func.upper(MktMasterData.ticker).in_(tickers))
+            .filter(or_(
+                func.upper(MktMasterData.ticker_clean).in_(needed_mkt_tickers),
+                func.upper(MktMasterData.ticker).in_(needed_mkt_tickers),
+            ))
             .all()
         )
         for m in mkt_rows:
-            key = (m.ticker or "").upper()
+            key = (m.ticker_clean or m.ticker or "").upper().strip()
+            # mkt_master_data.ticker is "AAPX US" — strip " US" suffix
+            if key.endswith(" US"):
+                key = key[:-3].strip()
             if key and key not in mkt_by_ticker:
                 mkt_by_ticker[key] = m
 
-    # Build a derived view-model layered onto each product. We attach plain
-    # attributes so the Jinja template can read them without learning about
-    # joins — keeps the template dumb.
+    # ------------------------------------------------------------------
+    # Merge strategy: each rex_products row is its OWN entry — even when
+    # multiple share a ticker. This is intentional: during "Awaiting
+    # Effective" the SEC ticker reservation can be reassigned multiple
+    # times across distinct fund names (e.g. APHU is currently both the
+    # listed APH 2X fund AND the placeholder for ~10 awaiting funds). All
+    # of them are real products in flight; collapsing would hide pipeline.
+    #
+    # capm_products is joined on UPPER(ticker) — at most one capm row per
+    # ticker (capm has a unique-ish editorial dataset). The same capm row
+    # may attach to multiple rex rows sharing that ticker, but only the
+    # one matching by name (when possible) gets the editable affordance.
+    # ------------------------------------------------------------------
+    unified: list[SimpleNamespace] = []
+    seen_capm_ids: set[int] = set()
     overrides_count = 0
-    for p in products:
-        key = (p.ticker or "").upper()
-        rex = rex_by_ticker.get(key)
-        mkt = mkt_by_ticker.get(key)
 
-        # Status — prefer rex_products lifecycle; fall back to mkt_master_data;
-        # final fallback is a generic "—".
-        if rex and rex.status:
-            p.status_display = rex.status  # Listed / Filed / Delisted / etc.
-        elif mkt and mkt.market_status:
-            mapping = {
-                "ACTV": "Listed",
-                "PEND": "Pending",
-                "LIQU": "Delisted",
-            }
-            p.status_display = mapping.get(mkt.market_status, mkt.market_status)
-        else:
-            p.status_display = "Listed" if p.inception_date else "—"
-
-        # Fund Type — prefer capm_products own column; else mkt_master_data.fund_type
-        p.fund_type_display = (
-            p.product_type
-            or (mkt.fund_type if mkt and mkt.fund_type else None)
-            or (p.category or "—")
-        )
-
-        # Prospectus — prefer the latest from rex_products (live SEC filing);
-        # fall back to the legacy xlsx-imported prospectus_link.
-        p.prospectus_display = (
-            (rex.latest_prospectus_link if rex and rex.latest_prospectus_link else None)
-            or p.prospectus_link
-        )
-        p.prospectus_source = "live" if (rex and rex.latest_prospectus_link) else "imported"
-
-        # Manual-override badge
-        edited = _parse_overrides(p.manually_edited_fields)
-        p.edited_fields = edited
-        if edited:
+    # Walk every rex row directly — preserves all 552 entries.
+    for r in rex_rows:
+        ticker = (r.ticker or "").upper().strip() or None
+        capm = capm_by_ticker.get(ticker) if ticker else None
+        # Attach capm only to the rex row whose name is a reasonable match.
+        # If the capm row's fund_name shares the underlying name token with
+        # this rex row, attach. Otherwise the capm row stays available for
+        # the rex row that matches better (or falls through unattached).
+        if capm and not _names_overlap(capm.fund_name, r.name):
+            capm = None
+        if capm:
+            seen_capm_ids.add(capm.id)
+        mkt = mkt_by_ticker.get(ticker) if ticker else None
+        row = _build_unified_row(r, capm, mkt, ticker=ticker)
+        if row.edited_fields:
             overrides_count += 1
+        unified.append(row)
+
+    # capm rows whose ticker was never claimed by a rex row OR whose name
+    # didn't overlap any rex row sharing the ticker — still surface them
+    # so curated CapM data is never dropped.
+    for c in capm_rows:
+        if c.id in seen_capm_ids:
+            continue
+        ticker = (c.ticker or "").upper().strip() or None
+        mkt = mkt_by_ticker.get(ticker) if ticker else None
+        row = _build_unified_row(None, c, mkt, ticker=ticker)
+        if row.edited_fields:
+            overrides_count += 1
+        unified.append(row)
+
+    # ------------------------------------------------------------------
+    # Stats from the FULL unified set BEFORE filtering — KPIs always show
+    # the true totals so the user knows the universe size, not just what
+    # passed the current filter.
+    # ------------------------------------------------------------------
+    total = len(unified)
+    suite_counts: dict[str, int] = {}
+    for u in unified:
+        if u.suite_source:
+            suite_counts[u.suite_source] = suite_counts.get(u.suite_source, 0) + 1
+
+    avg_fees: dict[str, int | None] = {}
+    for s in VALID_SUITES:
+        nums: list[float] = []
+        for u in unified:
+            if u.suite_source != s or not u.fixed_fee:
+                continue
+            try:
+                nums.append(float(str(u.fixed_fee).replace(",", "").replace("$", "")))
+            except (ValueError, TypeError):
+                pass
+        avg_fees[s] = round(sum(nums) / len(nums)) if nums else None
+
+    # ------------------------------------------------------------------
+    # Filter (suite + free-text) AFTER stats so KPIs stay stable and users
+    # see consistent header counts regardless of active filter.
+    # ------------------------------------------------------------------
+    if suite and suite in VALID_SUITES:
+        unified = [u for u in unified if u.suite_source == suite]
+
+    if q:
+        ql = q.lower()
+        def _hit(u: SimpleNamespace) -> bool:
+            for field in ("ticker", "fund_name", "trust", "lmm", "custodian", "underlying_name", "underlying_ticker"):
+                v = getattr(u, field, None)
+                if v and ql in str(v).lower():
+                    return True
+            return False
+        unified = [u for u in unified if _hit(u)]
+
+    # Sort: Listed → in-flight → research → delisted, then by ticker (then name)
+    unified.sort(key=lambda u: (
+        _UNIFIED_STATUS_PRIORITY.get(u.status_display, 7),
+        (u.ticker or ""),
+        (u.fund_name or ""),
+    ))
 
     # Trust & APs — always loaded so the tab is instantly available
     trust_aps = (
@@ -219,35 +333,7 @@ def _capm_index_impl(
         .all()
     )
 
-    # Summary stats
-    total = db.query(CapMProduct).count()
-    suite_counts = dict(
-        db.query(CapMProduct.suite_source, func.count(CapMProduct.id))
-        .filter(CapMProduct.suite_source.isnot(None))
-        .group_by(CapMProduct.suite_source)
-        .all()
-    )
-
-    # Average fixed fee (numeric only)
-    avg_fees = {}
-    for s in VALID_SUITES:
-        rows = (
-            db.query(CapMProduct.fixed_fee)
-            .filter(CapMProduct.suite_source == s)
-            .filter(CapMProduct.fixed_fee.isnot(None))
-            .all()
-        )
-        nums = []
-        for (fee_str,) in rows:
-            try:
-                nums.append(float(str(fee_str).replace(",", "").replace("$", "")))
-            except (ValueError, TypeError):
-                pass
-        avg_fees[s] = round(sum(nums) / len(nums)) if nums else None
-
     is_admin = request.session.get("is_admin", False)
-
-    # Count distinct trusts shown on the Trust & APs tab
     trust_count = len({r.trust_name for r in trust_aps})
 
     # Recent activity log — last 20 admin actions (most recent first).
@@ -260,9 +346,9 @@ def _capm_index_impl(
 
     return templates.TemplateResponse("capm.html", {
         "request": request,
-        "products": products,
+        "products": unified,
         "total": total,
-        "filtered_count": len(products),
+        "filtered_count": len(unified),
         "suite_counts": suite_counts,
         "avg_fees": avg_fees,
         "valid_suites": VALID_SUITES,
@@ -275,6 +361,129 @@ def _capm_index_impl(
         "audit_entries": audit_entries,
         "overrides_count": overrides_count,
     })
+
+
+def _build_unified_row(
+    rex,           # RexProduct | None
+    capm,          # CapMProduct | None
+    mkt,           # MktMasterData | None
+    ticker: str | None,
+) -> SimpleNamespace:
+    """Combine up to three source rows into a single template-ready view object.
+
+    Field-resolution priority (best operational truth wins):
+      ticker          — explicit param (already upper-stripped)
+      fund_name       — capm.fund_name → rex.name → mkt.fund_name
+      bb_ticker       — capm.bb_ticker only (CapM-curated)
+      inception_date  — capm.inception_date → rex.official_listed_date
+      trust           — capm.trust → rex.trust
+      issuer          — capm.issuer (CapM-curated only)
+      exchange        — capm.exchange → rex.exchange
+      cu_size         — capm.cu_size → rex.cu_size (str-coerced)
+      fixed_fee       — capm.fixed_fee (CapM-curated)
+      variable_fee    — capm.variable_fee (CapM-curated)
+      cut_off         — capm.cut_off (CapM-curated)
+      custodian       — capm.custodian (CapM-curated)
+      lmm             — capm.lmm → rex.lmm
+      suite_source    — capm.suite_source → derived from rex.name
+      product_type    — capm.product_type → mkt.fund_type
+      status_display  — rex.status → mkt.market_status (mapped) → from inception
+      prospectus      — rex.latest_prospectus_link → capm.prospectus_link
+      editable_capm_id — capm.id (None if no curated record — disables inline edit)
+    """
+    # editable_capm_id drives the JS inline-edit affordance. Only capm_products
+    # rows are editable today since rex_products / mkt_master_data are
+    # pipeline-driven and would be silently overwritten on next sync.
+    editable_capm_id = capm.id if capm else None
+    # Use the capm.id when present so the existing update endpoint URL works.
+    # For non-editable rows we still need a unique row id for the DOM —
+    # negative ids signal "not editable" without colliding with real rows.
+    if capm:
+        dom_id = capm.id
+    elif rex:
+        dom_id = -rex.id  # negative => non-editable, but unique
+    else:
+        dom_id = 0
+
+    fund_name = (
+        (capm.fund_name if capm else None)
+        or (rex.name if rex else None)
+        or (mkt.fund_name if mkt else None)
+        or "—"
+    )
+
+    inception_date = (
+        (capm.inception_date if capm else None)
+        or (rex.official_listed_date if rex else None)
+    )
+
+    # Status — REX pipeline status is most accurate for in-flight; mkt
+    # gives us live exchange status for trading funds.
+    if rex and rex.status:
+        status_display = rex.status
+    elif mkt and mkt.market_status:
+        status_display = {
+            "ACTV": "Listed", "PEND": "Pending", "LIQU": "Delisted",
+        }.get(mkt.market_status, mkt.market_status)
+    elif capm and capm.inception_date:
+        status_display = "Listed"
+    else:
+        status_display = "—"
+
+    # Fund type — capm gets first say, then mkt for ETN flag, then category fallback
+    fund_type_display = (
+        (capm.product_type if capm else None)
+        or (mkt.fund_type if mkt else None)
+        or (capm.category if capm else None)
+        or "—"
+    )
+
+    # Prospectus — prefer the live SEC link from the pipeline, fall back
+    # to the legacy xlsx-imported link.
+    prospectus_display = (
+        (rex.latest_prospectus_link if rex and rex.latest_prospectus_link else None)
+        or (capm.prospectus_link if capm else None)
+    )
+    prospectus_source = "live" if (rex and rex.latest_prospectus_link) else (
+        "imported" if (capm and capm.prospectus_link) else None
+    )
+
+    # Suite — capm's curated suite_source if present, else derive from name
+    suite_source = (
+        (capm.suite_source if capm else None)
+        or _classify_rex_suite(fund_name)
+    )
+
+    # Edited fields badge only meaningful for capm rows
+    edited_fields = _parse_overrides(capm.manually_edited_fields) if capm else []
+
+    return SimpleNamespace(
+        id=dom_id,
+        editable_capm_id=editable_capm_id,
+        ticker=ticker or "",
+        fund_name=fund_name,
+        bb_ticker=(capm.bb_ticker if capm else None),
+        inception_date=inception_date,
+        trust=(capm.trust if capm and capm.trust else (rex.trust if rex else None)),
+        issuer=(capm.issuer if capm else None),
+        exchange=(capm.exchange if capm and capm.exchange else (rex.exchange if rex else None)),
+        cu_size=(capm.cu_size if capm and capm.cu_size else (str(rex.cu_size) if rex and rex.cu_size else None)),
+        fixed_fee=(capm.fixed_fee if capm else None),
+        variable_fee=(capm.variable_fee if capm else None),
+        cut_off=(capm.cut_off if capm else None),
+        custodian=(capm.custodian if capm else None),
+        lmm=(capm.lmm if capm and capm.lmm else (rex.lmm if rex else None)),
+        suite_source=suite_source,
+        product_type=fund_type_display if fund_type_display != "—" else None,
+        category=(capm.category if capm else None),
+        status_display=status_display,
+        fund_type_display=fund_type_display,
+        prospectus_display=prospectus_display,
+        prospectus_source=prospectus_source,
+        # Legacy field — template reads these
+        prospectus_link=(capm.prospectus_link if capm else None),
+        edited_fields=edited_fields,
+    )
 
 
 def _capm_export_impl(

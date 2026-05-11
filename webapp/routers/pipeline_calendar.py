@@ -142,6 +142,11 @@ def _rex_only_filter(query):
     trust (e.g. ETF Opportunities Trust hosts Tuttle, GSR, Hedgeye funds
     alongside REX). Filter by name prefix + trust, and explicitly drop
     known non-REX issuers.
+
+    NOTE: includes product_suite IN VALID_SUITES — catches REX products
+    whose name doesn't contain "REX" (e.g. TLDR "The Laddered T-Bill ETF",
+    suite="T-Bill"). Otherwise the suite KPIs would silently zero out
+    legitimate REX products that don't follow the REX/T-REX naming convention.
     """
     from webapp.models import RexProduct
 
@@ -154,7 +159,9 @@ def _rex_only_filter(query):
             RexProduct.name.ilike("REX- Osprey%"),  # some records have hyphen-space
             RexProduct.name.ilike("MICROSECTORS%"),
             RexProduct.name.ilike("MicroSectors%"),
+            RexProduct.name.ilike("The Laddered%"),  # TLDR — REX product, no REX in name
             RexProduct.trust.ilike("%REX%"),
+            RexProduct.product_suite.in_(VALID_SUITES),  # catches edge cases via REX-known suite
         ))
         .filter(not_(or_(
             RexProduct.trust.ilike("%tuttle%"),
@@ -388,30 +395,59 @@ def _pipeline_products_impl(
     }
 
     # ---- Pipeline funnel (lifecycle stages) ----
-    # Ordering: Research -> Counsel -> Board -> Awaiting Effective (= filed
-    # states) -> Effective -> Live (Listed) -> Delisted. Per the May 2026
-    # REX ops review: Live and Effective are SEPARATE stages because a
-    # fund can be SEC-effective without being listed/trading. The funnel
-    # must surface that gap. "Awaiting Effective" rolls up every Filed/
-    # Filed-485A/Filed-485B/Awaiting-Effective row since they all mean
-    # the same thing operationally (filed, waiting on the SEC clock).
-    funnel_stages = [
-        ("Research / Target",  ["Research", "Target List"]),
-        ("Counsel",            ["Counsel Review", "Counsel Approved", "Counsel Withdrawn"]),
-        ("Board",              ["Pending Board", "Board Approved", "Not Approved by Board"]),
-        ("Awaiting Effective", ["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]),
-        ("Effective",          ["Effective"]),
-        ("Live",               ["Listed"]),
-        ("Delisted",           ["Delisted"]),
+    # Order per Ryu's May 2026 ops review: Live FIRST (the most important —
+    # what's actually trading) -> Effective -> Awaiting Effective -> Board
+    # -> Counsel -> Research -> Delisted (cold storage at end).
+    #
+    # Effective auto-derivation: 274 of 412 "Past Effective Date" rows have
+    # latest_form=485BPOS (post-effective amendment — by SEC rule, fund IS
+    # effective). Until status_history table lands, count those as Effective.
+    # Awaiting Effective shows the *remainder* (filed but no 485BPOS yet).
+    #
+    # SEC filing rules reference:
+    #   485A   = initial registration (pre-effective)
+    #   485BPOS = post-effective amendment (fund IS effective per SEC)
+    #   485BXT = extension (still pre-effective)
+
+    # Compute auto-effective count (status=Awaiting/Filed AND latest_form=485BPOS)
+    auto_effective_q = lambda: (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status.in_(["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]))
+        .filter(RexProduct.latest_form == "485BPOS")
+    )
+    n_auto_effective = auto_effective_q().count()
+
+    # Awaiting Effective = total filed-state MINUS auto-effective
+    n_awaiting = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status.in_(["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]))
+        .filter((RexProduct.latest_form != "485BPOS") | (RexProduct.latest_form.is_(None)))
+        .count()
+    )
+
+    # Effective = literal status='Effective' + auto-derived from 485BPOS
+    n_effective_literal = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status == "Effective")
+        .count()
+    )
+    n_effective_total = n_effective_literal + n_auto_effective
+
+    n_live = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Listed").count()
+    n_board = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Pending Board", "Board Approved", "Not Approved by Board"])).count()
+    n_counsel = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Counsel Review", "Counsel Approved", "Counsel Withdrawn"])).count()
+    n_research = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Research", "Target List"])).count()
+    n_delisted = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Delisted").count()
+
+    funnel = [
+        {"label": "Live",               "count": n_live,         "statuses": ["Listed"]},
+        {"label": "Effective",          "count": n_effective_total, "statuses": ["Effective"]},
+        {"label": "Awaiting Effective", "count": n_awaiting,     "statuses": ["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]},
+        {"label": "Board",              "count": n_board,        "statuses": ["Pending Board", "Board Approved", "Not Approved by Board"]},
+        {"label": "Counsel",            "count": n_counsel,      "statuses": ["Counsel Review", "Counsel Approved", "Counsel Withdrawn"]},
+        {"label": "Research / Target",  "count": n_research,     "statuses": ["Research", "Target List"]},
+        {"label": "Delisted",           "count": n_delisted,     "statuses": ["Delisted"]},
     ]
-    funnel = []
-    for label, statuses in funnel_stages:
-        n = (
-            _rex_only_filter(db.query(RexProduct))
-            .filter(RexProduct.status.in_(statuses))
-            .count()
-        )
-        funnel.append({"label": label, "count": n, "statuses": statuses})
     funnel_max = max((f["count"] for f in funnel), default=1) or 1
 
     # ---- Recent Activity (last N days of any updated_at touch) ----
@@ -446,21 +482,26 @@ def _pipeline_products_impl(
     for p in activity_rows:
         delta = now_dt - p.updated_at
         if delta.days >= 1:
-            ago = f"{delta.days}d ago"
+            ago = f"Touched {delta.days}d ago"
         elif delta.seconds >= 3600:
-            ago = f"{delta.seconds // 3600}h ago"
+            ago = f"Touched {delta.seconds // 3600}h ago"
         elif delta.seconds >= 60:
-            ago = f"{delta.seconds // 60}m ago"
+            ago = f"Touched {delta.seconds // 60}m ago"
         else:
-            ago = "just now"
+            ago = "Touched just now"
         recent_activity.append({
             "id": p.id,
             "ticker": p.ticker or "",
             "name": p.name,
             "status": p.status,
             "suite": p.product_suite or "",
+            # "ago" reflects the LAST WRITE to the row (any column), not a
+            # status-change event specifically. True status-history requires
+            # the rex_product_status_history table (task #114). Until then
+            # "Touched X ago" is the most honest label we can show.
             "ago": ago,
             "updated_at": p.updated_at,
+            "latest_prospectus_link": p.latest_prospectus_link,
         })
 
     # Status/suite counts (REX-branded only)
