@@ -216,13 +216,19 @@ function showDay(iso, events) {
       if (t === 'holiday') {
         html += `<div class="fund-name"><b>${escapeHtml(e.name)}</b></div>`;
       } else if (t === 'distribution') {
-        html += `<div><span class="ticker">${escapeHtml(e.ticker)}</span> ${escapeHtml(e.name || '')}</div>`;
+        const distTicker = e.ticker
+          ? `<a href="/funds/${encodeURIComponent(String(e.ticker).trim().toUpperCase())}" class="ticker" style="color:inherit; text-decoration:none;">${escapeHtml(e.ticker)}</a>`
+          : `<span class="ticker">${escapeHtml(e.ticker)}</span>`;
+        html += `<div>${distTicker} ${escapeHtml(e.name || '')}</div>`;
         const bits = [];
         if (e.declaration_date) bits.push('decl ' + e.declaration_date);
         if (e.payable_date) bits.push('payable ' + e.payable_date);
         if (bits.length) html += `<div class="details">${bits.join(' · ')}</div>`;
       } else {
-        html += `<div><span class="ticker">${escapeHtml(e.ticker || 'TBD')}</span> ${escapeHtml(e.name || '')}</div>`;
+        const tickerLink = e.ticker
+          ? `<a href="/funds/${encodeURIComponent(String(e.ticker).trim().toUpperCase())}" class="ticker" style="color:inherit; text-decoration:none;">${escapeHtml(e.ticker)}</a>`
+          : `<span class="ticker">TBD</span>`;
+        html += `<div>${tickerLink} ${escapeHtml(e.name || '')}</div>`;
         const detailBits = [];
         if (e.suite) detailBits.push(e.suite);
         if (e.form) detailBits.push('form ' + e.form);

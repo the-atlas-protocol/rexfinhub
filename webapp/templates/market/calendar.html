@@ -141,7 +141,7 @@
             </a>
             {% endif %}
             {% if item.issuer %}
-            <div style="font-size:10px; color:#94a3b8; margin-top:2px;">{{ item.issuer }}</div>
+            <div style="font-size:10px; color:#94a3b8; margin-top:2px;"><a href="/issuers/{{ item.issuer | urlencode }}" style="color:inherit; text-decoration:none;">{{ item.issuer }}</a></div>
             {% endif %}
           </td>
           <td class="text-mono" style="white-space:nowrap; padding:8px 10px;">
@@ -192,7 +192,7 @@
             </a>
             {% endif %}
             {% if item.issuer %}
-            <div style="font-size:10px; color:#94a3b8; margin-top:2px;">{{ item.issuer }}</div>
+            <div style="font-size:10px; color:#94a3b8; margin-top:2px;"><a href="/issuers/{{ item.issuer | urlencode }}" style="color:inherit; text-decoration:none;">{{ item.issuer }}</a></div>
             {% endif %}
           </td>
           <td style="padding:8px 10px;">

@@ -44,7 +44,7 @@
   </div>
   <div class="kpi-card">
     <div class="kpi-label">Top Issuer</div>
-    <div class="kpi-value" style="font-size:1rem;">{{ summary.issuers[0].issuer_name }}</div>
+    <div class="kpi-value" style="font-size:1rem;"><a href="/issuers/{{ summary.issuers[0].issuer_name | urlencode }}" style="color:inherit; text-decoration:none;">{{ summary.issuers[0].issuer_name }}</a></div>
   </div>
   <div class="kpi-card">
     <div class="kpi-label">Top Issuer Share</div>

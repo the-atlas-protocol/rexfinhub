@@ -86,7 +86,7 @@
       <tbody>
         {% for p in products %}
         <tr class="{{ 'rex-highlight' if p.is_rex else '' }}">
-          <td class="ticker-cell">{{ p.ticker }}</td>
+          <td class="ticker-cell">{% if p.ticker %}<a href="/funds/{{ p.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ p.ticker }}</a>{% else %}{{ p.ticker }}{% endif %}</td>
           <td class="name-cell">{{ p.fund_name }}</td>
           <td style="font-size:0.78rem;">{{ p.category | replace('Leverage & Inverse - ','L&I ') | replace('Income - ','Inc ') }}</td>
           <td class="num-cell">{{ p.aum_fmt }}</td>

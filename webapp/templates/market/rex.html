@@ -249,7 +249,7 @@
       <td class="num-cell" style="text-align:center;" data-sort="{{ suite.kpis.avg_spread|default(0) }}">{{ suite.kpis.avg_spread_fmt }}</td>
       <td class="num-cell" style="text-align:center;" data-sort="{{ suite.market_share|default(0) }}">{{ suite.market_share }}%</td>
       <td class="num-cell" style="text-align:center;" data-sort="{{ suite.kpis.num_products|default(0) }}">{{ suite.kpis.num_products }}</td>
-      <td class="movers-cell" style="text-align:center;">{% for m in suite.top_movers[:1] %}<span class="{{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{{ m.ticker }} {{ m.flow }}</span>{% endfor %}</td>
+      <td class="movers-cell" style="text-align:center;">{% for m in suite.top_movers[:1] %}<span class="{{ 'positive' if m.flow_raw > 0 else 'negative' if m.flow_raw < 0 else '' }}">{% if m.ticker %}<a href="/funds/{{ m.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none;">{{ m.ticker }}</a>{% else %}{{ m.ticker }}{% endif %} {{ m.flow }}</span>{% endfor %}</td>
     </tr>
     {# Collapsible product rows for this suite #}
     <tr id="suite{{ loop.index }}" data-no-sort data-parent="suite{{ loop.index }}Parent" style="display:none;">

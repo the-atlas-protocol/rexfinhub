@@ -178,7 +178,7 @@
   <tbody>
     {% for s in issuer_scorecard %}
     <tr{% if s.is_rex %} class="scorecard-rex"{% endif %}>
-      <td style="font-weight:{% if s.is_rex %}700{% else %}500{% endif %};">{{ s.issuer }}</td>
+      <td style="font-weight:{% if s.is_rex %}700{% else %}500{% endif %};">{% if s.issuer %}<a href="/issuers/{{ s.issuer | urlencode }}" style="color:inherit; text-decoration:none;">{{ s.issuer }}</a>{% else %}{{ s.issuer }}{% endif %}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c2 }}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c3 }}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ s.c4 }}</td>
@@ -270,8 +270,8 @@
         {{ r.fund_name }}
         {% endif %}
       </td>
-      <td style="font-family:var(--font-mono); font-size:12px; font-weight:600;">{{ r.ticker or '' }}</td>
-      <td style="font-size:13px;{% if r.issuer in ('T-REX', 'REX') %} font-weight:600; color:#059669;{% endif %}">{{ r.issuer }}</td>
+      <td style="font-family:var(--font-mono); font-size:12px; font-weight:600;">{% if r.ticker %}<a href="/funds/{{ r.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none;">{{ r.ticker }}</a>{% endif %}</td>
+      <td style="font-size:13px;{% if r.issuer in ('T-REX', 'REX') %} font-weight:600; color:#059669;{% endif %}">{% if r.issuer %}<a href="/issuers/{{ r.issuer | urlencode }}" style="color:inherit; text-decoration:none;">{{ r.issuer }}</a>{% else %}{{ r.issuer }}{% endif %}</td>
       <td style="font-size:12px; color:#64748b;">{{ r.trust }}</td>
       <td style="font-weight:600; font-size:13px;">{{ r.underlier }}</td>
       <td style="text-align:center;">
@@ -425,9 +425,9 @@
   <tbody>
     {% for p in products %}
     <tr data-leverage="{{ p.leverage|abs|round(0)|int }}" data-direction="{{ p.direction|lower }}" data-rex="{{ 'true' if p.is_rex else 'false' }}" data-ticker="{{ p.ticker|upper }}" data-name="{{ p.fund_name|upper }}"{% if p.is_rex %} class="scorecard-rex"{% endif %}>
-      <td style="font-weight:600; font-family:var(--font-mono); font-size:13px;">{{ p.ticker }}</td>
+      <td style="font-weight:600; font-family:var(--font-mono); font-size:13px;">{% if p.ticker %}<a href="/funds/{{ p.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}{{ p.ticker }}{% endif %}</td>
       <td style="font-size:13px;">{{ p.fund_name }}</td>
-      <td style="font-size:13px;{% if p.is_rex %} font-weight:600; color:#059669;{% endif %}">{{ p.issuer }}</td>
+      <td style="font-size:13px;{% if p.is_rex %} font-weight:600; color:#059669;{% endif %}">{% if p.issuer %}<a href="/issuers/{{ p.issuer | urlencode }}" style="color:inherit; text-decoration:none;">{{ p.issuer }}</a>{% else %}{{ p.issuer }}{% endif %}</td>
       <td style="text-align:center; font-variant-numeric:tabular-nums;">{{ p.leverage }}x</td>
       <td style="text-align:center; font-size:12px; font-weight:500; color:{% if 'long' in p.direction|lower %}#059669{% elif 'short' in p.direction|lower or 'inverse' in p.direction|lower %}#dc2626{% else %}#64748b{% endif %};">{{ p.direction }}</td>
       <td style="text-align:right; font-variant-numeric:tabular-nums;" data-sort="{{ p.aum }}">{{ '{:,.1f}'.format(p.aum) if p.aum else '--' }}</td>

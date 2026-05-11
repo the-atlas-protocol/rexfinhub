@@ -73,7 +73,7 @@
         <tbody>
           {% for p in summary.products %}
           <tr class="{{ 'rex-highlight' if p.is_rex else '' }}">
-            <td class="ticker-cell">{{ p.ticker }}</td>
+            <td class="ticker-cell">{% if p.ticker %}<a href="/funds/{{ p.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ p.ticker }}</a>{% else %}{{ p.ticker }}{% endif %}</td>
             <td class="name-cell" title="{{ p.fund_name }}">{{ p.fund_name|truncate(40, true) }}</td>
             {% if underlier_type == 'li' %}
             <td>{{ p.direction }}</td>
@@ -162,7 +162,8 @@ function updateUnderlierProducts(data, name, type) {
     var rowCls = p.is_rex ? ' class="rex-highlight"' : '';
     var flowCls = p.flow_1w > 0 ? ' positive' : (p.flow_1w < 0 ? ' negative' : '');
     html += '<tr' + rowCls + '>';
-    html += '<td class="ticker-cell">' + escHtml(p.ticker) + '</td>';
+    var tickerLink = p.ticker ? '<a href="/funds/' + encodeURIComponent(String(p.ticker).replace(/ US$/, '').trim().toUpperCase()) + '" style="color:inherit; text-decoration:none; font-weight:600;">' + escHtml(p.ticker) + '</a>' : '';
+    html += '<td class="ticker-cell">' + tickerLink + '</td>';
     html += '<td class="name-cell">' + escHtml(p.fund_name) + '</td>';
     if (isLi) {
       html += '<td>' + escHtml(p.direction) + '</td>';

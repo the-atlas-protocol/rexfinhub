@@ -134,7 +134,7 @@
 {% macro card_block(card, kind) %}
 <div class="li-card li-card-{{ kind }}">
   <div class="li-card-head">
-    <span class="li-card-ticker">{{ card.ticker }}</span>
+    <span class="li-card-ticker">{% if card.ticker %}<a href="/stocks/{{ card.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ card.ticker }}</a>{% else %}{{ card.ticker }}{% endif %}</span>
     <span class="li-card-sector">{{ card.sector }}</span>
     {% if card.is_hot_theme %}<span class="li-badge li-badge-hot">HOT THEME</span>{% endif %}
     {% if card.themes %}<span class="li-badge li-badge-theme">{{ card.themes }}</span>{% endif %}
@@ -179,14 +179,14 @@
         {% endif %}
       </span>
       {% if card.rex_ticker %}
-        <span><span class="li-badge li-badge-rex">REX</span> {{ card.rex_ticker }}</span>
+        <span><span class="li-badge li-badge-rex">REX</span> <a href="/funds/{{ card.rex_ticker | trim | upper }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ card.rex_ticker }}</a></span>
       {% endif %}
     </div>
   {% else %}
     <div class="li-card-row">
       <span>Filers:
         {% if card.n_filings_total and card.n_filings_total > 0 %}
-          <strong>{{ card.n_filings_total }}</strong> 485APOS filing{{ 's' if card.n_filings_total != 1 else '' }} reference {{ card.ticker }}
+          <strong>{{ card.n_filings_total }}</strong> 485APOS filing{{ 's' if card.n_filings_total != 1 else '' }} reference {% if card.ticker %}<a href="/stocks/{{ card.ticker | trim | upper }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ card.ticker }}</a>{% else %}{{ card.ticker }}{% endif %}
         {% else %}
           <strong>0</strong> — true whitespace
         {% endif %}

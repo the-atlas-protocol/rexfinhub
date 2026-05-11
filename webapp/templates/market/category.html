@@ -166,7 +166,7 @@
           {% for p in summary.rex_products %}
           <tr class="rex-highlight cat-product-row" data-name="{{ p.fund_name|lower }}" data-ticker="{{ p.ticker|lower }}">
             <td>{{ p.rank if p.rank else '-' }}</td>
-            <td class="ticker-col">{{ p.ticker }}</td>
+            <td class="ticker-col">{% if p.ticker %}<a href="/funds/{{ p.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ p.ticker }}</a>{% else %}{{ p.ticker }}{% endif %}</td>
             <td class="name-cell" title="{{ p.fund_name }}">{{ p.fund_name|truncate(45, true) }}</td>
             <td class="num-cell">{{ p.aum_fmt }}</td>
             <td class="num-cell {{ 'positive' if p.flow_1w > 0 else 'negative' if p.flow_1w < 0 else '' }}">{{ p.flow_1w_fmt }}</td>
@@ -208,9 +208,9 @@
           {% for p in summary.top_products %}
           <tr class="{{ 'rex-highlight' if p.is_rex else '' }} cat-product-row" data-name="{{ p.fund_name|lower }}" data-ticker="{{ p.ticker|lower }}" data-issuer="{{ p.issuer|lower }}">
             <td>{{ p.rank }}</td>
-            <td class="ticker-col">{{ p.ticker }}</td>
+            <td class="ticker-col">{% if p.ticker %}<a href="/funds/{{ p.ticker | replace(' US', '') | trim | upper }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ p.ticker }}</a>{% else %}{{ p.ticker }}{% endif %}</td>
             <td class="name-cell" title="{{ p.fund_name }}">{{ p.fund_name|truncate(40, true) }}</td>
-            <td style="font-size:0.8rem; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ p.issuer }}</td>
+            <td style="font-size:0.8rem; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{% if p.issuer %}<a href="/issuers/{{ p.issuer | urlencode }}" style="color:inherit; text-decoration:none;">{{ p.issuer }}</a>{% else %}{{ p.issuer }}{% endif %}</td>
             <td class="num-cell">{{ p.aum_fmt }}</td>
             <td class="num-cell {{ 'positive' if p.flow_1w > 0 else 'negative' if p.flow_1w < 0 else '' }}">{{ p.flow_1w_fmt }}</td>
             <td class="num-cell {{ 'positive' if p.flow_1m > 0 else 'negative' if p.flow_1m < 0 else '' }}">{{ p.flow_1m_fmt }}</td>

@@ -21,11 +21,11 @@ Per ticker, every page that should mention it. `loaded` = 200 OK; `ticker_presen
 | fund detail | `/funds/NVDX` | 200 | OK | YES | no |
 | SEC ETP dashboard | `/sec/etp/` | 200 | OK | no | no |
 | filings explorer | `/sec/etp/filings` | 200 | OK | no | no |
-| L&I landscape | `/sec/etp/leverageandinverse` | 200 | OK | YES | no |
+| L&I landscape | `/sec/etp/leverageandinverse` | 200 | OK | YES | YES |
 | ETP calendar | `/tools/calendar` | 200 | OK | no | no |
 | L&I candidates | `/tools/li/candidates` | 200 | OK | no | no |
 | REX Ops calendar | `/operations/calendar` | 200 | OK | no | no |
-| REX Ops pipeline | `/operations/pipeline` | 200 | OK | YES | no |
+| REX Ops pipeline | `/operations/pipeline` | 200 | OK | YES | YES |
 
 ### DJTU (REX recent launch)
 
@@ -35,11 +35,11 @@ Per ticker, every page that should mention it. `loaded` = 200 OK; `ticker_presen
 | fund detail | `/funds/DJTU` | 200 | OK | YES | no |
 | SEC ETP dashboard | `/sec/etp/` | 200 | OK | no | no |
 | filings explorer | `/sec/etp/filings` | 200 | OK | no | no |
-| L&I landscape | `/sec/etp/leverageandinverse` | 200 | OK | YES | no |
+| L&I landscape | `/sec/etp/leverageandinverse` | 200 | OK | YES | YES |
 | ETP calendar | `/tools/calendar` | 200 | OK | no | no |
 | L&I candidates | `/tools/li/candidates` | 200 | OK | no | no |
 | REX Ops calendar | `/operations/calendar` | 200 | OK | no | no |
-| REX Ops pipeline | `/operations/pipeline` | 200 | OK | YES | no |
+| REX Ops pipeline | `/operations/pipeline` | 200 | OK | YES | YES |
 
 ### NVDL (GraniteShares competitor)
 
@@ -49,7 +49,7 @@ Per ticker, every page that should mention it. `loaded` = 200 OK; `ticker_presen
 | fund detail | `/funds/NVDL` | 200 | OK | YES | no |
 | SEC ETP dashboard | `/sec/etp/` | 200 | OK | no | no |
 | filings explorer | `/sec/etp/filings` | 200 | OK | no | no |
-| L&I landscape | `/sec/etp/leverageandinverse` | 200 | OK | YES | no |
+| L&I landscape | `/sec/etp/leverageandinverse` | 200 | OK | YES | YES |
 | ETP calendar | `/tools/calendar` | 200 | OK | no | no |
 | L&I candidates | `/tools/li/candidates` | 200 | OK | YES | no |
 | REX Ops calendar | `/operations/calendar` | 200 | OK | no | no |

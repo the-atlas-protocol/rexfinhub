@@ -85,7 +85,7 @@
         <tr class="{{ 'rex-highlight' if issuer.is_rex else '' }}">
           <td style="color:#94A3B8; font-size:0.8rem;">{{ loop.index }}</td>
           <td>
-            {{ issuer.name }}
+            <a href="/issuers/{{ issuer.name | urlencode }}" style="color:inherit; text-decoration:none;">{{ issuer.name }}</a>
             {% if issuer.is_rex %}<span style="color:#1E40AF;font-size:0.7rem;font-weight:700;margin-left:4px;">REX</span>{% endif %}
           </td>
           <td class="num-cell">{{ issuer.aum_fmt }}</td>

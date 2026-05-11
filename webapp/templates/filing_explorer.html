@@ -108,7 +108,7 @@
           {{ f.fund_name }}
           {% endif %}
         </td>
-        <td style="font-size:12px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle; font-family:'SF Mono','Cascadia Code','Consolas',monospace; letter-spacing:0.02em;">{{ f.ticker or '' }}</td>
+        <td style="font-size:12px; color:#0f172a; padding:10px 16px; height:40px; vertical-align:middle; font-family:'SF Mono','Cascadia Code','Consolas',monospace; letter-spacing:0.02em;">{% if f.ticker %}<a href="/funds/{{ f.ticker | trim | upper }}" style="color:#0f172a; text-decoration:none; font-weight:500;">{{ f.ticker }}</a>{% endif %}</td>
         <td style="font-size:13px; color:#64748b; padding:10px 16px; height:40px; vertical-align:middle; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
           <a href="/trusts/{{ row.trust_slug }}" style="color:#64748b; text-decoration:none;">{{ row.trust_name }}</a>
         </td>

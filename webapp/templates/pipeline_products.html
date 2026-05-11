@@ -183,7 +183,7 @@ table.pipeline-table tr:hover { background:#fafbfc; }
     {% for p in next_launches %}
     {% set days_left = (p.estimated_effective_date - today).days %}
     <div class="nl-row">
-      <span class="nl-ticker">{{ p.ticker or 'TBD' }}</span>
+      <span class="nl-ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}TBD{% endif %}</span>
       <span class="nl-name" title="{{ p.name }}">{{ p.name[:60] }}</span>
       <span class="nl-date">{{ p.estimated_effective_date.strftime('%b %d, %Y') }}</span>
       <span class="nl-countdown {% if days_left <= 7 %}urgent{% elif days_left <= 21 %}soon{% else %}ok{% endif %}">{{ days_left }}d</span>
@@ -281,7 +281,7 @@ table.pipeline-table tr:hover { background:#fafbfc; }
         {% for p in products %}
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
         <tr data-id="{{ p.id }}">
-          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{{ p.ticker or '---' }}</td>
+          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
           <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:55] }}</td>
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
           <td data-sort="{{ p.status }}" data-field="status" data-field-type="select" data-field-options="{{ valid_statuses|join('|') }}"><span class="status-pill status-{{ p.status.replace(' ', '-') }}">{{ p.status }}</span></td>
