@@ -184,6 +184,26 @@ def _pipeline_summary_impl(request: Request):
     return RedirectResponse(url="/operations/pipeline", status_code=301)
 
 
+# "Filed but not yet effective" — full set of statuses that mean a product
+# has been filed/approved through some upstream gate but has NOT yet been
+# declared Effective by the SEC. Used for the Upcoming Effectiveness KPI
+# so it stays accurate as the lifecycle enum grows. Anything in this list
+# is awaiting an Effective transition.
+PENDING_EFFECTIVE_STATUSES = [
+    "Filed",
+    "Filed (485A)",
+    "Filed (485B)",
+    "Awaiting Effective",
+    "Counsel Approved",
+    "Pending Board",
+    "Board Approved",
+]
+
+# Statuses that mean "done / no longer in the active pipeline". Used to
+# default-show Listed/Delisted instead of hiding them.
+TERMINAL_STATUSES = ["Listed", "Delisted", "Effective"]
+
+
 def _pipeline_products_impl(
     request: Request,
     status: str | None = None,
@@ -194,7 +214,8 @@ def _pipeline_products_impl(
     dir: str | None = None,
     page: int = 1,
     per_page: str | int = 50,
-    show_cold: int = 0,
+    hide_terminal: int = 0,
+    show_cold: int | None = None,  # legacy alias — ignored if hide_terminal supplied
     recent_days: int = 14,
     db: Session = Depends(get_db),
 ):
@@ -246,19 +267,19 @@ def _pipeline_products_impl(
     if recent_days_value not in (7, 14, 30, 90):
         recent_days_value = 14
 
-    show_cold_flag = bool(show_cold)
+    # New default (May 2026): SHOW everything (Listed + Delisted included).
+    # User can opt to hide them via ?hide_terminal=1. Legacy ?show_cold=
+    # param is now silently ignored — bookmarks that included it will just
+    # see the new default (which is what the REX team wants per the May
+    # ops review). No harm: terminal stages are still toggleable.
+    hide_terminal_flag = bool(hide_terminal)
 
-    def _apply_cold_filter(qry):
-        """Hide Delisted + stale-Listed rows unless show_cold=1."""
-        if show_cold_flag:
+    def _apply_terminal_filter(qry):
+        """Hide Listed + Delisted + Effective rows when hide_terminal=1."""
+        if not hide_terminal_flag:
             return qry
         return qry.filter(
-            RexProduct.status != "Delisted",
-            or_(
-                RexProduct.status != "Listed",
-                RexProduct.official_listed_date.is_(None),
-                RexProduct.official_listed_date >= cold_cutoff,
-            ),
+            RexProduct.status.notin_(TERMINAL_STATUSES),
         )
 
     # ---- KPIs (REX-branded products only) ----
@@ -321,23 +342,42 @@ def _pipeline_products_impl(
     max_cycle = max(cycle_days) if cycle_days else None
 
     # ---- Urgency counts (unfiltered, for pill badges) ----
-    # Overdue: estimated_effective_date passed but product not yet
-    # Effective/Listed/Delisted. Falls back from the old target_listing_date
-    # check (only 11% of rows had it) to the much-better-populated
-    # estimated_effective_date column.
+    # "Urgent" used to require estimated_effective_date inside 14 days, but
+    # est_effective_date population is unreliable (412/435 filed-state rows
+    # have one, but data is often stale or backfilled to a year-old date).
+    # When est_effective_date hasn't been refreshed, the strict window
+    # filter silently zeroes out the KPI even though hundreds of products
+    # are genuinely awaiting effectiveness — exactly the bug surfaced in
+    # the May 2026 ops review.
+    #
+    # New definition: "Upcoming Effectiveness" counts EVERY product in a
+    # filed-but-not-yet-effective lifecycle status, using the full
+    # PENDING_EFFECTIVE_STATUSES set so future enum additions (Filed
+    # (485A/B), Counsel/Board approvals) flow through automatically. The
+    # date window becomes a TIE-BREAKER subtotal exposed via "next 14d /
+    # 60d" sub-cards rather than a gating condition on the headline.
+    pending_q = lambda: (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status.in_(PENDING_EFFECTIVE_STATUSES))
+    )
     urgency_counts = {
-        "urgent": _rex_only_filter(db.query(RexProduct))
-            .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+        # Headline: every product in a pending-effective state. Honest
+        # answer to "how many funds are awaiting effectiveness?".
+        "urgent": pending_q().count(),
+        # Sub-cohort: pending AND have an est_effective_date set in the
+        # next 14 days (still useful for the truly-imminent slice when
+        # the data is fresh).
+        "urgent_dated_14d": pending_q()
             .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=14)))
             .count(),
-        "upcoming": _rex_only_filter(db.query(RexProduct))
-            .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+        "upcoming": pending_q().count(),  # alias — same headline cohort
+        "upcoming_dated_60d": pending_q()
             .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=60)))
             .count(),
         "overdue": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.estimated_effective_date.isnot(None))
             .filter(RexProduct.estimated_effective_date < today)
-            .filter(RexProduct.status.notin_(["Listed", "Delisted", "Effective"]))
+            .filter(RexProduct.status.notin_(TERMINAL_STATUSES))
             .count(),
         "recent_filings": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
@@ -348,14 +388,21 @@ def _pipeline_products_impl(
     }
 
     # ---- Pipeline funnel (lifecycle stages) ----
+    # Ordering: Research -> Counsel -> Board -> Awaiting Effective (= filed
+    # states) -> Effective -> Live (Listed) -> Delisted. Per the May 2026
+    # REX ops review: Live and Effective are SEPARATE stages because a
+    # fund can be SEC-effective without being listed/trading. The funnel
+    # must surface that gap. "Awaiting Effective" rolls up every Filed/
+    # Filed-485A/Filed-485B/Awaiting-Effective row since they all mean
+    # the same thing operationally (filed, waiting on the SEC clock).
     funnel_stages = [
-        ("Research / Target", ["Research", "Target List"]),
-        ("Counsel",           ["Counsel Review", "Counsel Approved", "Counsel Withdrawn"]),
-        ("Board",             ["Pending Board", "Board Approved", "Not Approved by Board"]),
-        ("Filed",             ["Filed", "Filed (485A)", "Filed (485B)"]),
-        ("Awaiting Effective",["Awaiting Effective"]),
-        ("Effective / Live",  ["Effective", "Listed"]),
-        ("Delisted",          ["Delisted"]),
+        ("Research / Target",  ["Research", "Target List"]),
+        ("Counsel",            ["Counsel Review", "Counsel Approved", "Counsel Withdrawn"]),
+        ("Board",              ["Pending Board", "Board Approved", "Not Approved by Board"]),
+        ("Awaiting Effective", ["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]),
+        ("Effective",          ["Effective"]),
+        ("Live",               ["Listed"]),
+        ("Delisted",           ["Delisted"]),
     ]
     funnel = []
     for label, statuses in funnel_stages:
@@ -450,11 +497,11 @@ def _pipeline_products_impl(
     # ---- Build filtered product query (REX-branded only) ----
     query = _rex_only_filter(db.query(RexProduct))
 
-    # Cold-state filter — applied unless user opts in via ?show_cold=1.
-    # Hides Delisted + Listed-more-than-365-days-ago so the table opens on
-    # what's actually in motion. Counts above (KPIs, status_counts) stay
-    # full so the funnel/breakdown still reflects everything.
-    query = _apply_cold_filter(query)
+    # Terminal-stage filter — applied only when user explicitly opts in
+    # via ?hide_terminal=1. Default (May 2026) shows EVERYTHING including
+    # Listed/Delisted so the table reflects the full product universe.
+    # Counts above (KPIs, status_counts, funnel) always stay full.
+    query = _apply_terminal_filter(query)
 
     if status:
         query = query.filter(RexProduct.status == status)
@@ -470,22 +517,17 @@ def _pipeline_products_impl(
         ))
 
     if urgency == "urgent":
-        cutoff = today + timedelta(days=14)
-        query = query.filter(
-            RexProduct.status.in_(["Filed", "Awaiting Effective"]),
-            RexProduct.estimated_effective_date.between(today, cutoff),
-        )
+        # New definition matches the urgency_counts['urgent'] headline:
+        # everything in a pending-effective lifecycle status. The 14-day
+        # date window is exposed as a separate sub-filter when needed.
+        query = query.filter(RexProduct.status.in_(PENDING_EFFECTIVE_STATUSES))
     elif urgency == "upcoming":
-        cutoff = today + timedelta(days=60)
-        query = query.filter(
-            RexProduct.status.in_(["Filed", "Awaiting Effective"]),
-            RexProduct.estimated_effective_date.between(today, cutoff),
-        )
+        query = query.filter(RexProduct.status.in_(PENDING_EFFECTIVE_STATUSES))
     elif urgency == "overdue":
         query = query.filter(
             RexProduct.estimated_effective_date.isnot(None),
             RexProduct.estimated_effective_date < today,
-            RexProduct.status.notin_(["Listed", "Delisted", "Effective"]),
+            RexProduct.status.notin_(TERMINAL_STATUSES),
         )
     elif urgency == "recent_filings":
         query = query.filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
@@ -593,10 +635,10 @@ def _pipeline_products_impl(
     if show_all:         base_qs_parts.append(("per_page", "all"))
     elif per_page_value != 50: base_qs_parts.append(("per_page", str(per_page_value)))
     if recent_days_value != 14: base_qs_parts.append(("recent_days", str(recent_days_value)))
-    if show_cold_flag:   base_qs_parts.append(("show_cold", "1"))
+    if hide_terminal_flag: base_qs_parts.append(("hide_terminal", "1"))
     from urllib.parse import urlencode
     base_qs = urlencode(base_qs_parts)
-    base_qs_no_show_cold = urlencode([(k, v) for (k, v) in base_qs_parts if k != "show_cold"])
+    base_qs_no_hide_terminal = urlencode([(k, v) for (k, v) in base_qs_parts if k != "hide_terminal"])
     # For per_page / recent_days / sort toggles we want the URL minus
     # the param being toggled, so the new value can be appended cleanly.
     base_qs_no_per_page = urlencode([(k, v) for (k, v) in base_qs_parts if k != "per_page"])
@@ -649,7 +691,7 @@ def _pipeline_products_impl(
         "total_pages": total_pages,
         "page_offset": offset,
         "base_qs": base_qs,
-        "base_qs_no_show_cold": base_qs_no_show_cold,
+        "base_qs_no_hide_terminal": base_qs_no_hide_terminal,
         "base_qs_no_per_page": base_qs_no_per_page,
         "base_qs_no_recent_days": base_qs_no_recent_days,
         "base_qs_no_sort": base_qs_no_sort,
@@ -661,7 +703,7 @@ def _pipeline_products_impl(
         "filter_suite": suite or "",
         "filter_q": q or "",
         "filter_urgency": urgency or "",
-        "show_cold": show_cold_flag,
+        "hide_terminal": hide_terminal_flag,
         "sort_col": sort_col,
         "sort_dir": sort_dir,
         # Recent Activity window state

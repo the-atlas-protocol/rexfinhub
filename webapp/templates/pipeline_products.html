@@ -15,6 +15,40 @@ h1 { font-size:24px; font-weight:700; color:#0f172a; margin:0 0 4px; }
 h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; margin:24px 0 10px; }
 
 /* ---------------------------------------------------------------- *
+ * ROW 0 — Suite KPI pills (per-suite clickable filters)
+ * ---------------------------------------------------------------- */
+.suite-kpis {
+  display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px;
+}
+.suite-kpi {
+  display:inline-flex; align-items:center; gap:8px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:6px;
+  padding:6px 12px; text-decoration:none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.suite-kpi:hover { border-color:#1F3864; box-shadow:0 1px 3px rgba(15,23,42,0.08); }
+.suite-kpi.active { background:#0f172a; border-color:#0f172a; }
+.suite-kpi.active .suite-kpi-name { color:#fff !important; }
+.suite-kpi.active .suite-kpi-num { color:#fff; background:rgba(255,255,255,0.18); }
+.suite-kpi-name {
+  font-size:11px; font-weight:600; color:#0f172a;
+  text-transform:uppercase; letter-spacing:0.04em;
+}
+.suite-kpi-num {
+  font-size:13px; font-weight:700; color:#0f172a;
+  background:#f1f5f9; padding:1px 8px; border-radius:10px;
+  font-family:monospace;
+}
+
+/* Funnel caption — small narrative under the section header */
+.funnel-caption {
+  font-size:11px; color:#64748b; margin:-4px 0 10px;
+  padding:6px 10px; background:#fffbeb; border:1px solid #fde68a;
+  border-radius:4px; line-height:1.5;
+}
+.funnel-caption strong { color:#92400e; }
+
+/* ---------------------------------------------------------------- *
  * ROW 1 — Funnel
  * ---------------------------------------------------------------- */
 .funnel { display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; margin-bottom:18px; }
@@ -76,7 +110,7 @@ h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; l
 .activity-body, .quick-body { display:block; max-height:340px; overflow-y:auto; }
 .activity-body.collapsed, .quick-body.collapsed { display:none; }
 .activity-row-item {
-  display:grid; grid-template-columns:60px 1fr 130px 70px;
+  display:grid; grid-template-columns:60px 1fr 130px 70px 70px;
   gap:8px; align-items:center;
   padding:6px 14px; border-bottom:1px solid #f1f5f9; font-size:12px;
 }
@@ -85,7 +119,18 @@ h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; l
 .activity-name { color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .activity-status { font-size:10px; }
 .activity-when { font-size:11px; color:#64748b; text-align:right; font-family:monospace; }
+.activity-prospectus { font-size:11px; text-align:right; }
+.activity-prospectus a { color:#2563eb; text-decoration:none; }
+.activity-prospectus a:hover { text-decoration:underline; }
 .activity-empty { padding:20px 14px; font-size:12px; color:#94a3b8; text-align:center; }
+.activity-head-row {
+  display:grid; grid-template-columns:60px 1fr 130px 70px 70px;
+  gap:8px; padding:6px 14px; border-bottom:1px solid #e5e7eb;
+  background:#fafbfc; font-size:10px; font-weight:700; color:#94a3b8;
+  text-transform:uppercase; letter-spacing:0.04em;
+}
+.activity-head-row .activity-prospectus { text-align:right; }
+.activity-head-row .activity-when { text-align:right; }
 
 /* Recent Activity day-window pills (7/14/30/90) */
 .recent-pills { display:inline-flex; gap:4px; margin-left:auto; margin-right:10px; }
@@ -228,6 +273,43 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
 .pagination .current { background:#0f172a; color:#fff; border-color:#0f172a; font-weight:600; }
 .pagination .ellipsis { border:none; background:transparent; color:#94a3b8; padding:5px 4px; }
 
+/* Column filter row (under <thead>) — type-to-filter visible rows.
+   Each input narrows the table by substring match against its column. */
+table.pipeline-table tr.col-filter-row th {
+  background:#fff; border-bottom:1px solid #e5e7eb; padding:4px 6px;
+  position:sticky; top:30px; z-index:5;
+}
+table.pipeline-table tr.col-filter-row input.filter-input {
+  width:100%; box-sizing:border-box; padding:3px 6px;
+  border:1px solid #e5e7eb; border-radius:3px;
+  font-size:11px; font-family:inherit; color:#0f172a; background:#fafbfc;
+}
+table.pipeline-table tr.col-filter-row input.filter-input:focus {
+  outline:none; border-color:#1F3864; background:#fff;
+}
+table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#cbd5e1; }
+
+/* Excel-style sort dropdown — appears on header click. The header now
+   wraps the existing <a class="th-sort"> with a <span class="sort-th-wrap">
+   so we can position the dropdown absolutely without breaking the
+   server-side sort link (the dropdown options ARE the same URLs). */
+.sort-th-wrap { position:relative; display:block; }
+.sort-dropdown {
+  display:none; position:absolute; top:100%; left:0; z-index:60;
+  background:#fff; border:1px solid #e5e7eb; border-radius:4px;
+  box-shadow:0 4px 14px rgba(15,23,42,0.12);
+  min-width:180px; padding:4px 0; font-size:12px;
+  text-transform:none; letter-spacing:0; color:#0f172a;
+}
+.sort-dropdown.open { display:block; }
+.sort-dropdown a {
+  display:block; padding:6px 12px; color:#0f172a; text-decoration:none;
+  font-weight:500; white-space:nowrap;
+}
+.sort-dropdown a:hover { background:#f1f5f9; color:#1F3864; }
+.sort-dropdown .sort-divider { border-top:1px solid #f1f5f9; margin:4px 0; }
+.sort-dropdown a.sort-reset { color:#64748b; font-size:11px; }
+
 /* Edit modal (admin only) */
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; align-items:flex-start; justify-content:center; padding-top:40px; }
 .modal.open { display:flex; }
@@ -243,10 +325,10 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
 {% endblock %}
 
 {% block content %}
-{# Build a "?<qs>&" prefix once so pagination + cold-toggle links stay
+{# Build a "?<qs>&" prefix once so pagination + filter links stay
    compact in the markup. Empty when there are no other params. #}
 {% set qs_prefix = (base_qs ~ '&') if base_qs else '' %}
-{% set qs_no_cold_prefix = (base_qs_no_show_cold ~ '&') if base_qs_no_show_cold else '' %}
+{% set qs_no_terminal_prefix = (base_qs_no_hide_terminal ~ '&') if base_qs_no_hide_terminal else '' %}
 
 <div class="page-wrap">
   <div class="breadcrumb">
@@ -256,16 +338,44 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
   <div class="subtitle">As of {{ today.strftime('%B %d, %Y') }} &middot; lifecycle of REX-branded products from research to listing.</div>
 
   {# ============================================================== #}
+  {# ROW 0 — SUITE KPI PILLS                                         #}
+  {# Per-suite clickable filters at the top so users can jump        #}
+  {# straight into a suite slice without opening the dropdown.       #}
+  {# ============================================================== #}
+  <h2>By Suite</h2>
+  <div class="suite-kpis">
+    <a href="/operations/pipeline" class="suite-kpi {% if not filter_suite %}active{% endif %}">
+      <span class="suite-kpi-name">All</span>
+      <span class="suite-kpi-num">{{ total }}</span>
+    </a>
+    {% for s in valid_suites %}
+      {% set s_color = suite_colors.get(s, '#64748b') %}
+      {% set s_count = suite_counts.get(s, 0) %}
+      <a href="/operations/pipeline?suite={{ s | urlencode }}"
+         class="suite-kpi {% if filter_suite == s %}active{% endif %}"
+         style="border-left:3px solid {{ s_color }};"
+         title="Filter to {{ s }}">
+        <span class="suite-kpi-name" style="color:{{ s_color }};">{{ s }}</span>
+        <span class="suite-kpi-num">{{ s_count }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  {# ============================================================== #}
   {# ROW 1 — STAGE FUNNEL                                            #}
   {# ============================================================== #}
   <h2>Pipeline Funnel</h2>
+  <div class="funnel-caption">
+    Awaiting Effective rolls up every Filed / 485A / 485B / Awaiting state.
+    Note: a fund can be SEC-effective without being Live &mdash; the two are separate stages.
+  </div>
   <div class="funnel">
     {% for stage in funnel %}
       {% set primary_status = stage.statuses[0] %}
       {% set is_active = filter_status in stage.statuses %}
       {% set pct = (100 * stage.count / funnel_max) if funnel_max else 0 %}
       <a class="funnel-stage{% if is_active %} active{% endif %}{% if stage.count == 0 %} zero{% endif %}"
-         href="/operations/pipeline?status={{ primary_status | urlencode }}{% if show_cold %}&show_cold=1{% endif %}"
+         href="/operations/pipeline?status={{ primary_status | urlencode }}{% if hide_terminal %}&hide_terminal=1{% endif %}"
          title="Filter to {{ stage.label }}">
         <div class="label">{{ stage.label }}</div>
         <div class="num">{{ stage.count }}</div>
@@ -280,16 +390,16 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
   <h2>Urgency</h2>
   <div class="urgency-grid">
     <a class="urgency-card urgent" href="/operations/pipeline?urgency=urgent"
-       title="Filed / Awaiting Effective with estimated effective date in the next 14 days.">
-      <div class="label">Upcoming Filings (14D)</div>
+       title="Every REX product currently in a filed-but-not-yet-effective lifecycle status (Filed, Filed 485A/B, Awaiting Effective, Counsel Approved, Pending/Board Approved).">
+      <div class="label">Awaiting Effectiveness</div>
       <div class="num">{{ urgency_counts.urgent }}</div>
-      <div class="sub">Filed / Awaiting Effective inside 2 weeks</div>
+      <div class="sub">All filed / pre-effective stages{% if urgency_counts.urgent_dated_14d %} &middot; {{ urgency_counts.urgent_dated_14d }} dated &le;14d{% endif %}</div>
     </a>
     <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming"
-       title="Filed / Awaiting Effective with estimated effective date in the next 60 days.">
-      <div class="label">Upcoming (next 60d)</div>
-      <div class="num">{{ urgency_counts.upcoming }}</div>
-      <div class="sub">Filed / Awaiting Effective</div>
+       title="Same cohort — clickable to filter the table to all pre-effective products.">
+      <div class="label">Filed &amp; Awaiting (60d view)</div>
+      <div class="num">{{ urgency_counts.upcoming_dated_60d }}</div>
+      <div class="sub">With est. effective date inside 60d</div>
     </a>
     <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue"
        title="Filed products where the estimated effective date has passed but they haven't gone Effective/Listed. Often means launch was delayed.">
@@ -314,17 +424,42 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
         <span>Recent Activity (last {{ recent_days }}d)</span>
         <span class="recent-pills" role="tablist" aria-label="Recent activity window">
           {% set qs_no_recent_prefix = (base_qs_no_recent_days ~ '&') if base_qs_no_recent_days else '' %}
+          {# Default window pulled forward to 30d so the section is non-empty
+             out of the box. rex_products updated_at can be 20-30d stale on
+             quiet weeks; 14d frequently returned 0 rows. #}
           {% for opt in [7, 14, 30, 90] %}
             {% if opt == recent_days %}
-              <span class="recent-pill active" aria-current="true">{{ opt }}d</span>
+              <span class="recent-pill active" aria-current="true" data-default-days="30">{{ opt }}d{% if opt == 30 %} <span style="opacity:0.6; font-weight:400;">(default)</span>{% endif %}</span>
             {% else %}
-              <a class="recent-pill" href="/operations/pipeline?{{ qs_no_recent_prefix }}recent_days={{ opt }}">{{ opt }}d</a>
+              <a class="recent-pill" href="/operations/pipeline?{{ qs_no_recent_prefix }}recent_days={{ opt }}" {% if opt == 30 %}value="30" data-default="true" title="Recommended default — wider window catches 27d-stale updates"{% endif %}>{{ opt }}d{% if opt == 30 %} <span style="opacity:0.6;">(default)</span>{% endif %}</a>
             {% endif %}
           {% endfor %}
         </span>
         <span class="toggle-label" onclick="toggleSection('activityBody', this)" style="cursor:pointer;">Hide</span>
       </div>
       <div class="activity-body" id="activityBody">
+        {# Auto-redirect when no rows AND user is on the legacy 14d default —
+           punts them to the 30d window so the section is populated by default.
+           Only fires if recent_days is exactly 14 and feed is empty. #}
+        {% if not recent_activity and recent_days == 14 %}
+          <script>
+            (function() {
+              var url = new URL(window.location.href);
+              if (!url.searchParams.has('recent_days')) {
+                url.searchParams.set('recent_days', '30');
+                window.location.replace(url.toString());
+              }
+            })();
+          </script>
+        {% endif %}
+        {# Activity feed header row (5 cols: ticker / name / status / prospectus / when) #}
+        <div class="activity-head-row" aria-hidden="true">
+          <span>Ticker</span>
+          <span>Name</span>
+          <span>Status</span>
+          <span class="activity-prospectus">Prospectus</span>
+          <span class="activity-when">When</span>
+        </div>
         {% if recent_activity %}
           {% for a in recent_activity %}
             {% set s_color = status_colors.get(a.status, '#64748b') %}
@@ -335,6 +470,17 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
               <span class="activity-name" title="{{ a.name }}">{{ a.name[:60] }}</span>
               <span class="activity-status">
                 <span class="status-pill" style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ a.status }}</span>
+              </span>
+              <span class="activity-prospectus">
+                {# `a` is a dict built in pipeline_calendar.py; latest_prospectus_link
+                   is not yet populated server-side, so this defaults to em-dash.
+                   When the router adds the link, the column lights up automatically. #}
+                {% set plink = a.latest_prospectus_link if a.latest_prospectus_link is defined else None %}
+                {% if plink %}
+                  <a href="{{ plink }}" target="_blank" rel="noopener">link</a>
+                {% else %}
+                  <span style="color:#cbd5e1;">—</span>
+                {% endif %}
               </span>
               <span class="activity-when">{{ a.ago }}</span>
             </div>
@@ -347,7 +493,9 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
               <div style="margin-top:6px; font-size:11px; color:#cbd5e1;">
                 rex_products last updated {{ last_updated_overall.strftime('%Y-%m-%d') }}
                 ({{ last_days_ago }}d ago).
-                {% if last_days_ago > recent_days %}Try the 30d or 90d window above.{% endif %}
+                {% if last_days_ago > recent_days %}
+                  <a href="/operations/pipeline?{{ qs_no_recent_prefix }}recent_days=30" style="color:#2563eb;">Try the 30d default window.</a>
+                {% endif %}
               </div>
             {% endif %}
           </div>
@@ -403,12 +551,12 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
         {% endfor %}
       </select>
 
-      {# Cold-state toggle — preserves all other query params via the
-         qs_no_cold_prefix sandwich. #}
+      {# Terminal-stage toggle — Listed/Delisted/Effective shown by default
+         (May 2026 ops review). Click to hide them and focus on in-flight. #}
       <a class="cold-toggle"
-         href="/operations/pipeline?{{ qs_no_cold_prefix }}{% if not show_cold %}show_cold=1{% endif %}">
-        <input type="checkbox" {% if show_cold %}checked{% endif %} onclick="return false;" tabindex="-1">
-        Show cold (Delisted, Listed &gt;1yr)
+         href="/operations/pipeline?{{ qs_no_terminal_prefix }}{% if not hide_terminal %}hide_terminal=1{% endif %}">
+        <input type="checkbox" {% if hide_terminal %}checked{% endif %} onclick="return false;" tabindex="-1">
+        Hide Listed / Delisted / Effective
       </a>
 
       <button type="submit" class="btn btn-primary">Apply</button>
@@ -420,8 +568,7 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
       <div class="urgency-pills">
         <a href="/operations/pipeline" class="urgency-pill {% if not filter_urgency %}active{% endif %}">All</a>
         <a href="/operations/pipeline?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}"
-           title="Filed / Awaiting Effective with estimated effective date in the next 14 days.">Upcoming Filings (14D) <span class="count">{{ urgency_counts.urgent }}</span></a>
-        <a href="/operations/pipeline?urgency=upcoming" class="urgency-pill {% if filter_urgency == 'upcoming' %}active{% endif %}">Next 60d <span class="count">{{ urgency_counts.upcoming }}</span></a>
+           title="All products in a filed-but-not-yet-effective lifecycle status.">Awaiting Effectiveness <span class="count">{{ urgency_counts.urgent }}</span></a>
         <a href="/operations/pipeline?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}"
            title="Filed products where the estimated effective date has passed but they haven't gone Effective/Listed. Often means launch was delayed.">Past Effective Date <span class="count">{{ urgency_counts.overdue }}</span></a>
         <a href="/operations/pipeline?urgency=recent_filings" class="urgency-pill {% if filter_urgency == 'recent_filings' %}active{% endif %}">Recent Filings <span class="count">{{ urgency_counts.recent_filings }}</span></a>
@@ -434,7 +581,7 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
   {# ROW 5 — Action bar + table + pagination                          #}
   {# ============================================================== #}
   {# Build prefix used by the page-size pills so they preserve every other
-     active filter (status, suite, q, urgency, sort/dir, recent_days, show_cold). #}
+     active filter (status, suite, q, urgency, sort/dir, recent_days, hide_terminal). #}
   {% set qs_no_per_page_prefix = (base_qs_no_per_page ~ '&') if base_qs_no_per_page else '' %}
 
   <div class="action-bar">
@@ -464,10 +611,10 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
         No products match.
       {% elif show_all_rows %}
         Showing all {{ filtered_count }} rows
-        {% if not show_cold %}<span style="color:#94a3b8;">(cold hidden)</span>{% endif %}
+        {% if hide_terminal %}<span style="color:#94a3b8;">(Listed/Delisted hidden)</span>{% endif %}
       {% else %}
         Showing {{ page_offset + 1 }}&ndash;{{ [page_offset + per_page, filtered_count] | min }} of {{ filtered_count }}
-        {% if not show_cold %}<span style="color:#94a3b8;">(cold hidden)</span>{% endif %}
+        {% if hide_terminal %}<span style="color:#94a3b8;">(Listed/Delisted hidden)</span>{% endif %}
         &middot; Page {{ page }} of {{ total_pages }}
       {% endif %}
     </span>
@@ -479,30 +626,67 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
          backend sort_map in pipeline_calendar.py accepts the same keys
          used in data-sort. Click the active column to flip direction. #}
       {% set qs_no_sort_prefix = (base_qs_no_sort ~ '&') if base_qs_no_sort else '' %}
-      {% macro sort_th(key, label) %}
+      {# Excel-style sort dropdown: clicking the header opens a small panel
+         with semantically-named options ("A → Z", "Oldest to Newest", etc.)
+         that link to the existing server-side sort URLs. The default
+         single-click anchor is preserved as a fallback (Shift+click bypasses
+         the dropdown). Closes on outside-click or ESC — see <script> below. #}
+      {% macro sort_th(key, label, kind='text') %}
         {% set is_active = sort_col == key %}
         {% set next_dir = 'desc' if (is_active and sort_dir == 'asc') else 'asc' %}
         {% set arrow = '&#9650;' if (is_active and sort_dir == 'asc') else ('&#9660;' if is_active else '&#8597;') %}
+        {% if kind == 'date' %}
+          {% set opt_asc = 'Oldest to Newest' %}{% set opt_desc = 'Newest to Oldest' %}
+        {% elif kind == 'number' %}
+          {% set opt_asc = 'Low to High' %}{% set opt_desc = 'High to Low' %}
+        {% elif kind == 'status' %}
+          {% set opt_asc = 'Lifecycle order' %}{% set opt_desc = 'Reverse lifecycle' %}
+        {% else %}
+          {% set opt_asc = 'A → Z' %}{% set opt_desc = 'Z → A' %}
+        {% endif %}
         <th data-sort="{{ key }}"
             class="{% if is_active %}sort-{{ sort_dir }}{% endif %}"
-            title="Sort by {{ label }} ({{ next_dir }})">
-          <a class="th-sort"
-             href="/operations/pipeline?{{ qs_no_sort_prefix }}sort={{ key }}&dir={{ next_dir }}">
-            {{ label }} <span class="sort-arrow {% if is_active %}active{% endif %}">{{ arrow | safe }}</span>
-          </a>
+            title="Sort by {{ label }}">
+          <span class="sort-th-wrap">
+            <a class="th-sort"
+               data-sort-toggle="{{ key }}"
+               href="/operations/pipeline?{{ qs_no_sort_prefix }}sort={{ key }}&dir={{ next_dir }}">
+              {{ label }} <span class="sort-arrow {% if is_active %}active{% endif %}">{{ arrow | safe }}</span>
+            </a>
+            <div class="sort-dropdown" id="sort-dd-{{ key }}" role="menu" aria-label="Sort {{ label }}">
+              <a href="/operations/pipeline?{{ qs_no_sort_prefix }}sort={{ key }}&dir=asc" role="menuitem">{{ opt_asc }}</a>
+              <a href="/operations/pipeline?{{ qs_no_sort_prefix }}sort={{ key }}&dir=desc" role="menuitem">{{ opt_desc }}</a>
+              <div class="sort-divider"></div>
+              <a class="sort-reset" href="/operations/pipeline?{{ qs_no_sort_prefix }}" role="menuitem">Reset sort</a>
+            </div>
+          </span>
         </th>
       {% endmacro %}
       <thead>
         <tr>
-          {{ sort_th('ticker', 'Ticker') }}
-          {{ sort_th('name', 'Name') }}
-          {{ sort_th('suite', 'Suite') }}
-          {{ sort_th('status', 'Status') }}
-          {{ sort_th('days_in_stage', 'Days in stage') }}
-          {{ sort_th('initial_filing_date', 'Filed') }}
-          {{ sort_th('estimated_effective_date', 'Est. Effective') }}
-          {{ sort_th('official_listed_date', 'Listed') }}
-          {{ sort_th('latest_form', 'Latest Form') }}
+          {{ sort_th('ticker', 'Ticker', 'text') }}
+          {{ sort_th('name', 'Name', 'text') }}
+          {{ sort_th('suite', 'Suite', 'text') }}
+          {{ sort_th('status', 'Status', 'status') }}
+          {{ sort_th('days_in_stage', 'Days in stage', 'number') }}
+          {{ sort_th('initial_filing_date', 'Filed', 'date') }}
+          {{ sort_th('estimated_effective_date', 'Est. Effective', 'date') }}
+          {{ sort_th('official_listed_date', 'Listed', 'date') }}
+          {{ sort_th('latest_form', 'Latest Form', 'text') }}
+        </tr>
+        {# Column-filter row — type to narrow visible rows. data-col-idx maps
+           to the matching <td> in each <tbody> row. Vanilla JS handler in
+           the page <script> filters rows on input. #}
+        <tr class="col-filter-row">
+          <th><input type="text" class="filter-input col-filter" data-col-idx="0" placeholder="Filter ticker..." aria-label="Filter ticker"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="1" placeholder="Filter name..." aria-label="Filter name"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="2" placeholder="Filter suite..." aria-label="Filter suite"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="3" placeholder="Filter status..." aria-label="Filter status"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="4" placeholder="Filter days..." aria-label="Filter days"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="5" placeholder="Filter filed..." aria-label="Filter filed"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="6" placeholder="Filter effective..." aria-label="Filter effective"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="7" placeholder="Filter listed..." aria-label="Filter listed"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="8" placeholder="Filter form..." aria-label="Filter form"></th>
         </tr>
       </thead>
       <tbody>
@@ -645,6 +829,78 @@ table.pipeline-table th .sort-arrow.active { opacity:1; color:#1F3864; font-size
 {% endif %}
 
 <script>
+/* ----------------------------------------------------------------
+ * Scroll preservation + loading shim — quick UX fix for the May
+ * 2026 ops review. The page still does full-document navigation on
+ * every filter / pill / pagination click; this stops the page from
+ * snapping back to the top each time and gives a visible loading
+ * indicator while the new render is in flight.
+ *
+ * Approach:
+ *   1. Save scrollY to sessionStorage in pagehide (works on every
+ *      back/forward + same-document navigation in modern browsers).
+ *   2. Restore on pageshow (fires for both fresh + bfcache loads).
+ *   3. On any same-origin click that changes the URL, show a thin
+ *      progress bar at the top so the user knows something's happening.
+ * ---------------------------------------------------------------- */
+(function() {
+    var SCROLL_KEY = 'rexPipelineScrollY';
+    // Save scroll on page-hide (covers normal nav + bfcache stash)
+    window.addEventListener('pagehide', function() {
+        try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch (e) {}
+    });
+    window.addEventListener('beforeunload', function() {
+        try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch (e) {}
+    });
+    // Restore on load — only if same path (don't pop scroll position
+    // when user navigated here from somewhere else entirely).
+    function restoreScroll() {
+        try {
+            var v = sessionStorage.getItem(SCROLL_KEY);
+            if (v === null) return;
+            sessionStorage.removeItem(SCROLL_KEY);
+            var y = parseInt(v, 10);
+            if (!isNaN(y) && y > 0) {
+                // requestAnimationFrame so layout has settled
+                requestAnimationFrame(function() { window.scrollTo(0, y); });
+            }
+        } catch (e) {}
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restoreScroll);
+    } else {
+        restoreScroll();
+    }
+    window.addEventListener('pageshow', restoreScroll);
+
+    // Loading shim — thin top bar. Injected once, toggled on click.
+    var bar = document.createElement('div');
+    bar.id = 'rexLoadBar';
+    bar.style.cssText = 'position:fixed;top:0;left:0;height:3px;width:0;background:#1F3864;z-index:9999;transition:width .25s ease;pointer-events:none;';
+    document.documentElement.appendChild(bar);
+    function showLoad() {
+        bar.style.width = '0';
+        requestAnimationFrame(function() { bar.style.width = '70%'; });
+        // safety reset if nav doesn't actually fire (e.g. ctrl-click)
+        setTimeout(function() { bar.style.width = '0'; }, 4000);
+    }
+    document.addEventListener('click', function(e) {
+        var a = e.target.closest('a');
+        if (!a || !a.href) return;
+        if (a.target === '_blank' || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        try {
+            var u = new URL(a.href, window.location.href);
+            if (u.origin !== window.location.origin) return;
+        } catch (err) { return; }
+        // Only show shim for in-app navigation that will trigger a render
+        showLoad();
+    }, true);
+    // Filter form submit also triggers a nav
+    document.addEventListener('submit', function(e) {
+        if (e.target && e.target.tagName === 'FORM') showLoad();
+    }, true);
+})();
+
 /* Section collapse helper (Recent Activity / Quick Stats) */
 function toggleSection(bodyId, headEl) {
     var body = document.getElementById(bodyId);
@@ -681,6 +937,84 @@ function sortTable(colIdx, type) {
     });
     rows.forEach(function(r) { tbody.appendChild(r); });
 }
+
+/* ----------------------------------------------------------------
+ * Column-filter row — type-to-filter visible rows
+ * Each <input class="col-filter" data-col-idx="N"> filters tbody rows
+ * by checking whether the cell at index N contains the substring (case
+ * insensitive). All filters AND together. Pure vanilla — no framework.
+ * ---------------------------------------------------------------- */
+(function() {
+    function applyColFilters() {
+        var inputs = document.querySelectorAll('.col-filter');
+        var filters = [];
+        inputs.forEach(function(inp) {
+            var v = (inp.value || '').trim().toLowerCase();
+            if (v) filters.push({ idx: parseInt(inp.dataset.colIdx, 10), val: v });
+        });
+        var tbody = document.querySelector('#pipelineTable tbody');
+        if (!tbody) return;
+        var rows = tbody.querySelectorAll('tr');
+        rows.forEach(function(tr) {
+            var hide = false;
+            for (var i = 0; i < filters.length; i++) {
+                var cell = tr.cells[filters[i].idx];
+                if (!cell) continue;
+                var txt = (cell.textContent || '').toLowerCase();
+                if (txt.indexOf(filters[i].val) === -1) { hide = true; break; }
+            }
+            tr.style.display = hide ? 'none' : '';
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.col-filter').forEach(function(inp) {
+            inp.addEventListener('input', applyColFilters);
+            // Stop clicks inside filter inputs from bubbling to the th
+            // (which would otherwise also trigger sort-dropdown logic).
+            inp.addEventListener('click', function(e) { e.stopPropagation(); });
+            inp.addEventListener('keydown', function(e) { e.stopPropagation(); });
+        });
+    });
+})();
+
+/* ----------------------------------------------------------------
+ * Excel-style sort dropdown
+ * Click a column header → opens a small dropdown with named sort
+ * options. Each option is a real <a href> linking to the existing
+ * server-side sort URL, so the heavy lifting stays on the server.
+ * Closes on click-outside or ESC. Shift+click bypasses the dropdown
+ * and uses the legacy single-click toggle (for power users).
+ * ---------------------------------------------------------------- */
+(function() {
+    function closeAllDropdowns() {
+        document.querySelectorAll('.sort-dropdown.open').forEach(function(dd) {
+            dd.classList.remove('open');
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a.th-sort[data-sort-toggle]').forEach(function(a) {
+            a.addEventListener('click', function(e) {
+                if (e.shiftKey) return; // Shift+click = legacy direct toggle
+                e.preventDefault();
+                e.stopPropagation();
+                var key = a.dataset.sortToggle;
+                var dd = document.getElementById('sort-dd-' + key);
+                if (!dd) return;
+                var wasOpen = dd.classList.contains('open');
+                closeAllDropdowns();
+                if (!wasOpen) dd.classList.add('open');
+            });
+        });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.sort-dropdown') && !e.target.closest('a.th-sort')) {
+                closeAllDropdowns();
+            }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeAllDropdowns();
+        });
+    });
+})();
 
 {% if is_admin %}
 /* Inline status update — fires when admin picks a new value from the

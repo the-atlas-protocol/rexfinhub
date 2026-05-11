@@ -1063,12 +1063,43 @@ class CapMProduct(Base):
     competitor_products: Mapped[str | None] = mapped_column(Text)
     bmo_suite: Mapped[str | None] = mapped_column(String(50))
     notes: Mapped[str | None] = mapped_column(Text)
+    # Manual-override tracking: JSON list of field names that have been
+    # manually edited via the admin inline editor. The daily import_capm.py
+    # script must skip these fields when reconciling fresh xlsx data so
+    # human edits are not silently overwritten.
+    manually_edited_fields: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         Index("idx_capm_ticker", "ticker"),
         Index("idx_capm_suite", "suite_source"),
+    )
+
+
+class CapMAuditLog(Base):
+    """Append-only audit log for admin write actions on CapM tables.
+
+    Wired by capm.py update / add / delete endpoints. Surfaced at the bottom
+    of /operations/products as the "Activity Log" section so Ryu can see
+    every change at a glance — guards against accidental data loss.
+    """
+    __tablename__ = "capm_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    action: Mapped[str] = mapped_column(String(20), nullable=False)  # ADD / UPDATE / DELETE
+    table_name: Mapped[str] = mapped_column(String(50), nullable=False)  # capm_products / capm_trust_aps
+    row_id: Mapped[int | None] = mapped_column(Integer)
+    field_name: Mapped[str | None] = mapped_column(String(100))
+    old_value: Mapped[str | None] = mapped_column(Text)
+    new_value: Mapped[str | None] = mapped_column(Text)
+    row_label: Mapped[str | None] = mapped_column(String(200))  # ticker or trust name for human readability
+    changed_by: Mapped[str | None] = mapped_column(String(100))  # session user or "admin"
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("idx_capm_audit_changed_at", "changed_at"),
+        Index("idx_capm_audit_table_row", "table_name", "row_id"),
     )
 
 

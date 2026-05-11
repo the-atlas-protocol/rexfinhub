@@ -87,6 +87,42 @@ table.capm tr:hover { background:#fafbfc; }
 .edit-toast.error { background:#dc2626; }
 
 .msg-banner { background:#ecfdf5; border:1px solid #10b981; border-left:3px solid #059669; border-radius:4px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:#047857; }
+.warn-banner { background:#fffbeb; border:1px solid #f59e0b; border-left:3px solid #d97706; border-radius:4px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:#92400e; }
+
+/* Status + fund-type pills */
+.status-pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+.status-Listed   { background:#dcfce7; color:#166534; }
+.status-Pending  { background:#fef3c7; color:#92400e; }
+.status-Filed    { background:#dbeafe; color:#1e40af; }
+.status-Awaiting { background:#dbeafe; color:#1e40af; }
+.status-Delisted { background:#fee2e2; color:#991b1b; }
+.status-other    { background:#f1f5f9; color:#64748b; }
+
+.override-badge {
+  display:inline-block; margin-left:6px; padding:1px 6px; border-radius:3px; font-size:9px;
+  background:#fffbeb; color:#92400e; border:1px solid #fde68a; font-weight:600; text-transform:uppercase;
+  letter-spacing:0.04em; cursor:help;
+}
+
+/* Trust & APs filter */
+.aps-filter-bar { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+.aps-filter-bar input { padding:6px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; min-width:300px; flex:1; max-width:480px; font-family:inherit; }
+.aps-filter-bar .aps-count { font-size:11px; color:#64748b; }
+
+/* Activity log */
+.activity-log { margin-top:24px; background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:14px 18px; }
+.activity-log h2 { margin:0 0 10px; font-size:14px; color:#0f172a; font-weight:700; display:flex; align-items:center; gap:8px; }
+.activity-log h2 .count { font-size:11px; color:#64748b; font-weight:500; }
+.activity-log table { width:100%; border-collapse:collapse; font-size:11px; }
+.activity-log th { text-align:left; padding:5px 8px; font-size:9px; text-transform:uppercase; color:#94a3b8; border-bottom:1px solid #e5e7eb; letter-spacing:0.04em; }
+.activity-log td { padding:5px 8px; border-bottom:1px solid #f8fafc; vertical-align:top; }
+.activity-log .act-ADD    { color:#059669; font-weight:600; }
+.activity-log .act-UPDATE { color:#2563eb; font-weight:600; }
+.activity-log .act-DELETE { color:#dc2626; font-weight:600; }
+.activity-log .empty { color:#94a3b8; font-style:italic; padding:8px 0; }
+[data-theme="dark"] .activity-log { background:var(--card-bg); border-color:var(--border-subtle); }
+[data-theme="dark"] .activity-log h2 { color:var(--text-primary); }
+[data-theme="dark"] .aps-filter-bar input { background:var(--bg-secondary); border-color:var(--border-subtle); color:var(--text-primary); }
 
 /* Edit modal */
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; align-items:flex-start; justify-content:center; padding-top:40px; }
@@ -132,6 +168,14 @@ table.capm tr:hover { background:#fafbfc; }
   {% set msg = request.query_params.get('msg', '') %}
   {% if msg == 'updated' %}
     <div class="msg-banner">Product updated.</div>
+  {% endif %}
+
+  {% if overrides_count and overrides_count > 0 %}
+    <div class="warn-banner">
+      <strong>Manual overrides active</strong> &middot;
+      {{ overrides_count }} product{{ '' if overrides_count == 1 else 's' }} ha{{ 's' if overrides_count == 1 else 've' }} field-level edits.
+      The daily auto-import will skip those fields to preserve your changes.
+    </div>
   {% endif %}
 
   <!-- KPI row -->
@@ -204,24 +248,36 @@ table.capm tr:hover { background:#fafbfc; }
         <tr>
           <th class="rt-sortable" data-sort-col="0" data-sort-type="text">Ticker</th>
           <th class="rt-sortable" data-sort-col="1" data-sort-type="text">Fund Name</th>
-          <th class="rt-sortable" data-sort-col="2" data-sort-type="text">BB Ticker</th>
-          <th class="rt-sortable" data-sort-col="3" data-sort-type="date">Inception Date</th>
-          <th class="rt-sortable" data-sort-col="4" data-sort-type="text">Trust</th>
-          <th class="rt-sortable" data-sort-col="5" data-sort-type="text">Exchange</th>
-          <th class="rt-sortable" data-sort-col="6" data-sort-type="num">CU Size</th>
-          <th class="rt-sortable" data-sort-col="7" data-sort-type="num">Fixed Fee</th>
-          <th class="rt-sortable" data-sort-col="8" data-sort-type="text">Variable Fee</th>
-          <th class="rt-sortable" data-sort-col="9" data-sort-type="text">Cut Off</th>
-          <th class="rt-sortable" data-sort-col="10" data-sort-type="text">Custodian</th>
-          <th class="rt-sortable" data-sort-col="11" data-sort-type="text">LMM</th>
+          <th class="rt-sortable" data-sort-col="2" data-sort-type="text">Status</th>
+          <th class="rt-sortable" data-sort-col="3" data-sort-type="text">Fund Type</th>
+          <th class="rt-sortable" data-sort-col="4" data-sort-type="text">BB Ticker</th>
+          <th class="rt-sortable" data-sort-col="5" data-sort-type="date">Inception Date</th>
+          <th class="rt-sortable" data-sort-col="6" data-sort-type="text">Trust</th>
+          <th class="rt-sortable" data-sort-col="7" data-sort-type="text">Exchange</th>
+          <th class="rt-sortable" data-sort-col="8" data-sort-type="num">CU Size</th>
+          <th class="rt-sortable" data-sort-col="9" data-sort-type="num">Fixed Fee</th>
+          <th class="rt-sortable" data-sort-col="10" data-sort-type="text">Variable Fee</th>
+          <th class="rt-sortable" data-sort-col="11" data-sort-type="text">Cut Off</th>
+          <th class="rt-sortable" data-sort-col="12" data-sort-type="text">Custodian</th>
+          <th class="rt-sortable" data-sort-col="13" data-sort-type="text">LMM</th>
           <th>Prospectus</th>
         </tr>
       </thead>
       <tbody>
         {% for p in products %}
+        {% set status_cls = ('Listed' if p.status_display == 'Listed' else ('Pending' if p.status_display == 'Pending' else ('Filed' if p.status_display == 'Filed' else ('Awaiting' if 'Awaiting' in (p.status_display or '') else ('Delisted' if p.status_display == 'Delisted' else 'other'))))) %}
         <tr data-id="{{ p.id }}">
-          <td class="ticker-col" data-field="ticker">{{ p.ticker or '--' }}</td>
+          <td class="ticker-col" data-field="ticker">
+            {{ p.ticker or '--' }}
+            {% if p.edited_fields %}
+              <span class="override-badge" title="Manually edited fields: {{ p.edited_fields|join(', ') }}">edited</span>
+            {% endif %}
+          </td>
           <td class="name-col" title="{{ p.fund_name }}" data-field="fund_name">{{ p.fund_name[:55] }}{% if p.fund_name|length > 55 %}...{% endif %}</td>
+          <td data-sort="{{ p.status_display or '' }}">
+            <span class="status-pill status-{{ status_cls }}">{{ p.status_display or '--' }}</span>
+          </td>
+          <td data-field="product_type">{{ p.fund_type_display or '--' }}</td>
           <td data-field="bb_ticker">{{ p.bb_ticker or '--' }}</td>
           <td data-field="inception_date" data-field-type="date">{{ p.inception_date.strftime('%Y-%m-%d') if p.inception_date else '--' }}</td>
           <td title="{{ p.trust or '' }}">{{ (p.trust or '--')[:28] }}{% if p.trust and p.trust|length > 28 %}...{% endif %}</td>
@@ -233,8 +289,12 @@ table.capm tr:hover { background:#fafbfc; }
           <td data-field="custodian">{{ p.custodian or '--' }}</td>
           <td data-field="lmm">{{ p.lmm or '--' }}</td>
           <td>
-            {% if p.prospectus_link %}
-              <a href="{{ p.prospectus_link }}" target="_blank" rel="noopener" class="prospect-icon" title="View prospectus">PDF</a>
+            {% if p.prospectus_display %}
+              <a href="{{ p.prospectus_display }}" target="_blank" rel="noopener"
+                 class="prospect-icon"
+                 title="{% if p.prospectus_source == 'live' %}Latest SEC prospectus (rex_products){% else %}Imported prospectus (capm_products){% endif %}">
+                {% if p.prospectus_source == 'live' %}PDF (live){% else %}PDF{% endif %}
+              </a>
             {% else %}
               --
             {% endif %}
@@ -260,21 +320,25 @@ table.capm tr:hover { background:#fafbfc; }
   </div>
 
   {% if trust_aps %}
+  <div class="aps-filter-bar">
+    <input type="text" id="trustApsFilter"
+           placeholder="Filter Trusts &amp; APs by trust name, AP name, or notes..."
+           autocomplete="off">
+    <span class="aps-count" id="trustApsCount">{{ trust_aps|length }} of {{ trust_aps|length }}</span>
+  </div>
   <div class="table-scroll">
     <table class="capm rt-table" id="trustApsTable">
       <thead>
         <tr>
           <th class="rt-sortable" data-sort-col="0" data-sort-type="text">Trust</th>
-          <th class="rt-sortable" data-sort-col="1" data-sort-type="num">#</th>
-          <th class="rt-sortable" data-sort-col="2" data-sort-type="text">Authorized Participant</th>
-          <th class="rt-sortable" data-sort-col="3" data-sort-type="text">Notes</th>
+          <th class="rt-sortable" data-sort-col="1" data-sort-type="text">Authorized Participant</th>
+          <th class="rt-sortable" data-sort-col="2" data-sort-type="text">Notes</th>
         </tr>
       </thead>
       <tbody>
         {% for r in trust_aps %}
         <tr>
           <td>{{ r.trust_name }}</td>
-          <td data-sort="{{ r.sort_order or 0 }}">{{ r.sort_order or '--' }}</td>
           <td>{{ r.ap_name or '--' }}</td>
           <td>{{ r.notes or '--' }}</td>
         </tr>
@@ -289,6 +353,49 @@ table.capm tr:hover { background:#fafbfc; }
   </div>
   {% endif %}
   {% endif %}
+
+  <!-- Activity Log: last 20 admin actions across products + trust/APs -->
+  <div class="activity-log" id="activityLog">
+    <h2>Activity Log <span class="count">last {{ audit_entries|length }} change{{ '' if audit_entries|length == 1 else 's' }}</span></h2>
+    {% if audit_entries %}
+    <table>
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Who</th>
+          <th>Action</th>
+          <th>Table</th>
+          <th>Row</th>
+          <th>Field</th>
+          <th>Old &rarr; New</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in audit_entries %}
+        <tr>
+          <td>{{ a.changed_at.strftime('%Y-%m-%d %H:%M') if a.changed_at else '--' }}</td>
+          <td>{{ a.changed_by or 'admin' }}</td>
+          <td class="act-{{ a.action }}">{{ a.action }}</td>
+          <td>{{ a.table_name }}</td>
+          <td>{{ a.row_label or ('#' ~ (a.row_id or '?')) }}</td>
+          <td>{{ a.field_name or '--' }}</td>
+          <td>
+            {% if a.old_value or a.new_value %}
+              <code style="color:#dc2626;">{{ (a.old_value or '∅')[:60] }}</code>
+              &rarr;
+              <code style="color:#059669;">{{ (a.new_value or '∅')[:60] }}</code>
+            {% else %}
+              --
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty">No edits yet. capm_audit_log is ready and will record every admin add / update / delete.</div>
+    {% endif %}
+  </div>
 
 </div>
 
@@ -393,8 +500,30 @@ function makeInlineEditable(tableSelector, updateUrl) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    makeInlineEditable('#capmTable', '/capm/update/{id}');
+    makeInlineEditable('#capmTable', '/operations/products/update/{id}');
 });
 {% endif %}
+
+// Trust & APs filter — vanilla, no framework. Matches against any cell text.
+(function() {
+    var input = document.getElementById('trustApsFilter');
+    var table = document.getElementById('trustApsTable');
+    var counter = document.getElementById('trustApsCount');
+    if (!input || !table) return;
+    var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+    var total = rows.length;
+
+    function applyFilter() {
+        var q = (input.value || '').trim().toLowerCase();
+        var visible = 0;
+        rows.forEach(function(tr) {
+            var hit = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+            tr.style.display = hit ? '' : 'none';
+            if (hit) visible++;
+        });
+        if (counter) counter.textContent = visible + ' of ' + total;
+    }
+    input.addEventListener('input', applyFilter);
+})();
 </script>
 {% endblock %}

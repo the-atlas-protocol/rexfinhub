@@ -160,7 +160,7 @@ def init_db():
         MktFundClassification, MktMarketStatus, MktGlobalEtp,
         TrustRequest, DigestSubscriber,
         FilingAlert, TrustCandidate,
-        CapMProduct, CapMTrustAP,
+        CapMProduct, CapMTrustAP, CapMAuditLog,
         CboeSymbol, CboeStateChange, CboeScanRun, CboeKnownActive,
         AutocallIndexMetadata, AutocallIndexLevel,
         AutocallCrisisPreset, AutocallSweepCache,
