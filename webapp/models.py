@@ -1072,6 +1072,44 @@ class CapMProduct(Base):
     )
 
 
+class ReservedSymbol(Base):
+    """REX's own ticker reservations with exchanges (Cboe / NYSE / etc.).
+
+    Source: C:/Users/RyuEl-Asmar/Downloads/Reserved Symbols.xlsx (Master sheet,
+    ~283 rows). Tracks ticker, exchange, expiration, status, rationale, suite.
+
+    Distinct from CboeSymbol (which is the full 475K-ticker CBOE universe scan
+    showing who-has-what across all issuers). This table is REX's CURATED list
+    of symbols we've personally reserved, with our internal metadata.
+
+    Goal (per Ryu 2026-05-11): map REX's reserved tickers against our filings
+    so we know which products are coming next, and integrate with the Symbol
+    Landscape tool to suggest new reservations using our 3-axis taxonomy.
+    """
+    __tablename__ = "reserved_symbols"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    exchange: Mapped[str | None] = mapped_column(String(20))      # Cboe / NYSE
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    end_date: Mapped[date | None] = mapped_column(Date)           # reservation expiration
+    status: Mapped[str | None] = mapped_column(String(30))        # Reserved / Active / Expired / etc.
+    rationale: Mapped[str | None] = mapped_column(Text)           # Rationale for Reservation
+    suite: Mapped[str | None] = mapped_column(String(50))         # Meme / Crypto / Leverage / etc.
+    # Linkage (filled later by mapping work)
+    linked_filing_id: Mapped[int | None] = mapped_column(Integer)      # if mapped to a rex_products filing
+    linked_product_id: Mapped[int | None] = mapped_column(Integer)     # if assigned to a live product
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("exchange", "symbol", name="uq_reserved_symbol_exchange"),
+        Index("idx_reserved_symbol", "symbol"),
+        Index("idx_reserved_status", "status"),
+        Index("idx_reserved_suite", "suite"),
+    )
+
+
 # --- CBOE Symbol Reservation Models ---
 # Tracks availability of 1-4 letter tickers on CBOE's issuer-only symbol
 # reservation portal. Reserved-but-not-active tickers = competitor pipeline intel.

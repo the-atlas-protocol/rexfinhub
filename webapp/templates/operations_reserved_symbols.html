@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Reserved Symbols — REX Financial{% endblock %}
+
+{% block head %}
+<style>
+.page-wrap-rs { max-width: min(100% - 32px, 1900px); margin:0 auto; padding:20px; }
+.rs-breadcrumb { font-size:12px; color:#94a3b8; margin-bottom:8px; }
+.rs-breadcrumb a { color:#1F3864; text-decoration:none; }
+h1.rs-title { font-size:22px; font-weight:700; color:#0f172a; margin:0 0 4px; }
+.rs-sub { font-size:13px; color:#64748b; margin-bottom:20px; }
+.rs-kpi-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:16px; }
+.rs-kpi { background:#f8fafc; border:1px solid #e5e7eb; border-left:3px solid #0f172a; border-radius:6px; padding:12px 16px; }
+.rs-kpi.amber { border-left-color:#d97706; } .rs-kpi.amber .num { color:#d97706; }
+.rs-kpi.red { border-left-color:#dc2626; } .rs-kpi.red .num { color:#dc2626; }
+.rs-kpi.green { border-left-color:#059669; } .rs-kpi.green .num { color:#059669; }
+.rs-kpi .num { font-size:24px; font-weight:800; color:#0f172a; line-height:1; }
+.rs-kpi .label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:5px; }
+
+.rs-filter-bar { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:12px 16px; margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.rs-filter-bar label { font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:600; letter-spacing:0.04em; }
+.rs-filter-bar input, .rs-filter-bar select { padding:6px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; font-family:inherit; }
+.rs-action-bar { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+.rs-btn { padding:7px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; cursor:pointer; background:#fff; color:#0f172a; text-decoration:none; font-weight:500; }
+.rs-btn:hover { background:#f8fafc; border-color:#1F3864; }
+.rs-btn-primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+
+.rs-table-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; }
+table.rs-table { width:100%; border-collapse:collapse; font-size:13px; }
+table.rs-table th { background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px; text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb; letter-spacing:0.04em; white-space:nowrap; }
+table.rs-table td { padding:6px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+table.rs-table tr:hover { background:#fafbfc; }
+.rs-sym { font-family:monospace; font-weight:700; color:#1F3864; }
+.rs-status-pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; text-transform:uppercase; }
+.rs-status-pill.reserved { background:#fef3c7; color:#92400e; }
+.rs-status-pill.active { background:#dcfce7; color:#166534; }
+.rs-status-pill.expired { background:#fee2e2; color:#991b1b; }
+.rs-status-pill.released { background:#e5e7eb; color:#374151; }
+.rs-days { font-variant-numeric: tabular-nums; font-size:12px; }
+.rs-days.expired { color:#dc2626; font-weight:700; }
+.rs-days.soon { color:#d97706; font-weight:700; }
+.rs-days.warning { color:#a16207; }
+.rs-days.ok { color:#64748b; }
+
+.rs-admin-edit td[data-field] { cursor:pointer; position:relative; }
+.rs-admin-edit td[data-field]:hover { background:#eef2ff; outline:1px dashed #6366f1; outline-offset:-1px; }
+.rs-admin-edit td[data-field] input, .rs-admin-edit td[data-field] select { width:100%; box-sizing:border-box; padding:3px 6px; font-size:12px; font-family:inherit; border:1px solid #1F3864; border-radius:3px; }
+.rs-toast { position:fixed; bottom:20px; right:20px; background:#059669; color:#fff; padding:10px 16px; border-radius:4px; font-size:13px; font-weight:500; opacity:0; transition:opacity 0.2s; z-index:2000; }
+.rs-toast.show { opacity:1; }
+.rs-toast.error { background:#dc2626; }
+.rs-add-form { display:none; background:#f8fafc; padding:12px 16px; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:12px; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+.rs-add-form.show { display:flex; }
+.rs-add-form > div { display:flex; flex-direction:column; gap:3px; }
+.rs-add-form label { font-size:10px; text-transform:uppercase; color:#94a3b8; font-weight:600; }
+.rs-add-form input, .rs-add-form select { padding:5px 8px; font-size:12px; border:1px solid #e5e7eb; border-radius:3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap-rs">
+  <div class="rs-breadcrumb">
+    <a href="/">Home</a> · <a href="/operations/products">REX Operations</a> · Reserved Symbols
+  </div>
+  <h1 class="rs-title">Reserved Symbols</h1>
+  <div class="rs-sub">
+    REX's curated registry of tickers reserved with exchanges. Distinct from
+    <a href="/tools/tickers" style="color:#1F3864;">CBOE Symbol Landscape</a>
+    (full 475K-ticker universe scan). Showing {{ filtered_count }} of {{ total }} total.
+  </div>
+
+  <div class="rs-kpi-row">
+    <div class="rs-kpi"><div class="num">{{ total }}</div><div class="label">Total Reservations</div></div>
+    <div class="rs-kpi"><div class="num">{{ n_reserved }}</div><div class="label">Active (Reserved status)</div></div>
+    <div class="rs-kpi amber"><div class="num">{{ n_soon }}</div><div class="label">Expiring in 30 days</div></div>
+    <div class="rs-kpi red"><div class="num">{{ n_expired }}</div><div class="label">Expired (in DB)</div></div>
+  </div>
+
+  <form class="rs-filter-bar" method="get" id="rsFilterForm">
+    <label>Search</label>
+    <input type="text" name="q" value="{{ filter_q }}" placeholder="symbol or rationale..." style="min-width:200px;">
+    <label>Exchange</label>
+    <select name="exchange">
+      <option value="">All</option>
+      {% for e in exchanges %}<option value="{{ e }}" {% if filter_exchange==e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+    </select>
+    <label>Suite</label>
+    <select name="suite">
+      <option value="">All</option>
+      {% for s in suites %}<option value="{{ s }}" {% if filter_suite==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <label>Status</label>
+    <select name="status">
+      <option value="">All</option>
+      {% for s in valid_statuses %}<option value="{{ s }}" {% if filter_status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="rs-btn rs-btn-primary">Apply</button>
+    <a href="/operations/reserved-symbols" class="rs-btn">Clear</a>
+  </form>
+
+  <div class="rs-action-bar">
+    {% if is_admin %}
+    <button class="rs-btn rs-btn-primary" onclick="document.getElementById('rsAddForm').classList.toggle('show')">+ Add Symbol</button>
+    {% endif %}
+    <a href="/operations/reserved-symbols/export.csv" class="rs-btn">Export CSV</a>
+    <span style="color:#94a3b8; font-size:12px; margin-left:auto;">{% if is_admin %}Admin mode — click cells to edit{% else %}Read-only · log in as admin to edit{% endif %}</span>
+  </div>
+
+  {% if is_admin %}
+  <form class="rs-add-form" id="rsAddForm" onsubmit="event.preventDefault(); rsAddSubmit(this);">
+    <div><label>Exchange</label><input name="exchange" value="Cboe" required></div>
+    <div><label>Symbol</label><input name="symbol" required style="text-transform:uppercase;"></div>
+    <div><label>End Date</label><input name="end_date" type="date"></div>
+    <div><label>Status</label><select name="status">{% for s in valid_statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+    <div style="flex:1;"><label>Rationale</label><input name="rationale" placeholder="why reserved..."></div>
+    <div><label>Suite</label><input name="suite" placeholder="Meme / Crypto / Leverage..."></div>
+    <button class="rs-btn rs-btn-primary" type="submit">Add</button>
+  </form>
+  {% endif %}
+
+  <div class="rs-table-wrap">
+    <table class="rs-table {% if is_admin %}rs-admin-edit{% endif %}" id="rsTable">
+      <thead>
+        <tr>
+          <th>Exchange</th>
+          <th>Symbol</th>
+          <th>End Date</th>
+          <th>Days Left</th>
+          <th>Status</th>
+          <th>Rationale</th>
+          <th>Suite</th>
+          {% if is_admin %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in rows %}
+        {% set r = d.row %}
+        <tr data-row-id="{{ r.id }}">
+          <td data-field="exchange">{{ r.exchange or '' }}</td>
+          <td class="rs-sym" data-field="symbol">{{ r.symbol }}</td>
+          <td data-field="end_date">{{ r.end_date.isoformat() if r.end_date else '' }}</td>
+          <td class="rs-days {{ d.urgency or '' }}">{% if d.days_left is not none %}{{ d.days_left }}d{% endif %}</td>
+          <td data-field="status"><span class="rs-status-pill {{ (r.status or '')|lower }}">{{ r.status or '' }}</span></td>
+          <td data-field="rationale" style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.rationale or '' }}</td>
+          <td data-field="suite">{{ r.suite or '' }}</td>
+          {% if is_admin %}
+          <td><button class="rs-btn" style="padding:3px 8px; font-size:11px;" onclick="if(confirm('Delete {{ r.symbol }}?')) rsDelete({{ r.id }})">×</button></td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="rs-toast" id="rsToast"></div>
+
+{% if is_admin %}
+<script>
+const RS_STATUSES = {{ valid_statuses | tojson }};
+
+function rsToast(msg, isErr) {
+  const t = document.getElementById('rsToast');
+  t.textContent = msg;
+  t.className = 'rs-toast show' + (isErr ? ' error' : '');
+  setTimeout(() => { t.className = 'rs-toast'; }, 2200);
+}
+
+document.querySelectorAll('#rsTable td[data-field]').forEach(td => {
+  td.addEventListener('click', function() {
+    if (td.querySelector('input, select')) return;
+    const field = td.dataset.field;
+    const tr = td.closest('tr');
+    const rowId = tr.dataset.rowId;
+    const original = td.textContent.trim();
+    let input;
+    if (field === 'status') {
+      input = document.createElement('select');
+      RS_STATUSES.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s; o.textContent = s;
+        if (s === original) o.selected = true;
+        input.appendChild(o);
+      });
+    } else if (field === 'end_date') {
+      input = document.createElement('input');
+      input.type = 'date';
+      input.value = original;
+    } else {
+      input = document.createElement('input');
+      input.value = original;
+    }
+    td.innerHTML = '';
+    td.appendChild(input);
+    input.focus();
+    if (input.select) input.select();
+    function save() {
+      const newVal = input.value;
+      td.textContent = newVal;  // optimistic
+      fetch(`/operations/reserved-symbols/update/${rowId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({[field]: newVal})
+      }).then(r => r.json()).then(j => {
+        if (j.ok) {
+          rsToast(`Saved (${field})`, false);
+          // Re-render status pill nicely
+          if (field === 'status') {
+            td.innerHTML = `<span class="rs-status-pill ${newVal.toLowerCase()}">${newVal}</span>`;
+          }
+        } else {
+          rsToast('Save failed', true);
+          td.textContent = original;
+        }
+      }).catch(() => { rsToast('Save error', true); td.textContent = original; });
+    }
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { td.textContent = original; }});
+  });
+});
+
+function rsAddSubmit(form) {
+  const fd = new FormData(form);
+  fetch('/operations/reserved-symbols/add', { method: 'POST', body: fd })
+    .then(r => r.json()).then(j => {
+      if (j.ok) { rsToast('Added'); setTimeout(() => location.reload(), 500); }
+      else { rsToast('Add failed', true); }
+    }).catch(() => rsToast('Add error', true));
+}
+
+function rsDelete(rowId) {
+  fetch(`/operations/reserved-symbols/delete/${rowId}`, { method: 'POST' })
+    .then(r => r.json()).then(j => {
+      if (j.ok) { rsToast('Deleted'); setTimeout(() => location.reload(), 500); }
+      else { rsToast('Delete failed', true); }
+    }).catch(() => rsToast('Delete error', true));
+}
+</script>
+{% endif %}
+{% endblock %}

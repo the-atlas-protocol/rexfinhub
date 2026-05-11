@@ -356,6 +356,11 @@ def create_app() -> FastAPI:
     from webapp.routers import capm
     app.include_router(capm.router)
 
+    # REX Reserved Symbols (admin-editable curated list of REX's own ticker reservations).
+    # Distinct from /tools/tickers (full CBOE universe scan).
+    from webapp.routers import operations_reserved
+    app.include_router(operations_reserved.router)
+
     # L&I Strategy Engine — whitespace candidates, filing race, ticker deep-dive
     from webapp.routers import strategy
     app.include_router(strategy.router)
