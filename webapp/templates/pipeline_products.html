@@ -386,32 +386,34 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
 
   {# ============================================================== #}
   {# ROW 2 — URGENCY CARDS                                           #}
+  {# Awaiting Effective lives in the funnel above; here we only show #}
+  {# what's actionable: stuck filings + recent activity.             #}
   {# ============================================================== #}
   <h2>Urgency</h2>
   <div class="urgency-grid">
-    <a class="urgency-card urgent" href="/operations/pipeline?urgency=urgent"
-       title="Every REX product currently in a filed-but-not-yet-effective lifecycle status (Filed, Filed 485A/B, Awaiting Effective, Counsel Approved, Pending/Board Approved).">
-      <div class="label">Awaiting Effectiveness</div>
-      <div class="num">{{ urgency_counts.urgent }}</div>
-      <div class="sub">All filed / pre-effective stages{% if urgency_counts.urgent_dated_14d %} &middot; {{ urgency_counts.urgent_dated_14d }} dated &le;14d{% endif %}</div>
+    <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue"
+       title="Filings where the estimated effective date has passed AND latest_form is NOT 485BPOS yet. These are the ones genuinely stuck — Awaiting Effective rows where the SEC clock has run out and we still haven't seen the post-effective amendment. Many of the older ones are likely abandoned filings (cleanup task #111).">
+      <div class="label">Stuck Filings</div>
+      <div class="num">{{ urgency_counts.overdue }}</div>
+      <div class="sub">Past est. effective date, no 485BPOS yet</div>
     </a>
     <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming"
-       title="Same cohort — clickable to filter the table to all pre-effective products.">
-      <div class="label">Filed &amp; Awaiting (60d view)</div>
+       title="Filed/Awaiting products with an estimated effective date in the next 60 days. The truly imminent slice (when est_effective_date is fresh).">
+      <div class="label">Effective Date in &le;60d</div>
       <div class="num">{{ urgency_counts.upcoming_dated_60d }}</div>
-      <div class="sub">With est. effective date inside 60d</div>
-    </a>
-    <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue"
-       title="Filed products where the estimated effective date has passed but they haven't gone Effective/Listed. Often means launch was delayed.">
-      <div class="label">Past Effective Date</div>
-      <div class="num">{{ urgency_counts.overdue }}</div>
-      <div class="sub">Est. effective passed, not yet Effective/Listed</div>
+      <div class="sub">Subset of Awaiting — when date is set + close</div>
     </a>
     <a class="urgency-card recent" href="/operations/pipeline?urgency=recent_filings"
        title="Products with an initial filing date in the last 14 days.">
-      <div class="label">Recent filings (14d)</div>
+      <div class="label">Recent Filings (14d)</div>
       <div class="num">{{ urgency_counts.recent_filings }}</div>
       <div class="sub">New 485 in last 2 weeks</div>
+    </a>
+    <a class="urgency-card urgent" href="/operations/pipeline?urgency=recent_launches"
+       title="Products that went Listed in the last 30 days.">
+      <div class="label">Recent Launches (30d)</div>
+      <div class="num">{{ urgency_counts.recent_launches }}</div>
+      <div class="sub">Newly trading on exchange</div>
     </a>
   </div>
 
@@ -700,14 +702,43 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           {% set s_color = status_colors.get(p.status, '#64748b') %}
           <td data-sort="{{ p.status }}">
             {% if is_admin %}
+              {# Status dropdown grouped by lifecycle phase so the 15-value
+                 enum stays scannable. Real funds today mostly use 5 of these
+                 (Research / Filed / Awaiting Effective / Listed / Delisted) —
+                 the rest are aspirational lifecycle stages waiting for admin
+                 to promote new filings through. See task #113. #}
               <select class="status-select"
                       data-product-id="{{ p.id }}"
                       data-prev="{{ p.status }}"
                       style="color:{{ s_color }}; border-color:{{ s_color }}55;"
                       onchange="updateProductStatus(this)">
-                {% for s in valid_statuses %}
-                <option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
+                <optgroup label="── Pre-filing">
+                  <option value="Research" {% if p.status == 'Research' %}selected{% endif %}>Research</option>
+                  <option value="Target List" {% if p.status == 'Target List' %}selected{% endif %}>Target List</option>
+                </optgroup>
+                <optgroup label="── Counsel review">
+                  <option value="Counsel Review" {% if p.status == 'Counsel Review' %}selected{% endif %}>Counsel Review</option>
+                  <option value="Counsel Approved" {% if p.status == 'Counsel Approved' %}selected{% endif %}>Counsel Approved</option>
+                  <option value="Counsel Withdrawn" {% if p.status == 'Counsel Withdrawn' %}selected{% endif %}>Counsel Withdrawn</option>
+                </optgroup>
+                <optgroup label="── Board review">
+                  <option value="Pending Board" {% if p.status == 'Pending Board' %}selected{% endif %}>Pending Board</option>
+                  <option value="Board Approved" {% if p.status == 'Board Approved' %}selected{% endif %}>Board Approved</option>
+                  <option value="Not Approved by Board" {% if p.status == 'Not Approved by Board' %}selected{% endif %}>Not Approved by Board</option>
+                </optgroup>
+                <optgroup label="── Filed (pre-effective)">
+                  <option value="Filed" {% if p.status == 'Filed' %}selected{% endif %}>Filed</option>
+                  <option value="Filed (485A)" {% if p.status == 'Filed (485A)' %}selected{% endif %}>Filed (485A)</option>
+                  <option value="Filed (485B)" {% if p.status == 'Filed (485B)' %}selected{% endif %}>Filed (485B)</option>
+                  <option value="Awaiting Effective" {% if p.status == 'Awaiting Effective' %}selected{% endif %}>Awaiting Effective</option>
+                </optgroup>
+                <optgroup label="── Effective / Live">
+                  <option value="Effective" {% if p.status == 'Effective' %}selected{% endif %}>Effective (SEC)</option>
+                  <option value="Listed" {% if p.status == 'Listed' %}selected{% endif %}>Listed (trading)</option>
+                </optgroup>
+                <optgroup label="── Terminal">
+                  <option value="Delisted" {% if p.status == 'Delisted' %}selected{% endif %}>Delisted</option>
+                </optgroup>
               </select>
             {% else %}
               <span class="status-pill"

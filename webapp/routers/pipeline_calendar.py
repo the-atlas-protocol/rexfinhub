@@ -381,10 +381,17 @@ def _pipeline_products_impl(
         "upcoming_dated_60d": pending_q()
             .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=60)))
             .count(),
+        # "Stuck" / Past Effective Date: filings where est_effective_date
+        # has passed BUT latest_form is NOT 485BPOS yet (485BPOS = post-
+        # effective amendment, by definition means the fund IS effective
+        # per SEC rules). Excluding auto-effective rows here so the number
+        # reflects genuine stuck filings, not data-lag rows we already
+        # auto-promoted to "Effective" in the funnel above.
         "overdue": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.estimated_effective_date.isnot(None))
             .filter(RexProduct.estimated_effective_date < today)
             .filter(RexProduct.status.notin_(TERMINAL_STATUSES))
+            .filter((RexProduct.latest_form != "485BPOS") | (RexProduct.latest_form.is_(None)))
             .count(),
         "recent_filings": _rex_only_filter(db.query(RexProduct))
             .filter(RexProduct.initial_filing_date >= today - timedelta(days=14))
