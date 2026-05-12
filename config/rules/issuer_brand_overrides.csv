@@ -2646,3 +2646,19 @@ ZCBF US,Global X,layer1_regex,Matched fund_name: GLOBAL X ZERO COUPON BOND 2034 
 ZCBG US,Global X,layer1_regex,Matched fund_name: GLOBAL X ZERO COUPON BOND 2035 ETF
 ZROZ US,PIMCO,layer1_regex,Matched fund_name: PIMCO 25+ YEAR ZERO COUPON U.S. TREASURY INDEX EXCHANGE-TRADED FUND
 ZSB US,USCF,layer1_regex,Matched fund_name: USCF SUSTAINABLE BATTERY METALS STRATEGY FUND
+BNDY US,Horizon,audit-T1,Horizon Funds — CC backfill
+HBTA US,Horizon,audit-T1,Horizon Funds — CC backfill
+QGRD US,Horizon,audit-T1,Horizon Funds — Defined backfill
+DPRE US,Virtus,audit-T1,Virtus ETF Trust II — CC backfill
+GLDB US,IDX,audit-T1,ETF Opportunities Trust/IDX Adv
+IVES US,Wedbush,audit-T1,Wedbush Series Trust — Thematic backfill
+JEDI US,Defiance,audit-T1,ETF Series Solutions/Defiance — Thematic backfill
+JHDG US,John Hancock,audit-T1,John Hancock Exchange-Traded F — CC backfill
+OBTC US,Osprey,audit-T1,Osprey Funds LLC/USA — Crypto backfill
+OEI US,Core Alternative,audit-T1,Listed Funds Trust/Core Altern — CC backfill
+PBOT US,Pictet,audit-T1,2023 ETF Series Trust/Pictet — Thematic backfill
+TCAI US,Tortoise,audit-T1,Tortoise Capital Series Trust — Thematic backfill
+TDOT US,21Shares,audit-T1,21Shares Polkadot ETF/Fund Par — Crypto backfill
+TLDR US,REX,audit-T1,REX ETF Trust — Defined backfill
+TSUI US,21Shares,audit-T1,21Shares Sui ETF/Fund Parent — Crypto backfill
+UPSD US,Aptus,audit-T1,ETF Series Solutions/Aptus Cap — LI backfill
