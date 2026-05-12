@@ -157,7 +157,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 _CSRF_PROTECTED_PREFIXES = ("/admin/", "/api/v1/maintenance")
 # /admin/login posts the password itself before any session exists, so the
 # token cannot have been issued yet — exempt to avoid a chicken/egg loop.
-_CSRF_EXEMPT_PATHS = {"/admin/login"}
+#
+# /api/v1/uploads/screener-cache is a machine-to-machine bearer-token
+# endpoint (see webapp/routers/api.py) used by the daily VPS pipeline.
+# It is not under any current _CSRF_PROTECTED_PREFIXES entry, but is listed
+# here defensively so widening the prefix list later doesn't silently
+# break the daily upload.
+_CSRF_EXEMPT_PATHS = {"/admin/login", "/api/v1/uploads/screener-cache"}
 _CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 

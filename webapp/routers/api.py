@@ -621,6 +621,111 @@ def list_prebaked_reports(_: None = Depends(verify_api_key)):
 
 
 # ---------------------------------------------------------------------------
+# Screener cache upload — bearer-token machine-to-machine endpoint
+#
+# The legacy uploader (run_daily.upload_screener_cache_to_render) posted to
+# /admin/upload/screener-cache after a session login. After CSRF middleware
+# was added in audit fix R8 (see webapp/main.py _CSRF_PROTECTED_PREFIXES),
+# multipart POSTs without an X-CSRF-Token header are rejected with 403 —
+# breaking the daily VPS upload. The admin route stays in place for the
+# browser, and this endpoint is the M2M replacement.
+# ---------------------------------------------------------------------------
+
+
+def _load_render_upload_token() -> str:
+    """Load RENDER_UPLOAD_TOKEN from env or config/.env."""
+    env_val = os.environ.get("RENDER_UPLOAD_TOKEN", "")
+    if env_val:
+        return env_val
+    env_file = Path(__file__).resolve().parent.parent.parent / "config" / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("RENDER_UPLOAD_TOKEN="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
+def verify_render_upload_token(authorization: str = Header(default="")):
+    """Verify ``Authorization: Bearer <RENDER_UPLOAD_TOKEN>`` header.
+
+    Deliberately NOT using ADMIN_PASSWORD — this token is rotated and scoped
+    independently of the browser admin password so credential leaks don't
+    cross domains.
+    """
+    import hmac
+    expected = _load_render_upload_token()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Upload endpoint not configured")
+    prefix = "Bearer "
+    if not authorization.startswith(prefix):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    presented = authorization[len(prefix):].strip()
+    if not hmac.compare_digest(presented, expected):
+        raise HTTPException(status_code=401, detail="Invalid bearer token")
+
+
+@router.post("/uploads/screener-cache")
+async def upload_screener_cache_api(
+    request: Request,
+    file: UploadFile = File(...),
+    _: None = Depends(verify_render_upload_token),
+):
+    """Upload a pre-computed screener cache JSON (bearer-token auth).
+
+    Mirrors the on-disk behavior of /admin/upload/screener-cache: writes to
+    ``data/SCREENER/cache.json`` and primes the in-memory cache via
+    ``set_3x_analysis`` so the change takes effect immediately.
+
+    Audited in ApiAuditLog like the other M2M endpoints.
+    """
+    import json as _json
+    from webapp.services.screener_3x_cache import set_3x_analysis
+
+    route = "/api/v1/uploads/screener-cache"
+    ip = _client_ip(request)
+    ua = request.headers.get("user-agent")
+
+    # Resolve project root the same way the admin route does so the on-disk
+    # location is identical regardless of cwd.
+    project_root = Path(__file__).resolve().parent.parent.parent
+    dest = project_root / "data" / "SCREENER" / "cache.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        data = await file.read()
+        size = len(data)
+        # Validate JSON before writing — refusing garbage is cheaper than
+        # serving a broken cache and then waiting for the next daily run.
+        try:
+            cache = _json.loads(data)
+        except _json.JSONDecodeError as je:
+            _audit_log(route, "POST", ip, ua, False, 400, size,
+                       f"invalid_json: {str(je)[:200]}")
+            raise HTTPException(status_code=400, detail="Uploaded file is not valid JSON")
+
+        if not isinstance(cache, dict):
+            _audit_log(route, "POST", ip, ua, False, 400, size,
+                       f"json_not_object type={type(cache).__name__}")
+            raise HTTPException(status_code=400, detail="Cache JSON must be a top-level object")
+
+        dest.write_bytes(data)
+        set_3x_analysis(cache)
+
+        keys = list(cache.keys())
+        log.info("Screener cache uploaded via API: %d bytes, %d keys", size, len(keys))
+        _audit_log(route, "POST", ip, ua, True, 200, size,
+                   f"keys={len(keys)}")
+        return {"status": "ok", "ok": True, "keys": keys, "size_bytes": size}
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error("Screener cache upload (API) failed: %s", e, exc_info=True)
+        _audit_log(route, "POST", ip, ua, False, 500, None, f"error: {str(e)[:500]}")
+        raise HTTPException(status_code=500, detail="Cache upload failed")
+
+
+# ---------------------------------------------------------------------------
 # ETP Screener API (public-facing, API key required)
 # ---------------------------------------------------------------------------
 
