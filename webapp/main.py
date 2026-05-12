@@ -24,6 +24,12 @@ from starlette.responses import RedirectResponse as StarletteRedirect
 
 from webapp.auth import SESSION_SECRET
 from webapp.database import init_db
+from webapp.services.csrf import (
+    CSRF_FORM_FIELD,
+    CSRF_HEADER,
+    get_or_create_token,
+    is_valid as _csrf_is_valid,
+)
 
 log = logging.getLogger(__name__)
 WEBAPP_DIR = Path(__file__).resolve().parent
@@ -145,6 +151,76 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Paths that require CSRF protection on state-mutating verbs.
+# Kept tight on purpose: only browser-driven admin surfaces. The X-API-Key
+# routes under /api/v1/* are machine-to-machine and use bearer auth.
+_CSRF_PROTECTED_PREFIXES = ("/admin/", "/api/v1/maintenance")
+# /admin/login posts the password itself before any session exists, so the
+# token cannot have been issued yet — exempt to avoid a chicken/egg loop.
+_CSRF_EXEMPT_PATHS = {"/admin/login"}
+_CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+class CsrfMiddleware(BaseHTTPMiddleware):
+    """Validate a session-tied CSRF token on admin state-mutating requests.
+
+    Token is generated lazily by ``get_or_create_token`` (called via the
+    Jinja global ``csrf_token``) and stored in the session. Submissions
+    must echo it back via the ``_csrf_token`` form field or
+    ``X-CSRF-Token`` header.
+
+    Failure mode is a 403 JSON response so the missing-token cause is
+    visible in the browser network tab; the legitimate path is to refresh
+    the page and resubmit, which re-issues the token.
+    """
+
+    async def dispatch(self, request, call_next):
+        method = request.method.upper()
+        path = request.url.path
+        # Always populate request.state.csrf_token so base.html can render
+        # the meta tag without each router needing to register a Jinja
+        # global. (Many routers spin up their own Jinja2Templates instance
+        # with separate environment, so a global registered in main.py is
+        # not visible to all of them.)
+        try:
+            request.state.csrf_token = get_or_create_token(request.session)
+        except Exception:
+            request.state.csrf_token = ""
+
+        if (
+            method in _CSRF_PROTECTED_METHODS
+            and path not in _CSRF_EXEMPT_PATHS
+            and any(path.startswith(p) for p in _CSRF_PROTECTED_PREFIXES)
+        ):
+            # Pull the presented token from header, form, or query.
+            presented = request.headers.get(CSRF_HEADER)
+            if not presented:
+                # Form parsing consumes the body; cache it back so the
+                # downstream route handler can still read its fields.
+                ctype = (request.headers.get("content-type") or "").lower()
+                if (
+                    "application/x-www-form-urlencoded" in ctype
+                    or "multipart/form-data" in ctype
+                ):
+                    try:
+                        form = await request.form()
+                        presented = form.get(CSRF_FORM_FIELD)
+                    except Exception:
+                        presented = None
+            if not presented:
+                presented = request.query_params.get(CSRF_FORM_FIELD)
+
+            if not _csrf_is_valid(request.session, presented):
+                from fastapi.responses import JSONResponse as _JR
+                return _JR(
+                    {"error": "CSRF validation failed", "detail":
+                     "Missing or invalid _csrf_token. Refresh the page and retry."},
+                    status_code=403,
+                )
+
+        return await call_next(request)
+
+
 # ---------------------------------------------------------------------------
 # App factory
 # ---------------------------------------------------------------------------
@@ -157,6 +233,22 @@ templates.env.globals["enable_13f"] = bool(os.environ.get("ENABLE_13F"))
 # Canonical URL registry — templates can call {{ url('funds.detail', ticker='NVDX') }}
 from webapp.routes import url as _route_url
 templates.env.globals["url"] = _route_url
+
+
+def _csrf_token_for(request: Request) -> str:
+    """Jinja global: ``{{ csrf_token(request) }}`` -> session-tied token.
+
+    Lazily issued on first call so unauthenticated/anonymous pages don't
+    pay the cost. base.html embeds it in a <meta> tag and a small JS
+    helper auto-attaches it to admin form submits + fetch calls.
+    """
+    try:
+        return get_or_create_token(request.session)
+    except Exception:
+        return ""
+
+
+templates.env.globals["csrf_token"] = _csrf_token_for
 
 
 
@@ -230,9 +322,13 @@ def create_app() -> FastAPI:
     )
 
     # Middleware order matters: last added = outermost (runs first).
-    # SiteAuthMiddleware needs session -> add it first (inner),
-    # then SessionMiddleware (outer, decodes session before auth check).
+    # SiteAuthMiddleware + CsrfMiddleware both need session -> add them first
+    # (inner), then SessionMiddleware (outer, decodes session before either
+    # check). CsrfMiddleware is registered before SiteAuthMiddleware so that
+    # CSRF rejection happens before any auth redirect noise — a
+    # missing-token POST should fail with 403, not bounce through /login.
     app.add_middleware(SiteAuthMiddleware)
+    app.add_middleware(CsrfMiddleware)
     app.add_middleware(DataFreshnessMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=28800, same_site="lax", https_only=bool(os.environ.get("RENDER")))
