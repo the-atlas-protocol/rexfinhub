@@ -242,6 +242,51 @@ def _pipeline_products_impl(
       - ``recent_days`` (7/14/30/90) drives Recent Activity window
       - ``sort`` map extended to include lifecycle dates + days_in_stage
     """
+    # Emergency safety net (2026-05-12) — the rexops-O5-tickers auto-merge
+    # silently emptied pipeline_products.html to 0 bytes, producing a 200
+    # response with empty body in production. The template is restored, but
+    # we wrap the full handler in a try/except so any future regression
+    # surfaces a visible HTML error page instead of a silent white page.
+    import traceback as _tb
+    try:
+        return _pipeline_products_render(
+            request, status, suite, q, urgency, sort, dir,
+            page, per_page, hide_terminal, show_cold, recent_days, db,
+        )
+    except Exception as _exc:
+        _tb_str = _tb.format_exc()
+        try:
+            import logging
+            logging.getLogger("rexfinhub.pipeline").error(
+                "Pipeline products page crashed:\n%s", _tb_str
+            )
+        except Exception:
+            pass
+        return HTMLResponse(
+            f"<pre style='padding:24px; font-family:monospace; "
+            f"color:#dc2626; white-space:pre-wrap;'>"
+            f"ERROR rendering /operations/pipeline:\n{_exc}\n\n{_tb_str}"
+            f"</pre>",
+            status_code=500,
+        )
+
+
+def _pipeline_products_render(
+    request: Request,
+    status: str | None,
+    suite: str | None,
+    q: str | None,
+    urgency: str | None,
+    sort: str | None,
+    dir: str | None,
+    page: int,
+    per_page: str | int,
+    hide_terminal: int,
+    show_cold: int | None,
+    recent_days: int,
+    db: Session,
+):
+    """Inner renderer — original handler body, wrapped by the safety net above."""
     from webapp.models import RexProduct, FundDistribution
 
     today = date.today()
@@ -837,16 +882,28 @@ def _pipeline_products_impl(
         "request": request,
         "today": today,
         "is_admin": is_admin,
-        # KPIs — ``total`` is still used by the All suite-kpi pill above
-        # the products table. The Quick Stats / Recent Activity sections
-        # were removed in the O1 layout rewrite, so listed/filed/awaiting/
-        # research/filings_last_7d/launches_last_30d/effectives_next_30d/
-        # effectives_next_90d/avg_cycle/min_cycle/max_cycle/cycle_sample/
-        # next_launches/recent_activity/last_updated_overall no longer
-        # ship to the template. (The underlying DB queries are still run
-        # because O3 owns the status-enum / DB query layer — only the
-        # context dict was trimmed.)
+        # KPIs — full set restored 2026-05-12 after the rexops-O5-tickers
+        # auto-merge wiped pipeline_products.html down to 0 bytes. The
+        # restored template (from a764f41) references the Quick Stats /
+        # Recent Activity sections that the O1 docstring claimed were
+        # removed, so we ship every key the template actually uses.
         "total": total,
+        "listed": listed,
+        "filed": filed,
+        "awaiting": awaiting,
+        "research": research,
+        "filings_last_7d": filings_last_7d,
+        "launches_last_30d": launches_last_30d,
+        "effectives_next_30d": effectives_next_30d,
+        "effectives_next_90d": effectives_next_90d,
+        "next_launches": next_launches,
+        "avg_cycle": avg_cycle,
+        "min_cycle": min_cycle,
+        "max_cycle": max_cycle,
+        "cycle_sample": len(cycle_days),
+        "recent_activity": recent_activity,
+        "recent_days": recent_days_value,
+        "last_updated_overall": last_updated_overall,
         # Counts
         "urgency_counts": urgency_counts,
         "status_counts": status_counts,
