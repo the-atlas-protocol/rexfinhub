@@ -143,10 +143,14 @@ def _rex_only_filter(query):
     alongside REX). Filter by name prefix + trust, and explicitly drop
     known non-REX issuers.
 
-    NOTE: includes product_suite IN VALID_SUITES — catches REX products
-    whose name doesn't contain "REX" (e.g. TLDR "The Laddered T-Bill ETF",
-    suite="T-Bill"). Otherwise the suite KPIs would silently zero out
-    legitimate REX products that don't follow the REX/T-REX naming convention.
+    NOTE: REMOVED the broad ``product_suite IN VALID_SUITES`` clause
+    (rexops-2026-05-12) — it was admitting any third-party row whose
+    suite happened to be tagged by an over-aggressive classifier sweep
+    (Tuttle, AQE, Brendan Wood, Cultivar, IDX, Kingsbarn, etc. were all
+    leaking through onto /operations/pipeline?suite=T-REX). All
+    legitimate REX inclusions must now match an explicit name pattern
+    or the trust-contains-REX clause below. Add to the list when a new
+    non-REX-named REX product surfaces.
     """
     from webapp.models import RexProduct
 
@@ -161,7 +165,6 @@ def _rex_only_filter(query):
             RexProduct.name.ilike("MicroSectors%"),
             RexProduct.name.ilike("The Laddered%"),  # TLDR — REX product, no REX in name
             RexProduct.trust.ilike("%REX%"),
-            RexProduct.product_suite.in_(VALID_SUITES),  # catches edge cases via REX-known suite
         ))
         .filter(not_(or_(
             RexProduct.trust.ilike("%tuttle%"),
