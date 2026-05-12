@@ -23,6 +23,10 @@ from screener.li_engine.analysis.whitespace_v2 import (
     DB, THEMES_YAML, _clean, _zscore,
     load_universe, annotate_product_coverage, load_apewisdom_map, load_themes,
 )
+from screener.li_engine.analysis.secular_trends import (
+    load_themes_parquet as _load_secular_themes,
+    OUT as SECULAR_OUT,
+)
 
 log = logging.getLogger(__name__)
 
@@ -45,10 +49,36 @@ WEIGHTS = {
 }
 
 
-HOT_THEMES = {
+# Static fallback — used only if data/analysis/secular_trends.parquet is
+# missing or empty. The secular-trend auto-detector replaces this list
+# nightly with data-driven themes (filing velocity + cross-issuer cadence +
+# price momentum). The Feb-2026 build hard-coded six themes and missed the
+# memory/HBM rotation entirely (SK Hynix +500%, MU +200%) — this fallback
+# is now the safety net, not the primary signal.
+_STATIC_HOT_THEMES = {
     "ai_infrastructure", "ai_applications", "quantum",
-    "semiconductors", "space", "nuclear",
+    "semiconductors", "space", "nuclear", "memory_hbm",
 }
+
+
+def _resolve_hot_themes() -> tuple[set[str], str]:
+    """Return (themes, source_label).
+
+    Source: 'parquet' if secular_trends.parquet has data; 'static' otherwise.
+    """
+    detected = _load_secular_themes()
+    if detected:
+        # Union with always-relevant static seeds so a single bad parquet run
+        # cannot wipe out long-running themes.
+        return detected | {"memory_hbm", "ai_infrastructure"}, "parquet"
+    log.warning(
+        "secular_trends.parquet missing/empty — falling back to static hot-theme list. "
+        "Run `python -m screener.li_engine.analysis.secular_trends` to refresh."
+    )
+    return _STATIC_HOT_THEMES, "static"
+
+
+HOT_THEMES, HOT_THEMES_SOURCE = _resolve_hot_themes()
 
 
 def compute_score_v3(df: pd.DataFrame, themes: dict[str, list[str]],
@@ -175,6 +205,12 @@ def main():
     print("WHITESPACE v3 — RETAIL-GATED + DEMAND-WEIGHTED")
     print("=" * 100)
     print(f"Universe: {len(universe)} | Whitespace: {len(whitespace)} | Retail-gated: {len(gated)}")
+    if HOT_THEMES_SOURCE == "parquet":
+        print(f"Hot themes (secular_trends.parquet, {len(HOT_THEMES)}): "
+              f"{', '.join(sorted(HOT_THEMES))}")
+    else:
+        print(f"Hot themes (STATIC FALLBACK, secular_trends.parquet missing): "
+              f"{', '.join(sorted(HOT_THEMES))}")
     print()
 
     for i, ticker in enumerate(gated.head(25).index, 1):
