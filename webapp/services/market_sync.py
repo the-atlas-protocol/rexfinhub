@@ -534,11 +534,21 @@ def _insert_time_series(
         issuer_group = _safe_str(row.get("issuer_group")) or enrich.get("issuer_group")
         fck = _safe_str(row.get("fund_category_key")) or enrich.get("fund_category_key")
 
+        # Audit fix R7: persist the as_of_date computed by data_engine._unpivot_aum.
+        # Previously dropped on the floor here, leaving mkt_time_series.as_of_date
+        # 100% NULL across all rows.
+        as_of_raw = row.get("as_of_date")
+        as_of_val = None
+        if pd.notna(as_of_raw):
+            as_of_ts = pd.Timestamp(as_of_raw)
+            as_of_val = as_of_ts.date() if not pd.isna(as_of_ts) else None
+
         obj = MktTimeSeries(
             pipeline_run_id=run_id,
             ticker=ticker,
             months_ago=months_ago,
             aum_value=aum_value,
+            as_of_date=as_of_val,
             category_display=cat_display,
             issuer_display=iss_display,
             is_rex=is_rex,

@@ -8,6 +8,8 @@ Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 # 1) Refresh the NASDAQ + SEC EDGAR known-active universe (~30 sec).
 #    Used to split CBOE-taken symbols into "active listing" vs "reserved
 #    by competitor" (the intel signal).

@@ -10,6 +10,8 @@ Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
 ExecStart=/home/jarvis/venv/bin/python -c "from webapp.services.graph_files import download_bloomberg_from_sharepoint; from webapp.database import init_db, SessionLocal; from webapp.services.market_sync import sync_market_data; download_bloomberg_from_sharepoint(); init_db(); db=SessionLocal(); sync_market_data(db); db.close(); print('Bloomberg pull + sync complete')"
 ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/apply_fund_master.py

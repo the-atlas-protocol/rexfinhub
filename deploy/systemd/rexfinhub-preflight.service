@@ -8,6 +8,8 @@ Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 # Pull latest code first (mirrors rexfinhub-daily.service pattern). Leading
 # "-" means a pull failure doesn't block the audit.
 ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main

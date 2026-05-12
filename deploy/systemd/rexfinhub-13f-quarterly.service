@@ -8,6 +8,9 @@ Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET so datetime.now() and other naive-datetime
+# call sites compute "today" in market-local terms (audit fix R7).
+Environment=TZ=America/New_York
 Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
 # Pull latest code before each ingestion run (same pattern as rexfinhub-daily)
 ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main

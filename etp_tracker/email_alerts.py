@@ -20,8 +20,14 @@ import html as html_mod
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import pandas as pd
+
+# Audit fix R7: pin "today" to ET for subject lines and any naive datetime.now()
+# call site that semantically means "the market-local date". Prevents the
+# off-by-one we saw on 2026-04-28 when a 00:09 ET send shipped 04/27/2026.
+ET = ZoneInfo("America/New_York")
 
 import logging
 log = logging.getLogger(__name__)
@@ -2021,7 +2027,11 @@ def _send_html_digest(html_body: str, recipients: list[str],
     else:
         _labels = {"daily": "Daily ETP Report", "morning": "Morning Brief", "evening": "Daily ETP Report"}
         _label = _labels.get(edition, "Daily ETP Report")
-        subject = f"REX {_label}: {datetime.now().strftime('%m/%d/%Y')}"
+        # Audit fix R7: pin to ET so 12am-4am ET sends ship today's date,
+        # not yesterday's UTC date. Defense-in-depth alongside the
+        # TZ=America/New_York systemd Environment line and the explicit
+        # subject_override path in send_digest_from_db.
+        subject = f"REX {_label}: {datetime.now(ET).strftime('%m/%d/%Y')}"
 
     try:
         from webapp.services.graph_email import is_configured, send_email
@@ -2061,14 +2071,25 @@ def send_digest_from_db(
     private = _load_private_recipients()
     if not recipients and not private:
         return False
+
+    # Audit fix R7: capture "today in ET" ONCE at the top so the subject
+    # always carries the market-local date even on early-AM ET sends, and
+    # so all downstream renders share a consistent reference timestamp.
+    today_et = datetime.now(ET).date()
+    _labels = {"daily": "Daily ETP Report", "morning": "Morning Brief",
+               "evening": "Daily ETP Report"}
+    subject_override = f"REX {_labels.get(edition, 'Daily ETP Report')}: {today_et.strftime('%m/%d/%Y')}"
+
     html_body = build_digest_html_from_db(db_session, dashboard_url, since_date,
                                            custom_message=custom_message,
                                            edition=edition)
     ok = True
     if recipients:
-        ok = _send_html_digest(html_body, recipients, edition=edition)
+        ok = _send_html_digest(html_body, recipients, edition=edition,
+                               subject_override=subject_override)
     if private:
-        _send_html_digest(html_body, private, edition=edition)
+        _send_html_digest(html_body, private, edition=edition,
+                          subject_override=subject_override)
     return ok
 
 
