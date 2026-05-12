@@ -134,6 +134,8 @@ h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; l
 .pager-meta { font-size:12px; color:#64748b; }
 
 .table-scroll { overflow-x:auto; background:#fff; border:1px solid #e5e7eb; border-radius:6px; }
+.table-scroll-mirror { overflow-x:auto; overflow-y:hidden; height:14px; margin-bottom:4px; }
+.table-scroll-mirror > div { height:1px; }
 
 /* Inline edit affordance (admin only) */
 .admin-edit td[data-field] { cursor:pointer; position:relative; }
@@ -292,28 +294,6 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
 
   {# ============================================================== #}
   {# ROW 0 — SUITE KPI PILLS                                         #}
-  {# Per-suite clickable filters at the top so users can jump        #}
-  {# straight into a suite slice without opening the dropdown.       #}
-  {# ============================================================== #}
-  <h2>By Suite</h2>
-  <div class="suite-kpis">
-    <a href="/operations/pipeline" class="suite-kpi {% if not filter_suite %}active{% endif %}">
-      <span class="suite-kpi-name">All</span>
-      <span class="suite-kpi-num">{{ total }}</span>
-    </a>
-    {% for s in valid_suites %}
-      {% set s_color = suite_colors.get(s, '#64748b') %}
-      {% set s_count = suite_counts.get(s, 0) %}
-      <a href="/operations/pipeline?suite={{ s | urlencode }}"
-         class="suite-kpi {% if filter_suite == s %}active{% endif %}"
-         style="border-left:3px solid {{ s_color }};"
-         title="Filter to {{ s }}">
-        <span class="suite-kpi-name" style="color:{{ s_color }};">{{ s }}</span>
-        <span class="suite-kpi-num">{{ s_count }}</span>
-      </a>
-    {% endfor %}
-  </div>
-
   {# ============================================================== #}
   {# ROW 1 — STAGE FUNNEL                                            #}
   {# ============================================================== #}
@@ -337,39 +317,31 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
     {% endfor %}
   </div>
 
+  {# By Suite — moved next to the table (2026-05-12) so the suite     #}
+  {# slice selector sits right above the filter+rows it drives.        #}
   {# ============================================================== #}
-  {# ROW 2 — URGENCY CARDS                                           #}
-  {# Pre-launch (Filed) volume lives in the funnel above; here we    #}
-  {# only show what's actionable: stuck filings + recent activity.   #}
-  {# ============================================================== #}
-  <h2>Urgency</h2>
-  <div class="urgency-grid">
-    <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue"
-       title="Filings where the estimated effective date has passed AND latest_form is NOT 485BPOS yet. These are the ones genuinely stuck — Filed rows where the SEC clock has run out and we still haven't seen the post-effective amendment. Many of the older ones are likely abandoned filings (cleanup task #111).">
-      <div class="label">Stuck Filings</div>
-      <div class="num">{{ urgency_counts.overdue }}</div>
-      <div class="sub">Past est. effective date, no 485BPOS yet</div>
+  <h2>By Suite</h2>
+  <div class="suite-kpis">
+    <a href="/operations/pipeline" class="suite-kpi {% if not filter_suite %}active{% endif %}">
+      <span class="suite-kpi-name">All</span>
+      <span class="suite-kpi-num">{{ total }}</span>
     </a>
-    <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming"
-       title="Filed products with an estimated effective date in the next 60 days. Uses the 75-day SEC Rule 485(a) fallback when est_effective_date is stale or NULL.">
-      <div class="label">Effective Date in &le;60d</div>
-      <div class="num">{{ urgency_counts.upcoming_dated_60d }}</div>
-      <div class="sub">Filed rows projected effective in 60d</div>
-    </a>
-    <a class="urgency-card recent" href="/operations/pipeline?urgency=recent_filings"
-       title="Products with an initial filing date in the last 14 days.">
-      <div class="label">Recent Filings (14d)</div>
-      <div class="num">{{ urgency_counts.recent_filings }}</div>
-      <div class="sub">New 485 in last 2 weeks</div>
-    </a>
-    <a class="urgency-card urgent" href="/operations/pipeline?urgency=recent_launches"
-       title="Products that went Listed in the last 30 days.">
-      <div class="label">Recent Launches (30d)</div>
-      <div class="num">{{ urgency_counts.recent_launches }}</div>
-      <div class="sub">Newly trading on exchange</div>
-    </a>
+    {% for s in valid_suites %}
+      {% set s_color = suite_colors.get(s, '#64748b') %}
+      {% set s_count = suite_counts.get(s, 0) %}
+      <a href="/operations/pipeline?suite={{ s | urlencode }}"
+         class="suite-kpi {% if filter_suite == s %}active{% endif %}"
+         style="border-left:3px solid {{ s_color }};"
+         title="Filter to {{ s }}">
+        <span class="suite-kpi-name" style="color:{{ s_color }};">{{ s }}</span>
+        <span class="suite-kpi-num">{{ s_count }}</span>
+      </a>
+    {% endfor %}
   </div>
 
+  {# Urgency section removed 2026-05-12 — "Stuck Filings" was the    #}
+  {# subjective rollup Ryu wanted gone; recency/launch counts are    #}
+  {# still derivable from the funnel + table filters.                #}
   {# ============================================================== #}
   {# ROW 3 — STICKY FILTER BAR                                       #}
   {# (Recent Activity + Quick Stats sections removed 2026-05-12      #}
@@ -409,18 +381,6 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
       <a href="/operations/pipeline" class="btn">Clear</a>
     </div>
 
-    <div class="filter-row">
-      <label>Quick</label>
-      <div class="urgency-pills">
-        <a href="/operations/pipeline" class="urgency-pill {% if not filter_urgency %}active{% endif %}">All</a>
-        <a href="/operations/pipeline?urgency=urgent" class="urgency-pill {% if filter_urgency == 'urgent' %}active{% endif %}"
-           title="All products in a filed-but-not-yet-effective lifecycle status.">Awaiting Effectiveness <span class="count">{{ urgency_counts.urgent }}</span></a>
-        <a href="/operations/pipeline?urgency=overdue" class="urgency-pill {% if filter_urgency == 'overdue' %}active{% endif %}"
-           title="Filed products where the estimated effective date has passed but they haven't gone Effective/Listed. Often means launch was delayed.">Past Effective Date <span class="count">{{ urgency_counts.overdue }}</span></a>
-        <a href="/operations/pipeline?urgency=recent_filings" class="urgency-pill {% if filter_urgency == 'recent_filings' %}active{% endif %}">Recent Filings <span class="count">{{ urgency_counts.recent_filings }}</span></a>
-        <a href="/operations/pipeline?urgency=recent_launches" class="urgency-pill {% if filter_urgency == 'recent_launches' %}active{% endif %}">Recent Launches <span class="count">{{ urgency_counts.recent_launches }}</span></a>
-      </div>
-    </div>
   </form>
 
   {# ============================================================== #}
@@ -465,6 +425,12 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
       {% endif %}
     </span>
   </div>
+
+  {# Top scroll mirror — duplicates the table's horizontal scrollbar above
+     the header row so wide tables can be panned without scrolling to the
+     bottom. Width is set by JS to match the inner table. ALT+wheel also
+     scrolls horizontally (see <script> at end of file). #}
+  <div class="table-scroll-mirror" id="pipelineTableScrollTop"><div id="pipelineTableScrollTopInner"></div></div>
 
   <div class="table-scroll" id="pipelineTableScroll">
     <table class="pipeline-table {% if is_admin %}admin-edit{% endif %}" id="pipelineTable">
@@ -520,7 +486,6 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           {{ sort_th('name', 'Fund Name', 'text') }}
           {{ sort_th('underlier', 'Underlier', 'text') }}
           {{ sort_th('status', 'Status', 'status') }}
-          {{ sort_th('days_in_stage', 'Days in Stage', 'number') }}
           {{ sort_th('initial_filing_date', 'Initial Filing', 'date') }}
           {{ sort_th('latest_filing_date', 'Latest Filing', 'date') }}
           {{ sort_th('estimated_effective_date', 'Effective Date', 'date') }}
@@ -575,13 +540,15 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           <td data-sort="{{ (p.trust or '').lower() }}" data-field="trust" title="{{ p.trust or '' }}">{{ (p.trust or '---')[:30] }}</td>
           {# Col 2: Suite #}
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
-          {# Col 3: Ticker — chip if no ticker but a suggestion exists #}
+          {# Col 3: Ticker — chip if no ticker but a suggestion exists.
+             Field names match webapp.services.ticker_suggestions.TickerSuggestion
+             dataclass: suggested_ticker | status | chip_class | tooltip. #}
           <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">
             {% if p.ticker %}
               <a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>
-            {% elif ticker_suggestions and ticker_suggestions.get(p.id) %}
+            {% elif ticker_suggestions and ticker_suggestions.get(p.id) and ticker_suggestions[p.id].suggested_ticker %}
               {% set ts = ticker_suggestions[p.id] %}
-              <span class="ticker-chip chip-{{ ts.state or 'unknown' }}" title="{{ ts.reason or ts.state or 'no suggestion' }}">{{ ts.ticker or (ts.state or 'unknown')|upper }}</span>
+              <span class="ticker-chip {{ ts.chip_class }}" title="{{ ts.tooltip }}">{{ ts.suggested_ticker }}</span>
             {% else %}---{% endif %}
           </td>
           {# Col 4: Fund Name #}
@@ -622,15 +589,9 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
                     style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ display_status }}{% if _auto_eff %} <span style="font-size:10px; opacity:0.7;">(auto)</span>{% endif %}</span>
             {% endif %}
           </td>
-          {# Col 7: Days in Stage — anchor depends on current status (see router) #}
-          <td data-sort="{{ row.days_in_stage if row.days_in_stage is not none else -1 }}">
-            {% if row.days_in_stage is not none %}
-              {% set d = row.days_in_stage %}
-              <span class="days-badge {% if d > 60 %}stuck{% elif d > 30 %}urgent{% elif d > 14 %}soon{% else %}ok{% endif %}">{{ d }}d</span>
-            {% else %}
-              <span style="color:#cbd5e1;">---</span>
-            {% endif %}
-          </td>
+          {# Col 7 was Days in Stage — removed 2026-05-12 (anchor logic was
+             noisy without a real status_history table). Will return once
+             rex_product_status_history is wired (task #132). #}
           {# Col 8: Initial Filing #}
           <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
           {# Col 9: Latest Filing — derived in router (max of known SEC dates) #}
@@ -968,6 +929,50 @@ function sortTable(colIdx, type) {
             if (e.key === 'Escape') closeAllDropdowns();
         });
     });
+})();
+
+/* ALT+wheel horizontal scroll on the pipeline table, plus a top
+   scroll mirror that syncs both ways with the table's own bottom bar.
+   Lets you pan the wide 11-column table without scrolling to the page
+   bottom to find the scrollbar. */
+(function() {
+    function setup() {
+        var pane = document.getElementById('pipelineTableScroll');
+        var top  = document.getElementById('pipelineTableScrollTop');
+        var topInner = document.getElementById('pipelineTableScrollTopInner');
+        if (!pane || !top || !topInner) return;
+
+        function syncWidth() {
+            var inner = pane.firstElementChild;
+            if (inner) topInner.style.width = inner.scrollWidth + 'px';
+        }
+        syncWidth();
+        window.addEventListener('resize', syncWidth);
+
+        var lock = false;
+        pane.addEventListener('scroll', function() {
+            if (lock) { lock = false; return; }
+            lock = true;
+            top.scrollLeft = pane.scrollLeft;
+        });
+        top.addEventListener('scroll', function() {
+            if (lock) { lock = false; return; }
+            lock = true;
+            pane.scrollLeft = top.scrollLeft;
+        });
+
+        pane.addEventListener('wheel', function(e) {
+            if (e.altKey && e.deltaY !== 0) {
+                e.preventDefault();
+                pane.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setup);
+    } else {
+        setup();
+    }
 })();
 
 {% if is_admin %}
