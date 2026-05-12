@@ -603,6 +603,14 @@ def _pipeline_products_impl(
         "listed": RexProduct.official_listed_date,
         "official_listed_date": RexProduct.official_listed_date,
         "latest_form": RexProduct.latest_form,
+        # O1 layout rewrite — new columns surfaced in the products table.
+        # ``latest_filing_date`` is a derived value (max of known SEC dates
+        # on the row); for SQL ordering we proxy with initial_filing_date,
+        # then re-sort in Python within the page when this key is active.
+        "trust": RexProduct.trust,
+        "underlier": RexProduct.underlier,
+        "target_listing_date": RexProduct.target_listing_date,
+        "latest_filing_date": RexProduct.initial_filing_date,
     }
     col = sort_map.get(sort_col)
     if col is not None:
@@ -659,7 +667,21 @@ def _pipeline_products_impl(
             days_in_stage = max(0, (today - anchor).days)
         else:
             days_in_stage = None
-        products_view.append({"p": p, "days_in_stage": days_in_stage})
+        # Latest known SEC date on the row — max of initial_filing /
+        # official_listed / target_listing. Surfaced as the "Latest
+        # Filing Date" column. NOT a DB query — pure row-local derivation.
+        filing_anchors = [
+            p.initial_filing_date,
+            p.official_listed_date,
+            p.target_listing_date,
+        ]
+        filing_anchors = [d for d in filing_anchors if d is not None]
+        latest_filing_date = max(filing_anchors) if filing_anchors else None
+        products_view.append({
+            "p": p,
+            "days_in_stage": days_in_stage,
+            "latest_filing_date": latest_filing_date,
+        })
 
     # Post-slice sort for the derived ``days_in_stage`` column. Done in
     # Python because the value isn't a real SQL column. Within-page only
@@ -667,6 +689,14 @@ def _pipeline_products_impl(
     if sort_col == "days_in_stage":
         products_view.sort(
             key=lambda r: (r["days_in_stage"] is None, r["days_in_stage"] or 0),
+            reverse=(sort_dir == "desc"),
+        )
+    elif sort_col == "latest_filing_date":
+        # Derived column — re-sort within the page so users get a true
+        # chronological order (rather than the initial_filing_date proxy
+        # applied at the SQL layer).
+        products_view.sort(
+            key=lambda r: (r["latest_filing_date"] is None, r["latest_filing_date"] or date.min),
             reverse=(sort_dir == "desc"),
         )
 
@@ -699,30 +729,23 @@ def _pipeline_products_impl(
         "request": request,
         "today": today,
         "is_admin": is_admin,
-        # KPIs
+        # KPIs — ``total`` is still used by the All suite-kpi pill above
+        # the products table. The Quick Stats / Recent Activity sections
+        # were removed in the O1 layout rewrite, so listed/filed/awaiting/
+        # research/filings_last_7d/launches_last_30d/effectives_next_30d/
+        # effectives_next_90d/avg_cycle/min_cycle/max_cycle/cycle_sample/
+        # next_launches/recent_activity/last_updated_overall no longer
+        # ship to the template. (The underlying DB queries are still run
+        # because O3 owns the status-enum / DB query layer — only the
+        # context dict was trimmed.)
         "total": total,
-        "listed": listed,
-        "filed": filed,
-        "awaiting": awaiting,
-        "research": research,
-        "filings_last_7d": filings_last_7d,
-        "launches_last_30d": launches_last_30d,
-        "effectives_next_30d": effectives_next_30d,
-        "effectives_next_90d": effectives_next_90d,
-        "next_launches": next_launches,
-        # Cycle time
-        "avg_cycle": avg_cycle,
-        "min_cycle": min_cycle,
-        "max_cycle": max_cycle,
-        "cycle_sample": len(cycle_days),
         # Counts
         "urgency_counts": urgency_counts,
         "status_counts": status_counts,
         "suite_counts": suite_counts,
-        # Funnel + activity (NEW for PM redesign)
+        # Funnel — top-of-page chart (moved above By Suite + table)
         "funnel": funnel,
         "funnel_max": funnel_max,
-        "recent_activity": recent_activity,
         # Suite breakdown
         "suite_breakdown": suite_breakdown,
         "suite_colors": SUITE_COLORS,
@@ -754,9 +777,10 @@ def _pipeline_products_impl(
         "hide_terminal": hide_terminal_flag,
         "sort_col": sort_col,
         "sort_dir": sort_dir,
-        # Recent Activity window state
-        "recent_days": recent_days_value,
-        "last_updated_overall": last_updated_overall,
+        # NOTE: ``recent_days`` + ``last_updated_overall`` removed in the
+        # O1 layout rewrite (Recent Activity section deleted). They are
+        # still computed above in case sibling routes import shared
+        # helpers; only the context dict was trimmed.
     })
 
 

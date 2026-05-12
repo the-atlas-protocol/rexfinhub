@@ -92,60 +92,11 @@ h2 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; l
 
 @media (max-width: 900px) { .urgency-grid { grid-template-columns:repeat(2, 1fr); } }
 
-/* ---------------------------------------------------------------- *
- * ROW 3 — Recent Activity + quick stats
- * ---------------------------------------------------------------- */
-.activity-row { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:18px; }
-@media (max-width: 1100px) { .activity-row { grid-template-columns:1fr; } }
-
-.activity-card, .quick-card {
-  background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;
-}
-.activity-head, .quick-head {
-  padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb;
-  display:flex; align-items:center; justify-content:space-between; cursor:pointer;
-  font-size:11px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.04em;
-}
-.activity-head:hover, .quick-head:hover { background:#f1f5f9; }
-.activity-body, .quick-body { display:block; max-height:340px; overflow-y:auto; }
-.activity-body.collapsed, .quick-body.collapsed { display:none; }
-.activity-row-item {
-  display:grid; grid-template-columns:60px 1fr 130px 70px 70px;
-  gap:8px; align-items:center;
-  padding:6px 14px; border-bottom:1px solid #f1f5f9; font-size:12px;
-}
-.activity-row-item:last-child { border-bottom:none; }
-.activity-ticker { font-family:monospace; font-weight:700; color:#1F3864; }
-.activity-name { color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.activity-status { font-size:10px; }
-.activity-when { font-size:11px; color:#64748b; text-align:right; font-family:monospace; }
-.activity-prospectus { font-size:11px; text-align:right; }
-.activity-prospectus a { color:#2563eb; text-decoration:none; }
-.activity-prospectus a:hover { text-decoration:underline; }
-.activity-empty { padding:20px 14px; font-size:12px; color:#94a3b8; text-align:center; }
-.activity-head-row {
-  display:grid; grid-template-columns:60px 1fr 130px 70px 70px;
-  gap:8px; padding:6px 14px; border-bottom:1px solid #e5e7eb;
-  background:#fafbfc; font-size:10px; font-weight:700; color:#94a3b8;
-  text-transform:uppercase; letter-spacing:0.04em;
-}
-.activity-head-row .activity-prospectus { text-align:right; }
-.activity-head-row .activity-when { text-align:right; }
-
-/* Recent Activity day-window pills (7/14/30/90) */
-.recent-pills { display:inline-flex; gap:4px; margin-left:auto; margin-right:10px; }
-.recent-pill {
-  padding:3px 8px; border:1px solid #e5e7eb; border-radius:12px; font-size:10px;
-  color:#64748b; text-decoration:none; background:#fff; font-weight:600;
-  text-transform:uppercase; letter-spacing:0.04em;
-}
-.recent-pill:hover { border-color:#1F3864; color:#0f172a; }
-.recent-pill.active { background:#0f172a; color:#fff; border-color:#0f172a; }
-
-.quick-list { padding:8px 14px; }
-.quick-list-item { display:flex; justify-content:space-between; padding:5px 0; font-size:12px; border-bottom:1px solid #f1f5f9; }
-.quick-list-item:last-child { border-bottom:none; }
-.quick-list-item .qval { font-weight:700; color:#0f172a; font-family:monospace; }
+/* ROW 3 (Recent Activity + Quick Stats) — REMOVED in the O1 layout
+ * rewrite. The corresponding CSS rules were deleted with the markup.
+ * The toggleSection() helper at the bottom of this file is retained
+ * because nothing else in the page uses it (dead code is harmless and
+ * makes future re-introduction trivial). */
 
 /* ---------------------------------------------------------------- *
  * ROW 4 — Sticky filter bar
@@ -338,31 +289,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
   <div class="subtitle">As of {{ today.strftime('%B %d, %Y') }} &middot; lifecycle of REX-branded products from research to listing.</div>
 
   {# ============================================================== #}
-  {# ROW 0 — SUITE KPI PILLS                                         #}
-  {# Per-suite clickable filters at the top so users can jump        #}
-  {# straight into a suite slice without opening the dropdown.       #}
-  {# ============================================================== #}
-  <h2>By Suite</h2>
-  <div class="suite-kpis">
-    <a href="/operations/pipeline" class="suite-kpi {% if not filter_suite %}active{% endif %}">
-      <span class="suite-kpi-name">All</span>
-      <span class="suite-kpi-num">{{ total }}</span>
-    </a>
-    {% for s in valid_suites %}
-      {% set s_color = suite_colors.get(s, '#64748b') %}
-      {% set s_count = suite_counts.get(s, 0) %}
-      <a href="/operations/pipeline?suite={{ s | urlencode }}"
-         class="suite-kpi {% if filter_suite == s %}active{% endif %}"
-         style="border-left:3px solid {{ s_color }};"
-         title="Filter to {{ s }}">
-        <span class="suite-kpi-name" style="color:{{ s_color }};">{{ s }}</span>
-        <span class="suite-kpi-num">{{ s_count }}</span>
-      </a>
-    {% endfor %}
-  </div>
-
-  {# ============================================================== #}
-  {# ROW 1 — STAGE FUNNEL                                            #}
+  {# ROW 1 — STAGE FUNNEL (moved to top per O1 layout rewrite)       #}
   {# ============================================================== #}
   <h2>Pipeline Funnel</h2>
   <div class="funnel-caption">
@@ -386,19 +313,17 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
 
   {# ============================================================== #}
   {# ROW 2 — URGENCY CARDS                                           #}
-  {# Awaiting Effective lives in the funnel above; here we only show #}
-  {# what's actionable: stuck filings + recent activity.             #}
   {# ============================================================== #}
   <h2>Urgency</h2>
   <div class="urgency-grid">
     <a class="urgency-card overdue" href="/operations/pipeline?urgency=overdue"
-       title="Filings where the estimated effective date has passed AND latest_form is NOT 485BPOS yet. These are the ones genuinely stuck — Awaiting Effective rows where the SEC clock has run out and we still haven't seen the post-effective amendment. Many of the older ones are likely abandoned filings (cleanup task #111).">
+       title="Filings where the estimated effective date has passed AND latest_form is NOT 485BPOS yet.">
       <div class="label">Stuck Filings</div>
       <div class="num">{{ urgency_counts.overdue }}</div>
       <div class="sub">Past est. effective date, no 485BPOS yet</div>
     </a>
     <a class="urgency-card upcoming" href="/operations/pipeline?urgency=upcoming"
-       title="Filed/Awaiting products with an estimated effective date in the next 60 days. The truly imminent slice (when est_effective_date is fresh).">
+       title="Filed/Awaiting products with an estimated effective date in the next 60 days.">
       <div class="label">Effective Date in &le;60d</div>
       <div class="num">{{ urgency_counts.upcoming_dated_60d }}</div>
       <div class="sub">Subset of Awaiting — when date is set + close</div>
@@ -418,115 +343,26 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
   </div>
 
   {# ============================================================== #}
-  {# ROW 3 — RECENT ACTIVITY + QUICK STATS                           #}
+  {# ROW 0 — SUITE KPI PILLS (moved BELOW funnel, ABOVE table)       #}
+  {# Per-suite clickable filters sit just above the products table.  #}
   {# ============================================================== #}
-  <div class="activity-row">
-    <div class="activity-card">
-      <div class="activity-head">
-        <span>Recent Activity (last {{ recent_days }}d)</span>
-        <span class="recent-pills" role="tablist" aria-label="Recent activity window">
-          {% set qs_no_recent_prefix = (base_qs_no_recent_days ~ '&') if base_qs_no_recent_days else '' %}
-          {# Default window pulled forward to 30d so the section is non-empty
-             out of the box. rex_products updated_at can be 20-30d stale on
-             quiet weeks; 14d frequently returned 0 rows. #}
-          {% for opt in [7, 14, 30, 90] %}
-            {% if opt == recent_days %}
-              <span class="recent-pill active" aria-current="true" data-default-days="30">{{ opt }}d{% if opt == 30 %} <span style="opacity:0.6; font-weight:400;">(default)</span>{% endif %}</span>
-            {% else %}
-              <a class="recent-pill" href="/operations/pipeline?{{ qs_no_recent_prefix }}recent_days={{ opt }}" {% if opt == 30 %}value="30" data-default="true" title="Recommended default — wider window catches 27d-stale updates"{% endif %}>{{ opt }}d{% if opt == 30 %} <span style="opacity:0.6;">(default)</span>{% endif %}</a>
-            {% endif %}
-          {% endfor %}
-        </span>
-        <span class="toggle-label" onclick="toggleSection('activityBody', this)" style="cursor:pointer;">Hide</span>
-      </div>
-      <div class="activity-body" id="activityBody">
-        {# Auto-redirect when no rows AND user is on the legacy 14d default —
-           punts them to the 30d window so the section is populated by default.
-           Only fires if recent_days is exactly 14 and feed is empty. #}
-        {% if not recent_activity and recent_days == 14 %}
-          <script>
-            (function() {
-              var url = new URL(window.location.href);
-              if (!url.searchParams.has('recent_days')) {
-                url.searchParams.set('recent_days', '30');
-                window.location.replace(url.toString());
-              }
-            })();
-          </script>
-        {% endif %}
-        {# Activity feed header row (5 cols: ticker / name / status / prospectus / when) #}
-        <div class="activity-head-row" aria-hidden="true">
-          <span>Ticker</span>
-          <span>Name</span>
-          <span>Status</span>
-          <span class="activity-prospectus">Prospectus</span>
-          <span class="activity-when">When</span>
-        </div>
-        {% if recent_activity %}
-          {% for a in recent_activity %}
-            {% set s_color = status_colors.get(a.status, '#64748b') %}
-            <div class="activity-row-item">
-              <span class="activity-ticker">
-                {% if a.ticker %}<a href="/funds/{{ a.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ a.ticker }}</a>{% else %}---{% endif %}
-              </span>
-              <span class="activity-name" title="{{ a.name }}">{{ a.name[:60] }}</span>
-              <span class="activity-status">
-                <span class="status-pill" style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ a.status }}</span>
-              </span>
-              <span class="activity-prospectus">
-                {# `a` is a dict built in pipeline_calendar.py; latest_prospectus_link
-                   is not yet populated server-side, so this defaults to em-dash.
-                   When the router adds the link, the column lights up automatically. #}
-                {% set plink = a.latest_prospectus_link if a.latest_prospectus_link is defined else None %}
-                {% if plink %}
-                  <a href="{{ plink }}" target="_blank" rel="noopener">link</a>
-                {% else %}
-                  <span style="color:#cbd5e1;">—</span>
-                {% endif %}
-              </span>
-              <span class="activity-when">{{ a.ago }}</span>
-            </div>
-          {% endfor %}
-        {% else %}
-          <div class="activity-empty">
-            No product updates in the last {{ recent_days }} days.
-            {% if last_updated_overall %}
-              {% set last_days_ago = (today - last_updated_overall.date()).days %}
-              <div style="margin-top:6px; font-size:11px; color:#cbd5e1;">
-                rex_products last updated {{ last_updated_overall.strftime('%Y-%m-%d') }}
-                ({{ last_days_ago }}d ago).
-                {% if last_days_ago > recent_days %}
-                  <a href="/operations/pipeline?{{ qs_no_recent_prefix }}recent_days=30" style="color:#2563eb;">Try the 30d default window.</a>
-                {% endif %}
-              </div>
-            {% endif %}
-          </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="quick-card">
-      <div class="quick-head" onclick="toggleSection('quickBody', this)">
-        <span>Quick Stats</span>
-        <span class="toggle-label">Hide</span>
-      </div>
-      <div class="quick-body" id="quickBody">
-        <div class="quick-list">
-          <div class="quick-list-item"><span>Total products (all)</span><span class="qval">{{ total }}</span></div>
-          <div class="quick-list-item"><span>Live (Listed)</span><span class="qval">{{ listed }}</span></div>
-          <div class="quick-list-item"><span>Filed</span><span class="qval">{{ filed }}</span></div>
-          <div class="quick-list-item"><span>Awaiting Effective</span><span class="qval">{{ awaiting }}</span></div>
-          <div class="quick-list-item"><span>Research / Target</span><span class="qval">{{ research }}</span></div>
-          <div class="quick-list-item"><span>Filings &mdash; last 7d</span><span class="qval">{{ filings_last_7d }}</span></div>
-          <div class="quick-list-item"><span>Launches &mdash; last 30d</span><span class="qval">{{ launches_last_30d }}</span></div>
-          <div class="quick-list-item"><span>Effectives &mdash; next 30d</span><span class="qval">{{ effectives_next_30d }}</span></div>
-          <div class="quick-list-item"><span>Effectives &mdash; next 90d</span><span class="qval">{{ effectives_next_90d }}</span></div>
-          {% if avg_cycle is not none %}
-          <div class="quick-list-item"><span>Avg cycle (filed&rarr;listed)</span><span class="qval">{{ avg_cycle }}d</span></div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
+  <h2>By Suite</h2>
+  <div class="suite-kpis">
+    <a href="/operations/pipeline" class="suite-kpi {% if not filter_suite %}active{% endif %}">
+      <span class="suite-kpi-name">All</span>
+      <span class="suite-kpi-num">{{ total }}</span>
+    </a>
+    {% for s in valid_suites %}
+      {% set s_color = suite_colors.get(s, '#64748b') %}
+      {% set s_count = suite_counts.get(s, 0) %}
+      <a href="/operations/pipeline?suite={{ s | urlencode }}"
+         class="suite-kpi {% if filter_suite == s %}active{% endif %}"
+         style="border-left:3px solid {{ s_color }};"
+         title="Filter to {{ s }}">
+        <span class="suite-kpi-name" style="color:{{ s_color }};">{{ s }}</span>
+        <span class="suite-kpi-num">{{ s_count }}</span>
+      </a>
+    {% endfor %}
   </div>
 
   {# ============================================================== #}
@@ -666,47 +502,64 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
       {% endmacro %}
       <thead>
         <tr>
-          {{ sort_th('ticker', 'Ticker', 'text') }}
-          {{ sort_th('name', 'Name', 'text') }}
+          {{ sort_th('trust', 'Trust', 'text') }}
           {{ sort_th('suite', 'Suite', 'text') }}
+          {{ sort_th('ticker', 'Ticker', 'text') }}
+          {{ sort_th('name', 'Fund Name', 'text') }}
+          {{ sort_th('underlier', 'Underlier', 'text') }}
           {{ sort_th('status', 'Status', 'status') }}
-          {{ sort_th('days_in_stage', 'Days in stage', 'number') }}
-          {{ sort_th('initial_filing_date', 'Filed', 'date') }}
-          {{ sort_th('estimated_effective_date', 'Est. Effective', 'date') }}
-          {{ sort_th('official_listed_date', 'Listed', 'date') }}
-          {{ sort_th('latest_form', 'Latest Form', 'text') }}
+          {{ sort_th('days_in_stage', 'Days in Stage', 'number') }}
+          {{ sort_th('initial_filing_date', 'Initial Filing Date', 'date') }}
+          {{ sort_th('latest_filing_date', 'Latest Filing Date', 'date') }}
+          {{ sort_th('estimated_effective_date', 'Effective Date', 'date') }}
+          <th title="Latest Prospectus">Latest Prospectus</th>
+          {{ sort_th('target_listing_date', 'Inception/Target Date', 'date') }}
         </tr>
         {# Column-filter row — type to narrow visible rows. data-col-idx maps
            to the matching <td> in each <tbody> row. Vanilla JS handler in
            the page <script> filters rows on input. #}
         <tr class="col-filter-row">
-          <th><input type="text" class="filter-input col-filter" data-col-idx="0" placeholder="Filter ticker..." aria-label="Filter ticker"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="1" placeholder="Filter name..." aria-label="Filter name"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="2" placeholder="Filter suite..." aria-label="Filter suite"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="3" placeholder="Filter status..." aria-label="Filter status"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="4" placeholder="Filter days..." aria-label="Filter days"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="5" placeholder="Filter filed..." aria-label="Filter filed"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="6" placeholder="Filter effective..." aria-label="Filter effective"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="7" placeholder="Filter listed..." aria-label="Filter listed"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="8" placeholder="Filter form..." aria-label="Filter form"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="0" placeholder="Filter trust..." aria-label="Filter trust"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="1" placeholder="Filter suite..." aria-label="Filter suite"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="2" placeholder="Filter ticker..." aria-label="Filter ticker"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="3" placeholder="Filter name..." aria-label="Filter name"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="4" placeholder="Filter underlier..." aria-label="Filter underlier"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="5" placeholder="Filter status..." aria-label="Filter status"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="6" placeholder="Filter days..." aria-label="Filter days"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="7" placeholder="Filter filed..." aria-label="Filter filed"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="8" placeholder="Filter latest..." aria-label="Filter latest filing"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="9" placeholder="Filter effective..." aria-label="Filter effective"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="10" placeholder="Filter prospectus..." aria-label="Filter prospectus"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="11" placeholder="Filter target..." aria-label="Filter inception/target"></th>
         </tr>
       </thead>
       <tbody>
         {% for row in products_view %}
         {% set p = row.p %}
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
+        {% set s_color = status_colors.get(p.status, '#64748b') %}
+        {# Inception/Target date is the "target_listing_date" if not yet
+           Listed, otherwise the actual "official_listed_date". When the
+           product has NOT gone Listed, render in yellow to flag that the
+           date is still a projection, not an actual inception. #}
+        {% set is_listed = (p.status == 'Listed') %}
+        {% set inception_date = p.official_listed_date if is_listed else p.target_listing_date %}
+        {# Latest Prospectus column: prefer the row's own latest_form when
+           it is 485APOS or 485BPOS, fall back to 497. Anything else shows
+           an em-dash so the column doesn't surface noise. #}
+        {% set lp_form = p.latest_form or '' %}
+        {% set lp_is_pros = lp_form in ('485APOS', '485BPOS', '497') %}
         <tr data-id="{{ p.id }}">
+          <td data-sort="{{ (p.trust or '').lower() }}" data-field="trust" title="{{ p.trust or '' }}">{{ (p.trust or '---')[:30] }}</td>
+          <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
           <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
           <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}</td>
-          <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
-          {% set s_color = status_colors.get(p.status, '#64748b') %}
+          <td data-sort="{{ (p.underlier or '').lower() }}" data-field="underlier" title="{{ p.underlier or '' }}">{{ p.underlier or '---' }}</td>
           <td data-sort="{{ p.status }}">
             {% if is_admin %}
               {# Status dropdown grouped by lifecycle phase so the 15-value
-                 enum stays scannable. Real funds today mostly use 5 of these
-                 (Research / Filed / Awaiting Effective / Listed / Delisted) —
-                 the rest are aspirational lifecycle stages waiting for admin
-                 to promote new filings through. See task #113. #}
+                 enum stays scannable. O3 owns enum logic — DO NOT modify
+                 the option list from this lane. #}
               <select class="status-select"
                       data-product-id="{{ p.id }}"
                       data-prev="{{ p.status }}"
@@ -754,14 +607,22 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
             {% endif %}
           </td>
           <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
+          <td data-sort="{{ row.latest_filing_date.isoformat() if row.latest_filing_date else '' }}">{{ row.latest_filing_date.strftime('%Y-%m-%d') if row.latest_filing_date else '---' }}</td>
           <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}" data-field="estimated_effective_date" data-field-type="date">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
-          <td data-sort="{{ p.official_listed_date.isoformat() if p.official_listed_date else '' }}" data-field="official_listed_date" data-field-type="date">{{ p.official_listed_date.strftime('%Y-%m-%d') if p.official_listed_date else '---' }}</td>
-          <td data-sort="{{ (p.latest_form or '').lower() }}">
-            {% if p.latest_prospectus_link %}
-              <a href="{{ p.latest_prospectus_link }}" target="_blank" class="prospect-link">{{ p.latest_form or 'link' }}</a>
+          <td>
+            {# Most-recent 485APOS / 485BPOS, fallback 497. Anything else: dash. #}
+            {% if lp_is_pros and p.latest_prospectus_link %}
+              <a href="{{ p.latest_prospectus_link }}" target="_blank" class="prospect-link" title="{{ lp_form }}">{{ lp_form }}{% if p.initial_filing_date %} · {{ p.initial_filing_date.strftime('%Y-%m-%d') }}{% endif %}</a>
+            {% elif lp_is_pros %}
+              <span title="{{ lp_form }}">{{ lp_form }}</span>
             {% else %}
-              <span style="color:#cbd5e1;">{{ p.latest_form or '---' }}</span>
+              <span style="color:#cbd5e1;">---</span>
             {% endif %}
+          </td>
+          <td data-sort="{{ inception_date.isoformat() if inception_date else '' }}"
+              data-field="target_listing_date" data-field-type="date"
+              {% if not is_listed and inception_date %}style="background:#fef9c3; color:#854d0e; font-weight:600;" title="Projected / target inception — not yet Listed"{% endif %}>
+            {{ inception_date.strftime('%Y-%m-%d') if inception_date else '---' }}
           </td>
         </tr>
         {% endfor %}
