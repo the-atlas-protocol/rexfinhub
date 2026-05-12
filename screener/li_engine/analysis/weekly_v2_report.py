@@ -1068,24 +1068,129 @@ TIER_WATCH_PCT = 40
 DEFENSIVE_LOOKBACK_DAYS = 30  # competitor filing within N days → defensive trigger
 
 
-def _load_thesis_dict(target_date: date | None = None) -> dict:
-    """Read `data/weekly_theses/<date>.json` → {ticker: {paragraph_1, paragraph_2}}.
+def _normalize_thesis_entry(entry) -> dict:
+    """Normalize a single ticker's thesis payload to {paragraph_1, paragraph_2, ...}.
 
-    Graceful degradation: missing file or bad JSON → empty dict, caller substitutes
-    "thesis pending" placeholder.
+    Supports two on-disk shapes:
+      * Legacy: {"paragraph_1": "...", "paragraph_2": "..."}
+      * Generator (B3): {"thesis": "para1\\n\\npara2", "risks": [...], "why_now": "...",
+                        "suggested_ticker": "...", "_meta": {...}}
+
+    Always returns a dict with at least `paragraph_1` and `paragraph_2` keys (may be
+    empty strings). Extra fields (risks/why_now/suggested_ticker) are passed through
+    untouched in case downstream renderers want them.
     """
-    if target_date is None:
-        target_date = date.today()
-    path = THESES_DIR / f"{target_date.isoformat()}.json"
-    if not path.exists():
-        return {}
+    if isinstance(entry, str):
+        return {"paragraph_1": entry, "paragraph_2": ""}
+    if not isinstance(entry, dict):
+        return {"paragraph_1": "", "paragraph_2": ""}
+
+    # Legacy schema: paragraph_1 / paragraph_2 already present
+    p1 = entry.get("paragraph_1")
+    p2 = entry.get("paragraph_2")
+    if p1 or p2:
+        out = dict(entry)
+        out["paragraph_1"] = p1 or ""
+        out["paragraph_2"] = p2 or ""
+        return out
+
+    # B3 generator schema: split single `thesis` string on first blank-line.
+    raw = entry.get("thesis") or ""
+    if isinstance(raw, str) and raw.strip():
+        parts = re.split(r"\n\s*\n", raw.strip(), maxsplit=1)
+        out = dict(entry)
+        out["paragraph_1"] = parts[0].strip()
+        out["paragraph_2"] = parts[1].strip() if len(parts) > 1 else ""
+        return out
+
+    out = dict(entry)
+    out.setdefault("paragraph_1", "")
+    out.setdefault("paragraph_2", "")
+    return out
+
+
+def _read_thesis_file(path: Path) -> dict:
+    """Read one thesis JSON, unwrap the `theses` envelope if present, normalize and
+    upper-case ticker keys. Returns empty dict on any failure."""
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(raw, dict):
-            return raw
     except Exception as e:
         log.warning("Could not parse thesis JSON %s: %s", path, e)
-    return {}
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    # B3 generator wraps tickers under a `theses` key alongside metadata
+    # (generated_at, model, week_of). Older / hand-written caches may put
+    # tickers at the top level.
+    inner = raw.get("theses") if isinstance(raw.get("theses"), dict) else raw
+    out: dict = {}
+    for ticker, entry in inner.items():
+        if not isinstance(ticker, str):
+            continue
+        out[ticker.upper()] = _normalize_thesis_entry(entry)
+    return out
+
+
+def _load_thesis_dict(target_date: date | None = None) -> dict:
+    """Return {TICKER: {paragraph_1, paragraph_2, ...}} for the latest thesis cache.
+
+    Behaviour (Wave FA1 fix, 2026-05-12):
+      1. Scan `data/weekly_theses/*.json`, excluding `*_manual.json`.
+      2. Filenames are `<YYYY-MM-DD>.json` (Sunday-anchored week_of date).
+         Pick the most recent. If `target_date` is supplied, prefer an exact
+         match; otherwise fall through to "latest available".
+      3. If `<week>_manual.json` exists for the chosen week, merge it on top
+         (manual overrides win — humans get the final word).
+      4. Ticker keys are upper-cased; the new generator schema (`{theses: {...,
+         thesis: "p1\\n\\np2"}}`) is unwrapped and split into paragraph_1/2 so
+         the renderer's existing `card.thesis_p1` / `thesis_p2` lookup works.
+
+    Graceful degradation: any error → empty dict, caller substitutes the
+    "Thesis pending" placeholder.
+    """
+    if not THESES_DIR.exists():
+        return {}
+
+    # Build (date, path) candidate list — primary cache files only.
+    candidates: list[tuple[date, Path]] = []
+    for p in THESES_DIR.glob("*.json"):
+        if p.stem.endswith("_manual"):
+            continue
+        try:
+            d = date.fromisoformat(p.stem)
+        except ValueError:
+            continue
+        candidates.append((d, p))
+
+    if not candidates:
+        return {}
+
+    chosen: Path | None = None
+    chosen_date: date | None = None
+    if target_date is not None:
+        for d, p in candidates:
+            if d == target_date:
+                chosen, chosen_date = p, d
+                break
+    if chosen is None:
+        candidates.sort(key=lambda t: t[0], reverse=True)
+        chosen_date, chosen = candidates[0]
+
+    merged = _read_thesis_file(chosen)
+    if not merged:
+        log.warning("Thesis file %s yielded no usable entries", chosen)
+        return {}
+
+    # Manual overrides for the same week, if present.
+    manual_path = THESES_DIR / f"{chosen_date.isoformat()}_manual.json"
+    if manual_path.exists():
+        overrides = _read_thesis_file(manual_path)
+        if overrides:
+            merged.update(overrides)
+            log.info("Merged %d manual override(s) from %s", len(overrides), manual_path.name)
+
+    log.info("Loaded weekly theses: %s (%d ticker(s))", chosen.name, len(merged))
+    return merged
 
 
 def _load_prior_week_recs() -> set[str]:
