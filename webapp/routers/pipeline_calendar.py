@@ -778,6 +778,19 @@ def _pipeline_products_impl(
             "latest_filing_date": latest_filing_date,
         })
 
+    # ---- Ticker suggestions for empty-ticker rows ----
+    # O5 ticker-pipeline integration: for any row where ticker is blank,
+    # derive a candidate via screener.li_engine.data.rex_naming + the
+    # active-suite suffix map, cross-check against reserved_symbols /
+    # mkt_master_data / cboe_symbols, and surface a chip in the template.
+    try:
+        from webapp.services.ticker_suggestions import suggest_for_products
+        ticker_suggestions = suggest_for_products(db, products_page)
+    except Exception:
+        # Never let the suggestion layer break the page. Empty dict =>
+        # template falls back to the legacy '---' placeholder.
+        ticker_suggestions = {}
+
     # Post-slice sort for the derived ``days_in_stage`` column. Done in
     # Python because the value isn't a real SQL column. Within-page only
     # so pages are still stable across navigation.
@@ -847,6 +860,8 @@ def _pipeline_products_impl(
         # Products (paginated)
         "products_view": products_view,
         "products": products_page,  # legacy alias
+        # Empty-ticker suggestion chips (O5) — keyed by rex_products.id
+        "ticker_suggestions": ticker_suggestions,
         "filtered_count": total_count,
         "page": page,
         "per_page": per_page_value,
