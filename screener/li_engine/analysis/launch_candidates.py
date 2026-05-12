@@ -440,6 +440,16 @@ def main():
             print("\nsignal_strength distribution (full result):")
             print(df["signal_strength"].value_counts(dropna=False).to_string())
 
+    # Wave D2: also build the parallel foreign-underlier candidates table.
+    # Keyed on foreign tickers (e.g. 000660.KS, ASML.AS) and consumed by
+    # the B-renderer's "International" section. Failure here must not
+    # block the US pipeline.
+    try:
+        from screener.li_engine.analysis import foreign_filings
+        foreign_filings.main()
+    except Exception as exc:  # pragma: no cover - defensive
+        log.warning("foreign_filings build skipped: %s", exc)
+
 
 if __name__ == "__main__":
     main()
