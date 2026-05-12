@@ -1,0 +1,230 @@
+{# Body partial for the underlier race view. Rendered both inline (modal)
+   and inside the full-page wrapper (underlier_race.html). See the route
+   webapp/routers/underlier_view.py for the render path. #}
+<style>
+.underlier-race { font-size:13px; color:#0f172a; }
+.underlier-race .breadcrumb { font-size:12px; color:#94a3b8; margin-bottom:8px; }
+.underlier-race .breadcrumb a { color:#1F3864; text-decoration:none; }
+.underlier-race .breadcrumb a:hover { text-decoration:underline; }
+.underlier-race h1 { font-size:22px; font-weight:700; margin:0 0 4px; color:#0f172a; }
+.underlier-race h1 .ticker { font-family:ui-monospace, SFMono-Regular, monospace; color:#1F3864; }
+.underlier-race .header-row { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.underlier-race .header-row .sub { color:#64748b; font-size:12px; }
+
+.ur-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+.ur-kpi { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:10px 12px; }
+.ur-kpi .lbl { font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; }
+.ur-kpi .val { font-size:18px; font-weight:700; color:#0f172a; line-height:1.2; margin-top:2px; }
+.ur-kpi .sub { font-size:11px; color:#94a3b8; }
+.ur-kpi.rex { border-left:3px solid #1F3864; }
+.ur-kpi.comp { border-left:3px solid #f59e0b; }
+
+.race-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:18px; }
+.race-col { background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; }
+.race-col .col-head { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#f8fafc; border-bottom:1px solid #e5e7eb; }
+.race-col .col-head .name { font-size:11px; font-weight:700; color:#0f172a; text-transform:uppercase; letter-spacing:0.04em; }
+.race-col .col-head .count { font-size:12px; font-weight:700; color:#64748b; font-family:ui-monospace, SFMono-Regular, monospace; }
+.race-col .group-head { font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; padding:6px 12px 2px; background:#fff; }
+.race-col .group-head.rex { color:#1F3864; }
+.race-col .group-head.comp { color:#92400e; }
+.race-col ul { list-style:none; padding:0 0 6px; margin:0; }
+.race-col li { padding:5px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; }
+.race-col li:last-child { border-bottom:none; }
+.race-col li a { color:#0f172a; text-decoration:none; }
+.race-col li a:hover { color:#1F3864; text-decoration:underline; }
+.race-col li .meta { color:#94a3b8; font-size:11px; }
+.race-col li.empty { color:#cbd5e1; font-style:italic; padding:10px 12px; }
+.race-col .issuer-pill { display:inline-block; font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:3px; margin-left:6px; }
+.race-col .rex-pill { display:inline-block; font-size:10px; color:#1F3864; background:#1F386415; border:1px solid #1F386433; padding:1px 6px; border-radius:3px; margin-left:6px; font-weight:600; }
+
+.ur-timeline { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:12px 14px; }
+.ur-timeline h3 { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin:0 0 8px; }
+.ur-timeline .ev { display:flex; align-items:baseline; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed #f1f5f9; }
+.ur-timeline .ev:last-child { border-bottom:none; }
+.ur-timeline .ev .dt { font-family:ui-monospace, SFMono-Regular, monospace; color:#64748b; min-width:90px; }
+.ur-timeline .ev.filed .lbl { color:#0369a1; }
+.ur-timeline .ev.listed .lbl { color:#15803d; }
+
+.ur-links { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+.ur-links a { font-size:11px; color:#1F3864; background:#fff; border:1px solid #e5e7eb; padding:5px 10px; border-radius:4px; text-decoration:none; }
+.ur-links a:hover { border-color:#1F3864; }
+
+.ur-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+.ur-actions .act { font-size:11px; color:#0f172a; background:#f8fafc; border:1px solid #e5e7eb; border-radius:4px; padding:5px 10px; text-decoration:none; }
+.ur-actions .act:hover { border-color:#1F3864; color:#1F3864; }
+
+.ur-modal-close { float:right; font-size:11px; color:#64748b; text-decoration:none; padding:3px 8px; border:1px solid #e5e7eb; border-radius:4px; background:#fff; }
+.ur-modal-close:hover { color:#0f172a; border-color:#94a3b8; }
+</style>
+
+<div class="underlier-race" style="{% if not modal %}max-width:1400px; margin:0 auto; padding:20px;{% endif %}">
+
+  {% if not modal %}
+  <div class="breadcrumb">
+    <a href="/operations/pipeline">Operations</a> &raquo;
+    <a href="/operations/pipeline">Pipeline</a> &raquo;
+    Underlier &raquo; <strong>{{ underlier }}</strong>
+  </div>
+  {% else %}
+  <a href="#" class="ur-modal-close" onclick="document.getElementById('underlierModal').style.display='none'; return false;">Close &times;</a>
+  {% endif %}
+
+  <div class="header-row">
+    <h1><span class="ticker">{{ underlier }}</span> — pipeline race</h1>
+    <span class="sub">REX vs competitor by lifecycle stage</span>
+  </div>
+
+  {# ---- KPI strip ---- #}
+  <div class="ur-kpis">
+    <div class="ur-kpi rex">
+      <div class="lbl">REX presence</div>
+      <div class="val">{{ rex_count }}</div>
+      <div class="sub">listed funds on this underlier</div>
+    </div>
+    <div class="ur-kpi comp">
+      <div class="lbl">Competitors</div>
+      <div class="val">{{ comp_count }}</div>
+      <div class="sub">other issuers in market</div>
+    </div>
+    <div class="ur-kpi">
+      <div class="lbl">REX share</div>
+      <div class="val">{{ "%.1f"|format(rex_share_pct) }}%</div>
+      <div class="sub">of underlier AUM</div>
+    </div>
+    <div class="ur-kpi">
+      <div class="lbl">Filed first</div>
+      <div class="val" style="font-size:14px;">
+        {% if first_filed %}
+          {{ first_filed.actor }} <span class="meta">({{ first_filed.date.isoformat() }})</span>
+        {% else %}—{% endif %}
+      </div>
+      <div class="sub">
+        {% if first_listed %}Listed first: {{ first_listed.actor }} ({{ first_listed.date.isoformat() }}){% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% macro rex_li(p) -%}
+    <li>
+      {% if p.ticker %}<a href="/funds/{{ p.ticker | upper | trim }}"><strong>{{ p.ticker }}</strong></a>{% else %}<strong>{{ p.name[:30] }}</strong>{% endif %}
+      <span class="rex-pill">REX · {{ p.product_suite }}</span>
+      <div class="meta">
+        {{ p.name[:60] }}
+        {% if p.initial_filing_date %} · filed {{ p.initial_filing_date.isoformat() }}{% endif %}
+        {% if p.official_listed_date %} · listed {{ p.official_listed_date.isoformat() }}{% endif %}
+      </div>
+    </li>
+  {%- endmacro %}
+  {% macro comp_li(c) -%}
+    <li>
+      <a href="/funds/{{ c.ticker | upper }}"><strong>{{ c.ticker }}</strong></a>
+      <span class="issuer-pill">{{ c.issuer }}</span>
+      <div class="meta">
+        {{ c.fund_name[:60] }}
+        {% if c.leverage %} · {{ c.leverage }}{% endif %}
+        {% if c.direction %} {{ c.direction }}{% endif %}
+        {% if c.aum %} · ${{ "%.0fM"|format(c.aum / 1_000_000) }}{% endif %}
+      </div>
+    </li>
+  {%- endmacro %}
+
+  <div class="race-grid">
+    <div class="race-col">
+      <div class="col-head">
+        <span class="name">Filed</span>
+        <span class="count">{{ rex_buckets.filed | length }} REX</span>
+      </div>
+      {% if rex_buckets.filed %}
+        <div class="group-head rex">REX</div>
+        <ul>
+          {% for p in rex_buckets.filed %}{{ rex_li(p) }}{% endfor %}
+        </ul>
+      {% else %}
+        <ul><li class="empty">No REX filings on this underlier.</li></ul>
+      {% endif %}
+      {% if rex_buckets.preflight %}
+        <div class="group-head rex">Pre-filing</div>
+        <ul>
+          {% for p in rex_buckets.preflight %}
+            <li>
+              <strong>{{ p.name[:40] }}</strong>
+              <span class="rex-pill">{{ p.status }}</span>
+              <div class="meta">{{ p.product_suite }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="race-col">
+      <div class="col-head">
+        <span class="name">Effective</span>
+        <span class="count">{{ rex_buckets.effective | length }} REX</span>
+      </div>
+      {% if rex_buckets.effective %}
+        <div class="group-head rex">REX</div>
+        <ul>
+          {% for p in rex_buckets.effective %}{{ rex_li(p) }}{% endfor %}
+        </ul>
+      {% else %}
+        <ul><li class="empty">No REX products effective-but-not-yet-listed.</li></ul>
+      {% endif %}
+    </div>
+
+    <div class="race-col">
+      <div class="col-head">
+        <span class="name">Listed (live)</span>
+        <span class="count">{{ (rex_listed | length) + (comp_listed | length) }} total</span>
+      </div>
+      {% if rex_listed %}
+        <div class="group-head rex">REX ({{ rex_listed | length }})</div>
+        <ul>
+          {% for c in rex_listed %}{{ comp_li(c) }}{% endfor %}
+        </ul>
+      {% endif %}
+      {% if comp_listed %}
+        <div class="group-head comp">Competitor ({{ comp_listed | length }})</div>
+        <ul>
+          {% for c in comp_listed[:30] %}{{ comp_li(c) }}{% endfor %}
+        </ul>
+        {% if comp_listed | length > 30 %}
+          <ul><li class="empty">+ {{ (comp_listed | length) - 30 }} more — see <a href="/market/underlier?type=li&underlier={{ underlier }}+US">/market/underlier</a></li></ul>
+        {% endif %}
+      {% endif %}
+      {% if not rex_listed and not comp_listed %}
+        <ul><li class="empty">No live ETPs found on this underlier (check ticker normalization).</li></ul>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ur-actions">
+    <a class="act" href="/operations/pipeline?q={{ underlier }}">Filter pipeline by {{ underlier }}</a>
+    {% if not rex_listed %}
+      <a class="act" href="/operations/pipeline?suite=T-REX">File 3x on {{ underlier }} (T-REX)</a>
+    {% endif %}
+    {% set rex_dirs = rex_listed | map(attribute='direction') | list %}
+    {% if 'Inverse' not in rex_dirs and 'Short' not in rex_dirs %}
+      <a class="act" href="/operations/pipeline?q={{ underlier }}">Watch for Inverse</a>
+    {% endif %}
+  </div>
+
+  {% if timeline %}
+  <div class="ur-timeline" style="margin-top:18px;">
+    <h3>Recent timeline — filed / launched</h3>
+    {% for e in timeline %}
+      <div class="ev {{ e.kind }}">
+        <span class="dt">{{ e.date.isoformat() }}</span>
+        <span class="lbl">{{ e.label }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="ur-links">
+    <a href="{{ stocks_url }}">Bloomberg signals ({{ stocks_url }})</a>
+    <a href="{{ market_underlier_url }}">/market/underlier · {{ underlier }}</a>
+    <a href="{{ market_underlier_us_url }}">/market/underlier · {{ underlier }} US</a>
+    <a href="{{ head_to_head_url }}">13F head-to-head</a>
+  </div>
+
+</div>

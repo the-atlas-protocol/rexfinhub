@@ -697,7 +697,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
         <tr data-id="{{ p.id }}">
           <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
-          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}</td>
+          <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}{# rexops-O6: underlier chip — clickable, opens REX-vs-competitor race side-panel. URL token is stripped of Bloomberg " US" suffix so /operations/pipeline/underlier/NVDA matches both 'NVDA' and 'NVDA US' rows in mkt_master_data (F1/F2 bifurcation fix from 2026-05-11 audit). #}{% if p.underlier %}{% set _ul = p.underlier|replace(' US','')|replace(' Curncy','')|trim %}<a href="/operations/pipeline/underlier/{{ _ul }}" class="underlier-chip" data-underlier="{{ _ul }}" onclick="return openUnderlierPanel(event, '{{ _ul }}');" title="View REX vs competitor on {{ _ul }}" style="display:inline-block; margin-left:6px; font-size:10px; padding:1px 6px; color:#1F3864; background:#1F386410; border:1px solid #1F386433; border-radius:3px; font-family:ui-monospace, SFMono-Regular, monospace; text-decoration:none;">{{ _ul }} &rsaquo;</a>{% endif %}</td>
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
           {% set s_color = status_colors.get(p.status, '#64748b') %}
           <td data-sort="{{ p.status }}">
@@ -859,7 +859,54 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
 </div>
 {% endif %}
 
+{# rexops-O6: side-panel host for the underlier race view. Fetched on click
+   from /operations/pipeline/underlier/<X>?modal=1. Hidden by default. #}
+<div id="underlierModal" class="modal" style="display:none;">
+  <div class="modal-box" id="underlierModalBox" style="max-width:1300px; width:96%; max-height:88vh; overflow-y:auto;">
+    <div id="underlierModalContent" style="padding:18px;">
+      <em style="color:#94a3b8; font-size:12px;">Loading…</em>
+    </div>
+  </div>
+</div>
+
 <script>
+/* rexops-O6: underlier panel handler.
+ * Click on an underlier chip in the Name cell -> fetch the race view as
+ * ?modal=1 fragment and inject into #underlierModalContent. Shift+click
+ * (or middle-click) bypasses the panel and opens the full page.
+ */
+function openUnderlierPanel(ev, underlier) {
+  // Allow shift/ctrl/middle click to fall through to default link behavior.
+  if (ev && (ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.button === 1)) return true;
+  ev && ev.preventDefault();
+  var modal = document.getElementById('underlierModal');
+  var content = document.getElementById('underlierModalContent');
+  content.innerHTML = '<em style="color:#94a3b8; font-size:12px;">Loading ' + underlier + '…</em>';
+  modal.style.display = 'flex';
+  fetch('/operations/pipeline/underlier/' + encodeURIComponent(underlier) + '?modal=1', {
+    headers: { 'X-Requested-With': 'fetch' }
+  })
+    .then(function (r) { return r.text(); })
+    .then(function (html) { content.innerHTML = html; })
+    .catch(function (e) {
+      content.innerHTML = '<div style="color:#b91c1c; font-size:12px;">Failed to load: ' + e + '</div>';
+    });
+  return false;
+}
+// ESC closes the underlier panel without affecting other modals.
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    var m = document.getElementById('underlierModal');
+    if (m && m.style.display !== 'none') m.style.display = 'none';
+  }
+});
+// Click on backdrop closes.
+document.addEventListener('click', function (e) {
+  var m = document.getElementById('underlierModal');
+  if (!m || m.style.display === 'none') return;
+  if (e.target === m) m.style.display = 'none';
+});
+
 /* ----------------------------------------------------------------
  * Scroll preservation + loading shim — quick UX fix for the May
  * 2026 ops review. The page still does full-document navigation on

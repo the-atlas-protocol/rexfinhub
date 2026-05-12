@@ -1,0 +1,14 @@
+{# Full-page wrapper for the underlier race view (page mode).
+
+   The route renders THIS file when ``modal=0`` and renders the bare
+   body partial ``_underlier_race_body.html`` directly when ``modal=1``.
+   This split sidesteps Jinja's "extends/block can't live inside a
+   conditional" restriction.
+
+   Owner: rexops-O6 worktree. See docs/rex_ops_2026-05-12/O6_underlier.md.
+#}
+{% extends "base.html" %}
+{% block title %}{{ underlier }} — Underlier Race · REX Operations{% endblock %}
+{% block content %}
+  {% include "operations/_underlier_race_body.html" %}
+{% endblock %}
