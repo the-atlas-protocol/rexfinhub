@@ -40,7 +40,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, not_, or_, select
+from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
@@ -177,7 +177,13 @@ def _rex_only_filter(query):
             RexProduct.name.ilike("Gold Miners%"),
             RexProduct.name.ilike("Nuclear Equity%"),
             RexProduct.name.ilike("Nasdaq Dorsey%"),
-            RexProduct.name.ilike("The Laddered%"),
+            # NOTE: "The Laddered%" was previously listed here as an
+            # exclusion, which directly contradicted the inclusion clause
+            # above. The net effect was that TLDR ("The Laddered T-Bill
+            # ETF") — the only product in the T-Bill suite — was silently
+            # dropped from every KPI and the T-Bill suite KPI read 0 for
+            # weeks. The inclusion clause is the canonical entry; this
+            # exclusion line has been removed (rexops-O2, May 2026).
         )))
     )
 
@@ -374,20 +380,72 @@ def _pipeline_products_impl(
         _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status.in_(PENDING_EFFECTIVE_STATUSES))
     )
+
+    # Effective-date fallback for the "next N days" sub-KPIs.
+    # PRIOR BUG (rexops-O2, May 2026): the dated sub-counts looked at
+    # ``estimated_effective_date`` only. For ~509 of 530 pending rows that
+    # column is stale (in the past) and ~91 more are NULL, so the headline
+    # 60-day card read 0 even though 21 fresh T-REX 485A filings landed
+    # 2026-05-09 with est_effective_date = 2026-07-23 (+72d — just outside
+    # the 60-day window) and many rows have NO est date at all.
+    #
+    # FIX: when ``estimated_effective_date`` is NULL or stale (in the
+    # past), fall back to ``initial_filing_date + 75 days`` (SEC default
+    # for 485A new-fund filings). This gives an honest "would-be effective
+    # by SEC rule" date for any pending row with a known filing date.
+    # The headline "urgent"/"upcoming" counts (every pending row) are
+    # unchanged — only the dated sub-cards get the fallback.
+    #
+    # SQLite expression: COALESCE(est_eff_date when in future, filing_date+75d).
+    # Materialize in Python via a date filter on the SQLAlchemy query.
+    def _dated_within(qry, end_window: date):
+        """Pending rows that are projected to be effective by ``end_window``.
+
+        Projected effective = COALESCE(estimated_effective_date,
+                                       initial_filing_date + 75 days)
+        Excludes rows where both dates are NULL.
+        """
+        # Two clauses OR'd together:
+        #   (a) est_effective_date is set AND in [today, end_window]
+        #   (b) est_effective_date is NULL or in the past, AND
+        #       initial_filing_date + 75d is in [today, end_window]
+        return qry.filter(
+            or_(
+                RexProduct.estimated_effective_date.between(today, end_window),
+                # est is stale (past) or missing; use filing_date+75d
+                and_clause_filing_window(end_window),
+            )
+        )
+
+    # Helper builder for clause (b) — extracted to keep _dated_within readable.
+    def and_clause_filing_window(end_window: date):
+        # est_effective_date is NULL OR < today; AND filing_date is set
+        # AND today <= filing_date + 75 <= end_window
+        # Solving for filing_date:
+        #   today - 75 <= filing_date <= end_window - 75
+        # 75 days reflects the SEC Rule 485(a) clock for new-fund 485APOS
+        # filings. Material-change 485APOS uses 60 days but distinguishing
+        # the two requires parsing the filing text — not implemented here.
+        filing_lo = today - timedelta(days=75)
+        filing_hi = end_window - timedelta(days=75)
+        return and_(
+            or_(
+                RexProduct.estimated_effective_date.is_(None),
+                RexProduct.estimated_effective_date < today,
+            ),
+            RexProduct.initial_filing_date.isnot(None),
+            RexProduct.initial_filing_date.between(filing_lo, filing_hi),
+        )
+
     urgency_counts = {
         # Headline: every product in a pending-effective state. Honest
         # answer to "how many funds are awaiting effectiveness?".
         "urgent": pending_q().count(),
-        # Sub-cohort: pending AND have an est_effective_date set in the
-        # next 14 days (still useful for the truly-imminent slice when
-        # the data is fresh).
-        "urgent_dated_14d": pending_q()
-            .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=14)))
-            .count(),
+        # Sub-cohort: pending AND projected effective in next 14 days
+        # (uses the 75-day fallback when est_effective_date is stale/NULL).
+        "urgent_dated_14d": _dated_within(pending_q(), today + timedelta(days=14)).count(),
         "upcoming": pending_q().count(),  # alias — same headline cohort
-        "upcoming_dated_60d": pending_q()
-            .filter(RexProduct.estimated_effective_date.between(today, today + timedelta(days=60)))
-            .count(),
+        "upcoming_dated_60d": _dated_within(pending_q(), today + timedelta(days=60)).count(),
         # "Stuck" / Past Effective Date: filings where est_effective_date
         # has passed BUT latest_form is NOT 485BPOS yet (485BPOS = post-
         # effective amendment, by definition means the fund IS effective
@@ -646,21 +704,61 @@ def _pipeline_products_impl(
         products_page = query.offset(offset).limit(per_page_value).all()
         effective_per_page = per_page_value
 
-    # ---- Days in current stage (rough proxy) ----
-    # Use the most-recent meaningful stage timestamp on the row, fall back
-    # to updated_at. Capped at None when no signal at all.
+    # ---- Days in current stage (status-aware heuristic) ----
+    # PRIOR BUG (rexops-O2, May 2026): the previous implementation picked
+    # the MAX of {initial_filing_date, official_listed_date,
+    # target_listing_date, updated_at} as the stage anchor. That made
+    # "days_in_stage" effectively "days since last DB write" because
+    # ``updated_at`` is bumped by bulk imports and admin edits whenever
+    # ANY column changes — not just status. Every row with a recent bulk
+    # touch read sub-30d regardless of the actual lifecycle stage, so the
+    # column was uniformly wrong (e.g. TLDR — Listed since 2026-01-21 —
+    # showed ~29d because the row was last touched 2026-04-13).
+    #
+    # FIX (no status-history table yet — task #114 still pending): pick
+    # the anchor that corresponds to the CURRENT status. This is still a
+    # heuristic, but it's grounded in the lifecycle column that actually
+    # marks entry into the stage, not the row-update timestamp.
+    #
+    #   Listed / Delisted           -> official_listed_date
+    #   Effective                   -> estimated_effective_date
+    #   Filed / Filed (485A/485B)   -> initial_filing_date
+    #   Awaiting Effective          -> initial_filing_date
+    #   Counsel / Board / Research  -> updated_at  (no dedicated column;
+    #                                  best-effort proxy, but at least
+    #                                  it's labelled honestly in the UI)
+    #
+    # When the chosen anchor is missing, fall back through the next-best
+    # date on the row so we still surface SOMETHING rather than "---".
+    STATUS_TO_ANCHOR_FIELD = {
+        "Listed":              "official_listed_date",
+        "Delisted":            "official_listed_date",
+        "Effective":           "estimated_effective_date",
+        "Filed":               "initial_filing_date",
+        "Filed (485A)":        "initial_filing_date",
+        "Filed (485B)":        "initial_filing_date",
+        "Awaiting Effective":  "initial_filing_date",
+    }
     products_view = []
     for p in products_page:
-        stage_anchors = [
-            p.initial_filing_date,
-            p.official_listed_date,
-            p.target_listing_date,
-        ]
-        if p.updated_at:
-            stage_anchors.append(p.updated_at.date() if hasattr(p.updated_at, "date") else p.updated_at)
-        stage_anchors = [d for d in stage_anchors if d is not None]
-        if stage_anchors:
-            anchor = max(stage_anchors)
+        anchor_field = STATUS_TO_ANCHOR_FIELD.get(p.status or "")
+        anchor = None
+        if anchor_field:
+            anchor = getattr(p, anchor_field, None)
+        # Fallback chain for upstream stages (Counsel/Board/Research) and
+        # for rows where the preferred anchor field is NULL.
+        if anchor is None:
+            for field in ("initial_filing_date", "official_listed_date",
+                          "target_listing_date", "estimated_effective_date"):
+                v = getattr(p, field, None)
+                if v is not None:
+                    anchor = v
+                    break
+        # Last resort: updated_at (with the caveat above). Only used when
+        # NO lifecycle date is populated at all.
+        if anchor is None and p.updated_at:
+            anchor = p.updated_at.date() if hasattr(p.updated_at, "date") else p.updated_at
+        if anchor is not None:
             days_in_stage = max(0, (today - anchor).days)
         else:
             days_in_stage = None
