@@ -23,6 +23,10 @@ backup/
 data/
 !data/rules/
 !data/DASHBOARD/bloomberg_daily_file.xlsm
+# screener/li_engine/data/ is a Python package (data-pull helpers), not the
+# top-level data/ artifact directory. Force-track it explicitly.
+!screener/li_engine/data/
+!screener/li_engine/data/**
 
 # Environment variables and secrets
 .env
