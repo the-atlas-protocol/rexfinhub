@@ -360,7 +360,13 @@ def load_launch_candidates(n: int = 10) -> pd.DataFrame:
     if not LC.exists():
         return pd.DataFrame()
     df = pd.read_parquet(LC)
-    df = df[df["has_signals"] == True]  # need actual signal data
+    # Audit fix (post-FA3): prefer A3 signal_strength enum if present (>=MODERATE),
+    # fall back to legacy has_signals bool, fall back to no filter (let composite_score sort).
+    if "signal_strength" in df.columns:
+        keep = df["signal_strength"].astype(str).str.upper().isin(["URGENT", "STRONG", "MODERATE"])
+        df = df[keep]
+    elif "has_signals" in df.columns:
+        df = df[df["has_signals"] == True]
     return df.sort_values("composite_score", ascending=False).head(n)
 
 
