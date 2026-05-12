@@ -25,9 +25,11 @@ high_profile_pre_ipo:
   - ticker: SpaceX
     company: SpaceX
     date: "TBD (Starlink spinout watch)"
-    valuation: "~$400-500B (Apr 2026 secondary tender)"
-    desc: "Starlink spin-out is the most-discussed vehicle. Space-economy + satellite-broadband exposure."
+    valuation: "~$400-500B last tender → projected to clear ~$1.75T (Starship + Starlink forward)"
+    desc: "Starlink spin-out is the most-discussed vehicle. Space-economy + satellite-broadband exposure. Forward valuation reflects Starship operational milestones + Starlink IPO multiple expectations + recent secondary premiums."
     valuation_usd: 450.0
+    valuation_projected_usd: 1750.0
+    valuation_projected_usd: 1750.0
     last_round_date: "2026-04-15"
     source_url: "https://www.reuters.com/business/spacex-tender-offer-valuation-2026/"
     expected_ipo_window: "TBD (Starlink spin-out)"
