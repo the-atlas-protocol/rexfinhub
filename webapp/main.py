@@ -17,13 +17,13 @@ from datetime import datetime
 from fastapi import FastAPI, Form, Header, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse as StarletteRedirect
 
 from webapp.auth import SESSION_SECRET
 from webapp.database import init_db
+from webapp.templates_init import build_templates
 from webapp.services.csrf import (
     CSRF_FORM_FIELD,
     CSRF_HEADER,
@@ -238,7 +238,7 @@ class CsrfMiddleware(BaseHTTPMiddleware):
 # App factory
 # ---------------------------------------------------------------------------
 
-templates = Jinja2Templates(directory=str(WEBAPP_DIR / "templates"))
+templates = build_templates(WEBAPP_DIR / "templates")
 
 # Expose feature flags to all templates (used by base.html for conditional nav)
 templates.env.globals["enable_13f"] = bool(os.environ.get("ENABLE_13F"))
