@@ -56,16 +56,29 @@ def get_processed_accessions(manifest: dict) -> set[str]:
 
 
 def get_retry_accessions(manifest: dict, max_retries: int = 3) -> set[str]:
-    """Return set of accession numbers that should be retried (errored, under retry limit)."""
+    """Return set of accession numbers that should be retried.
+
+    Includes:
+      - status="error" with retry_count under the limit (transient errors)
+      - status="extracted_zero" with retry_count under the limit
+        (2026-05-11 audit-fix-R3: silent zero-row extractions, formerly
+        marked "success" and never retried)
+    """
     return {
         k for k, v in manifest.items()
-        if v.get("status") == "error"
+        if v.get("status") in ("error", "extracted_zero")
         and v.get("retry_count", 0) < max_retries
     }
 
 
 def record_success(manifest: dict, accession: str, form: str, extraction_count: int) -> None:
-    """Record a successfully processed filing."""
+    """Record a successfully processed filing.
+
+    Use this for *intentional* skips that produce 0 rows (e.g. EFFECT filings
+    for 40-Act trusts where the 485 already carries the data, or ETF-triage
+    skips). For result-of-extraction recording, prefer
+    `record_extraction_result`, which distinguishes silent failures.
+    """
     manifest[accession] = {
         "processed_at": datetime.now(timezone.utc).isoformat(),
         "form": form,
@@ -74,6 +87,39 @@ def record_success(manifest: dict, accession: str, form: str, extraction_count: 
         "error_message": None,
         "version": PIPELINE_VERSION,
     }
+
+
+def record_extraction_result(manifest: dict, accession: str, form: str, extraction_count: int) -> None:
+    """Record the outcome of a body-extraction attempt.
+
+    2026-05-11 audit-fix-R3: silent zero-row extractions used to be marked
+    "success" and bypassed retry forever. They are now stored with a distinct
+    `extracted_zero` status so `get_retry_accessions` will pull them back in
+    on the next run (bounded by `max_retries`).
+
+    - extraction_count >= 1 -> status="success" (clears any prior retry_count)
+    - extraction_count == 0 -> status="extracted_zero" (eligible for retry)
+    """
+    if extraction_count >= 1:
+        manifest[accession] = {
+            "processed_at": datetime.now(timezone.utc).isoformat(),
+            "form": form,
+            "extraction_count": extraction_count,
+            "status": "success",
+            "error_message": None,
+            "version": PIPELINE_VERSION,
+        }
+    else:
+        prev = manifest.get(accession, {})
+        manifest[accession] = {
+            "processed_at": datetime.now(timezone.utc).isoformat(),
+            "form": form,
+            "extraction_count": 0,
+            "status": "extracted_zero",
+            "error_message": None,
+            "retry_count": prev.get("retry_count", 0) + 1,
+            "version": PIPELINE_VERSION,
+        }
 
 
 def record_error(manifest: dict, accession: str, form: str, error_msg: str) -> None:
