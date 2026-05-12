@@ -525,7 +525,10 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
            it is 485APOS, 485BPOS, or 497. Anything else shows an em-dash
            so the column doesn't surface noise. #}
         {% set lp_form = p.latest_form or '' %}
-        {% set lp_is_pros = lp_form in ('485APOS', '485BPOS', '497') %}
+        {# 485BXT included 2026-05-12 — it's an effective-date extension of a
+           prior 485APOS and still acts as a prospectus reference. Excluding
+           it hid 246 of 600 Filed/Effective rows behind an em-dash. #}
+        {% set lp_is_pros = lp_form in ('485APOS', '485BPOS', '485BXT', '497') %}
         {# 485BPOS auto-promote display rule (2026-05-12): a row with a
            485BPOS prospectus AND a past estimated_effective_date is
            effectively Effective per SEC convention — auto-display as
