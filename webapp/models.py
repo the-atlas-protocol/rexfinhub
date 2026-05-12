@@ -1339,6 +1339,86 @@ class AutocallSweepCache(Base):
     computed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class RecommendationHistory(Base):
+    """Append-only log of every weekly stock recommendation we surface.
+
+    Wave E1 (2026-05-11). Separate namespace (`stockrec_*` columns are absent;
+    table is named `recommendation_history` so we don't collide with the
+    `mkt_*` market-data namespace). One row per (week, ticker, tier).
+
+    Lifecycle:
+      1. Each weekly_v2 render appends rows for every recommendation in
+         that build (HIGH/MEDIUM/WATCH tiers across launch + filing
+         sections). `outcome_status` starts as NULL.
+      2. The grading job (`scripts/grade_recommendations.py`) walks rows
+         where `outcome_status IS NULL` (or where the previous grade was
+         not yet terminal) and updates the outcome columns by inspecting
+         the current state of `filings`, `mkt_master_data`, `mkt_time_series`.
+      3. Hit-rate / track-record dashboards read from this table and
+         compute aggregates (rolling 90d HIGH-confidence hit rate,
+         average AUM 6mo post-launch, tier accuracy).
+
+    Idempotency rules:
+      - Inserts: enforced by UNIQUE(week_of, ticker, confidence_tier).
+        A rerun of the weekly job for the same week is a no-op.
+      - Grading: each pass overwrites `outcome_*` with the latest
+        observation; `graded_at` is bumped each time. Terminal statuses
+        (launched/killed/abandoned) are sticky once set — the grader
+        only refines `outcome_aum_*` for them, never reverts the status.
+    """
+    __tablename__ = "recommendation_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # When the row was written (UTC timestamp at append).
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )
+    # ISO date of the Monday of the week the report covers (week-stable key).
+    week_of: Mapped[date] = mapped_column(Date, nullable=False)
+    # Underlier ticker (e.g. "NVDA"); always upper-cased, no Bloomberg suffix.
+    ticker: Mapped[str] = mapped_column(String(30), nullable=False)
+    # Best-effort company / fund name at the time of recommendation.
+    fund_name: Mapped[str | None] = mapped_column(String(300))
+    # HIGH | MEDIUM | WATCH (string for forward-compat).
+    confidence_tier: Mapped[str] = mapped_column(String(10), nullable=False)
+    # Composite score from the v4 whitespace / launch scorer at append time.
+    composite_score: Mapped[float | None] = mapped_column(Float)
+    # First ~280 chars of the rendered thesis line — enough for audit
+    # without bloating the table.
+    thesis_snippet: Mapped[str | None] = mapped_column(Text)
+    # If the recommendation pointed to a specific REX product (launch
+    # candidate), the suggested ticker. Whitespace recs leave this NULL.
+    suggested_rex_ticker: Mapped[str | None] = mapped_column(String(30))
+    # Which section the rec came from: "launch" | "filing" | "money_flow".
+    section: Mapped[str | None] = mapped_column(String(20))
+
+    # ----- Outcome columns (filled by the grading job) -----
+    # rex_filed | competitor_filed | abandoned | launched | killed | NULL
+    outcome_status: Mapped[str | None] = mapped_column(String(20))
+    # When the outcome was first observed (UTC).
+    outcome_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # AUM of the launched product at +6mo and +12mo (NULL until matured).
+    outcome_aum_6mo: Mapped[float | None] = mapped_column(Float)
+    outcome_aum_12mo: Mapped[float | None] = mapped_column(Float)
+    # Last time the grader touched this row.
+    graded_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # Optional ticker of the launched/filed product the grader matched.
+    matched_product_ticker: Mapped[str | None] = mapped_column(String(30))
+    # Free-form note from the grader (e.g. "matched on map_li_underlier").
+    grading_note: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "week_of", "ticker", "confidence_tier",
+            name="uq_recommendation_history_week_ticker_tier",
+        ),
+        Index("idx_rec_history_ticker", "ticker"),
+        Index("idx_rec_history_week", "week_of"),
+        Index("idx_rec_history_tier_status", "confidence_tier", "outcome_status"),
+        Index("idx_rec_history_generated", "generated_at"),
+    )
+
+
 class ApiAuditLog(Base):
     """Append-only audit log for sensitive API endpoints.
 

@@ -164,6 +164,7 @@ def init_db():
         CboeSymbol, CboeStateChange, CboeScanRun, CboeKnownActive,
         AutocallIndexMetadata, AutocallIndexLevel,
         AutocallCrisisPreset, AutocallSweepCache,
+        RecommendationHistory,  # Wave E1 (2026-05-11) — stock-rec self-grading
     )
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()
