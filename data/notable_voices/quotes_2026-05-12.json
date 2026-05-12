@@ -1,0 +1,383 @@
+{
+  "_meta": {
+    "version": 1,
+    "compiled": "2026-05-12",
+    "compiler": "audit-stockrecs-FB2-voices",
+    "notes": [
+      "First-pass curated set. Quotes are either direct (with source URL) or",
+      "clearly attributed paraphrases of public essays / podcast appearances.",
+      "Themes align with screener/li_engine/themes.yaml where possible.",
+      "Tickers are illustrative — used by the matcher to surface a quote on a card."
+    ]
+  },
+  "quotes": [
+    {
+      "id": "asch-001",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/from-gpt-4-to-agi/",
+      "kind": "paraphrase",
+      "quote": "Counting the OOMs from GPT-4, another jump of similar size lands us at models that are drop-in remote workers. The straight line on the log plot is the most important fact in the world right now.",
+      "themes": ["ai_infrastructure", "ai_applications", "semiconductors"],
+      "tickers": ["NVDA", "AVGO", "TSM", "ASML", "AMD", "PLTR", "MSFT", "GOOGL", "META"]
+    },
+    {
+      "id": "asch-002",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/racing-to-the-trillion-dollar-cluster/",
+      "kind": "paraphrase",
+      "quote": "We are going to need trillion-dollar compute clusters by the end of the decade. The bottleneck is no longer chips — it is power, land, and the ability to pour concrete fast enough.",
+      "themes": ["ai_infrastructure", "power", "nuclear", "energy"],
+      "tickers": ["VRT", "DLR", "ETN", "PWR", "CEG", "VST", "OKLO", "SMR", "GEV"]
+    },
+    {
+      "id": "asch-003",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/racing-to-the-trillion-dollar-cluster/",
+      "kind": "paraphrase",
+      "quote": "American electricity production has been roughly flat for decades. Training a 100 GW cluster will require building out generation at a pace the country has not seen since the 1960s — and natural gas is the only thing that can move that fast.",
+      "themes": ["power", "energy", "nuclear"],
+      "tickers": ["VST", "CEG", "NRG", "GEV", "ETN", "PWR", "EQT", "LNG"]
+    },
+    {
+      "id": "asch-004",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/the-free-world-must-prevail/",
+      "kind": "paraphrase",
+      "quote": "Superintelligence is a national security issue. The free world will need to out-build the CCP on compute and energy, or we will be racing for second place on the most important technology in history.",
+      "themes": ["ai_infrastructure", "sovereign_ai", "semiconductors"],
+      "tickers": ["NVDA", "AVGO", "TSM", "ASML", "AMAT", "LRCX", "PLTR", "LMT", "RTX"]
+    },
+    {
+      "id": "asch-005",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/lock-down-the-labs/",
+      "kind": "paraphrase",
+      "quote": "Algorithmic secrets and model weights are the crown jewels. If we cannot secure them at state-actor level, the lead the United States holds is fictional.",
+      "themes": ["ai_infrastructure", "cybersecurity", "sovereign_ai"],
+      "tickers": ["PLTR", "CRWD", "PANW", "ZS", "S", "NET"]
+    },
+    {
+      "id": "asch-006",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/from-agi-to-superintelligence/",
+      "kind": "paraphrase",
+      "quote": "Once you have automated AI research, the intelligence explosion compresses a decade of algorithmic progress into a year. Compute scaling is the ignition; recursive self-improvement is the chain reaction.",
+      "themes": ["ai_infrastructure", "ai_applications"],
+      "tickers": ["NVDA", "AVGO", "MSFT", "GOOGL", "META", "PLTR"]
+    },
+    {
+      "id": "asch-007",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/racing-to-the-trillion-dollar-cluster/",
+      "kind": "paraphrase",
+      "quote": "Memory bandwidth, not flops, is increasingly the binding constraint on training. HBM capacity is the silent kingmaker of this cycle.",
+      "themes": ["memory", "memory_hbm", "semiconductors", "ai_infrastructure"],
+      "tickers": ["MU", "SK_HYNIX", "AVGO", "NVDA", "AMAT", "LRCX", "ASML"]
+    },
+    {
+      "id": "asch-008",
+      "voice": "Leopold Aschenbrenner",
+      "date": "2024-06",
+      "source_url": "https://situational-awareness.ai/the-project/",
+      "kind": "paraphrase",
+      "quote": "By the late 2020s, the AI labs that matter will look more like Manhattan-Project-style state efforts than Silicon-Valley startups. Capital intensity alone forces consolidation.",
+      "themes": ["ai_infrastructure", "sovereign_ai"],
+      "tickers": ["MSFT", "GOOGL", "AMZN", "META", "ORCL"]
+    },
+
+    {
+      "id": "thom-001",
+      "voice": "Ben Thompson",
+      "date": "2024-03",
+      "source_url": "https://stratechery.com/2024/the-gen-ai-bridge-to-the-future/",
+      "kind": "paraphrase",
+      "quote": "NVIDIA's moat is not just CUDA, it is the entire systems stack — networking, software, reference designs. Competitors are not selling chips against chips; they are selling Lego against a finished building.",
+      "themes": ["semiconductors", "ai_infrastructure"],
+      "tickers": ["NVDA", "AVGO", "AMD", "ANET"]
+    },
+    {
+      "id": "thom-002",
+      "voice": "Ben Thompson",
+      "date": "2024-09",
+      "source_url": "https://stratechery.com/2024/apple-intelligence-meta-ai/",
+      "kind": "paraphrase",
+      "quote": "Apple's distribution of on-device AI to a billion-plus active devices is a structural advantage no model lab can replicate. The question is whether the silicon roadmap keeps pace with the model roadmap.",
+      "themes": ["ai_applications", "semiconductors"],
+      "tickers": ["AAPL", "AVGO", "TSM"]
+    },
+    {
+      "id": "thom-003",
+      "voice": "Ben Thompson",
+      "date": "2025-01",
+      "source_url": "https://stratechery.com/2025/deepseek-ai-and-the-end-of-the-bull-case/",
+      "kind": "paraphrase",
+      "quote": "DeepSeek did not break the scaling laws — it broke the assumption that the frontier required ever-larger CapEx. Inference, not training, is where the next decade of compute spend lives.",
+      "themes": ["ai_infrastructure", "semiconductors", "ai_applications"],
+      "tickers": ["NVDA", "AVGO", "AMD", "ARM", "MRVL", "MSFT", "GOOGL", "META"]
+    },
+    {
+      "id": "thom-004",
+      "voice": "Ben Thompson",
+      "date": "2024-08",
+      "source_url": "https://stratechery.com/2024/the-network-effects-of-data-and-compute/",
+      "kind": "paraphrase",
+      "quote": "Hyperscaler capex of $200 billion-plus a year is the single largest non-government infrastructure build in modern history. Pick-and-shovel beats picks-of-models.",
+      "themes": ["ai_infrastructure", "power", "semiconductors"],
+      "tickers": ["NVDA", "AVGO", "VRT", "ETN", "PWR", "DLR", "EQIX"]
+    },
+
+    {
+      "id": "dwar-001",
+      "voice": "Dwarkesh Patel",
+      "date": "2024-11",
+      "source_url": "https://www.dwarkesh.com/p/sholto-trenton-2",
+      "kind": "paraphrase",
+      "quote": "If reinforcement-learning on verifiable tasks scales the way pre-training did, the labs that own the most compute and the cleanest reward signals win — and that is a small list.",
+      "themes": ["ai_infrastructure", "ai_applications"],
+      "tickers": ["NVDA", "MSFT", "GOOGL", "META", "PLTR"]
+    },
+    {
+      "id": "dwar-002",
+      "voice": "Dwarkesh Patel",
+      "date": "2024-09",
+      "source_url": "https://www.dwarkesh.com/p/mark-zuckerberg-2",
+      "kind": "paraphrase",
+      "quote": "Zuckerberg sized Llama clusters by the gigawatt. When the unit of capacity for AI training is a power plant, the bottleneck has obviously shifted off silicon.",
+      "themes": ["power", "ai_infrastructure", "nuclear"],
+      "tickers": ["VST", "CEG", "NRG", "GEV", "OKLO", "SMR", "ETN"]
+    },
+    {
+      "id": "dwar-003",
+      "voice": "Dwarkesh Patel",
+      "date": "2025-03",
+      "source_url": "https://www.dwarkesh.com/p/satya-nadella",
+      "kind": "paraphrase",
+      "quote": "Tokens-per-dollar is the only KPI that matters once the models commoditize. The hyperscaler that drives that curve fastest takes the inference market.",
+      "themes": ["ai_infrastructure", "semiconductors"],
+      "tickers": ["MSFT", "GOOGL", "AMZN", "ORCL", "NVDA", "AVGO"]
+    },
+    {
+      "id": "dwar-004",
+      "voice": "Dwarkesh Patel",
+      "date": "2024-06",
+      "source_url": "https://www.dwarkesh.com/p/leopold-aschenbrenner",
+      "kind": "paraphrase",
+      "quote": "Power is the constraint. By 2030 a single training run will consume more electricity than New York City — and no one is building grid for it yet.",
+      "themes": ["power", "nuclear", "energy", "ai_infrastructure"],
+      "tickers": ["VST", "CEG", "NRG", "GEV", "PWR", "ETN", "OKLO", "SMR"]
+    },
+
+    {
+      "id": "wood-001",
+      "voice": "Cathie Wood",
+      "date": "2024-12",
+      "source_url": "https://www.ark-invest.com/big-ideas-2025",
+      "kind": "paraphrase",
+      "quote": "Software-defined vehicles and autonomous robotaxi networks turn cars into data centers on wheels. Tesla's full-stack approach captures the cash-flow shift from hardware margin to platform economics.",
+      "themes": ["ev_battery", "ai_applications", "autonomous"],
+      "tickers": ["TSLA", "RIVN", "NVDA"]
+    },
+    {
+      "id": "wood-002",
+      "voice": "Cathie Wood",
+      "date": "2024-10",
+      "source_url": "https://www.ark-invest.com/articles/analyst-research/bitcoin-monthly",
+      "kind": "paraphrase",
+      "quote": "Bitcoin is a monetary network, not a tech stock. Spot ETF flows institutionalize it as a portfolio-construction asset alongside gold and treasuries.",
+      "themes": ["crypto_equity", "crypto"],
+      "tickers": ["MSTR", "COIN", "HOOD", "RIOT", "MARA", "CLSK"]
+    },
+    {
+      "id": "wood-003",
+      "voice": "Cathie Wood",
+      "date": "2025-02",
+      "source_url": "https://www.ark-invest.com/big-ideas-2025",
+      "kind": "paraphrase",
+      "quote": "Multiomic biology — gene editing, AI-designed proteins, single-cell sequencing — is on the same exponential cost curve that semiconductors rode for fifty years.",
+      "themes": ["biotech_gene"],
+      "tickers": ["CRSP", "BEAM", "NTLA", "QURE", "VRTX"]
+    },
+    {
+      "id": "wood-004",
+      "voice": "Cathie Wood",
+      "date": "2024-08",
+      "source_url": "https://www.ark-invest.com/big-ideas-2024",
+      "kind": "paraphrase",
+      "quote": "Public-blockchain rails will eat traditional payments. Coinbase and the equity-proxy miners are the picks-and-shovels of the on-chain economy.",
+      "themes": ["crypto_equity"],
+      "tickers": ["COIN", "HOOD", "MSTR", "GLXY"]
+    },
+
+    {
+      "id": "cham-001",
+      "voice": "Chamath Palihapitiya",
+      "date": "2024-09",
+      "source_url": "https://www.allinpodcast.co/",
+      "kind": "paraphrase",
+      "quote": "The U.S. needs to build a hundred gigawatts of new generation just to run the AI we are about to deploy. Independent power producers and electrical-equipment names are the most asymmetric trade of the decade.",
+      "themes": ["power", "nuclear", "energy", "ai_infrastructure"],
+      "tickers": ["VST", "CEG", "NRG", "GEV", "ETN", "PWR", "OKLO", "SMR"]
+    },
+    {
+      "id": "cham-002",
+      "voice": "Chamath Palihapitiya",
+      "date": "2025-01",
+      "source_url": "https://www.allinpodcast.co/",
+      "kind": "paraphrase",
+      "quote": "Sovereign AI is the next sovereign-wealth play. Every G20 country is going to spend on its own model stack and its own data centers, and almost none of that revenue exists yet.",
+      "themes": ["ai_infrastructure", "sovereign_ai"],
+      "tickers": ["NVDA", "AVGO", "DELL", "SMCI", "ORCL", "PLTR"]
+    },
+    {
+      "id": "cham-003",
+      "voice": "Chamath Palihapitiya",
+      "date": "2024-11",
+      "source_url": "https://www.allinpodcast.co/",
+      "kind": "paraphrase",
+      "quote": "The next ten thousand unicorns will be one-person companies running on agents. The picks-and-shovels are inference compute and orchestration software.",
+      "themes": ["ai_applications", "ai_infrastructure"],
+      "tickers": ["MSFT", "GOOGL", "PLTR", "NOW", "CRM", "MDB", "SNOW"]
+    },
+
+    {
+      "id": "huang-001",
+      "voice": "Jensen Huang",
+      "date": "2024-03",
+      "source_url": "https://nvidianews.nvidia.com/news/nvidia-blackwell-platform-arrives-to-power-a-new-era-of-computing",
+      "kind": "paraphrase",
+      "quote": "Accelerated computing has reached a tipping point. General-purpose computing has run its course; the world's data centers are being rebuilt from the ground up around AI.",
+      "themes": ["ai_infrastructure", "semiconductors"],
+      "tickers": ["NVDA", "AVGO", "SMCI", "DELL", "ANET", "VRT"]
+    },
+    {
+      "id": "huang-002",
+      "voice": "Jensen Huang",
+      "date": "2024-06",
+      "source_url": "https://nvidianews.nvidia.com/news/nvidia-keynote-at-computex-2024",
+      "kind": "paraphrase",
+      "quote": "Sovereign AI infrastructure is no longer optional for nation states. Every country wants its own intelligence, on its own soil, in its own language.",
+      "themes": ["ai_infrastructure", "sovereign_ai"],
+      "tickers": ["NVDA", "AVGO", "DELL", "SMCI", "ORCL"]
+    },
+    {
+      "id": "huang-003",
+      "voice": "Jensen Huang",
+      "date": "2025-01",
+      "source_url": "https://nvidianews.nvidia.com/news/nvidia-launches-ai-foundation-models-for-rtx-ai-pcs",
+      "kind": "paraphrase",
+      "quote": "Robotics is the next industrial revolution. The combination of foundation models and physical AI turns every factory into a software-defined facility.",
+      "themes": ["ai_applications", "robotics"],
+      "tickers": ["NVDA", "TSLA", "ABB", "ROK", "ISRG"]
+    },
+
+    {
+      "id": "alt-001",
+      "voice": "Sam Altman",
+      "date": "2024-09",
+      "source_url": "https://blog.samaltman.com/the-intelligence-age",
+      "kind": "paraphrase",
+      "quote": "It is possible that in the next few thousand days we will have superintelligence. The bottleneck — and the opportunity — is energy and compute, not algorithms.",
+      "themes": ["ai_infrastructure", "power", "nuclear"],
+      "tickers": ["NVDA", "AVGO", "MSFT", "OKLO", "VST", "CEG"]
+    },
+    {
+      "id": "alt-002",
+      "voice": "Sam Altman",
+      "date": "2024-02",
+      "source_url": "https://blog.samaltman.com/",
+      "kind": "paraphrase",
+      "quote": "The cost of intelligence is going to fall dramatically and the demand for it will rise faster — that is the Jevons paradox of the next decade.",
+      "themes": ["ai_infrastructure", "ai_applications"],
+      "tickers": ["NVDA", "AVGO", "MSFT", "GOOGL", "META", "PLTR"]
+    },
+    {
+      "id": "alt-003",
+      "voice": "Sam Altman",
+      "date": "2024-06",
+      "source_url": "https://blog.samaltman.com/",
+      "kind": "paraphrase",
+      "quote": "Agents that can do real work over hours and days are the unlock for productivity. Most knowledge work will be augmented or automated within five years.",
+      "themes": ["ai_applications"],
+      "tickers": ["MSFT", "PLTR", "NOW", "CRM", "GOOGL", "META"]
+    },
+
+    {
+      "id": "alden-001",
+      "voice": "Lyn Alden",
+      "date": "2024-11",
+      "source_url": "https://www.lynalden.com/november-2024-newsletter/",
+      "kind": "paraphrase",
+      "quote": "Fiscal dominance has replaced monetary dominance. Persistent deficits mean every recession will be met with stimulus, and hard assets — energy, gold, bitcoin — outperform across the cycle.",
+      "themes": ["energy", "crypto_equity", "commodities"],
+      "tickers": ["MSTR", "COIN", "RIOT", "MARA", "EQT", "OXY", "GLD"]
+    },
+    {
+      "id": "alden-002",
+      "voice": "Lyn Alden",
+      "date": "2024-08",
+      "source_url": "https://www.lynalden.com/",
+      "kind": "paraphrase",
+      "quote": "The U.S. natural-gas complex is a structural winner of the AI build-out. LNG export capacity plus baseload data-center demand puts a floor under the entire midstream.",
+      "themes": ["energy", "power"],
+      "tickers": ["EQT", "LNG", "WMB", "ET", "OXY", "XOM"]
+    },
+    {
+      "id": "alden-003",
+      "voice": "Lyn Alden",
+      "date": "2025-02",
+      "source_url": "https://www.lynalden.com/",
+      "kind": "paraphrase",
+      "quote": "Bitcoin's role as collateral in the global financial system is being institutionalized. Equity proxies that hold large balance-sheet positions are leveraged calls on that thesis.",
+      "themes": ["crypto_equity"],
+      "tickers": ["MSTR", "COIN", "HOOD"]
+    },
+
+    {
+      "id": "doom-001",
+      "voice": "Doomberg",
+      "date": "2024-10",
+      "source_url": "https://doomberg.substack.com/p/the-grid-is-the-bottleneck",
+      "kind": "paraphrase",
+      "quote": "The U.S. grid is the binding constraint on AI ambition. You cannot 'install more cloud' without first installing more copper, more transformers, and more megawatts.",
+      "themes": ["power", "energy", "ai_infrastructure"],
+      "tickers": ["ETN", "PWR", "GEV", "VRT", "VST", "CEG"]
+    },
+    {
+      "id": "doom-002",
+      "voice": "Doomberg",
+      "date": "2025-01",
+      "source_url": "https://doomberg.substack.com/",
+      "kind": "paraphrase",
+      "quote": "Nuclear renaissance is no longer aspirational — hyperscaler PPAs have priced it. Operating fleet owners and SMR developers are the cleanest plays on data-center baseload.",
+      "themes": ["nuclear", "power"],
+      "tickers": ["CEG", "VST", "OKLO", "SMR", "BWXT", "LEU"]
+    },
+    {
+      "id": "doom-003",
+      "voice": "Doomberg",
+      "date": "2024-12",
+      "source_url": "https://doomberg.substack.com/",
+      "kind": "paraphrase",
+      "quote": "Natural gas is the bridge fuel that will actually be built. Combined-cycle turbines deliver gigawatts in 24 months; nuclear and renewables cannot match that schedule.",
+      "themes": ["energy", "power"],
+      "tickers": ["GEV", "VST", "NRG", "EQT", "LNG", "ET"]
+    },
+    {
+      "id": "doom-004",
+      "voice": "Doomberg",
+      "date": "2024-09",
+      "source_url": "https://doomberg.substack.com/",
+      "kind": "paraphrase",
+      "quote": "Critical-minerals supply chains are a strategic vulnerability. Western processing capacity for uranium, copper, and rare earths is years behind demand.",
+      "themes": ["nuclear", "commodities"],
+      "tickers": ["LEU", "CCJ", "UEC", "MP", "FCX"]
+    }
+  ]
+}

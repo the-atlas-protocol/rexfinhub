@@ -31,6 +31,12 @@ from screener.li_engine.analysis.pre_ipo_filer_race import (
     load_pre_ipo_filer_race,
     render_filers_pills,
 )
+from screener.li_engine.data.notable_voices import render_voices_for_ticker
+
+try:
+    from screener.li_engine.analysis.whitespace_v2 import load_themes as _load_themes_yaml
+except Exception:  # pragma: no cover
+    _load_themes_yaml = None
 
 log = logging.getLogger(__name__)
 
@@ -1461,14 +1467,48 @@ def _render_competition_panel(card: dict) -> str:
     return "".join(lines)
 
 
+_TICKER_THEMES_CACHE: dict[str, list[str]] | None = None
+
+
+def _ticker_themes(ticker: str) -> list[str]:
+    """Return list of theme tags (from themes.yaml) the ticker belongs to.
+
+    Cached on first call. Empty list if themes.yaml missing or PyYAML
+    not installed — voices then match purely by ticker.
+    """
+    global _TICKER_THEMES_CACHE
+    if _TICKER_THEMES_CACHE is None:
+        inv: dict[str, list[str]] = {}
+        if _load_themes_yaml is not None:
+            try:
+                themes_map = _load_themes_yaml() or {}
+                for theme, tickers in themes_map.items():
+                    for t in (tickers or []):
+                        inv.setdefault(str(t).upper().strip(), []).append(str(theme))
+            except Exception as e:  # pragma: no cover
+                log.info("notable_voices: theme inversion failed (%s)", e)
+        _TICKER_THEMES_CACHE = inv
+    return _TICKER_THEMES_CACHE.get((ticker or "").upper().strip(), [])
+
+
 def _render_thesis_panel(card: dict) -> str:
     p1 = _safe_str(card.get("thesis_p1"))
     p2 = _safe_str(card.get("thesis_p2"))
+    ticker = _safe_str(card.get("ticker"))
+    voice_html = ""
+    try:
+        voice_html = render_voices_for_ticker(
+            ticker, themes=_ticker_themes(ticker), limit=1,
+        )
+    except Exception as e:  # pragma: no cover — never let voices break a card
+        log.info("notable_voices render failed for %s: %s", ticker, e)
+
     if not p1 and not p2:
         return (
             '<div style="font-size:12px;color:#7f8c8d;font-style:italic;'
             'line-height:1.55;">Thesis pending — '
             f'<span style="color:#1a1a2e;">{escape(_safe_str(card.get("company_line")))}</span></div>'
+            f'{voice_html}'
         )
     parts = []
     if p1:
@@ -1481,6 +1521,8 @@ def _render_thesis_panel(card: dict) -> str:
             f'<p style="margin:0;font-size:12px;color:#1a1a2e;'
             f'line-height:1.55;">{escape(p2)}</p>'
         )
+    if voice_html:
+        parts.append(voice_html)
     return "".join(parts)
 
 

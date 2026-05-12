@@ -1,0 +1,65 @@
+# Notable Voices — curated thought leaders whose published views shape REX
+# stock recommendations. First-pass static config; full RSS ingestion is a
+# future job. Quotes live in `quotes_<DATE>.json` (see same directory).
+#
+# Schema:
+#   voices[].name         — display name
+#   voices[].affiliation  — primary institution / publication
+#   voices[].focus        — short topic blurb
+#   voices[].url          — canonical home / essay series URL
+#   voices[].handle       — optional @handle (X / Substack)
+
+voices:
+  - name: Leopold Aschenbrenner
+    affiliation: Former OpenAI superalignment; Situational Awareness essay series
+    focus: AI scaling laws, compute centralization, energy/power, sovereign AI race, China
+    url: https://situational-awareness.ai/
+    handle: "@leopoldasch"
+
+  - name: Ben Thompson
+    affiliation: Stratechery
+    focus: Tech strategy, platform economics, AI value chain, semiconductor geopolitics
+    url: https://stratechery.com/
+    handle: "@benthompson"
+
+  - name: Dwarkesh Patel
+    affiliation: Dwarkesh Podcast
+    focus: Long-form interviews with frontier AI researchers; scaling, alignment, takeoff timelines
+    url: https://www.dwarkesh.com/
+    handle: "@dwarkesh_sp"
+
+  - name: Cathie Wood
+    affiliation: ARK Invest
+    focus: Disruptive innovation — AI, blockchain, autonomous vehicles, multiomics, robotics
+    url: https://www.ark-invest.com/
+    handle: "@CathieDWood"
+
+  - name: Chamath Palihapitiya
+    affiliation: Social Capital; All-In Podcast
+    focus: AI infrastructure, energy buildout, sovereign tech, public-market structural shifts
+    url: https://www.chamath.com/
+    handle: "@chamath"
+
+  - name: Jensen Huang
+    affiliation: NVIDIA (CEO)
+    focus: Accelerated computing, AI factories, sovereign AI, robotics, networking
+    url: https://nvidianews.nvidia.com/
+    handle: "@nvidia"
+
+  - name: Sam Altman
+    affiliation: OpenAI (CEO)
+    focus: Frontier model timelines, compute / energy capex, agent products, AGI roadmap
+    url: https://blog.samaltman.com/
+    handle: "@sama"
+
+  - name: Lyn Alden
+    affiliation: Lyn Alden Investment Strategy
+    focus: Macro, fiscal dominance, energy, commodities, bitcoin, hard-asset allocation
+    url: https://www.lynalden.com/
+    handle: "@LynAldenContact"
+
+  - name: Doomberg
+    affiliation: Doomberg Substack
+    focus: Energy markets, power grid, nuclear, natural gas, industrial commodities
+    url: https://doomberg.substack.com/
+    handle: "@DoombergT"
