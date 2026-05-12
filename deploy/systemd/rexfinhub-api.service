@@ -8,6 +8,8 @@ Type=simple
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
 ExecStart=/home/jarvis/venv/bin/python deploy/pipeline_api.py
 Restart=on-failure

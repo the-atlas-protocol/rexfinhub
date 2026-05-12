@@ -6,6 +6,8 @@ After=network.target
 Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
 ExecStart=/bin/bash -c '\
   /home/jarvis/venv/bin/python -m screener.li_engine.analysis.universe_loader && \

@@ -8,6 +8,10 @@ Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET so subject-line dates and other naive
+# datetime.now() call sites resolve in market-local time. Without this,
+# 12am-4am ET runs ship subjects with yesterday's date (audit fix R7).
+Environment=TZ=America/New_York
 Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
 # 2026-04-28: pull latest code from main before each daily run. Eliminates
 # the SCP-and-drift pattern that bit us 2026-04-27. --ff-only fails fast

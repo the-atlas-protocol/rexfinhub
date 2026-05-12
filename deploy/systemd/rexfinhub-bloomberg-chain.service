@@ -10,6 +10,8 @@ Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
 ExecStart=/home/jarvis/venv/bin/python -c "\
 from webapp.services.graph_files import download_bloomberg_from_sharepoint; \

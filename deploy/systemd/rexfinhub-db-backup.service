@@ -6,6 +6,9 @@ After=network.target
 Type=oneshot
 User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
+# Pin process timezone to ET so the backup filename's date stamp
+# matches the market-local day (audit fix R7).
+Environment=TZ=America/New_York
 ExecStart=/bin/bash -c 'mkdir -p data/backups && sqlite3 data/etp_tracker.db ".backup data/backups/etp_tracker_$(date +%%Y%%m%%d).db" && find data/backups -name "etp_tracker_*.db" -mtime +7 -delete'
 StandardOutput=journal
 StandardError=journal

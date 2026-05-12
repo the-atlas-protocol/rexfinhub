@@ -3,5 +3,7 @@ Description=REX FinHub Send Gate Auto-Close (lockdown after scheduled send)
 
 [Service]
 Type=oneshot
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
 ExecStart=/bin/bash -c 'echo false > /home/jarvis/rexfinhub/config/.send_enabled && logger -t rexfinhub-gate "gate closed by timer"'
 User=jarvis
