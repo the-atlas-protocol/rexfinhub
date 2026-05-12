@@ -113,9 +113,9 @@ def _pipeline_root_impl(
 # 485A/B distinction lives in rex_products.latest_form, NOT in status.
 VALID_STATUSES = [
     "Under Consideration",  # was: Research / Counsel / Board / Pending Board
-    "Target List",          # formally targeted for build, pre-counsel
     "Filed",                # was: Filed / Filed (485A/B) / Awaiting (no eff date)
     "Effective",            # was: Effective / Awaiting (eff date set)
+    "Target List",          # SEC-effective + queued for exchange listing (post-Effective shortlist)
     "Listed",               # was: Listed / ACTV — actively trading
     "Delisted",             # was: Delisted / LIQU / INAC / EXPD / DLST
 ]
@@ -515,10 +515,11 @@ def _pipeline_products_render(
     }
 
     # ---- Pipeline funnel (lifecycle stages) ----
-    # 6-value enum order, LEFT-TO-RIGHT life-cycle (2026-05-12). Reads as a
-    # PM funnel from idea to retired:
+    # 6-value enum order, LEFT-TO-RIGHT life-cycle (corrected 2026-05-12). The
+    # 'Target List' stage sits AFTER 'Effective' — it's the post-effective
+    # launch shortlist (SEC-cleared, awaiting REX's exchange-listing decision):
     #
-    #   Under Consideration -> Target List -> Filed -> Effective ->
+    #   Under Consideration -> Filed -> Effective -> Target List ->
     #   Listed -> Delisted
     #
     # The granular Counsel / Board / Awaiting-Effective splits previously
@@ -552,9 +553,9 @@ def _pipeline_products_render(
 
     funnel = [
         {"label": "Under Consideration", "count": n_under_consideration, "statuses": ["Under Consideration"]},
-        {"label": "Target List",         "count": n_target,              "statuses": ["Target List"]},
         {"label": "Filed",               "count": n_filed,               "statuses": ["Filed"]},
         {"label": "Effective",           "count": n_effective_total,     "statuses": ["Effective"]},
+        {"label": "Target List",         "count": n_target,              "statuses": ["Target List"]},
         {"label": "Listed",              "count": n_live,                "statuses": ["Listed"]},
         {"label": "Delisted",            "count": n_delisted,            "statuses": ["Delisted"]},
     ]
