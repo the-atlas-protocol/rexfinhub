@@ -476,6 +476,11 @@ def create_app() -> FastAPI:
     from webapp.routers import operations_reserved
     app.include_router(operations_reserved.router)
 
+    # Admin edit endpoint for rex_products (used by /operations/pipeline inline
+    # cells + status dropdown). Parallel to /admin/products/update for capm.
+    from webapp.routers import admin_rex_products
+    app.include_router(admin_rex_products.router)
+
     # L&I Strategy Engine — whitespace candidates, filing race, ticker deep-dive
     from webapp.routers import strategy
     app.include_router(strategy.router)

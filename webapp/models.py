@@ -959,6 +959,10 @@ class RexProduct(Base):
     starting_nav: Mapped[float | None] = mapped_column(Float)
 
     notes: Mapped[str | None] = mapped_column(Text)
+    # JSON-encoded list of field names that have been manually overridden by
+    # an admin via /admin/rex-products/update/{id}. The daily classifier +
+    # bloomberg-chain sweeps consult this to avoid clobbering admin edits.
+    manually_edited_fields: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

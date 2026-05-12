@@ -988,7 +988,7 @@ function updateProductStatus(sel) {
     body.append('status', newVal);
     sel.classList.remove('failed');
     sel.classList.add('saving');
-    fetch('/admin/products/update/' + pid, {
+    fetch('/admin/rex-products/update/' + pid, {
         method: 'POST', body: body, credentials: 'same-origin'
     }).then(function(res) {
         sel.classList.remove('saving');
