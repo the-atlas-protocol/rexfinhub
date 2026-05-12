@@ -162,10 +162,19 @@ def candidates(request: Request, db: Session = Depends(get_db)):
     kpis.setdefault("top_mention_count", top_count)
 
     # 2. Launch queue -------------------------------------------------------
+    # A3: prefer the new tiered signal_strength column; fall back to the
+    # legacy boolean for older parquet files.
     launches: list[dict] = []
     launches_df = _load_parquet("launch_candidates.parquet")
     if not launches_df.empty:
-        if "has_signals" in launches_df.columns:
+        if "signal_strength" in launches_df.columns:
+            from screener.li_engine.analysis.signal_strength import SignalStrength
+            threshold = int(SignalStrength.MODERATE)
+            ranks = launches_df["signal_strength"].map(
+                lambda s: int(SignalStrength.from_name(s)) if isinstance(s, str) else 0
+            )
+            df = launches_df[ranks >= threshold]
+        elif "has_signals" in launches_df.columns:
             df = launches_df[launches_df["has_signals"] == True]  # noqa: E712
         else:
             df = launches_df

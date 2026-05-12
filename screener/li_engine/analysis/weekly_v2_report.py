@@ -304,11 +304,31 @@ def _clean(t):
 # Data loaders
 # ---------------------------------------------------------------------------
 
-def load_launch_candidates(n: int = 10) -> pd.DataFrame:
+def load_launch_candidates(n: int = 10, min_strength: str = "MODERATE") -> pd.DataFrame:
+    """Top launch candidates filtered by tiered signal strength.
+
+    A3 upgrade: replaces the old ``has_signals == True`` filter (which only
+    proved Bloomberg returned a row) with a meaningful tier gate. Defaults
+    to MODERATE so weak-only candidates can't dilute the top of the report.
+
+    Falls back to the legacy ``has_signals`` filter if the new column is
+    absent (e.g. running against an older parquet).
+    """
     if not LC.exists():
         return pd.DataFrame()
     df = pd.read_parquet(LC)
-    df = df[df["has_signals"] == True]  # need actual signal data
+
+    if "signal_strength" in df.columns:
+        from screener.li_engine.analysis.signal_strength import SignalStrength
+        threshold = SignalStrength.from_name(min_strength)
+        ranks = df["signal_strength"].map(
+            lambda s: int(SignalStrength.from_name(s)) if isinstance(s, str) else 0
+        )
+        df = df[ranks >= int(threshold)]
+    elif "has_signals" in df.columns:
+        log.warning("load_launch_candidates: signal_strength absent; falling back to has_signals")
+        df = df[df["has_signals"] == True]  # noqa: E712
+
     return df.sort_values("composite_score", ascending=False).head(n)
 
 

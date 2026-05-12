@@ -151,10 +151,25 @@ def annotate_product_coverage(universe: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_apewisdom_map(tickers: set[str]) -> dict[str, int]:
+    """Legacy mentions-only map. Kept for backward compat with v2/v3 scorers."""
+    full = load_apewisdom_full_map(tickers)
+    return {t: blob["mentions_24h"] for t, blob in full.items()}
+
+
+def load_apewisdom_full_map(tickers: set[str], max_pages: int = 6) -> dict[str, dict]:
+    """Richer ApeWisdom fetch — returns per-ticker rank, mentions, and inflection.
+
+    Used by the A3 tiered signal_strength module (needs rank + delta to decide
+    URGENT vs STRONG). Same network cost as the legacy single-int variant.
+
+    Returned blob keys:
+        mentions_24h, apewisdom_rank, mentions_delta_24h,
+        mentions_delta_pct, rank_improvement
+    """
     url = "https://apewisdom.io/api/v1.0/filter/{f}/page/{p}"
-    recs: dict[str, int] = {}
+    recs: dict[str, dict] = {}
     for filt in ("all-stocks", "wallstreetbets"):
-        for page in range(1, 6):
+        for page in range(1, max_pages + 1):
             try:
                 r = requests.get(url.format(f=filt, p=page), timeout=10)
                 if r.status_code != 200:
@@ -166,9 +181,25 @@ def load_apewisdom_map(tickers: set[str]) -> dict[str, int]:
                     t = _clean(it.get("ticker", ""))
                     if t not in tickers:
                         continue
-                    m = int(it.get("mentions", 0) or 0)
-                    if t not in recs or m > recs[t]:
-                        recs[t] = m
+                    mentions = int(it.get("mentions", 0) or 0)
+                    mentions_prev = int(it.get("mentions_24h_ago", 0) or 0)
+                    rank = int(it.get("rank", 0) or 0) or None
+                    rank_prev = int(it.get("rank_24h_ago", 0) or 0) or None
+                    delta = mentions - mentions_prev
+                    delta_pct = (delta / mentions_prev) if mentions_prev > 0 else None
+                    rank_improve = (rank_prev - rank) if (rank and rank_prev) else None
+                    blob = {
+                        "mentions_24h": mentions,
+                        "apewisdom_rank": rank,
+                        "mentions_delta_24h": delta,
+                        "mentions_delta_pct": delta_pct,
+                        "rank_improvement": rank_improve,
+                    }
+                    # Keep the highest-mentions observation when a ticker
+                    # appears on multiple pages / filters.
+                    existing = recs.get(t)
+                    if existing is None or mentions > existing["mentions_24h"]:
+                        recs[t] = blob
                 time.sleep(0.15)
             except Exception as e:
                 log.warning("apewisdom: %s", e)
