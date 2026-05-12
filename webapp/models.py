@@ -917,7 +917,7 @@ class RexProduct(Base):
     ~720 products across 8 suites, tracked through the collapsed 6-state
     lifecycle adopted 2026-05-12:
 
-      Under Consideration → Target List → Filed → Effective → Listed → Delisted
+      Under Consideration → Filed → Effective → Target List → Listed → Delisted
 
     The granular Counsel / Board / 485A-vs-485B distinctions previously
     encoded in this column now live in (a) ``latest_form`` for the SEC
