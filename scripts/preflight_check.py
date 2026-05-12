@@ -139,8 +139,14 @@ def audit_ticker_dupes_recent(db) -> dict:
         if not bleed:
             out["detail"] = f"no ticker dupes in {len(rows)} extractions added in last 24h"
         else:
-            out["status"] = "fail"
-            out["detail"] = f"{len(bleed)} (registrant, ticker) pairs duplicated across series"
+            base_detail = f"{len(bleed)} (registrant, ticker) pairs duplicated across series"
+            if _maintenance_window_active():
+                out["status"] = "warn"
+                out["detail"] = ("MAINTENANCE WINDOW ACTIVE — " + base_detail
+                                 + " — remove data/.preflight_maintenance to restore strict gating")
+            else:
+                out["status"] = "fail"
+                out["detail"] = base_detail
             out["rows"] = [
                 {"registrant": k[0], "ticker": k[1], "series_count": len(v),
                  "series_names": sorted(v)[:5]}
@@ -207,10 +213,16 @@ def audit_classification(db) -> dict:
         if not gaps:
             out["detail"] = "no gaps detected"
         else:
-            out["status"] = "warn" if len(gaps) <= 5 else "fail"
-            out["detail"] = (f"{len(tier1)} unclassified new launches, "
-                             f"{len(tier2)} NULL issuer_display, "
-                             f"{len(tier3)} CC funds missing CC attributes")
+            base_detail = (f"{len(tier1)} unclassified new launches, "
+                           f"{len(tier2)} NULL issuer_display, "
+                           f"{len(tier3)} CC funds missing CC attributes")
+            if _maintenance_window_active():
+                out["status"] = "warn"
+                out["detail"] = ("MAINTENANCE WINDOW ACTIVE — " + base_detail
+                                 + " — remove data/.preflight_maintenance to restore strict gating")
+            else:
+                out["status"] = "warn" if len(gaps) <= 5 else "fail"
+                out["detail"] = base_detail
     except Exception as e:
         out["status"] = "fail"
         out["detail"] = f"query error: {type(e).__name__}: {e}"
