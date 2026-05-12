@@ -1356,6 +1356,12 @@ def _build_card_model(ticker: str, row: pd.Series, *,
         "ret_1y": row.get("ret_1y"),
         "si_ratio": row.get("si_ratio"),
         "mentions_24h": _safe_int(row.get("mentions_24h")),
+        # A3 tiered-signals carry-through (may be absent in older builds)
+        "signal_records": row.get("signal_records") if "signal_records" in row.index else None,
+        "composite_score_pre_decay": (
+            _safe_float(row.get("composite_score_pre_decay"), default=float("nan"))
+            if "composite_score_pre_decay" in row.index else float("nan")
+        ),
     }
 
 
@@ -1399,7 +1405,276 @@ def _render_risk_chips(flags: list[str]) -> str:
     return "".join(out)
 
 
-def _render_signals_panel(signals: list[tuple[str, float]]) -> str:
+# --- A3 tiered-signals rendering -------------------------------------------
+
+# Display labels for `signal_records[i]['name']` values produced by
+# screener.li_engine.analysis.signal_strength.annotate_signal_strength.
+# Keys here MUST match the `name` field in those records.
+_SIGNAL_DISPLAY_NAMES = {
+    "mentions_z":               "Retail mentions",
+    "mentions_24h":             "Retail mentions",
+    "mentions_inflection_pct":  "Mentions inflection",
+    "mentions_inflection_rank": "Mentions rank jump",
+    "ret_1m":                   "1m return",
+    "ret_1y":                   "1y return",
+    "ret_3m":                   "3m return",
+    "rvol_30d":                 "30d realized vol",
+    "rvol_90d":                 "90d realized vol",
+    "si_ratio":                 "Short interest",
+    "insider_pct":              "Insider ownership",
+    "inst_own_pct":             "Institutional ownership",
+    "theme_bonus":              "Theme heat",
+    "total_oi":                 "Options open interest",
+}
+
+# Tier → (background, label colour)
+_STRENGTH_BADGE_COLOR = {
+    "URGENT":   "#e74c3c",
+    "STRONG":   "#27ae60",
+    "MODERATE": "#f39c12",
+    "WEAK":     "#95a5a6",
+    "NONE":     "#bdc3c7",
+}
+
+
+def _signal_display_name(raw_name: str) -> str:
+    """Map a raw signal name (incl. legacy `_z` variants) to a human label."""
+    if not raw_name:
+        return "Signal"
+    if raw_name in _SIGNAL_DISPLAY_NAMES:
+        return _SIGNAL_DISPLAY_NAMES[raw_name]
+    # Strip trailing `_z` (legacy z-score columns) and try again.
+    if raw_name.endswith("_z"):
+        base = raw_name[:-2]
+        if base in _SIGNAL_DISPLAY_NAMES:
+            return _SIGNAL_DISPLAY_NAMES[base]
+    return raw_name.replace("_", " ").title()
+
+
+def _format_raw_value(name: str, value) -> str:
+    """Format a per-signal raw value for display per the spec.
+
+    Returns examples like '250 mentions', '+84.9% 1m', '132% rvol', '5.2x SI'.
+    """
+    if value is None:
+        return "—"
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if name in ("mentions_24h", "mentions_z"):
+        return f"{int(round(v))} mentions"
+    if name in ("mentions_inflection_pct",):
+        # raw_value is fractional pct (e.g. 0.84 == +84%)
+        return f"+{v * 100:.1f}% surge"
+    if name in ("mentions_inflection_rank",):
+        return f"+{int(round(v))} ranks"
+    if name in ("ret_1m", "ret_1y", "ret_3m"):
+        # bbg returns are stored as fractions (0.084 == +8.4%)
+        return f"{v * 100:+.1f}%"
+    if name in ("rvol_30d", "rvol_90d"):
+        # rvol stored as fraction (1.32 == 132%)
+        return f"{v * 100:.0f}% rvol"
+    if name in ("si_ratio",):
+        return f"{v:.1f}x SI"
+    if name in ("insider_pct", "inst_own_pct"):
+        return f"{v * 100:.1f}%"
+    if name in ("total_oi",):
+        return f"{int(round(v)):,} OI"
+    if name in ("theme_bonus",):
+        return f"+{v:.2f}"
+    # Default — let small numbers show as floats, large as ints with commas
+    if abs(v) < 100:
+        return f"{v:+.2f}"
+    return f"{int(round(v)):,}"
+
+
+def _format_age(age_days) -> tuple[str, str]:
+    """Return (label, color) for an age_days value. 'live' if < 1d."""
+    if age_days is None:
+        return ("", "#95a5a6")
+    try:
+        d = float(age_days)
+    except (TypeError, ValueError):
+        return ("", "#95a5a6")
+    if d < 1.0:
+        return ("live", "#27ae60")
+    n = int(round(d))
+    color = "#566573" if d <= 7 else ("#f39c12" if d <= 14 else "#e74c3c")
+    return (f"{n}d ago", color)
+
+
+def _normalize_signal_records(raw) -> list[dict]:
+    """Coerce the parquet-backed value into a clean list of dicts.
+
+    Survives None, NaN, list-of-dicts, list-of-tuples, and stringified JSON.
+    """
+    if raw is None:
+        return []
+    # pandas may have stored None/NaN as a scalar
+    try:
+        if isinstance(raw, float) and pd.isna(raw):
+            return []
+    except Exception:
+        pass
+    if isinstance(raw, str):
+        try:
+            import json
+            raw = json.loads(raw)
+        except Exception:
+            return []
+    if not isinstance(raw, (list, tuple)):
+        return []
+    out: list[dict] = []
+    for item in raw:
+        if isinstance(item, dict):
+            out.append(item)
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            # legacy (name, strength, raw_value, age_days)
+            out.append({
+                "name": item[0],
+                "strength": item[1],
+                "raw_value": item[2] if len(item) > 2 else None,
+                "age_days": item[3] if len(item) > 3 else None,
+            })
+    return out
+
+
+def _render_signals_panel(card: dict) -> str:
+    """Rich per-card signals panel — A3 tiered-signals aware.
+
+    Falls back to the legacy z-score breakdown if the new ``signal_records``
+    column is absent (older parquet builds).
+    """
+    records = _normalize_signal_records(card.get("signal_records"))
+    score = card.get("score")
+    pre_decay = card.get("composite_score_pre_decay")
+    strength = _safe_str(card.get("signal_strength")) or "WEAK"
+
+    # ---- Fallback: no signal_records → render legacy bar layout + note ----
+    if not records:
+        legacy = card.get("signals") or []
+        legacy_html = _render_signals_panel_legacy(legacy)
+        note = (
+            '<div style="color:#7f8c8d;font-size:10px;font-style:italic;'
+            'margin-top:6px;">Tiered signals not available in this build</div>'
+        )
+        return legacy_html + note
+
+    parts: list[str] = []
+
+    # ---- 1. Tier badge --------------------------------------------------
+    badge_color = _STRENGTH_BADGE_COLOR.get(strength.upper(), "#7f8c8d")
+    parts.append(
+        f'<div style="margin-bottom:8px;">'
+        f'<span style="background:{badge_color};color:white;padding:3px 10px;'
+        f'border-radius:11px;font-size:10px;font-weight:700;letter-spacing:0.6px;">'
+        f'{escape(strength.upper())}</span>'
+        f'</div>'
+    )
+
+    # ---- 2. Composite score + decay chip --------------------------------
+    score_chip = ""
+    if score is not None and not (isinstance(score, float) and pd.isna(score)):
+        try:
+            score_f = float(score)
+            score_chip = (
+                f'<span style="font-family:\'Courier New\',monospace;'
+                f'font-size:13px;font-weight:700;color:#1a1a2e;">'
+                f'{score_f:+.2f}</span>'
+                f'<span style="color:#7f8c8d;font-size:10px;margin-left:4px;">composite</span>'
+            )
+        except (TypeError, ValueError):
+            pass
+
+    decay_chip = ""
+    try:
+        if (pre_decay is not None and score is not None
+                and not pd.isna(pre_decay) and not pd.isna(score)
+                and abs(float(pre_decay)) > 1e-6):
+            pd_f = float(pre_decay)
+            sc_f = float(score)
+            decay_pct = (sc_f - pd_f) / abs(pd_f) * 100.0
+            if abs(decay_pct) >= 1.0:
+                color = "#e67e22" if decay_pct < 0 else "#27ae60"
+                sign = "" if decay_pct < 0 else "+"
+                decay_chip = (
+                    f'<span style="background:#fef5e7;color:{color};'
+                    f'padding:2px 7px;border-radius:8px;font-size:10px;'
+                    f'font-weight:600;margin-left:8px;">'
+                    f'{sign}{decay_pct:.0f}% decay vs pre</span>'
+                )
+    except (TypeError, ValueError):
+        pass
+
+    if score_chip or decay_chip:
+        parts.append(
+            f'<div style="margin-bottom:10px;">{score_chip}{decay_chip}</div>'
+        )
+
+    # ---- 3. Top 3 driving signals --------------------------------------
+    # Rank by tier first, then by absolute raw_value as a tiebreaker.
+    _tier_order = {"URGENT": 4, "STRONG": 3, "MODERATE": 2, "WEAK": 1, "NONE": 0}
+
+    def _rank_key(r):
+        tier = (r.get("strength") or "NONE").upper()
+        try:
+            rv = abs(float(r.get("raw_value") or 0.0))
+        except (TypeError, ValueError):
+            rv = 0.0
+        return (-_tier_order.get(tier, 0), -rv)
+
+    top_recs = sorted(records, key=_rank_key)[:3]
+
+    rows: list[str] = []
+    for r in top_recs:
+        name_raw = _safe_str(r.get("name"))
+        display = _signal_display_name(name_raw)
+        tier = (_safe_str(r.get("strength")) or "WEAK").upper()
+        tier_color = _STRENGTH_BADGE_COLOR.get(tier, "#95a5a6")
+        raw_str = _format_raw_value(name_raw, r.get("raw_value"))
+        age_label, age_color = _format_age(r.get("age_days"))
+
+        age_html = ""
+        if age_label:
+            age_html = (
+                f'<span style="color:{age_color};font-size:10px;'
+                f'margin-left:6px;font-style:italic;">{age_label}</span>'
+            )
+
+        rows.append(
+            f'<tr><td style="padding:4px 0;vertical-align:top;">'
+            f'<div style="font-size:11.5px;color:#1a1a2e;font-weight:600;'
+            f'line-height:1.3;">{escape(display)}'
+            f'<span style="background:{tier_color};color:white;'
+            f'padding:1px 6px;border-radius:8px;font-size:9px;'
+            f'font-weight:700;margin-left:6px;letter-spacing:0.3px;'
+            f'vertical-align:middle;">{escape(tier.lower())}</span>'
+            f'</div>'
+            f'<div style="font-family:\'Courier New\',monospace;font-size:11px;'
+            f'color:#566573;margin-top:1px;">{escape(raw_str)}{age_html}</div>'
+            f'</td></tr>'
+        )
+
+    if rows:
+        parts.append(
+            '<table cellpadding="0" cellspacing="0" border="0" width="100%">'
+            f'{"".join(rows)}</table>'
+        )
+
+    # Footer: total signal count if more than shown
+    if len(records) > len(top_recs):
+        parts.append(
+            f'<div style="color:#7f8c8d;font-size:10px;margin-top:6px;'
+            f'font-style:italic;">+{len(records) - len(top_recs)} more signal'
+            f'{"s" if len(records) - len(top_recs) > 1 else ""}</div>'
+        )
+
+    return "".join(parts)
+
+
+def _render_signals_panel_legacy(signals: list[tuple[str, float]]) -> str:
+    """Old z-score bar layout — used as fallback when signal_records absent."""
     if not signals:
         return ('<div style="color:#7f8c8d;font-size:11px;font-style:italic;">'
                 'No strong signal contributions.</div>')
@@ -1554,7 +1829,7 @@ def _render_card_v3(card: dict) -> str:
                   <span style="color:#1a1a2e;font-size:11px;font-weight:400;
                                margin-left:6px;">(score {card["score"]:+.2f},
                                 pct {card["score_pct"]:.0f})</span></div>
-                {_render_signals_panel(card["signals"])}
+                {_render_signals_panel(card)}
               </td>
             </tr>
             <tr>
