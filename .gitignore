@@ -23,6 +23,10 @@ backup/
 data/
 !data/rules/
 !data/DASHBOARD/bloomberg_daily_file.xlsm
+# Notable Voices — curated thought-leader quote layer (FB2). Small static
+# config + JSON, version-controlled so the renderer ships with content.
+!data/notable_voices/
+!data/notable_voices/**
 # screener/li_engine/data/ is a Python package (data-pull helpers), not the
 # top-level data/ artifact directory. Force-track it explicitly.
 !screener/li_engine/data/
