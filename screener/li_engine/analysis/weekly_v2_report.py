@@ -1311,7 +1311,14 @@ def _build_card_model(ticker: str, row: pd.Series, *,
     rex_filed = _safe_int(row.get("n_rex_filed_any")) or _safe_int(row.get("n_rex_products"))
     earliest = earliest_comp_lookup.get(ticker, {}) or {}
     risk_flags = _derive_risk_flags(ticker, row, prior_score=prior_score)
-    strength = _signal_strength(row)
+    # Prefer A3 tier from upstream signal_strength column when present;
+    # otherwise fall back to the legacy z-score-derived classifier.
+    a3_strength = None
+    if "signal_strength" in row.index:
+        raw = row.get("signal_strength")
+        if isinstance(raw, str) and raw.strip():
+            a3_strength = raw.strip().upper()
+    strength = a3_strength or _signal_strength(row)
     score = _safe_float(row.get("composite_score"))
     tier = _classify_tier(score, percentiles, strength, risk_flags, is_new_entrant)
     orientation = _classify_orientation(ticker, row, earliest, rex_filed_count=rex_filed)
@@ -1523,10 +1530,14 @@ def _normalize_signal_records(raw) -> list[dict]:
             raw = json.loads(raw)
         except Exception:
             return []
-    if not isinstance(raw, (list, tuple)):
+    # numpy arrays from parquet round-trips behave like sequences but aren't
+    # list/tuple; iterate anything that walks like a sequence.
+    try:
+        iterator = iter(raw)
+    except TypeError:
         return []
     out: list[dict] = []
-    for item in raw:
+    for item in iterator:
         if isinstance(item, dict):
             out.append(item)
         elif isinstance(item, (list, tuple)) and len(item) >= 2:
