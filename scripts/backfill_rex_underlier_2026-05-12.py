@@ -64,14 +64,46 @@ COMPANY_TO_TICKER = {
 }
 
 
+# Underlier sits AFTER the leverage word: "T-REX 2X LONG <SYM>". Allow up
+# to 12 chars so we catch ALPHABET / MICROSTRATEGY before falling to the
+# company-name map.
 _LEVERAGE_RE = re.compile(
-    r"\b(?:LONG|SHORT|INVERSE|BULL|BEAR)\s+([A-Z]{1,5})(?:\s+DAILY|\s+TARGET|\s+ETF|\s+MONTHLY|\b)",
+    r"\b(?:LONG|SHORT|INVERSE|BULL|BEAR)\s+([A-Z]{1,12})\b",
     re.IGNORECASE,
 )
-_INCOME_RE = re.compile(
-    r"\b([A-Z]{1,5})\s+(?:YIELD|INCOME|PREMIUM|COVERED\s+CALL)",
+# IncomeMax / Premium Income / G&I suites: "REX IncomeMax <SYM> Strategy"
+# or "REX <SYM> Income/Premium/G&I". Underlier always AFTER the suite token.
+_AFTER_SUITE_RE = re.compile(
+    r"(?:INCOMEMAX|PREMIUM\s+INCOME|GROWTH\s+(?:AND|&|&AMP;)\s+INCOME|G&AMP;I|G&I)"
+    r"\s+([A-Z]{1,8})(?:\s+STRATEGY|\s+ETF|\s+FUND|\b)",
     re.IGNORECASE,
 )
+# MicroSectors ETN suite: name pattern like "MicroSectors FANG+ Index"
+# or "MicroSectors -3x Gold Miners ETN". Underlier here is sector/index,
+# not a single ticker — backfill from a small explicit map below rather
+# than regex.
+_MICROSECTORS_HINTS = {
+    "FANG": "FANG+",
+    "GOLD MINERS": "GDX",
+    "SILVER MINERS": "SIL",
+    "GOLD": "GLD",
+    "SILVER": "SLV",
+    "OIL & GAS": "XOP",
+    "BIOTECH": "XBI",
+    "U.S. BIG OIL": "BIGOIL",
+    "U.S. BIG BANKS": "BIGBANK",
+    "STEEL": "SLX",
+    "REGIONAL BANKS": "KRE",
+    "TRAVEL": "TRVL",
+}
+
+_STOPWORDS = {
+    "AND", "THE", "FOR", "DAILY", "TARGET", "DAY", "ETF", "FUND", "TRUST",
+    "STRATEGY", "REX", "MICROSECTORS", "INCOMEMAX", "SUITE", "PORTFOLIO",
+    "INCOME", "PREMIUM", "GROWTH", "YIELD", "SECTOR", "EQUITY", "BOND",
+    "INDEX", "BUFFER", "DEFINED", "OUTCOME", "MONTHLY", "QUARTERLY",
+    "WEEKLY", "BULL", "BEAR", "LONG", "SHORT", "INVERSE", "DIRECT",
+}
 
 
 def derive_underlier(name: str) -> str | None:
@@ -79,24 +111,32 @@ def derive_underlier(name: str) -> str | None:
         return None
     n = name.upper()
 
-    # 1. Leverage pattern
+    # 1. Suite-name-anchored pattern (IncomeMax/Premium/G&I).
+    m = _AFTER_SUITE_RE.search(n)
+    if m:
+        cand = m.group(1).upper()
+        if cand not in _STOPWORDS:
+            return cand
+
+    # 2. Leverage pattern.
     m = _LEVERAGE_RE.search(n)
     if m:
         cand = m.group(1).upper()
-        # Skip false positives — common English words that match 1-5 alpha
-        if cand not in ("AND", "THE", "FOR", "DAILY", "TARGET", "DAY"):
-            return cand
+        if cand not in _STOPWORDS:
+            # If the captured token is a known long company name, resolve
+            # to its ticker. Otherwise return as-is.
+            return COMPANY_TO_TICKER.get(cand, cand)
 
-    # 2. Income / Yield pattern
-    m = _INCOME_RE.search(n)
-    if m:
-        cand = m.group(1).upper()
-        if cand not in ("AND", "THE", "FOR"):
-            return cand
+    # 3. MicroSectors-specific hints.
+    if "MICROSECTORS" in n:
+        for hint, ticker in _MICROSECTORS_HINTS.items():
+            if hint in n:
+                return ticker
 
-    # 3. Company-name spell-out
+    # 4. Company-name spell-out fallback (e.g. names that don't follow
+    #    the leverage pattern but mention the issuer).
     for company, ticker in COMPANY_TO_TICKER.items():
-        if company in n:
+        if company in n and company not in _STOPWORDS:
             return ticker
 
     return None
@@ -186,7 +226,7 @@ def main() -> int:
             c.execute(
                 "INSERT INTO capm_audit_log "
                 "(action, table_name, row_id, field_name, old_value, new_value, "
-                " row_label, changed_by, created_at) "
+                " row_label, changed_by, changed_at) "
                 "VALUES (?, 'rex_products', ?, 'underlier', NULL, ?, ?, ?, ?)",
                 ("UPDATE", row_id, derived, label, "underlier_backfill_2026-05-12", datetime.utcnow()),
             )
