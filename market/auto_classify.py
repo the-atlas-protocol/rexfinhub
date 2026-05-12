@@ -28,13 +28,29 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Classification:
-    """Auto-classification result for a single fund."""
+    """Auto-classification result for a single fund.
+
+    Legacy fields (strategy/confidence/reason/underlier_type/attributes) feed
+    the mkt_fund_classification table and the legacy strategy column on
+    mkt_master_data.
+
+    3-axis taxonomy fields (primary_strategy/asset_class/sub_strategy) feed
+    the audit-checked taxonomy columns on mkt_master_data. They are derived
+    from the legacy fields via _derive_three_axis_taxonomy() inside
+    classify_all(). Audit fix R2 (2026-05-11) — without these the daily
+    classify step left primary_strategy/asset_class/sub_strategy 100% NULL
+    even after "7,359 funds classified" log lines.
+    """
     ticker: str
     strategy: str
     confidence: str  # HIGH, MEDIUM, LOW
     reason: str
     underlier_type: str = ""
     attributes: dict[str, str] = field(default_factory=dict)
+    # 3-axis taxonomy (audit fix R2)
+    primary_strategy: str | None = None
+    asset_class: str | None = None
+    sub_strategy: str | None = None
 
 
 def classify_fund(row: pd.Series) -> Classification:
@@ -309,13 +325,14 @@ def classify_fund(row: pd.Series) -> Classification:
 def classify_all(etp_combined: pd.DataFrame) -> list[Classification]:
     """Classify all funds in the ETP dataset.
 
-    Pipeline: auto-classify each fund, then apply CSV rule overrides.
-    CSV rules are authoritative -- if a fund is in fund_mapping.csv,
-    its CSV category wins over auto-classify.
+    Pipeline: auto-classify each fund, then apply CSV rule overrides, then
+    derive the 3-axis taxonomy (primary_strategy / asset_class / sub_strategy)
+    so the writer can populate the audit-checked columns on mkt_master_data.
 
     Returns list of Classification objects, one per ticker.
     """
     results = []
+    row_lookup: dict[str, pd.Series] = {}
     seen = set()
     for _, row in etp_combined.iterrows():
         ticker = str(row.get("ticker", "")).strip()
@@ -323,9 +340,17 @@ def classify_all(etp_combined: pd.DataFrame) -> list[Classification]:
             continue
         seen.add(ticker)
         results.append(classify_fund(row))
+        row_lookup[ticker] = row
 
     # Apply CSV rule overrides (CSV is authoritative)
     results = apply_csv_overrides(results)
+
+    # Derive 3-axis taxonomy AFTER CSV overrides so it reflects final strategy.
+    # Audit fix R2 (2026-05-11) — see Classification docstring.
+    for c in results:
+        row = row_lookup.get(c.ticker)
+        if row is not None:
+            _derive_three_axis_taxonomy(c, row)
 
     # Summary
     strategy_counts = {}
@@ -334,6 +359,155 @@ def classify_all(etp_combined: pd.DataFrame) -> list[Classification]:
     log.info("Classified %d funds (after overrides): %s", len(results), strategy_counts)
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# 3-axis taxonomy derivation (audit fix R2 — 2026-05-11)
+# ---------------------------------------------------------------------------
+# The mapping logic below mirrors scripts/apply_classification_sweep.py::
+# derive_taxonomy but is intentionally duplicated rather than imported.
+# Reasons:
+#   1. scripts/ has no __init__.py and is not on sys.path in normal app flow.
+#   2. apply_classification_sweep imports webapp.database / webapp.models at
+#      module top — importing it here would break this module's "no webapp
+#      dependencies" guarantee (see top-of-file docstring).
+#   3. We only need the 3 audit-checked columns (primary_strategy,
+#      asset_class, sub_strategy), not the full 16-column sweep output.
+# If the sweep's mapping evolves, this duplicate must be kept in sync.
+
+# auto_classify.strategy -> primary_strategy
+_PRIMARY_STRATEGY_MAP: dict[str, str | None] = {
+    "Leveraged & Inverse": "L&I",
+    "Income / Covered Call": "Income",
+    "Defined Outcome": "Defined Outcome",
+    "Risk Management": "Risk Mgmt",
+    "Crypto": "Plain Beta",
+    "Fixed Income": "Plain Beta",
+    "Commodity": "Plain Beta",
+    "Alternative": "Plain Beta",
+    "Multi-Asset": "Plain Beta",
+    "Thematic": "Plain Beta",
+    "Sector": "Plain Beta",
+    "International": "Plain Beta",
+    "Broad Beta": "Plain Beta",
+    "Unclassified": None,
+}
+
+# Bloomberg asset_class_focus -> taxonomy asset_class
+_ASSET_CLASS_FOCUS_MAP: dict[str, str] = {
+    "Equity": "Equity",
+    "Fixed Income": "Fixed Income",
+    "Commodity": "Commodity",
+    "Currency": "Currency",
+    "Mixed Allocation": "Multi-Asset",
+    "Alternative": "Multi-Asset",
+    "Specialty": "Multi-Asset",
+    "Real Estate": "Equity",
+    "Money Market": "Fixed Income",
+}
+
+
+def _derive_three_axis_taxonomy(c: Classification, row: pd.Series) -> None:
+    """Populate primary_strategy, asset_class, sub_strategy on c in-place."""
+    name_upper = str(row.get("fund_name", "") or "").upper()
+    asset_class_focus = str(row.get("asset_class_focus", "") or "").strip()
+    is_crypto = str(row.get("is_crypto", "") or "").strip().lower()
+    underlying_idx = str(row.get("underlying_index", "") or "").upper()
+
+    # --- asset_class ---
+    if is_crypto == "cryptocurrency" or re.search(
+        r"\b(BITCOIN|ETHEREUM|SOLANA|XRP|RIPPLE|LITECOIN|DOGECOIN|CRYPTO|"
+        r"BLOCKCHAIN|DIGITAL\s*ASSET)\b", name_upper
+    ):
+        c.asset_class = "Crypto"
+    elif re.search(r"\b(VIX|VOLATIL)\b", name_upper) or "VIX" in underlying_idx:
+        c.asset_class = "Volatility"
+    elif re.search(r"\b(CURRENCY|FOREX|FX\b|DOLLAR|EURO\b|YEN|POUND)\b", name_upper):
+        c.asset_class = "Currency"
+    elif asset_class_focus:
+        c.asset_class = _ASSET_CLASS_FOCUS_MAP.get(asset_class_focus, "Equity")
+    else:
+        c.asset_class = "Equity"
+
+    # --- primary_strategy ---
+    c.primary_strategy = _PRIMARY_STRATEGY_MAP.get(c.strategy)
+
+    # --- sub_strategy ---
+    c.sub_strategy = _derive_sub_strategy_for_taxonomy(c, name_upper)
+
+
+def _derive_sub_strategy_for_taxonomy(c: Classification, name_upper: str) -> str | None:
+    """Derive sub_strategy per CLASSIFICATION_SYSTEM_PLAN.md sub-strategy tree.
+
+    Mirrors scripts/apply_classification_sweep.py::_derive_sub_strategy.
+    """
+    s = c.strategy
+    attrs = c.attributes or {}
+
+    if s == "Leveraged & Inverse":
+        d = str(attrs.get("direction", "")).lower()
+        if d == "bear":
+            return "Short"
+        if re.search(r"\b(RSST|RSSY|RSBT|STACK)\b", name_upper):
+            return "Stacked Returns"
+        return "Long"
+
+    if s == "Income / Covered Call":
+        if re.search(r"\bAUTOCALL", name_upper):
+            return "Structured Product Income > Autocallable"
+        if re.search(r"\b(COVERED\s*CALL|BUYWRITE|BUY[\s-]*WRITE|YIELDMAX|YIELDBOOST|0DTE|ODTE)\b", name_upper):
+            return "Derivative Income > Covered Call"
+        if re.search(r"\bPUT[\s-]*WRITE\b", name_upper):
+            return "Derivative Income > Put-Write"
+        if re.search(r"\b(WEEKLYPAY|WEEKLY\s*PAY)\b", name_upper):
+            return "Derivative Income > 0DTE / Weekly"
+        if re.search(r"\bCOLLAR", name_upper):
+            return "Derivative Income > Collared"
+        return "Derivative Income > Covered Call"
+
+    if s == "Defined Outcome":
+        outcome = str(attrs.get("outcome_type", "")).lower()
+        if "buffer" in outcome or "BUFFER" in name_upper:
+            return "Buffer"
+        if "floor" in outcome or "FLOOR" in name_upper:
+            return "Floor"
+        if "accelerat" in outcome or "ACCELERAT" in name_upper:
+            return "Growth"
+        if "barrier" in outcome or "BARRIER" in name_upper:
+            return "Buffer"
+        if "DUAL DIRECTIONAL" in name_upper:
+            return "Dual Directional"
+        if "BOX SPREAD" in name_upper or "TAX-AWARE COLLATERAL" in name_upper:
+            return "Box Spread"
+        return "Buffer"
+
+    if s == "Risk Management":
+        risk = str(attrs.get("risk_type", "")).lower()
+        if "tail" in risk:
+            return "Risk-Adaptive"
+        if "merger" in risk:
+            return "Risk-Adaptive"
+        if "bear" in risk:
+            return "Hedged Equity"
+        return "Hedged Equity"
+
+    if s == "Crypto":
+        return "Single-Access"
+
+    if s == "Sector":
+        return "Sector"
+    if s == "International":
+        return "Broad"
+    if s == "Thematic":
+        return "Thematic"
+    if s in ("Fixed Income", "Commodity", "Multi-Asset", "Alternative"):
+        return "Broad"
+    if s == "Broad Beta":
+        if re.search(r"\b(VALUE|GROWTH|QUALITY|MOMENTUM|LOW[\s-]*VOL|DIVIDEND\s+ARISTOCRATS)\b", name_upper):
+            return "Style"
+        return "Broad"
+
+    return None
 
 
 def apply_csv_overrides(

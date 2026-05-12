@@ -237,25 +237,46 @@ def write_classifications(
     session.flush()
     log.info("mkt_fund_classification: %d rows written", count)
 
-    # Sync classification columns back to mkt_master_data
-    # Build a lookup: ticker -> (strategy, confidence, underlier_type)
-    class_lookup = {
-        c.ticker: (c.strategy, c.confidence, c.underlier_type)
-        for c in classifications
-    }
+    # Sync classification columns back to mkt_master_data.
+    # Includes the legacy strategy column AND the 3-axis taxonomy columns
+    # (primary_strategy / asset_class / sub_strategy). Audit fix R2
+    # (2026-05-11) — without the 3-axis writes, those columns stayed 100% NULL
+    # even after "N funds classified" daily-pipeline log lines.
+    class_lookup = {c.ticker: c for c in classifications}
 
     updated = 0
+    taxonomy_filled = 0
     for master_row in session.query(MktMasterData).all():
-        if master_row.ticker in class_lookup:
-            strategy, confidence, underlier_type = class_lookup[master_row.ticker]
-            master_row.strategy = strategy
-            master_row.strategy_confidence = confidence
-            master_row.underlier_type = underlier_type
-            updated += 1
+        c = class_lookup.get(master_row.ticker)
+        if c is None:
+            continue
+        # Legacy columns (preserve existing behavior)
+        master_row.strategy = c.strategy
+        master_row.strategy_confidence = c.confidence
+        master_row.underlier_type = c.underlier_type
+        # 3-axis taxonomy columns — only write if classifier produced a value,
+        # so we never null-out a curated row when the classifier abstains.
+        wrote_taxonomy = False
+        if c.primary_strategy:
+            master_row.primary_strategy = c.primary_strategy
+            wrote_taxonomy = True
+        if c.asset_class:
+            master_row.asset_class = c.asset_class
+            wrote_taxonomy = True
+        if c.sub_strategy:
+            master_row.sub_strategy = c.sub_strategy
+            wrote_taxonomy = True
+        if wrote_taxonomy:
+            taxonomy_filled += 1
+        updated += 1
 
     if updated:
         session.flush()
-    log.info("mkt_master_data: %d rows updated with classification data", updated)
+    log.info(
+        "mkt_master_data: %d rows updated with classification data "
+        "(%d also got 3-axis taxonomy)",
+        updated, taxonomy_filled,
+    )
 
     return count
 
