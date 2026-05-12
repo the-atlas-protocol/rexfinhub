@@ -51,6 +51,44 @@ log = logging.getLogger("prebake")
 
 DEFAULT_RENDER_URL = "https://rex-etp-tracker.onrender.com"
 LOCAL_BAKE_DIR = PROJECT_ROOT / "data" / "prebaked_reports"
+WEEKLY_THESES_DIR = PROJECT_ROOT / "data" / "weekly_theses"
+
+
+def _load_latest_weekly_theses() -> dict:
+    """Return the most recent <YYYY-MM-DD>.json under data/weekly_theses/.
+
+    Returns an empty dict if the directory or any file is missing/invalid.
+    Manual override files (suffix `_manual.json`) are NOT used here — the
+    generator script already merges them into the cache before save.
+
+    Builders that want theses can pull this dict via the `WEEKLY_THESES`
+    module attribute (set in `main()`).
+    """
+    if not WEEKLY_THESES_DIR.exists():
+        return {}
+    candidates = sorted(
+        p for p in WEEKLY_THESES_DIR.glob("*.json")
+        if not p.stem.endswith("_manual")
+    )
+    if not candidates:
+        return {}
+    latest = candidates[-1]
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        log.warning("weekly_theses cache at %s is invalid: %s", latest, exc)
+        return {}
+    if not isinstance(payload, dict) or "theses" not in payload:
+        return {}
+    log.info(
+        "Loaded weekly theses: %s (%d ticker(s), week_of=%s)",
+        latest.name, len(payload.get("theses") or {}), payload.get("week_of"),
+    )
+    return payload
+
+
+# Populated in main() so builders can `from scripts.prebake_reports import WEEKLY_THESES`.
+WEEKLY_THESES: dict = {}
 
 
 def _load_api_key() -> str:
@@ -204,6 +242,11 @@ def main():
     )
 
     from webapp.database import init_db, SessionLocal
+
+    # Load weekly LLM theses (B3) once, expose to builders that opt in
+    # via `from scripts.prebake_reports import WEEKLY_THESES`.
+    global WEEKLY_THESES
+    WEEKLY_THESES = _load_latest_weekly_theses()
 
     init_db()
     db = SessionLocal()
