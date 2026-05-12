@@ -328,16 +328,15 @@ def build() -> pd.DataFrame:
             row["competitor_filed_short"] = 0
             row["competitor_filed_total"] = 0
 
-        # Add signal data
+        # Add bbg signal data — `has_signals` is now derived downstream by
+        # annotate_signal_strength rather than being set here as a binary
+        # "did bbg return a row?" flag. (See A3 upgrade.)
         if u in signals.index:
             sig = signals.loc[u]
             for col in ("market_cap", "total_oi", "rvol_30d", "rvol_90d",
                         "ret_1m", "ret_3m", "ret_1y", "si_ratio", "insider_pct",
                         "inst_own_pct", "sector"):
                 row[col] = sig.get(col)
-            row["has_signals"] = True
-        else:
-            row["has_signals"] = False
 
         rows.append(row)
 
@@ -346,9 +345,19 @@ def build() -> pd.DataFrame:
     # Score using same methodology as v3
     if not df.empty:
         from screener.li_engine.analysis.whitespace_v3 import compute_score_v3
-        from screener.li_engine.analysis.whitespace_v2 import load_themes, load_apewisdom_map
+        from screener.li_engine.analysis.whitespace_v2 import (
+            load_themes, load_apewisdom_full_map,
+        )
+        from screener.li_engine.analysis.signal_strength import (
+            annotate_signal_strength, signal_strength_multiplier,
+        )
+
         themes = load_themes()
-        mentions = load_apewisdom_map(set(df.index))
+        # Single ApeWisdom fetch — feed the rich blob to the strength
+        # annotator and the legacy mentions-only int to the v3 scorer.
+        ape_full = load_apewisdom_full_map(set(df.index))
+        mentions = {t: blob["mentions_24h"] for t, blob in ape_full.items()}
+
         df = compute_score_v3(df, themes, mentions)
 
         # ------------------------------------------------------------------
@@ -426,6 +435,10 @@ def main():
         print()
         print(f"Stale (>{REX_FILING_STALE_DAYS}d since last REX filing): "
               f"{int(df['is_stale_filing'].sum())} of {len(df)} candidates")
+
+        if "signal_strength" in df.columns:
+            print("\nsignal_strength distribution (full result):")
+            print(df["signal_strength"].value_counts(dropna=False).to_string())
 
 
 if __name__ == "__main__":
