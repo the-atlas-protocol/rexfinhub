@@ -213,6 +213,20 @@ table.pipeline-table tr:hover { background:#fafbfc; }
 .ticker-col { font-family:monospace; font-weight:700; color:#1F3864; }
 .name-col { max-width:300px; overflow:hidden; text-overflow:ellipsis; }
 
+/* Empty-ticker suggestion chips (O5) — green=reserved, yellow=available,
+   gray=taken/unknown. Sized to feel like a ticker, not a badge. */
+.ticker-chip {
+  display:inline-block; padding:2px 7px; border-radius:3px;
+  font-family:monospace; font-size:11px; font-weight:700;
+  text-decoration:none; border:1px solid transparent;
+  letter-spacing:0.02em;
+}
+.ticker-chip:hover { filter:brightness(0.97); text-decoration:none; }
+.ticker-chip.chip-reserved  { background:#dcfce7; color:#166534; border-color:#86efac; }
+.ticker-chip.chip-available { background:#fef9c3; color:#854d0e; border-color:#fde68a; }
+.ticker-chip.chip-taken     { background:#f1f5f9; color:#475569; border-color:#e2e8f0; cursor:default; }
+.ticker-chip.chip-unknown   { background:#f8fafc; color:#94a3b8; border-color:#e2e8f0; cursor:default; font-weight:500; }
+
 .status-pill {
   display:inline-block; padding:2px 8px; border-radius:3px;
   font-size:10px; font-weight:600; text-transform:uppercase;
@@ -696,7 +710,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
         {% set p = row.p %}
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
         <tr data-id="{{ p.id }}">
-          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
+          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}{% set sug = ticker_suggestions.get(p.id) if ticker_suggestions else None %}{% if sug and sug.suggested_ticker %}{% if sug.link_href %}<a href="{{ sug.link_href }}" class="ticker-chip {{ sug.chip_class }}" title="{{ sug.tooltip }}">{{ sug.suggested_ticker }}</a>{% else %}<span class="ticker-chip {{ sug.chip_class }}" title="{{ sug.tooltip }}">{{ sug.suggested_ticker }}</span>{% endif %}{% else %}<span class="ticker-chip chip-unknown" title="{{ (sug.tooltip if sug else 'No suggestion available') }}">---</span>{% endif %}{% endif %}</td>
           <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}</td>
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
           {% set s_color = status_colors.get(p.status, '#64748b') %}
