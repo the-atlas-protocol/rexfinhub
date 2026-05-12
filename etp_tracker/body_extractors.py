@@ -32,9 +32,12 @@ _BODY_BAD_TICKERS = {
     "COL", "ROW", "ITEM", "PAGE", "NUM", "TOTAL", "NULL",
     "N/A", "NA", "NONE", "NAN", "TBD", "TBA",
     # English connectives / determiners commonly found in tabular cells
-    "ALL", "AND", "OR", "OF", "THE", "FOR", "WITH", "BY",
-    # Currency / generic finance abbreviations
-    "USD", "EUR", "GBP", "JPY", "CAD", "AUD",
+    # Removed AND, OR, USD, JPY — these are LEGITIMATE tickers (FTSE Andean 40,
+    # ProShares Ultra Semiconductors USD, Lazard Japanese Equity ETF JPY).
+    # Forward-only audit verifier found this regression.
+    "ALL", "OF", "THE", "FOR", "WITH", "BY",
+    # Currency abbreviations only when they're clearly currency labels (kept few)
+    "EUR", "GBP", "CAD", "AUD",
     # Generic fund-related words
     "ETF", "ETN", "FUND", "FUNDS", "TRUST", "CLASS", "SHARE", "SHARES",
     "RISK", "MEMBER", "DAILY", "TARGET", "INC", "LLC", "COM",
