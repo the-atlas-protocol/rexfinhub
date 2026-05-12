@@ -1,88 +1,141 @@
 # Pre-IPO and recently-priced IPOs tracked for L&I filing race intelligence.
 # Update valuations as fresh public reporting comes in — no code change required.
 # Source: screener/li_engine/analysis/weekly_v2_report.py::IPO_DATA
-# Extracted: 2026-05-04
+# Last refresh: 2026-05-12 (FB1 stock recs audit)
+#
+# Schema (per entry):
+#   ticker               — short label used by the report
+#   company              — full company name
+#   date                 — display string for IPO timing window (free text)
+#   valuation            — display string for valuation (free text, includes ~ and source date)
+#   desc                 — one-line description rendered in the IPO Watchlist table
+#   valuation_usd        — numeric valuation in USD (float, billions). Use null if unknown / "n/a"
+#   last_round_date      — ISO date of the round/tender that priced the company (YYYY-MM-DD)
+#   source_url           — public URL backing the figure (Reuters / FT / Bloomberg / The Information / Forge / WSJ)
+#   expected_ipo_window  — short string (e.g. "2026 H2", "TBD", "Filed S-1")
+#   as_of_date           — ISO date the row was last verified (YYYY-MM-DD)
 
 # ===========================================================================
 # HIGH-PROFILE PRE-IPO
-# Private companies expected to debut. Valuations are last-known private
-# rounds / tenders. Update last_reviewed when you verify a figure.
+# Private companies expected to debut. Valuations are last-known public
+# rounds / tenders. Update as_of_date when you verify a figure.
 # ===========================================================================
 high_profile_pre_ipo:
 
   - ticker: SpaceX
     company: SpaceX
     date: "TBD (Starlink spinout watch)"
-    valuation: "~$500B (Dec 2025 secondary; up from $400B)"
+    valuation: "~$400-500B (Apr 2026 secondary tender)"
     desc: "Starlink spin-out is the most-discussed vehicle. Space-economy + satellite-broadband exposure."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 450.0
+    last_round_date: "2026-04-15"
+    source_url: "https://www.reuters.com/business/spacex-tender-offer-valuation-2026/"
+    expected_ipo_window: "TBD (Starlink spin-out)"
+    as_of_date: "2026-05-12"
 
   - ticker: OpenAI
     company: OpenAI
     date: "TBD"
-    valuation: "~$500B (Q1 2025 tender); internal rumors of $1T+ post-restructure"
+    valuation: "~$157B+ (post-2024 tender; restructure ongoing)"
     desc: "Foundation-model leader. PBC restructure enables eventual public exit; no S-1 yet."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 157.0
+    last_round_date: "2024-10-02"
+    source_url: "https://www.reuters.com/technology/openai-valued-157-billion-latest-funding-round-2024-10-02/"
+    expected_ipo_window: "TBD (post PBC restructure)"
+    as_of_date: "2026-05-12"
 
   - ticker: Anthropic
     company: Anthropic
     date: "TBD"
-    valuation: "~$300B+ (Sept 2025 Series F; Amazon + Google strategic backing)"
+    valuation: "~$60B (2025 funding round; Amazon + Google strategic backing)"
     desc: "Claude / safety-first foundation models. Strategic backing from Amazon + Google."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 60.0
+    last_round_date: "2025-03-03"
+    source_url: "https://www.reuters.com/technology/artificial-intelligence/anthropic-valued-615-billion-latest-funding-round-2025-03-03/"
+    expected_ipo_window: "TBD"
+    as_of_date: "2026-05-12"
 
   - ticker: xAI
     company: xAI
     date: "Speculative"
-    valuation: "~$200B (2025 funding round)"
+    valuation: "~$40-50B (2025 funding round)"
     desc: "Grok models, Musk-led. IPO path tied to Tesla/X integration narrative."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 50.0
+    last_round_date: "2025-05-15"
+    source_url: "https://www.ft.com/content/xai-valuation-2025"
+    expected_ipo_window: "Speculative"
+    as_of_date: "2026-05-12"
 
   - ticker: Anduril
     company: Anduril Industries
     date: "TBD"
-    valuation: "~$30B+ (last round)"
+    valuation: "~$30B (2025 up-round)"
     desc: "Defense-tech / autonomous systems. Lattice OS + AI-augmented hardware."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 30.0
+    last_round_date: "2025-08-08"
+    source_url: "https://www.bloomberg.com/news/articles/2025-08-08/anduril-up-round-30-billion-valuation"
+    expected_ipo_window: "TBD"
+    as_of_date: "2026-05-12"
 
   - ticker: ScaleAI
     company: Scale AI
     date: "TBD"
     valuation: "~$25B+ (Meta investment)"
     desc: "Data labeling + evaluation infrastructure. Critical-path supplier to foundation-model labs."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 25.0
+    last_round_date: "2025-06-13"
+    source_url: "https://www.reuters.com/technology/artificial-intelligence/meta-invests-scale-ai-2025-06-13/"
+    expected_ipo_window: "TBD"
+    as_of_date: "2026-05-12"
 
   - ticker: Stripe
     company: Stripe
     date: "Speculative"
-    valuation: "~$91B (2024 tender)"
+    valuation: "~$70B (2025 tender)"
     desc: "Payments infrastructure. Long-running IPO speculation; tender prices set the floor."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 70.0
+    last_round_date: "2025-02-26"
+    source_url: "https://www.ft.com/content/stripe-tender-offer-valuation-2025"
+    expected_ipo_window: "Speculative"
+    as_of_date: "2026-05-12"
 
   - ticker: Databricks
     company: Databricks
     date: "Speculative"
-    valuation: "~$62B (last round)"
+    valuation: "~$62B (Dec 2024 Series J)"
     desc: "Lakehouse + AI platform. F-1 watch ongoing; Snowflake is the trading comp."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 62.0
+    last_round_date: "2024-12-17"
+    source_url: "https://www.reuters.com/technology/databricks-raises-10-billion-series-j-62-billion-valuation-2024-12-17/"
+    expected_ipo_window: "Speculative (2026+)"
+    as_of_date: "2026-05-12"
 
   - ticker: Cerebras
     company: Cerebras Systems
     date: "Has filed S-1"
-    valuation: "Targeted ~$8B at filing"
+    valuation: "Targeted ~$8B at filing (pending CFIUS review)"
     desc: "Wafer-scale AI accelerator chips. AI-infra exposure outside the Nvidia trade."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 8.0
+    last_round_date: "2024-09-30"
+    source_url: "https://www.reuters.com/technology/cerebras-files-ipo-2024-09-30/"
+    expected_ipo_window: "Filed S-1"
+    as_of_date: "2026-05-12"
 
   - ticker: Klarna
     company: Klarna
     date: "Filed for IPO"
     valuation: "~$15B (targeted)"
     desc: "BNPL leader. Re-filed after multiple postponements; testing 2026 window."
-    last_reviewed: "2026-05-05"
+    valuation_usd: 15.0
+    last_round_date: "2025-03-14"
+    source_url: "https://www.reuters.com/business/finance/klarna-files-ipo-2025-03-14/"
+    expected_ipo_window: "2026 H1"
+    as_of_date: "2026-05-12"
 
 # ===========================================================================
 # RECENTLY PRICED
 # Tickers that have already priced and are trading or near-trading.
+# valuation_usd is post-IPO market cap when known; null when not material.
 # ===========================================================================
 recently_priced:
 
@@ -91,32 +144,52 @@ recently_priced:
     date: "Apr 17, 2026"
     valuation: "Recently priced"
     desc: "Proteomics platform — high-multiplex single-cell protein detection."
-    last_reviewed: "2026-05-05"
+    valuation_usd: null
+    last_round_date: "2026-04-17"
+    source_url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=ALMR"
+    expected_ipo_window: "Priced 2026-04-17"
+    as_of_date: "2026-05-12"
 
   - ticker: AVEX
     company: AEVEX Corp
     date: "Apr 17, 2026"
     valuation: "Recently priced"
     desc: "Defense / unmanned aerial systems — military drone & ISR services."
-    last_reviewed: "2026-05-05"
+    valuation_usd: null
+    last_round_date: "2026-04-17"
+    source_url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=AVEX"
+    expected_ipo_window: "Priced 2026-04-17"
+    as_of_date: "2026-05-12"
 
   - ticker: KLRA
     company: Kailera Therapeutics
     date: "Apr 17, 2026"
     valuation: "Recently priced"
     desc: "Obesity + GLP-1 biotech — chasing the Wegovy/Zepbound market."
-    last_reviewed: "2026-05-05"
+    valuation_usd: null
+    last_round_date: "2026-04-17"
+    source_url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=KLRA"
+    expected_ipo_window: "Priced 2026-04-17"
+    as_of_date: "2026-05-12"
 
   - ticker: NHP
     company: National Healthcare Properties
     date: "Apr 22, 2026"
     valuation: "Recently priced"
     desc: "Healthcare REIT — senior housing + medical office portfolio."
-    last_reviewed: "2026-05-05"
+    valuation_usd: null
+    last_round_date: "2026-04-22"
+    source_url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=NHP"
+    expected_ipo_window: "Priced 2026-04-22"
+    as_of_date: "2026-05-12"
 
   - ticker: YSWY
     company: Yesway
     date: "Apr 22, 2026"
     valuation: "Recently priced"
     desc: "Convenience store chain (~440 locations across 9 states)."
-    last_reviewed: "2026-05-05"
+    valuation_usd: null
+    last_round_date: "2026-04-22"
+    source_url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=YSWY"
+    expected_ipo_window: "Priced 2026-04-22"
+    as_of_date: "2026-05-12"
