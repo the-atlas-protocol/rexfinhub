@@ -14,8 +14,11 @@ import pandas as pd
 from market.auto_classify import classify_fund, Classification
 from market.config import RULES_DIR as _CONFIG_RULES_DIR
 
-# Write to data/rules/ (source of truth), not config/rules/ (git-tracked copy)
-RULES_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "rules"
+# Write to config/rules/ — the single source of truth consumed by the live site,
+# market/config.py, webapp/routers/admin.py, and the mkt_* DB tables.
+# (Previously wrote to data/rules/ which was a split-brain copy invisible to
+# every other consumer; see docs/audit_2026-05-11/fix_R6.md.)
+RULES_DIR = _CONFIG_RULES_DIR
 
 log = logging.getLogger(__name__)
 

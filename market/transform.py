@@ -135,19 +135,67 @@ def step5_apply_issuer_mapping(df: pd.DataFrame, issuer_mapping: pd.DataFrame) -
 def step6_apply_category_attributes(
     df: pd.DataFrame, category_attributes: pd.DataFrame
 ) -> pd.DataFrame:
-    """Step 6: Join category attributes on ticker to add map_* columns."""
+    """Step 6: Join per-category attribute CSVs on (ticker, etp_category).
+
+    Each attributes_<CAT>.csv carries map_* columns scoped to a single etp_category.
+    We re-load the per-category files here so we can join on (ticker, etp_category)
+    rather than ticker alone — joining on ticker only causes cross-category leakage
+    where, e.g., a Crypto-classified fund pulls in attributes_Thematic.csv rows
+    that happen to share the same ticker (see fix_R6).
+
+    The `category_attributes` parameter (the unified outer-merged DataFrame from
+    rules.load_category_attributes) is accepted only to keep the call signature
+    stable and to short-circuit when there are no attributes to apply.
+    """
     if category_attributes.empty:
         log.info("[6/12] category_attributes empty, skipped")
         return df
 
-    # Prefix attribute columns for output format
-    attrs = category_attributes.copy()
-    attr_cols = [c for c in attrs.columns if c != "ticker"]
-    attr_rename = {c: f"{ATTR_PREFIX}{c}" for c in attr_cols}
-    attrs = attrs.rename(columns=attr_rename)
+    # Re-load per-category files so we know which etp_category each attribute row
+    # belongs to. Source-of-truth lives in market.config.RULES_DIR.
+    from market.config import RULES_DIR, RULE_FILES, CATEGORY_ATTR_MAP
 
-    df = df.merge(attrs, on="ticker", how="left")
-    log.info("[6/12] category_attributes applied: %d attribute columns", len(attr_cols))
+    if "etp_category" not in df.columns:
+        # Defensive: step3 should have added this. Without it we cannot do a
+        # category-aware join, so fall back to the old ticker-only behaviour.
+        log.warning("[6/12] etp_category missing from df — falling back to ticker join")
+        attrs = category_attributes.copy()
+        attr_cols = [c for c in attrs.columns if c != "ticker"]
+        attr_rename = {c: f"{ATTR_PREFIX}{c}" for c in attr_cols}
+        attrs = attrs.rename(columns=attr_rename)
+        return df.merge(attrs, on="ticker", how="left")
+
+    total_attr_cols = 0
+    for cat, expected_cols in CATEGORY_ATTR_MAP.items():
+        fname = RULE_FILES.get(f"attributes_{cat}")
+        if not fname:
+            continue
+        path = RULES_DIR / fname
+        if not path.exists():
+            continue
+
+        cat_attrs = pd.read_csv(path, engine="python", on_bad_lines="skip")
+        if cat_attrs.empty or "ticker" not in cat_attrs.columns:
+            continue
+
+        # Keep only the expected attribute columns for this category
+        keep_cols = ["ticker"] + [c for c in expected_cols if c in cat_attrs.columns]
+        cat_attrs = cat_attrs[keep_cols].dropna(subset=["ticker"]).drop_duplicates(subset=["ticker"])
+
+        # Tag with the source category so the join is (ticker, etp_category)
+        cat_attrs["etp_category"] = cat
+        cat_attrs["ticker"] = cat_attrs["ticker"].astype(str).str.strip()
+
+        # Prefix attribute columns for output format
+        attr_cols = [c for c in cat_attrs.columns if c not in ("ticker", "etp_category")]
+        attr_rename = {c: f"{ATTR_PREFIX}{c}" for c in attr_cols}
+        cat_attrs = cat_attrs.rename(columns=attr_rename)
+
+        df = df.merge(cat_attrs, on=["ticker", "etp_category"], how="left")
+        total_attr_cols += len(attr_cols)
+
+    log.info("[6/12] category_attributes applied (category-aware): %d attribute columns",
+             total_attr_cols)
     return df
 
 

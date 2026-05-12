@@ -474,7 +474,7 @@ TTXD US,Equity,Index/Basket/ETF Based,Short,2.0,
 TTXU US,Equity,Index/Basket/ETF Based,Long,2.0,
 TWM US,Equity,Index/Basket/ETF Based,Short,2.0,
 TXXD US,Crypto,Single Stock,Long,2.0,XDGUSD Curncy
-TXXS US,Crypto,Single Stock,Long,2.0,
+TXXS US,Crypto,Single Stock,Long,2.0,XSUIUSD Curncy
 TYD US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
 TYO US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
 TZA US,Equity,Index/Basket/ETF Based,Short,3.0,
@@ -876,3 +876,21 @@ STLR US,Equity,Index/Basket/ETF Based,Long,,
 CRDX US,Equity,Index/Basket/ETF Based,Long,2.0,
 STLU US,Equity,Index/Basket/ETF Based,Long,2.0,
 CHNU US,Equity,Index/Basket/ETF Based,Long,2.0,
+XAIL US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+UCOP US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPLT US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPAL US,Equity,Index/Basket/ETF Based,Long,2.0,
+STXL US,Equity,Index/Basket/ETF Based,Long,2.0,
+MPWX US,Equity,Single Stock,Long,2.0,MPWR
+STXX US,Equity,Single Stock,Long,2.0,STX
+CPNX US,Equity,Single Stock,Long,2.0,CPNG
+LITZ US,Equity,Single Stock,Short,2.0,LITE
+SNDQ US,Equity,Single Stock,Short,2.0,SNDK
+AXTX US,Equity,Single Stock,Long,2.0,AXTI
+AMA US,Equity,Single Stock,Long,2.0,AMAT
+XOVL US,Equity,Index/Basket/ETF Based,Long,2.0,
+AXTU US,Equity,Single Stock,Long,2.0,AXTI
+KRK US,Equity,Index/Basket/ETF Based,Long,2.0,
+HXSL US,Equity,Index/Basket/ETF Based,Long,2.0,
+AMPU US,Equity,Index/Basket/ETF Based,Long,2.0,
+AMKL US,Equity,Index/Basket/ETF Based,Long,2.0,

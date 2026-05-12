@@ -42,6 +42,12 @@ EOSU US,T-REX
 RDWU US,T-REX
 FGRU US,T-REX
 APHU US,T-REX
+SNDU US,T-REX
+PAAU US,T-REX
+SPOU US,T-REX
+BBUP US,T-REX
+FIGO US,T-REX
+BNBR US,Crypto
 FNGU US,MicroSectors
 GDXU US,MicroSectors
 BULZ US,MicroSectors
@@ -83,9 +89,9 @@ GIF US,Growth & Income
 ULTI US,IncomeMax
 ATCL US,Autocallable
 TLDR US,T-Bill
-DRNZ US,DRNZ
+DRNZ US,Thematic
 BMAX US,Thematic
-FEPI LN,London
-FEGI LN,London
-CEGI LN,London
+FEPI LN,Equity Premium Income
+FEGI LN,Equity Premium Income
+CEGI LN,Equity Premium Income
 FNGA US,MicroSectors
