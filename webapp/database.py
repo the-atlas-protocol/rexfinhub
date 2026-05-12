@@ -165,6 +165,14 @@ def init_db():
         AutocallIndexMetadata, AutocallIndexLevel,
         AutocallCrisisPreset, AutocallSweepCache,
         RecommendationHistory,  # Wave E1 (2026-05-11) — stock-rec self-grading
+        # Audit-log coverage fix (2026-05-12): these tables were silently
+        # missing from create_all() on first boot because they weren't
+        # imported here. Adding them explicitly so init_db() materializes
+        # the full audit/proposal/reserved-symbol surface on a fresh DB.
+        ClassificationAuditLog, ClassificationProposal,
+        ReservedSymbol, ApiAuditLog,
+        # New audit tables landing in the same fix.
+        ReservedSymbolAuditLog, RexProductStatusHistory,
     )
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()

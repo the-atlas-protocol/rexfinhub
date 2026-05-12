@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import logging
 from datetime import date, datetime
 
@@ -19,7 +20,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
-from webapp.models import ReservedSymbol
+from webapp.models import ReservedSymbol, ReservedSymbolAuditLog
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/operations/reserved-symbols", tags=["operations-reserved"])
@@ -35,6 +36,38 @@ def _safe_date(s: str | None) -> date | None:
         return date.fromisoformat(s[:10])
     except (TypeError, ValueError):
         return None
+
+
+def _jsonable(v):
+    """Coerce a value into something json.dumps will accept."""
+    if isinstance(v, (date, datetime)):
+        return v.isoformat()
+    return v
+
+
+def _audit(
+    db: Session,
+    *,
+    action: str,
+    reserved_symbol_id: int | None,
+    changes: dict | None,
+    actor: str | None,
+) -> None:
+    """Insert a reserved_symbols_audit_log row. Caller commits.
+
+    Defensive: never raises — audit failure must not block the user write.
+    Mirrors the convention used in webapp/routers/capm.py:_audit_log().
+    """
+    try:
+        entry = ReservedSymbolAuditLog(
+            reserved_symbol_id=reserved_symbol_id,
+            action=action,
+            changes=json.dumps(changes, default=str) if changes else None,
+            actor=actor or "admin",
+        )
+        db.add(entry)
+    except Exception as e:  # pragma: no cover — defensive
+        log.warning("Reserved-symbol audit insert failed (non-fatal): %s", e)
 
 
 @router.get("", response_class=HTMLResponse)
@@ -142,6 +175,7 @@ def reserved_symbol_update(row_id: int, request: Request, db: Session = Depends(
     INT_FIELDS = {"linked_filing_id", "linked_product_id"}
 
     changed = []
+    diff: dict[str, list] = {}  # {field: [old, new]} — feeds audit log
     for field, value in payload.items():
         if field not in EDITABLE:
             continue
@@ -159,11 +193,19 @@ def reserved_symbol_update(row_id: int, request: Request, db: Session = Depends(
 
         old_val = getattr(row, field)
         if old_val != new_val:
+            diff[field] = [_jsonable(old_val), _jsonable(new_val)]
             setattr(row, field, new_val)
             changed.append(field)
 
     if changed:
         row.updated_at = datetime.utcnow()
+        _audit(
+            db,
+            action="UPDATE",
+            reserved_symbol_id=row.id,
+            changes=diff,
+            actor=request.session.get("user") or "admin",
+        )
         db.commit()
 
     return JSONResponse({"ok": True, "changed": changed, "row_id": row_id})
@@ -197,6 +239,21 @@ def reserved_symbol_add(request: Request, db: Session = Depends(get_db),
         suite=suite.strip() if suite else None,
     )
     db.add(row)
+    db.flush()  # populate row.id for the audit FK reference
+    _audit(
+        db,
+        action="ADD",
+        reserved_symbol_id=row.id,
+        changes={
+            "exchange": _jsonable(row.exchange),
+            "symbol": row.symbol,
+            "end_date": _jsonable(row.end_date),
+            "status": row.status,
+            "rationale": row.rationale,
+            "suite": row.suite,
+        },
+        actor=request.session.get("user") or "admin",
+    )
     db.commit()
     return JSONResponse({"ok": True, "row_id": row.id})
 
@@ -209,6 +266,28 @@ def reserved_symbol_delete(row_id: int, request: Request, db: Session = Depends(
     row = db.get(ReservedSymbol, row_id)
     if not row:
         raise HTTPException(404, "Not found.")
+    # Snapshot the row before delete so the audit log preserves what was
+    # removed (the FK is ON DELETE SET NULL, so reserved_symbol_id will
+    # be NULL post-delete — the snapshot is the only forensic record).
+    snapshot = {
+        "id": row.id,
+        "exchange": row.exchange,
+        "symbol": row.symbol,
+        "end_date": _jsonable(row.end_date),
+        "status": row.status,
+        "rationale": row.rationale,
+        "suite": row.suite,
+        "linked_filing_id": row.linked_filing_id,
+        "linked_product_id": row.linked_product_id,
+        "notes": row.notes,
+    }
+    _audit(
+        db,
+        action="DELETE",
+        reserved_symbol_id=row.id,
+        changes=snapshot,
+        actor=request.session.get("user") or "admin",
+    )
     db.delete(row)
     db.commit()
     return JSONResponse({"ok": True})

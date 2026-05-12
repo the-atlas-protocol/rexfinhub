@@ -1451,3 +1451,68 @@ class ApiAuditLog(Base):
         Index("idx_api_audit_route_created", "route", "created_at"),
         Index("idx_api_audit_ip_created", "ip", "created_at"),
     )
+
+
+class ReservedSymbolAuditLog(Base):
+    """Append-only audit log for admin writes on the reserved_symbols table.
+
+    Mirrors the CapMAuditLog shape but collapses per-field rows into a single
+    `changes` JSON blob (e.g. {"status": ["Reserved", "Active"], ...}). One
+    audit row per ADD / UPDATE / DELETE action, regardless of how many fields
+    moved — keeps the audit feed readable on the /operations/reserved-symbols
+    page.
+
+    Defaults are stamped UTC by Python (datetime.utcnow); display layers
+    render in ET (the systemd unit pins TZ=America/New_York for the VPS).
+    """
+    __tablename__ = "reserved_symbols_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    reserved_symbol_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("reserved_symbols.id", ondelete="SET NULL")
+    )
+    action: Mapped[str] = mapped_column(String(20), nullable=False)  # ADD / UPDATE / DELETE
+    changes: Mapped[str | None] = mapped_column(Text)  # JSON: {field: [old, new], ...} or full row snapshot
+    actor: Mapped[str | None] = mapped_column(String(100))  # session user or "admin"
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False,
+    )
+
+    __table_args__ = (
+        Index("idx_reserved_audit_created_at", "created_at"),
+        Index("idx_reserved_audit_symbol", "reserved_symbol_id"),
+        Index("idx_reserved_audit_action", "action"),
+    )
+
+
+class RexProductStatusHistory(Base):
+    """Append-only history of `rex_products.status` transitions.
+
+    Captures every status change so we can reconstruct a fund's pipeline
+    journey (Under Consideration → Target List → Filed → Effective → Listed
+    → Delisted) — the per-row equivalent of the bulk classification audit
+    log. Populated by code paths that mutate ``rex_products.status``
+    (admin edits, pipeline reconciler, manual sweeps).
+
+    Also used as the re-home target for the 21 stranded T-REX 2X rows
+    previously written to ``classification_audit_log`` under
+    ``sweep_run_id='manual_2026-05-09_trex2x'``.
+    """
+    __tablename__ = "rex_product_status_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    rex_product_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("rex_products.id", ondelete="SET NULL")
+    )
+    old_status: Mapped[str | None] = mapped_column(String(30))
+    new_status: Mapped[str | None] = mapped_column(String(30))
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False,
+    )
+    changed_by: Mapped[str | None] = mapped_column(String(100))
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        Index("idx_rex_status_hist_product", "rex_product_id"),
+        Index("idx_rex_status_hist_changed_at", "changed_at"),
+    )
