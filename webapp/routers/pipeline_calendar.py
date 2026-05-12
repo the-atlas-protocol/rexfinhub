@@ -239,8 +239,11 @@ def _pipeline_products_impl(
 
     Phase 2 additions:
       - ``per_page`` accepts 20/50/100/all (string ``"all"`` => no LIMIT)
-      - ``recent_days`` (7/14/30/90) drives Recent Activity window
       - ``sort`` map extended to include lifecycle dates + days_in_stage
+
+    O1 layout rewrite (2026-05-12) removed the Recent Activity / Quick
+    Stats sections. ``recent_days`` remains on the signature for URL
+    backward compatibility but no longer drives any rendered widget.
     """
     # Emergency safety net (2026-05-12) — the rexops-O5-tickers auto-merge
     # silently emptied pipeline_products.html to 0 bytes, producing a 200
@@ -313,13 +316,10 @@ def _pipeline_products_render(
         if per_page_value not in (20, 50, 100):
             per_page_value = 50
 
-    # Recent Activity window guard
-    try:
-        recent_days_value = int(recent_days)
-    except (TypeError, ValueError):
-        recent_days_value = 14
-    if recent_days_value not in (7, 14, 30, 90):
-        recent_days_value = 14
+    # ``recent_days`` retained on the signature for URL backward compat
+    # (old bookmarks land cleanly) but the Recent Activity section it
+    # drove was removed in the O1 layout rewrite. No widget reads it.
+    _ = recent_days  # silence linters; kept for bookmark backward-compat
 
     # New default (May 2026): SHOW everything (Listed + Delisted included).
     # User can opt to hide them via ?hide_terminal=1. Legacy ?show_cold=
@@ -557,59 +557,12 @@ def _pipeline_products_render(
     ]
     funnel_max = max((f["count"] for f in funnel), default=1) or 1
 
-    # ---- Recent Activity (last N days of any updated_at touch) ----
-    # Phase-1 proxy: there's no rex_product_status_history table yet, so we
-    # use updated_at as a stand-in for "something changed". When the audit
-    # log lands (audit doc Phase 2), swap this to the history join.
-    # Phase 2: window is now configurable via ``?recent_days=N`` (7/14/30/90).
-    # Phase 2.1 (2026-05): the brand filter (_rex_only_filter) was previously
-    # applied here, which silently dropped legitimate activity whenever a bulk
-    # DB sync touched non-REX rows that happen to live in the same trusts
-    # (e.g. ETF Opportunities Trust). For an "activity feed" the user wants
-    # to see ALL pipeline movement, not just REX-branded — so we no longer
-    # restrict by brand. The empty-state copy still references the REX
-    # last-updated timestamp via ``last_updated_overall``.
-    cutoff_dt = datetime.combine(today - timedelta(days=recent_days_value), datetime.min.time())
-    activity_rows = (
-        db.query(RexProduct)
-        .filter(RexProduct.updated_at.isnot(None))
-        .filter(RexProduct.updated_at >= cutoff_dt)
-        .order_by(RexProduct.updated_at.desc())
-        .limit(20)
-        .all()
-    )
-    # Latest updated_at across the whole table — surfaced in the empty
-    # state so users understand WHY there's no recent activity (e.g. the
-    # whole table hasn't been touched in weeks).
-    last_updated_overall = (
-        db.query(func.max(RexProduct.updated_at)).scalar()
-    )
-    recent_activity = []
-    now_dt = datetime.utcnow()
-    for p in activity_rows:
-        delta = now_dt - p.updated_at
-        if delta.days >= 1:
-            ago = f"Touched {delta.days}d ago"
-        elif delta.seconds >= 3600:
-            ago = f"Touched {delta.seconds // 3600}h ago"
-        elif delta.seconds >= 60:
-            ago = f"Touched {delta.seconds // 60}m ago"
-        else:
-            ago = "Touched just now"
-        recent_activity.append({
-            "id": p.id,
-            "ticker": p.ticker or "",
-            "name": p.name,
-            "status": p.status,
-            "suite": p.product_suite or "",
-            # "ago" reflects the LAST WRITE to the row (any column), not a
-            # status-change event specifically. True status-history requires
-            # the rex_product_status_history table (task #114). Until then
-            # "Touched X ago" is the most honest label we can show.
-            "ago": ago,
-            "updated_at": p.updated_at,
-            "latest_prospectus_link": p.latest_prospectus_link,
-        })
+    # Recent Activity + Quick Stats sections removed in the O1 layout rewrite
+    # (2026-05-12). The ``recent_days`` query param is still accepted on the
+    # signature for backwards compatibility (old bookmarks) but no longer
+    # drives any rendered widget. ``last_updated_overall`` and
+    # ``recent_activity`` context keys are gone — the template no longer
+    # references them.
 
     # Status/suite counts (REX-branded only)
     status_counts = dict(
@@ -865,15 +818,13 @@ def _pipeline_products_render(
     if dir:              base_qs_parts.append(("dir", dir))
     if show_all:         base_qs_parts.append(("per_page", "all"))
     elif per_page_value != 50: base_qs_parts.append(("per_page", str(per_page_value)))
-    if recent_days_value != 14: base_qs_parts.append(("recent_days", str(recent_days_value)))
     if hide_terminal_flag: base_qs_parts.append(("hide_terminal", "1"))
     from urllib.parse import urlencode
     base_qs = urlencode(base_qs_parts)
     base_qs_no_hide_terminal = urlencode([(k, v) for (k, v) in base_qs_parts if k != "hide_terminal"])
-    # For per_page / recent_days / sort toggles we want the URL minus
-    # the param being toggled, so the new value can be appended cleanly.
+    # For per_page / sort toggles we want the URL minus the param being
+    # toggled, so the new value can be appended cleanly.
     base_qs_no_per_page = urlencode([(k, v) for (k, v) in base_qs_parts if k != "per_page"])
-    base_qs_no_recent_days = urlencode([(k, v) for (k, v) in base_qs_parts if k != "recent_days"])
     base_qs_no_sort = urlencode([(k, v) for (k, v) in base_qs_parts if k not in ("sort", "dir")])
 
     is_admin = request.session.get("is_admin", False)
@@ -882,28 +833,16 @@ def _pipeline_products_render(
         "request": request,
         "today": today,
         "is_admin": is_admin,
-        # KPIs — full set restored 2026-05-12 after the rexops-O5-tickers
-        # auto-merge wiped pipeline_products.html down to 0 bytes. The
-        # restored template (from a764f41) references the Quick Stats /
-        # Recent Activity sections that the O1 docstring claimed were
-        # removed, so we ship every key the template actually uses.
+        # KPIs surfaced by the funnel + urgency cards. Recent Activity /
+        # Quick Stats sections (and their dedicated keys: recent_activity,
+        # recent_days, last_updated_overall, filings_last_7d,
+        # launches_last_30d, effectives_next_30d/90d, awaiting, research,
+        # avg/min/max cycle, next_launches) were removed in the O1 layout
+        # rewrite (2026-05-12). Computation lives upstream in case sibling
+        # routes import shared helpers; only the context dict is trimmed.
         "total": total,
         "listed": listed,
         "filed": filed,
-        "awaiting": awaiting,
-        "research": research,
-        "filings_last_7d": filings_last_7d,
-        "launches_last_30d": launches_last_30d,
-        "effectives_next_30d": effectives_next_30d,
-        "effectives_next_90d": effectives_next_90d,
-        "next_launches": next_launches,
-        "avg_cycle": avg_cycle,
-        "min_cycle": min_cycle,
-        "max_cycle": max_cycle,
-        "cycle_sample": len(cycle_days),
-        "recent_activity": recent_activity,
-        "recent_days": recent_days_value,
-        "last_updated_overall": last_updated_overall,
         # Counts
         "urgency_counts": urgency_counts,
         "status_counts": status_counts,
@@ -931,7 +870,6 @@ def _pipeline_products_render(
         "base_qs": base_qs,
         "base_qs_no_hide_terminal": base_qs_no_hide_terminal,
         "base_qs_no_per_page": base_qs_no_per_page,
-        "base_qs_no_recent_days": base_qs_no_recent_days,
         "base_qs_no_sort": base_qs_no_sort,
         # Filter state
         "valid_statuses": VALID_STATUSES,
@@ -944,10 +882,6 @@ def _pipeline_products_render(
         "hide_terminal": hide_terminal_flag,
         "sort_col": sort_col,
         "sort_dir": sort_dir,
-        # NOTE: ``recent_days`` + ``last_updated_overall`` removed in the
-        # O1 layout rewrite (Recent Activity section deleted). They are
-        # still computed above in case sibling routes import shared
-        # helpers; only the context dict was trimmed.
     })
 
 
