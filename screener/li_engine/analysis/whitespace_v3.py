@@ -34,18 +34,29 @@ _ROOT = Path(__file__).resolve().parent.parent.parent.parent
 OUT = _ROOT / "data" / "analysis" / "whitespace_v3.parquet"
 
 
+# WEIGHTS refit 2026-05-11 from backtested IC of 185 2x-product launches
+# (window: 2024-08 → 2025-11) against log(AUM @ 6mo post-launch).
+# Method: sign-constrained ridge regression (alpha=2.0), sum(|w|)=1.
+#   - Train n=108, IC: 0.406 (hand-tuned) → 0.460 (refit)
+#   - OOS   n=77,  IC: 0.527 (hand-tuned) → 0.560 (refit)
+# Per-signal Spearman IC: rvol_90d=+0.41, rvol_30d=+0.39, mentions_z=+0.35,
+#   insider_pct=+0.29, theme_bonus=+0.23, si_ratio=-0.19, ret_1m=+0.17,
+#   ret_1y=+0.11, inst_own_pct=-0.11.
+# Caveat: underlier signals taken from current snapshot (mkt_stock_data retains
+# only 1 run); slow-moving signals are reliable proxies, momentum signals carry
+# present-bias. See data/analysis/refit_results_2026-05-11.json + refit_weights.py.
 WEIGHTS = {
     # Positive
-    "mentions_z":    0.22,   # retail is actually talking (THE live demand signal)
-    "rvol_30d":      0.15,   # recent vol — retail leverage magnet
-    "theme_bonus":   0.14,   # curated theme membership
-    "ret_1m":        0.12,   # recent price move — current momentum (not 1y lag)
-    "rvol_90d":      0.09,   # sustained vol regime
-    "insider_pct":   0.08,   # insider alignment (post-launch validated)
-    "ret_1y":        0.05,   # long-term trend (lagging — small weight only)
+    "rvol_90d":      0.194,  # IC=+0.41 (top) — sustained vol regime
+    "insider_pct":   0.182,  # IC=+0.29 — insider ownership signals product fit
+    "mentions_z":    0.148,  # IC=+0.35 — live retail demand
+    "rvol_30d":      0.144,  # IC=+0.39 — recent vol
+    "ret_1y":        0.074,  # IC=+0.11 — long-term trend
+    "theme_bonus":   0.060,  # IC=+0.23 (raw) — curated theme membership
+    "ret_1m":        0.044,  # IC=+0.17 — recent momentum
     # Negative
-    "si_ratio":      -0.08,  # high SI predicts failure
-    "inst_own_pct":  -0.07,  # institutional-heavy = retail avoids
+    "si_ratio":     -0.109,  # IC=-0.19 — high SI predicts failure
+    "inst_own_pct": -0.045,  # IC=-0.11 — institutional-heavy = retail avoids
 }
 
 
