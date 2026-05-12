@@ -159,6 +159,11 @@ table.pipeline-table td { padding:6px 10px; border-bottom:1px solid #f1f5f9; ver
 table.pipeline-table tr:hover { background:#fafbfc; }
 
 .ticker-col { font-family:monospace; font-weight:700; color:#1F3864; }
+.ticker-chip { display:inline-block; font-size:11px; padding:1px 6px; border-radius:3px; font-family:ui-monospace, SFMono-Regular, monospace; font-weight:600; }
+.ticker-chip.chip-reserved  { background:#10b98115; color:#047857; border:1px solid #10b98155; }
+.ticker-chip.chip-available { background:#fbbf2415; color:#b45309; border:1px solid #fbbf2455; }
+.ticker-chip.chip-taken     { background:#94a3b815; color:#475569; border:1px solid #94a3b855; }
+.ticker-chip.chip-unknown   { background:#cbd5e115; color:#64748b; border:1px solid #cbd5e155; }
 .name-col { max-width:300px; overflow:hidden; text-overflow:ellipsis; }
 
 .status-pill {
@@ -556,13 +561,29 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
            so the column doesn't surface noise. #}
         {% set lp_form = p.latest_form or '' %}
         {% set lp_is_pros = lp_form in ('485APOS', '485BPOS', '497') %}
+        {# 485BPOS auto-promote display rule (2026-05-12): a row with a
+           485BPOS prospectus AND a past estimated_effective_date is
+           effectively Effective per SEC convention — auto-display as
+           such even when the underlying status field is still 'Filed'.
+           Display-only; does NOT mutate the DB. The reconciler is the
+           authority for the actual status flip. #}
+        {% set _auto_eff = (lp_form == '485BPOS' and p.estimated_effective_date and p.estimated_effective_date <= today and p.status not in ('Listed', 'Delisted', 'Effective')) %}
+        {% set display_status = 'Effective' if _auto_eff else p.status %}
+        {% set days_anchor = p.estimated_effective_date if _auto_eff else None %}
         <tr data-id="{{ p.id }}">
           {# Col 1: Trust #}
           <td data-sort="{{ (p.trust or '').lower() }}" data-field="trust" title="{{ p.trust or '' }}">{{ (p.trust or '---')[:30] }}</td>
           {# Col 2: Suite #}
           <td data-sort="{{ (p.product_suite or '').lower() }}" data-field="product_suite" data-field-type="select" data-field-options="{{ valid_suites|join('|') }}"><span class="suite-pill" style="background:{{ suite_color }}1a; color:{{ suite_color }}; border:1px solid {{ suite_color }}33;">{{ p.product_suite or '---' }}</span></td>
-          {# Col 3: Ticker #}
-          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">{% if p.ticker %}<a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>{% else %}---{% endif %}</td>
+          {# Col 3: Ticker — chip if no ticker but a suggestion exists #}
+          <td class="ticker-col" data-sort="{{ (p.ticker or '').lower() }}" data-field="ticker">
+            {% if p.ticker %}
+              <a href="/funds/{{ p.ticker | trim | upper }}" style="color:inherit; text-decoration:none;">{{ p.ticker }}</a>
+            {% elif ticker_suggestions and ticker_suggestions.get(p.id) %}
+              {% set ts = ticker_suggestions[p.id] %}
+              <span class="ticker-chip chip-{{ ts.state or 'unknown' }}" title="{{ ts.reason or ts.state or 'no suggestion' }}">{{ ts.ticker or (ts.state or 'unknown')|upper }}</span>
+            {% else %}---{% endif %}
+          </td>
           {# Col 4: Fund Name #}
           <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}</td>
           {# Col 5: Underlier — clickable chip opens REX-vs-competitor race side-panel.
@@ -578,8 +599,13 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
               <span style="color:#cbd5e1;">---</span>
             {% endif %}
           </td>
-          {# Col 6: Status — 6-value enum dropdown (was 15 pre-O3, collapsed 2026-05-12) #}
-          <td data-sort="{{ p.status }}">
+          {# Col 6: Status — 6-value enum dropdown (was 15 pre-O3, collapsed 2026-05-12).
+             Display rule: a 485BPOS row whose estimated_effective_date has
+             passed renders as 'Effective (auto)' even when the underlying
+             status field is still 'Filed'. The dropdown still shows the DB
+             value so admins can see and override; the read-only pill shows
+             the display_status. #}
+          <td data-sort="{{ display_status }}">
             {% if is_admin %}
               <select class="status-select"
                       data-product-id="{{ p.id }}"
@@ -590,9 +616,10 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
                 <option value="{{ s }}" {% if p.status == s %}selected{% endif %}>{{ s }}</option>
                 {% endfor %}
               </select>
+              {% if _auto_eff %}<span style="margin-left:4px; font-size:10px; color:#047857; font-style:italic;" title="485BPOS in effect; status will be promoted on next reconcile">→ Effective (auto)</span>{% endif %}
             {% else %}
               <span class="status-pill"
-                    style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ p.status }}</span>
+                    style="background:{{ s_color }}1f; color:{{ s_color }}; border:1px solid {{ s_color }}55;">{{ display_status }}{% if _auto_eff %} <span style="font-size:10px; opacity:0.7;">(auto)</span>{% endif %}</span>
             {% endif %}
           </td>
           {# Col 7: Days in Stage — anchor depends on current status (see router) #}
