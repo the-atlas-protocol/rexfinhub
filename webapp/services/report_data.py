@@ -21,6 +21,7 @@ from typing import Any
 
 import pandas as pd
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from webapp.models import MktReportCache
@@ -526,27 +527,63 @@ def _read_report_cache(db: Session | None, key: str) -> dict | None:
 
     Returns the deserialized dict if found and fresh, None if stale or missing.
     Staleness check: cache must be from the same pipeline run as the latest master data.
+
+    Audit R5 (2026-05-11): the previous broad ``except Exception`` swallowed
+    a ``None < int`` TypeError thrown when ``row.pipeline_run_id`` was NULL,
+    silently returning ``None`` (cache miss) for any working row — but worse,
+    a NULL pipeline_run_id paired with the original ``and row.pipeline_run_id``
+    short-circuit caused the staleness check to be skipped entirely, so stale
+    rows were served forever. This is now explicit: NULL pipeline_run_id is
+    treated as stale and forces a rebuild.
     """
     if db is None:
         return None
+
+    from webapp.models import MktPipelineRun
+
     try:
         row = db.execute(
             select(MktReportCache).where(MktReportCache.report_key == key)
         ).scalar_one_or_none()
-        if row and row.data_json:
-            # Check if cache is from the latest pipeline run
-            from webapp.models import MktPipelineRun
-            latest_run = db.execute(
-                select(MktPipelineRun.id).order_by(MktPipelineRun.id.desc()).limit(1)
-            ).scalar()
-            if latest_run and row.pipeline_run_id and row.pipeline_run_id < latest_run:
-                log.info("Report cache '%s' is stale (run %d vs latest %d), rebuilding",
-                         key, row.pipeline_run_id, latest_run)
-                return None  # Force rebuild
-            return json.loads(row.data_json)
-    except Exception as e:
-        log.debug("Report cache read failed for %s: %s", key, e)
-    return None
+    except SQLAlchemyError as e:
+        log.warning("Report cache lookup failed for '%s': %s", key, e)
+        return None
+
+    if not row or not row.data_json:
+        return None
+
+    # Resolve the latest pipeline run for the staleness comparison.
+    try:
+        latest_run = db.execute(
+            select(MktPipelineRun.id).order_by(MktPipelineRun.id.desc()).limit(1)
+        ).scalar()
+    except SQLAlchemyError as e:
+        log.warning("Report cache '%s': failed to read latest pipeline run: %s", key, e)
+        return None
+
+    # NULL pipeline_run_id on a cache row means we cannot prove freshness.
+    # Treat as stale and force a rebuild rather than serving indefinitely.
+    if row.pipeline_run_id is None:
+        log.warning(
+            "Report cache '%s' has pipeline_run_id=NULL; treating as stale "
+            "and forcing rebuild (latest_run=%s). This indicates an upstream "
+            "writer that did not stamp the run id — see audit R5.",
+            key, latest_run,
+        )
+        return None
+
+    if latest_run is not None and row.pipeline_run_id < latest_run:
+        log.info(
+            "Report cache '%s' is stale (run %d vs latest %d), rebuilding",
+            key, row.pipeline_run_id, latest_run,
+        )
+        return None
+
+    try:
+        return json.loads(row.data_json)
+    except (ValueError, TypeError) as e:
+        log.warning("Report cache '%s' has malformed JSON, rebuilding: %s", key, e)
+        return None
 
 
 def data_available(db: Session | None = None) -> bool:

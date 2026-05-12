@@ -182,10 +182,45 @@ def _capm_seed_if_empty():
     the page survive any DB swap (VPS upload, deploy reset, etc.).
 
     Idempotent: only inserts when the table is empty.
+
+    Audit R5 (2026-05-11): also bail out if the capm_audit_log has any
+    entries — a non-empty audit trail means an admin has made manual
+    edits that we must NOT silently overwrite by re-seeding from the
+    checked-in CSV. If the table got truncated AND there is an audit
+    history, the DB is in an inconsistent state and a human should
+    handle it explicitly rather than have the seeder paper over it.
     """
     import csv as _csv
     import logging as _log_m
     _l = _log_m.getLogger(__name__)
+
+    # Guard: if capm_audit_log has any entries, do NOT reseed silently.
+    try:
+        import sqlite3
+        _conn = sqlite3.connect(str(DB_PATH))
+        try:
+            _cur = _conn.cursor()
+            # Confirm table exists before querying.
+            _cur.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='capm_audit_log'"
+            )
+            if _cur.fetchone():
+                _cur.execute("SELECT COUNT(*) FROM capm_audit_log")
+                _audit_count = (_cur.fetchone() or [0])[0]
+                if _audit_count > 0:
+                    _l.info(
+                        "CapM seed skipped: capm_audit_log has %d entries — "
+                        "refusing to overwrite admin edits. If the data is "
+                        "actually missing, restore from backup or reseed manually.",
+                        _audit_count,
+                    )
+                    return
+        finally:
+            _conn.close()
+    except Exception as _e:
+        _l.warning("CapM seed: audit-log guard check failed (proceeding): %s", _e)
+
     seeds = [
         ("capm_products.csv", "capm_products"),
         ("capm_trust_aps.csv", "capm_trust_aps"),

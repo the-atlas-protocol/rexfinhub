@@ -173,14 +173,20 @@ class AnalysisResult(Base):
 class FilingAnalysis(Base):
     """Cached LLM analysis of a new fund filing ("Top Filings of the Day").
 
-    One row per filing. Re-runs of the daily pipeline pull from this cache
-    instead of making fresh LLM calls.
+    One row per (filing, writer_model) pair. Re-runs of the daily pipeline
+    pull from this cache instead of making fresh LLM calls.
+
+    Audit R5 (2026-05-11): the legacy schema had ``UNIQUE(filing_id)`` only,
+    which meant a writer-model upgrade (e.g. Sonnet -> Opus) silently served
+    the stale narrative forever. The unique key now includes ``writer_model``
+    so a model upgrade triggers re-analysis. The simple ``filing_id`` column
+    index is retained for lookup speed (non-unique now).
     """
     __tablename__ = "filing_analyses"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     filing_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("filings.id"), nullable=False, unique=True, index=True,
+        Integer, ForeignKey("filings.id"), nullable=False, index=True,
     )
     analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     prospectus_url: Mapped[str | None] = mapped_column(String)
@@ -200,6 +206,13 @@ class FilingAnalysis(Base):
     tokens_in: Mapped[int | None] = mapped_column(Integer)
     tokens_out: Mapped[int | None] = mapped_column(Integer)
     cost_usd: Mapped[float | None] = mapped_column(Float)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "filing_id", "writer_model",
+            name="uq_filing_analyses_filing_writer",
+        ),
+    )
 
 
 class PipelineRun(Base):

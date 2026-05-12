@@ -59,16 +59,54 @@ def load_from_db(db) -> dict | None:
     return None
 
 
-def save_to_db(db, data: dict) -> None:
-    """Write screener results to mkt_report_cache."""
+def save_to_db(db, data: dict, pipeline_run_id: int | None = None) -> None:
+    """Write screener results to mkt_report_cache.
+
+    Args:
+        db: SQLAlchemy session.
+        data: Serializable result dict from compute_and_cache().
+        pipeline_run_id: ID of the MktPipelineRun this cache row belongs to.
+            If None, the latest MktPipelineRun.id is auto-derived as a safety
+            net so the row is never persisted with NULL — a NULL value silently
+            disables the staleness check in report_data._read_report_cache and
+            causes stale caches to be served indefinitely (audit R5, 2026-05-11).
+            Callers should pass the explicit run_id whenever it is in scope.
+    """
     try:
-        from sqlalchemy import delete
-        from webapp.models import MktReportCache
+        from sqlalchemy import delete, select
+        from webapp.models import MktPipelineRun, MktReportCache
+
+        # Auto-derive run id if caller did not supply one. This protects
+        # against the historical bug where screener_3x rows shipped with
+        # pipeline_run_id IS NULL and were therefore considered "fresh forever".
+        if pipeline_run_id is None:
+            try:
+                pipeline_run_id = db.execute(
+                    select(MktPipelineRun.id)
+                    .order_by(MktPipelineRun.id.desc())
+                    .limit(1)
+                ).scalar()
+                if pipeline_run_id is None:
+                    log.warning(
+                        "save_to_db: no MktPipelineRun rows exist; "
+                        "screener_3x cache row will be persisted with "
+                        "pipeline_run_id=NULL — staleness check will be a no-op"
+                    )
+                else:
+                    log.info(
+                        "save_to_db: pipeline_run_id auto-derived to %d "
+                        "(caller did not provide one)",
+                        pipeline_run_id,
+                    )
+            except Exception as e:
+                log.warning("save_to_db: failed to auto-derive pipeline_run_id: %s", e)
+                pipeline_run_id = None
 
         db.execute(
             delete(MktReportCache).where(MktReportCache.report_key == "screener_3x")
         )
         row = MktReportCache(
+            pipeline_run_id=pipeline_run_id,
             report_key="screener_3x",
             data_json=json.dumps(data, default=str),
             data_as_of=data.get("data_date", ""),
@@ -76,7 +114,7 @@ def save_to_db(db, data: dict) -> None:
         )
         db.add(row)
         db.flush()
-        log.info("Screener cache saved to DB")
+        log.info("Screener cache saved to DB (pipeline_run_id=%s)", pipeline_run_id)
     except Exception as e:
         log.warning("Failed to save screener to DB: %s", e)
 
@@ -113,6 +151,8 @@ def warm_cache(db=None) -> None:
     try:
         result = compute_and_cache()
         if db is not None:
+            # No explicit pipeline_run_id available in the warm path —
+            # save_to_db will auto-derive the latest MktPipelineRun.id.
             save_to_db(db, result)
     except FileNotFoundError:
         log.info("No Bloomberg data - screener unavailable")
