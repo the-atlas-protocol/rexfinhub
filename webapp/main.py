@@ -505,6 +505,11 @@ def create_app() -> FastAPI:
     app.include_router(issuers.router)
     from webapp.routers import stocks
     app.include_router(stocks.router)
+    # rexops-O6: pipeline -> underlier race view (REX vs competitor by
+    # lifecycle stage). Separate router so it ships independently of the
+    # main pipeline_calendar module.
+    from webapp.routers import underlier_view
+    app.include_router(underlier_view.router)
 
     # Health check -- Render uses this for zero-downtime deploys.
     # Returns 503 until caches are warm so Render keeps the old instance
