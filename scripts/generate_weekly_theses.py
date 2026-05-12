@@ -433,13 +433,27 @@ def _validate_thesis(obj: Any) -> dict:
 # --------------------------------------------------------------------------- #
 def run(week: str, top_launch: int, top_watch: int,
         only_ticker: str | None, dry_run: bool, force: bool,
-        model: str) -> dict:
+        model: str, only_tickers: list[str] | None = None) -> dict:
     candidates = load_top_candidates(top_launch, top_watch)
     if only_ticker:
         only_ticker = only_ticker.upper()
         candidates = [c for c in candidates if c["ticker"] == only_ticker]
         if not candidates:
             log.error("ticker %s not found in launch/whitespace parquets", only_ticker)
+            return {}
+    elif only_tickers:
+        wanted = {t.upper().strip() for t in only_tickers if t.strip()}
+        # When --tickers is used, expand the universe so tickers outside top-N
+        # can still be found.
+        wide_candidates = load_top_candidates(top_launch=10_000, top_watch=10_000)
+        filtered = [c for c in wide_candidates if c["ticker"] in wanted]
+        missing = wanted - {c["ticker"] for c in filtered}
+        if missing:
+            log.warning("requested tickers not found in launch/whitespace parquets: %s",
+                        ", ".join(sorted(missing)))
+        candidates = filtered
+        if not candidates:
+            log.error("none of the requested tickers were found in the universe")
             return {}
 
     log.info("Universe to thesis: %d ticker(s) (week=%s)", len(candidates), week)
@@ -520,6 +534,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--week", help="YYYY-MM-DD; default = today snapped to most recent Sunday")
     p.add_argument("--ticker", help="Generate just this single ticker")
+    p.add_argument("--tickers", help="Comma-separated list of tickers to generate (subset of universe)")
     p.add_argument("--top-launch", type=int, default=DEFAULT_TOP_LAUNCH,
                    help=f"How many launch_candidates rows (default {DEFAULT_TOP_LAUNCH})")
     p.add_argument("--top-watch", type=int, default=DEFAULT_TOP_WATCH,
@@ -547,6 +562,10 @@ def main():
     else:
         week = week_of()
 
+    only_tickers = None
+    if args.tickers:
+        only_tickers = [t.strip() for t in args.tickers.split(",") if t.strip()]
+
     run(
         week=week,
         top_launch=args.top_launch,
@@ -555,6 +574,7 @@ def main():
         dry_run=args.dry_run,
         force=args.force,
         model=args.model,
+        only_tickers=only_tickers,
     )
 
 

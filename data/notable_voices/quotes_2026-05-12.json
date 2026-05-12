@@ -19,7 +19,7 @@
       "kind": "paraphrase",
       "quote": "Counting the OOMs from GPT-4, another jump of similar size lands us at models that are drop-in remote workers. The straight line on the log plot is the most important fact in the world right now.",
       "themes": ["ai_infrastructure", "ai_applications", "semiconductors"],
-      "tickers": ["NVDA", "AVGO", "TSM", "ASML", "AMD", "PLTR", "MSFT", "GOOGL", "META"]
+      "tickers": ["NVDA", "AVGO", "TSM", "ASML", "AMD", "PLTR", "MSFT", "GOOGL", "META", "MXL", "ON", "LWLG", "TTMI", "UI", "VIAV"]
     },
     {
       "id": "asch-002",
@@ -29,7 +29,7 @@
       "kind": "paraphrase",
       "quote": "We are going to need trillion-dollar compute clusters by the end of the decade. The bottleneck is no longer chips — it is power, land, and the ability to pour concrete fast enough.",
       "themes": ["ai_infrastructure", "power", "nuclear", "energy"],
-      "tickers": ["VRT", "DLR", "ETN", "PWR", "CEG", "VST", "OKLO", "SMR", "GEV"]
+      "tickers": ["VRT", "DLR", "ETN", "PWR", "CEG", "VST", "OKLO", "SMR", "GEV", "VICR", "WOLF", "NNE", "LWLG"]
     },
     {
       "id": "asch-003",
@@ -39,7 +39,7 @@
       "kind": "paraphrase",
       "quote": "American electricity production has been roughly flat for decades. Training a 100 GW cluster will require building out generation at a pace the country has not seen since the 1960s — and natural gas is the only thing that can move that fast.",
       "themes": ["power", "energy", "nuclear"],
-      "tickers": ["VST", "CEG", "NRG", "GEV", "ETN", "PWR", "EQT", "LNG"]
+      "tickers": ["VST", "CEG", "NRG", "GEV", "ETN", "PWR", "EQT", "LNG", "WOLF", "VICR", "NNE", "WTI"]
     },
     {
       "id": "asch-004",
@@ -49,7 +49,7 @@
       "kind": "paraphrase",
       "quote": "Superintelligence is a national security issue. The free world will need to out-build the CCP on compute and energy, or we will be racing for second place on the most important technology in history.",
       "themes": ["ai_infrastructure", "sovereign_ai", "semiconductors"],
-      "tickers": ["NVDA", "AVGO", "TSM", "ASML", "AMAT", "LRCX", "PLTR", "LMT", "RTX"]
+      "tickers": ["NVDA", "AVGO", "TSM", "ASML", "AMAT", "LRCX", "PLTR", "LMT", "RTX", "MXL", "ON", "AEHR", "BKSY"]
     },
     {
       "id": "asch-005",
@@ -59,7 +59,7 @@
       "kind": "paraphrase",
       "quote": "Algorithmic secrets and model weights are the crown jewels. If we cannot secure them at state-actor level, the lead the United States holds is fictional.",
       "themes": ["ai_infrastructure", "cybersecurity", "sovereign_ai"],
-      "tickers": ["PLTR", "CRWD", "PANW", "ZS", "S", "NET"]
+      "tickers": ["PLTR", "CRWD", "PANW", "ZS", "S", "NET", "BB", "FSLY"]
     },
     {
       "id": "asch-006",
@@ -79,7 +79,7 @@
       "kind": "paraphrase",
       "quote": "Memory bandwidth, not flops, is increasingly the binding constraint on training. HBM capacity is the silent kingmaker of this cycle.",
       "themes": ["memory", "memory_hbm", "semiconductors", "ai_infrastructure"],
-      "tickers": ["MU", "SK_HYNIX", "AVGO", "NVDA", "AMAT", "LRCX", "ASML"]
+      "tickers": ["MU", "SK_HYNIX", "AVGO", "NVDA", "AMAT", "LRCX", "ASML", "HBM", "AEHR", "MXL", "ON"]
     },
     {
       "id": "asch-008",
@@ -100,7 +100,7 @@
       "kind": "paraphrase",
       "quote": "NVIDIA's moat is not just CUDA, it is the entire systems stack — networking, software, reference designs. Competitors are not selling chips against chips; they are selling Lego against a finished building.",
       "themes": ["semiconductors", "ai_infrastructure"],
-      "tickers": ["NVDA", "AVGO", "AMD", "ANET"]
+      "tickers": ["NVDA", "AVGO", "AMD", "ANET", "SHMD", "LPTH", "TTMI", "MXL", "ON", "AEHR"]
     },
     {
       "id": "thom-002",
@@ -130,7 +130,7 @@
       "kind": "paraphrase",
       "quote": "Hyperscaler capex of $200 billion-plus a year is the single largest non-government infrastructure build in modern history. Pick-and-shovel beats picks-of-models.",
       "themes": ["ai_infrastructure", "power", "semiconductors"],
-      "tickers": ["NVDA", "AVGO", "VRT", "ETN", "PWR", "DLR", "EQIX"]
+      "tickers": ["NVDA", "AVGO", "VRT", "ETN", "PWR", "DLR", "EQIX", "TTMI", "VICR", "WOLF", "ON"]
     },
 
     {
@@ -140,8 +140,8 @@
       "source_url": "https://www.dwarkesh.com/p/sholto-trenton-2",
       "kind": "paraphrase",
       "quote": "If reinforcement-learning on verifiable tasks scales the way pre-training did, the labs that own the most compute and the cleanest reward signals win — and that is a small list.",
-      "themes": ["ai_infrastructure", "ai_applications"],
-      "tickers": ["NVDA", "MSFT", "GOOGL", "META", "PLTR"]
+      "themes": ["ai_infrastructure", "ai_applications", "biotech_gene"],
+      "tickers": ["NVDA", "MSFT", "GOOGL", "META", "PLTR", "DNA", "WVE", "INBX", "APLS", "RGC"]
     },
     {
       "id": "dwar-002",
@@ -151,7 +151,7 @@
       "kind": "paraphrase",
       "quote": "Zuckerberg sized Llama clusters by the gigawatt. When the unit of capacity for AI training is a power plant, the bottleneck has obviously shifted off silicon.",
       "themes": ["power", "ai_infrastructure", "nuclear"],
-      "tickers": ["VST", "CEG", "NRG", "GEV", "OKLO", "SMR", "ETN"]
+      "tickers": ["VST", "CEG", "NRG", "GEV", "OKLO", "SMR", "ETN", "WOLF", "VICR", "NNE"]
     },
     {
       "id": "dwar-003",
@@ -182,7 +182,7 @@
       "kind": "paraphrase",
       "quote": "Software-defined vehicles and autonomous robotaxi networks turn cars into data centers on wheels. Tesla's full-stack approach captures the cash-flow shift from hardware margin to platform economics.",
       "themes": ["ev_battery", "ai_applications", "autonomous"],
-      "tickers": ["TSLA", "RIVN", "NVDA"]
+      "tickers": ["TSLA", "RIVN", "NVDA", "AMPX", "MVST", "WOLF", "AUR"]
     },
     {
       "id": "wood-002",
@@ -202,7 +202,7 @@
       "kind": "paraphrase",
       "quote": "Multiomic biology — gene editing, AI-designed proteins, single-cell sequencing — is on the same exponential cost curve that semiconductors rode for fifty years.",
       "themes": ["biotech_gene"],
-      "tickers": ["CRSP", "BEAM", "NTLA", "QURE", "VRTX"]
+      "tickers": ["CRSP", "BEAM", "NTLA", "QURE", "VRTX", "WVE", "DNA", "INBX", "APLS", "RGC"]
     },
     {
       "id": "wood-004",
@@ -254,7 +254,7 @@
       "kind": "paraphrase",
       "quote": "Accelerated computing has reached a tipping point. General-purpose computing has run its course; the world's data centers are being rebuilt from the ground up around AI.",
       "themes": ["ai_infrastructure", "semiconductors"],
-      "tickers": ["NVDA", "AVGO", "SMCI", "DELL", "ANET", "VRT"]
+      "tickers": ["NVDA", "AVGO", "SMCI", "DELL", "ANET", "VRT", "TTMI", "ON", "MXL", "VICR", "LWLG"]
     },
     {
       "id": "huang-002",
@@ -273,8 +273,8 @@
       "source_url": "https://nvidianews.nvidia.com/news/nvidia-launches-ai-foundation-models-for-rtx-ai-pcs",
       "kind": "paraphrase",
       "quote": "Robotics is the next industrial revolution. The combination of foundation models and physical AI turns every factory into a software-defined facility.",
-      "themes": ["ai_applications", "robotics"],
-      "tickers": ["NVDA", "TSLA", "ABB", "ROK", "ISRG"]
+      "themes": ["ai_applications", "robotics", "autonomous"],
+      "tickers": ["NVDA", "TSLA", "ABB", "ROK", "ISRG", "AUR", "ON", "TTMI"]
     },
 
     {
@@ -315,8 +315,8 @@
       "source_url": "https://www.lynalden.com/november-2024-newsletter/",
       "kind": "paraphrase",
       "quote": "Fiscal dominance has replaced monetary dominance. Persistent deficits mean every recession will be met with stimulus, and hard assets — energy, gold, bitcoin — outperform across the cycle.",
-      "themes": ["energy", "crypto_equity", "commodities"],
-      "tickers": ["MSTR", "COIN", "RIOT", "MARA", "EQT", "OXY", "GLD"]
+      "themes": ["energy", "crypto_equity", "commodities", "precious_metals"],
+      "tickers": ["MSTR", "COIN", "RIOT", "MARA", "EQT", "OXY", "GLD", "SLV", "HBM", "ALM"]
     },
     {
       "id": "alden-002",
@@ -326,7 +326,7 @@
       "kind": "paraphrase",
       "quote": "The U.S. natural-gas complex is a structural winner of the AI build-out. LNG export capacity plus baseload data-center demand puts a floor under the entire midstream.",
       "themes": ["energy", "power"],
-      "tickers": ["EQT", "LNG", "WMB", "ET", "OXY", "XOM"]
+      "tickers": ["EQT", "LNG", "WMB", "ET", "OXY", "XOM", "WTI", "TE"]
     },
     {
       "id": "alden-003",
@@ -347,7 +347,7 @@
       "kind": "paraphrase",
       "quote": "The U.S. grid is the binding constraint on AI ambition. You cannot 'install more cloud' without first installing more copper, more transformers, and more megawatts.",
       "themes": ["power", "energy", "ai_infrastructure"],
-      "tickers": ["ETN", "PWR", "GEV", "VRT", "VST", "CEG"]
+      "tickers": ["ETN", "PWR", "GEV", "VRT", "VST", "CEG", "WOLF", "VICR", "NNE", "AMPX", "MVST"]
     },
     {
       "id": "doom-002",
@@ -357,7 +357,7 @@
       "kind": "paraphrase",
       "quote": "Nuclear renaissance is no longer aspirational — hyperscaler PPAs have priced it. Operating fleet owners and SMR developers are the cleanest plays on data-center baseload.",
       "themes": ["nuclear", "power"],
-      "tickers": ["CEG", "VST", "OKLO", "SMR", "BWXT", "LEU"]
+      "tickers": ["CEG", "VST", "OKLO", "SMR", "BWXT", "LEU", "NNE", "WOLF"]
     },
     {
       "id": "doom-003",
@@ -367,7 +367,7 @@
       "kind": "paraphrase",
       "quote": "Natural gas is the bridge fuel that will actually be built. Combined-cycle turbines deliver gigawatts in 24 months; nuclear and renewables cannot match that schedule.",
       "themes": ["energy", "power"],
-      "tickers": ["GEV", "VST", "NRG", "EQT", "LNG", "ET"]
+      "tickers": ["GEV", "VST", "NRG", "EQT", "LNG", "ET", "WOLF", "AMPX", "MVST", "VICR", "WTI", "TE"]
     },
     {
       "id": "doom-004",
@@ -376,8 +376,8 @@
       "source_url": "https://doomberg.substack.com/",
       "kind": "paraphrase",
       "quote": "Critical-minerals supply chains are a strategic vulnerability. Western processing capacity for uranium, copper, and rare earths is years behind demand.",
-      "themes": ["nuclear", "commodities"],
-      "tickers": ["LEU", "CCJ", "UEC", "MP", "FCX"]
+      "themes": ["nuclear", "commodities", "critical_metals", "rare_earths"],
+      "tickers": ["LEU", "CCJ", "UEC", "MP", "FCX", "SGML", "HBM", "ALM", "LAR"]
     }
   ]
 }
