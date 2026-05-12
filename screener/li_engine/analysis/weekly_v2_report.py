@@ -199,8 +199,12 @@ def _load_yaml_overrides(filename, default):
                     if isinstance(section, list):
                         entries.extend(section)
                 if entries:
-                    # Normalise: strip extra keys (e.g. last_reviewed) not in IPO_DATA
-                    keep = {"ticker", "company", "date", "valuation", "desc"}
+                    # Normalise: keep render fields + provenance (as_of_date, source_url,
+                    # valuation_usd, last_round_date, expected_ipo_window). Anything else
+                    # (e.g. legacy "last_reviewed") is dropped.
+                    keep = {"ticker", "company", "date", "valuation", "desc",
+                            "valuation_usd", "last_round_date", "source_url",
+                            "expected_ipo_window", "as_of_date"}
                     return [{k: v for k, v in e.items() if k in keep} for e in entries]
             return default
     except Exception as e:
@@ -862,6 +866,17 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
         ''')
     ipo_rows_html = "".join(ipo_rows)
 
+    # Provenance: freshest as_of_date across rows (string compare works for ISO dates)
+    ipo_as_of = max(
+        (ipo.get("as_of_date", "") for ipo in IPO_DATA if ipo.get("as_of_date")),
+        default="",
+    )
+    ipo_as_of_html = (
+        f'<div style="font-size:10.5px;color:#95a5a6;margin:2px 0 6px 0;">'
+        f'Valuations data as of {escape(ipo_as_of)} — sourced from Reuters / FT / Bloomberg public reporting.'
+        f'</div>'
+    ) if ipo_as_of else ""
+
     return f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -995,6 +1010,7 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
               padding-bottom:6px;border-bottom:2px solid #e67e22;">
     IPO Watchlist — Pre-IPO &amp; Recently Priced
   </div>
+  {ipo_as_of_html}
   <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;font-style:italic;">
     High-profile pre-IPO names to track plus recently-priced IPOs. The first list is "be ready when these debut" — Day-1 trading + active options + retail momentum unlock immediate filing windows.
   </div>
@@ -1746,6 +1762,17 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
         ''')
     ipo_rows_html = "".join(ipo_rows)
 
+    # Provenance: freshest as_of_date across rows (string compare works for ISO dates)
+    ipo_as_of = max(
+        (ipo.get("as_of_date", "") for ipo in IPO_DATA if ipo.get("as_of_date")),
+        default="",
+    )
+    ipo_as_of_html = (
+        f'<div style="font-size:10.5px;color:#95a5a6;margin:2px 0 6px 0;">'
+        f'Valuations data as of {escape(ipo_as_of)} — sourced from Reuters / FT / Bloomberg public reporting.'
+        f'</div>'
+    ) if ipo_as_of else ""
+
     return f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1871,6 +1898,7 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
               padding-bottom:6px;border-bottom:2px solid #e67e22;">
     IPO Watchlist
   </div>
+  {ipo_as_of_html}
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr style="background:#1a1a2e;">
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.4px;">Ticker</th>
