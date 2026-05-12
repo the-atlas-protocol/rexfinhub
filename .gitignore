@@ -23,6 +23,10 @@ backup/
 data/
 !data/rules/
 !data/DASHBOARD/bloomberg_daily_file.xlsm
+# Allow code-side `data` packages (e.g. screener.li_engine.data) — only the
+# top-level repo `/data/` directory is the data drop, not every `data/` folder.
+!screener/**/data/
+!screener/**/data/**
 
 # Environment variables and secrets
 .env
