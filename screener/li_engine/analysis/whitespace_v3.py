@@ -10,10 +10,19 @@ Then scores with a demand-priority composite.
 
 The idea: it's not enough for a stock to have HIGH vol or HIGH return —
 someone has to currently CARE about it. Retail interest is the gate.
+
+Wave A2 (2026-05-11) — TIME-DECAY LAYER
+---------------------------------------
+Mention counts are aged: anything older than MENTION_FRESH_DAYS loses weight
+on a half-life curve. The `decay_factor` column on the output multiplies the
+composite score so stale-mention candidates rank below fresh ones with the
+same raw signals. Half-life and fresh-window constants live in
+`screener.li_engine.signals` for one-place tuning.
 """
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +31,11 @@ import pandas as pd
 from screener.li_engine.analysis.whitespace_v2 import (
     DB, THEMES_YAML, _clean, _zscore,
     load_universe, annotate_product_coverage, load_apewisdom_map, load_themes,
+)
+from screener.li_engine.signals import (
+    MENTION_FRESH_DAYS,
+    MENTION_HALFLIFE_DAYS,
+    apply_mention_decay,
 )
 
 log = logging.getLogger(__name__)
@@ -51,12 +65,40 @@ HOT_THEMES = {
 }
 
 
+def _mention_age_days(mentions_map: dict[str, int]) -> float:
+    """Approximate age (in days) of the mentions batch.
+
+    `load_apewisdom_map` is a live fetch, so age=0 in the same run. But when
+    `compute_score_v3` is called by `launch_candidates.build()` against a
+    cached map, or when downstream consumers persist the parquet and re-read
+    it days later, this hook lets callers override via a `_fetched_at`
+    sentinel key in the map. Defaults to 0d (live).
+    """
+    fetched_at = mentions_map.get("__fetched_at__") if isinstance(mentions_map, dict) else None
+    if not fetched_at:
+        return 0.0
+    try:
+        ts = pd.to_datetime(fetched_at, utc=True)
+        now = datetime.now(timezone.utc)
+        return max(0.0, (now - ts.to_pydatetime()).total_seconds() / 86400.0)
+    except Exception:
+        return 0.0
+
+
 def compute_score_v3(df: pd.DataFrame, themes: dict[str, list[str]],
                      mentions_map: dict[str, int]) -> pd.DataFrame:
     out = df.copy()
 
-    # Retail attention
-    out["mentions_24h"] = out.index.map(lambda t: mentions_map.get(t, 0))
+    # Retail attention — apply mention decay so stale fetches lose weight.
+    age_d = _mention_age_days(mentions_map)
+    raw_mentions = out.index.map(lambda t: mentions_map.get(t, 0) if t != "__fetched_at__" else 0)
+    out["mentions_24h_raw"] = raw_mentions
+    out["mentions_age_days"] = age_d
+    if age_d <= MENTION_FRESH_DAYS:
+        out["mentions_24h"] = raw_mentions
+    else:
+        # Vectorised exponential decay past the fresh window
+        out["mentions_24h"] = [apply_mention_decay(m, age_d) for m in raw_mentions]
     out["mentions_z"] = _zscore(out["mentions_24h"], log_transform=True)
 
     # Thematic tag — with hot-theme amplification
@@ -100,7 +142,35 @@ def compute_score_v3(df: pd.DataFrame, themes: dict[str, list[str]],
     score += WEIGHTS["si_ratio"] * out["si_ratio_z"].fillna(0)
     score += WEIGHTS["inst_own_pct"] * out["inst_own_pct_z"].fillna(0)
 
-    out["composite_score"] = score
+    # Pre-decay composite (kept for transparency / before-after comparison)
+    out["composite_score_pre_decay"] = score
+
+    # decay_factor for whitespace candidates is mention-driven only — we have
+    # no per-ticker REX/competitor filing context here (that's what
+    # launch_candidates.py adds). Default 1.0; downgraded only when the
+    # mentions batch itself is stale.
+    if age_d <= MENTION_FRESH_DAYS:
+        out["mention_decay"] = 1.0
+    else:
+        # All mentions in this batch share the same age, so the decay factor
+        # is uniform — but we still emit it so the parquet's `decay_factor`
+        # column is meaningful and report consumers can show "(STALE)".
+        out["mention_decay"] = 0.5 ** ((age_d - MENTION_FRESH_DAYS) / MENTION_HALFLIFE_DAYS)
+
+    # No filing context at the whitespace stage
+    out["rex_filing_decay"] = 1.0
+    out["competitor_filing_decay"] = 1.0
+    out["days_since_rex_filing"] = pd.NA
+    out["days_since_competitor_filing"] = pd.NA
+    out["is_stale_filing"] = False
+
+    # Final decay factor — product of all decay components
+    out["decay_factor"] = (
+        out["mention_decay"]
+        * out["rex_filing_decay"]
+        * out["competitor_filing_decay"]
+    )
+    out["composite_score"] = out["composite_score_pre_decay"] * out["decay_factor"]
     out["score_pct"] = out["composite_score"].rank(pct=True) * 100
     return out
 

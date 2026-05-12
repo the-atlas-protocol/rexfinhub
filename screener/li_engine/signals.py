@@ -3,14 +3,27 @@
 Each extractor returns a DataFrame indexed by ticker (clean, no exchange suffix)
 with one column per raw signal. Missing values are encoded as NaN. Downstream
 z-scoring and clipping is the scorer's job, not the extractor's.
+
+Time-decay layer (Wave A2, 2026-05-11)
+--------------------------------------
+Stock Recs has historically treated all signals as equally fresh. They are not.
+ApeWisdom mentions are a 24h window — if our last fetch was a week ago, those
+mentions are no longer "current" retail interest. A REX filing from Sept 2024
+with no follow-up amendment is functionally a dead lead — the desk moved on.
+
+`apply_mention_decay()` and the half-life constants below are the canonical
+decay primitives; both `whitespace_v3.py` and `launch_candidates.py` import
+them so tuning happens in exactly one place.
 """
 from __future__ import annotations
 
 import json
 import logging
+import math
 import sqlite3
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -20,6 +33,97 @@ import requests
 log = logging.getLogger(__name__)
 
 _DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "etp_tracker.db"
+
+
+# ---------------------------------------------------------------------------
+# DECAY CONFIG — single source of truth for all signal-staleness math
+# ---------------------------------------------------------------------------
+# Tune these constants to adjust decay aggressiveness. Imported by
+# whitespace_v3 + launch_candidates so changes propagate automatically.
+
+# Retail mentions: ApeWisdom returns a 24h window. Within FRESH window, no
+# decay. Beyond it, weight halves every HALFLIFE days (exponential).
+MENTION_FRESH_DAYS = 14
+MENTION_HALFLIFE_DAYS = 7.0
+
+# REX filings: an underlier we filed for ages ago without a follow-up
+# amendment / launch is a dead lead. Step penalty (cliff) is intentional —
+# matches how a portfolio manager mentally writes off a stale idea.
+REX_FILING_STALE_DAYS = 90    # >90d, no follow-up: 50% penalty
+REX_FILING_DEAD_DAYS = 180    # >180d, no follow-up: 80% penalty
+REX_FILING_STALE_FACTOR = 0.50
+REX_FILING_DEAD_FACTOR = 0.20
+
+# Competitor filings: weight by recency over a 180-day audit window.
+# Linear decay from 1.0 at t=0 to 0.0 at t=AUDIT_DAYS. Filings older than
+# the window contribute nothing to "recent competitive pressure".
+COMPETITOR_AUDIT_DAYS = 180
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def apply_mention_decay(mentions: float, age_days: float) -> float:
+    """Exponential half-life decay for ApeWisdom mention counts.
+
+    Within MENTION_FRESH_DAYS: no decay (returns mentions unchanged).
+    Beyond it: mentions * 0.5 ** ((age_days - FRESH) / HALFLIFE_DAYS).
+
+    Examples (HALFLIFE=7d, FRESH=14d):
+        age=0d   -> 1.00x
+        age=14d  -> 1.00x   (still fresh)
+        age=21d  -> 0.50x   (one half-life past fresh)
+        age=28d  -> 0.25x
+        age=35d  -> 0.125x
+    """
+    if mentions is None or (isinstance(mentions, float) and math.isnan(mentions)):
+        return 0.0
+    if age_days is None or age_days <= MENTION_FRESH_DAYS:
+        return float(mentions)
+    excess = age_days - MENTION_FRESH_DAYS
+    return float(mentions) * (0.5 ** (excess / MENTION_HALFLIFE_DAYS))
+
+
+def rex_filing_decay_factor(days_since_filing: float | None) -> float:
+    """Step decay for stale REX filings without follow-up.
+
+    Returns the multiplier to apply to a candidate's composite score
+    based on how long ago we last filed for this underlier.
+    """
+    if days_since_filing is None:
+        return 1.0  # no filing context -> no penalty
+    if days_since_filing >= REX_FILING_DEAD_DAYS:
+        return REX_FILING_DEAD_FACTOR
+    if days_since_filing >= REX_FILING_STALE_DAYS:
+        return REX_FILING_STALE_FACTOR
+    return 1.0
+
+
+def competitor_filing_recency_weight(days_since_filing: float | None) -> float:
+    """Linear-decay weight for a single competitor filing within the audit
+    window. Older filings contribute less to "current competitive pressure"
+    than fresh ones. Outside AUDIT_DAYS contributes 0.
+    """
+    if days_since_filing is None or days_since_filing < 0:
+        return 0.0
+    if days_since_filing >= COMPETITOR_AUDIT_DAYS:
+        return 0.0
+    return 1.0 - (days_since_filing / COMPETITOR_AUDIT_DAYS)
+
+
+def days_between(later: datetime | str | pd.Timestamp,
+                 earlier: datetime | str | pd.Timestamp) -> float | None:
+    """Days between two date-like values; returns None on parse failure."""
+    try:
+        l = pd.to_datetime(later)
+        e = pd.to_datetime(earlier)
+        if pd.isna(l) or pd.isna(e):
+            return None
+        delta = (l - e).total_seconds() / 86400.0
+        return float(delta)
+    except Exception:
+        return None
 
 
 def _clean_ticker(t: str) -> str:
@@ -281,10 +385,13 @@ def load_sentiment_signals(max_pages: int = 10, timeout: float = 15.0) -> pd.Dat
 
     if not records:
         log.warning("load_sentiment_signals: ApeWisdom returned no usable data")
-        return pd.DataFrame(columns=["mentions_24h", "mentions_delta_24h", "mentions_delta_pct", "rank_improvement"])
+        return pd.DataFrame(columns=["mentions_24h", "mentions_delta_24h", "mentions_delta_pct", "rank_improvement", "mentions_fetched_at"])
 
     df = pd.DataFrame.from_dict(records, orient="index")
     df.index.name = "ticker"
+    # Stamp every row with fetch timestamp so downstream decay logic can age
+    # mentions correctly when the parquet is consumed days/weeks later.
+    df["mentions_fetched_at"] = _now_utc().isoformat()
     log.info("Loaded sentiment signals for %d tickers", len(df))
     return df
 
