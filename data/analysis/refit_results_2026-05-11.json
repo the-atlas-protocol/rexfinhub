@@ -1,0 +1,88 @@
+{
+  "status": "OK",
+  "refit_date": "2026-05-11",
+  "method": "constrained_ridge_cross_sectional",
+  "limitation_note": "Underlier signals taken from CURRENT snapshot (mkt_stock_data has only 1 retained run); not true historical at-launch signals. Most signals (sector vol, insider %, inst %) are slow-moving so this is a defensible proxy, but momentum signals (ret_1m, mentions) are biased toward present conditions.",
+  "launch_window": [
+    "2024-08-01",
+    "2025-11-11"
+  ],
+  "n_outcomes_total": 198,
+  "n_joined_with_signals": 185,
+  "n_train": 108,
+  "n_oos": 77,
+  "oos_cutoff": "2025-08-11",
+  "ic_in_sample": {
+    "mentions_z": {
+      "ic": 0.3467066524142722,
+      "p_value": 0.00023705597347786184,
+      "n": 108
+    },
+    "rvol_30d": {
+      "ic": 0.39182429752284537,
+      "p_value": 2.7464792486856384e-05,
+      "n": 108
+    },
+    "rvol_90d": {
+      "ic": 0.40880656905351914,
+      "p_value": 1.1204048051618335e-05,
+      "n": 108
+    },
+    "ret_1m": {
+      "ic": 0.17114679493696075,
+      "p_value": 0.07655989350936224,
+      "n": 108
+    },
+    "ret_1y": {
+      "ic": 0.11183927097290605,
+      "p_value": 0.24917200149872748,
+      "n": 108
+    },
+    "theme_bonus": {
+      "ic": 0.2284652434548438,
+      "p_value": 0.01739753235171156,
+      "n": 108
+    },
+    "insider_pct": {
+      "ic": 0.2936508300828434,
+      "p_value": 0.002038938308595892,
+      "n": 108
+    },
+    "si_ratio": {
+      "ic": -0.19247683779654964,
+      "p_value": 0.04596608957352206,
+      "n": 108
+    },
+    "inst_own_pct": {
+      "ic": -0.10896660394753156,
+      "p_value": 0.2616143705329983,
+      "n": 108
+    }
+  },
+  "weights_old": {
+    "mentions_z": 0.22,
+    "rvol_30d": 0.15,
+    "theme_bonus": 0.14,
+    "ret_1m": 0.12,
+    "rvol_90d": 0.09,
+    "insider_pct": 0.08,
+    "ret_1y": 0.05,
+    "si_ratio": -0.08,
+    "inst_own_pct": -0.07
+  },
+  "weights_new": {
+    "mentions_z": 0.14818337782352614,
+    "rvol_30d": 0.14411406712897099,
+    "rvol_90d": 0.19418146413898366,
+    "ret_1m": 0.04383377014613978,
+    "ret_1y": 0.07391181358210672,
+    "theme_bonus": 0.059533689096055976,
+    "insider_pct": 0.18210269778311922,
+    "si_ratio": -0.10878514157459676,
+    "inst_own_pct": -0.0453539787239984
+  },
+  "composite_ic_train_old": 0.40636427962090405,
+  "composite_ic_train_new": 0.4603257511655549,
+  "composite_ic_oos_old": 0.5268078904567752,
+  "composite_ic_oos_new": 0.5598917761690088
+}
