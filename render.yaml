@@ -20,6 +20,16 @@ services:
         sync: false
       - key: SESSION_SECRET
         sync: false
+      # Auth credentials — sync:false tells Render to preserve the value
+      # set in the dashboard rather than syncing from this file. Without
+      # the declaration here, each deploy would re-roll the random
+      # fallback baked into webapp/main.py, locking the site.
+      - key: SITE_PASSWORD
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: API_KEY
+        sync: false
       - key: RENDER
         value: "true"
     disk:

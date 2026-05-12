@@ -6,9 +6,13 @@ Prefix: /api/v1
 """
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import tempfile
+import threading
+import time
+from collections import deque
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -16,11 +20,84 @@ from fastapi import APIRouter, Depends, Header, HTTPException, BackgroundTasks, 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from webapp.database import get_live_feed_db
+from webapp.database import SessionLocal, get_live_feed_db
 from webapp.dependencies import get_db
-from webapp.models import Trust, Filing, FundStatus, PipelineRun
+from webapp.models import ApiAuditLog, Trust, Filing, FundStatus, PipelineRun
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
+log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Per-IP rate limiter (hand-rolled — slowapi is not in requirements.txt and
+# adding it for one endpoint is overkill). Sliding window over a deque of
+# UTC timestamps per IP. In-memory only: resets on process restart, which
+# is the right failure mode for "soft DoS protection" — we'd rather lose
+# the limiter than the service. Configurable via env: DB_UPLOAD_RATE_PER_HOUR
+# (default 1) and DB_UPLOAD_RATE_WINDOW_SECS (default 3600).
+# ---------------------------------------------------------------------------
+
+_RATE_WINDOW_SECS = int(os.environ.get("DB_UPLOAD_RATE_WINDOW_SECS", "3600"))
+_RATE_LIMIT = int(os.environ.get("DB_UPLOAD_RATE_PER_HOUR", "1"))
+_rate_buckets: dict[str, deque] = {}
+_rate_lock = threading.Lock()
+
+
+def _client_ip(request: Request) -> str:
+    """Best-effort source IP — honours X-Forwarded-For (Render sits behind proxy)."""
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _check_rate_limit(route_key: str, ip: str) -> tuple[bool, int]:
+    """Return (allowed, retry_after_secs). Updates the bucket on allow."""
+    now = time.time()
+    cutoff = now - _RATE_WINDOW_SECS
+    bucket_key = f"{route_key}:{ip}"
+    with _rate_lock:
+        bucket = _rate_buckets.setdefault(bucket_key, deque())
+        # Drop expired entries from the left.
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+        if len(bucket) >= _RATE_LIMIT:
+            oldest = bucket[0]
+            retry = int(_RATE_WINDOW_SECS - (now - oldest)) + 1
+            return False, max(retry, 1)
+        bucket.append(now)
+        return True, 0
+
+
+def _audit_log(
+    route: str,
+    method: str,
+    ip: str,
+    user_agent: str | None,
+    success: bool,
+    status_code: int,
+    payload_size: int | None,
+    detail: str | None,
+) -> None:
+    """Persist one audit row. Best-effort — never raises."""
+    try:
+        db = SessionLocal()
+        try:
+            db.add(ApiAuditLog(
+                route=route,
+                method=method,
+                ip=ip,
+                user_agent=(user_agent or "")[:500] or None,
+                success=success,
+                status_code=status_code,
+                payload_size=payload_size,
+                detail=(detail or "")[:2000] or None,
+            ))
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        log.warning("api_audit_log write failed (non-fatal): %s", e)
 
 
 def _load_api_key() -> str:
@@ -193,6 +270,7 @@ def trigger_pipeline(
 
 @router.post("/db/upload")
 async def upload_db(
+    request: Request,
     file: UploadFile = File(...),
     _: None = Depends(verify_api_key),
 ):
@@ -205,9 +283,29 @@ async def upload_db(
 
     Accepts raw or gzipped (.gz) SQLite DB files. Streams to disk in 64KB
     chunks to stay under Render's 512MB RAM cap.
+
+    Hardening (Fix R8, 2026-05-11):
+      * per-IP rate limit (DB_UPLOAD_RATE_PER_HOUR, default 1/hour)
+      * append-only audit log row in ApiAuditLog with IP + payload size
+      * X-API-Key auth retained as-is — bearer credential for the daily
+        VPS uploader.
     """
     import gzip as _gzip
     from webapp.database import DB_PATH, engine, init_db
+
+    route = "/api/v1/db/upload"
+    ip = _client_ip(request)
+    ua = request.headers.get("user-agent")
+
+    allowed, retry = _check_rate_limit(route, ip)
+    if not allowed:
+        _audit_log(route, "POST", ip, ua, False, 429, None,
+                   f"rate_limited retry_after={retry}s")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded for {route}. Retry in {retry}s.",
+            headers={"Retry-After": str(retry)},
+        )
 
     is_gzipped = (file.filename or "").endswith(".gz") or file.content_type == "application/gzip"
     tmp_path = str(DB_PATH) + ".uploading"
@@ -288,6 +386,8 @@ async def upload_db(
         msg = f"Database replaced ({out_mb:.1f} MB)"
         if is_gzipped:
             msg = f"Database replaced ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB)"
+        _audit_log(route, "POST", ip, ua, True, 200, total_out,
+                   f"in={total_in} out={total_out} gzipped={is_gzipped}")
         return {"status": "ok", "message": msg}
     except Exception as e:
         for p in [tmp_path, tmp_path + ".gz"]:
@@ -295,21 +395,38 @@ async def upload_db(
                 os.unlink(p)
             except OSError:
                 pass
-        import logging
-        logging.getLogger(__name__).error("DB upload failed: %s", e, exc_info=True)
+        log.error("DB upload failed: %s", e, exc_info=True)
+        _audit_log(route, "POST", ip, ua, False, 500, None, f"error: {str(e)[:500]}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/db/upload-notes")
 async def upload_notes_db(
+    request: Request,
     file: UploadFile = File(...),
     _: None = Depends(verify_api_key),
 ):
     """Replace the structured_notes database with an uploaded copy.
 
     Streams to disk in 64KB chunks. Accepts raw or gzipped (.gz) SQLite DB.
+
+    Same per-IP rate limit + audit log as /db/upload (Fix R8, 2026-05-11).
     """
     import gzip as _gzip
+
+    route = "/api/v1/db/upload-notes"
+    ip = _client_ip(request)
+    ua = request.headers.get("user-agent")
+
+    allowed, retry = _check_rate_limit(route, ip)
+    if not allowed:
+        _audit_log(route, "POST", ip, ua, False, 429, None,
+                   f"rate_limited retry_after={retry}s")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded for {route}. Retry in {retry}s.",
+            headers={"Retry-After": str(retry)},
+        )
 
     notes_db_path = Path("data/structured_notes.db")
     notes_db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -363,6 +480,8 @@ async def upload_notes_db(
         msg = f"Notes DB replaced ({out_mb:.1f} MB)"
         if is_gzipped:
             msg = f"Notes DB replaced ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB)"
+        _audit_log(route, "POST", ip, ua, True, 200, total_out,
+                   f"in={total_in} out={total_out} gzipped={is_gzipped}")
         return {"status": "ok", "message": msg}
     except Exception as e:
         for p in [tmp_path, tmp_path + ".gz"]:
@@ -370,8 +489,8 @@ async def upload_notes_db(
                 os.unlink(p)
             except OSError:
                 pass
-        import logging
-        logging.getLogger(__name__).error("Notes DB upload failed: %s", e, exc_info=True)
+        log.error("Notes DB upload failed: %s", e, exc_info=True)
+        _audit_log(route, "POST", ip, ua, False, 500, None, f"error: {str(e)[:500]}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

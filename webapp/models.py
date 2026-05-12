@@ -1337,3 +1337,30 @@ class AutocallSweepCache(Base):
     params_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     payload_json: Mapped[str] = mapped_column(Text, nullable=False)
     computed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ApiAuditLog(Base):
+    """Append-only audit log for sensitive API endpoints.
+
+    Wired by /api/v1/db/upload (and /db/upload-notes) so every database swap
+    is recorded with the source IP, payload size, and outcome. The log is
+    intentionally schema-light so it can absorb other endpoints later
+    (parquet uploads, prebaked report uploads) without migration.
+    """
+    __tablename__ = "api_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    route: Mapped[str] = mapped_column(String(120), nullable=False)
+    method: Mapped[str] = mapped_column(String(10), nullable=False)
+    ip: Mapped[str | None] = mapped_column(String(64))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    success: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    status_code: Mapped[int | None] = mapped_column(Integer)
+    payload_size: Mapped[int | None] = mapped_column(Integer)  # bytes
+    detail: Mapped[str | None] = mapped_column(Text)            # error message or note
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("idx_api_audit_route_created", "route", "created_at"),
+        Index("idx_api_audit_ip_created", "ip", "created_at"),
+    )
