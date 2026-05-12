@@ -34,6 +34,35 @@ from screener.li_engine.analysis.pre_ipo_filer_race import (
 
 log = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Defensive coercion helper — pandas can hand back NaN (a float) where a
+# string is expected. html.escape() and str.split() both blow up on NaN
+# with the misleading "'float' object has no attribute 'replace'" error
+# (escape() internally calls .replace on its argument). Funnel anything
+# bound for HTML through this helper before escaping or string ops.
+# ---------------------------------------------------------------------------
+def _safe_str(value, default: str = "") -> str:
+    """Return a clean string, treating NaN/None as the default."""
+    if value is None:
+        return default
+    if isinstance(value, float):
+        try:
+            if np.isnan(value):
+                return default
+        except Exception:
+            pass
+    if isinstance(value, str):
+        return value
+    try:
+        # Scalar pd.isna (avoid passing arrays/lists through this branch)
+        if pd.api.types.is_scalar(value) and pd.isna(value):
+            return default
+    except Exception:
+        pass
+    return str(value)
+
+
 # === Layout version flag ====================================================
 # "v3" → new card-based renderer (default).
 # "v2" → legacy renderer (fallback when v3 inputs are missing).
@@ -1062,7 +1091,7 @@ def _load_prior_week_recs() -> set[str]:
                 cutoff_hi = (date.today() - timedelta(days=5)).isoformat()
                 df = pd.read_sql_query(
                     "SELECT DISTINCT ticker FROM recommendation_history "
-                    f"WHERE rec_date BETWEEN '{cutoff_lo}' AND '{cutoff_hi}'",
+                    f"WHERE week_of BETWEEN '{cutoff_lo}' AND '{cutoff_hi}'",
                     conn,
                 )
                 if not df.empty:
@@ -1246,9 +1275,10 @@ def _suggested_rex_ticker(ticker: str, row: pd.Series,
     """
     if launch_lookup and ticker in launch_lookup:
         info = launch_lookup[ticker]
-        sym = info.get("rex_ticker") or ""
+        sym = _safe_str(info.get("rex_ticker"))
         if sym:
-            status = "FILED" if (info.get("rex_market_status") or "").upper() in ("FILED", "EFFECTIVE", "REGISTERED") else "DRAFT"
+            status_raw = _safe_str(info.get("rex_market_status")).upper()
+            status = "FILED" if status_raw in ("FILED", "EFFECTIVE", "REGISTERED") else "DRAFT"
             return sym, status
     # Synthesise: T-REX 2X LONG <TICKER> → conventional symbol convention TBD
     return f"(prospective) 2X {ticker}", "NONE"
@@ -1262,11 +1292,27 @@ def _build_card_model(ticker: str, row: pd.Series, *,
                       prior_score: float | None = None,
                       is_new_entrant: bool = False) -> dict:
     """Assemble the full card model dict for one ticker."""
-    rex_filed = int(row.get("n_rex_filed_any") or row.get("n_rex_products") or 0)
-    earliest = earliest_comp_lookup.get(ticker, {})
+    def _safe_int(v) -> int:
+        try:
+            if v is None or pd.isna(v):
+                return 0
+            return int(v)
+        except (TypeError, ValueError):
+            return 0
+
+    def _safe_float(v, default: float = 0.0) -> float:
+        try:
+            if v is None or pd.isna(v):
+                return default
+            return float(v)
+        except (TypeError, ValueError):
+            return default
+
+    rex_filed = _safe_int(row.get("n_rex_filed_any")) or _safe_int(row.get("n_rex_products"))
+    earliest = earliest_comp_lookup.get(ticker, {}) or {}
     risk_flags = _derive_risk_flags(ticker, row, prior_score=prior_score)
     strength = _signal_strength(row)
-    score = float(row.get("composite_score") or 0)
+    score = _safe_float(row.get("composite_score"))
     tier = _classify_tier(score, percentiles, strength, risk_flags, is_new_entrant)
     orientation = _classify_orientation(ticker, row, earliest, rex_filed_count=rex_filed)
     sym, filing_status = _suggested_rex_ticker(ticker, row, launch_lookup)
@@ -1275,30 +1321,33 @@ def _build_card_model(ticker: str, row: pd.Series, *,
     if isinstance(thesis, str):
         thesis = {"paragraph_1": thesis, "paragraph_2": ""}
 
+    name_str = _safe_str(row.get("name")) or ticker
+    sector_str = _safe_str(row.get("sector")) or "—"
+    fund_name_for_line = _safe_str(row.get("rex_fund_name")) or _safe_str(row.get("fund_name")) or None
     return {
         "ticker": ticker,
-        "company_name": (row.get("name") or ticker).split(" - ")[0],
-        "sector": row.get("sector") or "—",
+        "company_name": name_str.split(" - ")[0],
+        "sector": sector_str,
         "tier": tier,
         "orientation": orientation,
         "score": score,
-        "score_pct": float(row.get("score_pct") or 0),
+        "score_pct": _safe_float(row.get("score_pct")),
         "signal_strength": strength,
         "signals": _signal_breakdown(row),
         "risk_flags": risk_flags,
         "rex_filed_count": rex_filed,
-        "competitor_active_long": int(row.get("n_comp_products") or 0),
-        "competitor_filed_180d": int(row.get("n_competitor_485apos_180d") or 0),
+        "competitor_active_long": _safe_int(row.get("n_comp_products")),
+        "competitor_filed_180d": _safe_int(row.get("n_competitor_485apos_180d")),
         "earliest_competitor": earliest,
-        "filing_race_rank": int(earliest.get("n_filings", 0) or 0),
-        "thesis_p1": thesis.get("paragraph_1") or "",
-        "thesis_p2": thesis.get("paragraph_2") or "",
-        "suggested_ticker": sym,
-        "filing_status": filing_status,
+        "filing_race_rank": _safe_int(earliest.get("n_filings", 0)),
+        "thesis_p1": _safe_str(thesis.get("paragraph_1")),
+        "thesis_p2": _safe_str(thesis.get("paragraph_2")),
+        "suggested_ticker": _safe_str(sym),
+        "filing_status": _safe_str(filing_status) or "NONE",
         "company_line": _resolve_company_line(
             ticker,
-            sector=row.get("sector"),
-            fund_name=row.get("rex_fund_name") or row.get("fund_name"),
+            sector=sector_str if sector_str != "—" else None,
+            fund_name=fund_name_for_line,
         ),
         # Carry-through metrics for the signals panel
         "market_cap": row.get("market_cap"),
@@ -1306,7 +1355,7 @@ def _build_card_model(ticker: str, row: pd.Series, *,
         "ret_1m": row.get("ret_1m"),
         "ret_1y": row.get("ret_1y"),
         "si_ratio": row.get("si_ratio"),
-        "mentions_24h": int(row.get("mentions_24h") or 0),
+        "mentions_24h": _safe_int(row.get("mentions_24h")),
     }
 
 
@@ -1396,14 +1445,14 @@ def _render_competition_panel(card: dict) -> str:
     )
 
     if earliest:
-        ei = earliest.get("earliest_issuer", "")
-        ed = earliest.get("earliest_filing_date")
+        ei = _safe_str(earliest.get("earliest_issuer"))
+        ed = _safe_str(earliest.get("earliest_filing_date"))
         if ed:
             lines.append(
                 f'<div style="font-size:11px;color:#566573;margin-top:4px;">'
-                f'Earliest: {escape(str(ei))} on <strong>{ed}</strong></div>'
+                f'Earliest: {escape(ei)} on <strong>{escape(ed)}</strong></div>'
             )
-        race_rank = earliest.get("n_filings", 0)
+        race_rank = earliest.get("n_filings", 0) or 0
         if race_rank:
             lines.append(
                 f'<div style="font-size:11px;color:#566573;">'
@@ -1413,13 +1462,13 @@ def _render_competition_panel(card: dict) -> str:
 
 
 def _render_thesis_panel(card: dict) -> str:
-    p1 = card["thesis_p1"]
-    p2 = card["thesis_p2"]
+    p1 = _safe_str(card.get("thesis_p1"))
+    p2 = _safe_str(card.get("thesis_p2"))
     if not p1 and not p2:
         return (
             '<div style="font-size:12px;color:#7f8c8d;font-style:italic;'
             'line-height:1.55;">Thesis pending — '
-            f'<span style="color:#1a1a2e;">{escape(card["company_line"])}</span></div>'
+            f'<span style="color:#1a1a2e;">{escape(_safe_str(card.get("company_line")))}</span></div>'
         )
     parts = []
     if p1:
@@ -1438,14 +1487,14 @@ def _render_thesis_panel(card: dict) -> str:
 def _render_card_v3(card: dict) -> str:
     """Render a single per-ticker decision card (4-panel grid)."""
     tier_badge = _render_tier_badge(card["tier"])
-    strength = card["signal_strength"]
+    strength = _safe_str(card.get("signal_strength")) or "WEAK"
     strength_color = {
         "URGENT": "#e74c3c", "STRONG": "#27ae60",
         "MODERATE": "#f39c12", "WEAK": "#7f8c8d",
     }.get(strength, "#7f8c8d")
 
-    suggested = card["suggested_ticker"]
-    filing_status = card["filing_status"]
+    suggested = _safe_str(card.get("suggested_ticker")) or f"(prospective) 2X {card.get('ticker','')}"
+    filing_status = _safe_str(card.get("filing_status")) or "NONE"
     fs_color = {
         "FILED":  "#27ae60",
         "DRAFT":  "#f39c12",
@@ -1465,11 +1514,11 @@ def _render_card_v3(card: dict) -> str:
             <tr>
               <td style="vertical-align:middle;">
                 <span style="font-family:'Courier New',monospace;font-size:18px;
-                             font-weight:700;color:#0984e3;">{escape(card["ticker"])}</span>
+                             font-weight:700;color:#0984e3;">{escape(_safe_str(card.get("ticker")))}</span>
                 <span style="color:#1a1a2e;font-size:13px;font-weight:600;
-                             margin-left:10px;">{escape(card["company_name"])}</span>
+                             margin-left:10px;">{escape(_safe_str(card.get("company_name")))}</span>
                 <span style="color:#7f8c8d;font-size:11px;
-                             margin-left:8px;">· {escape(str(card["sector"]))}</span>
+                             margin-left:8px;">· {escape(_safe_str(card.get("sector")) or "—")}</span>
               </td>
               <td style="text-align:right;vertical-align:middle;white-space:nowrap;">
                 <span style="background:{strength_color};color:white;padding:2px 7px;
@@ -1562,8 +1611,8 @@ def _render_killed_card(ticker: str, reason: str) -> str:
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="font-family:'Courier New',monospace;font-size:13px;
-                     font-weight:700;color:#7f8c8d;width:80px;">{escape(ticker)}</td>
-          <td style="font-size:12px;color:#566573;">{escape(reason)}</td>
+                     font-weight:700;color:#7f8c8d;width:80px;">{escape(_safe_str(ticker))}</td>
+          <td style="font-size:12px;color:#566573;">{escape(_safe_str(reason))}</td>
         </tr>
       </table>
     </td></tr>
@@ -1999,7 +2048,9 @@ def main():
                      sum(1 for c in cards if c["tier"] == "WATCH"),
                      len(killed))
         except Exception as e:
+            import traceback
             log.warning("v3 renderer failed (%s); falling back to v2 layout.", e)
+            log.warning("v3 traceback:\n%s", traceback.format_exc())
             html = None
 
     if html is None:
