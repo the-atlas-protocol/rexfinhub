@@ -38,16 +38,34 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _RATE_WINDOW_SECS = int(os.environ.get("DB_UPLOAD_RATE_WINDOW_SECS", "3600"))
-_RATE_LIMIT = int(os.environ.get("DB_UPLOAD_RATE_PER_HOUR", "1"))
+# Default bumped from 1 to 6 (Hotfix H1, 2026-05-11): the daily VPS uploader
+# legitimately retries 1-4 times during a window when Render is sluggish, and
+# the previous 1/hour cap returned 429 with a 60-min Retry-After on the first
+# retry — effectively turning a soft rate limit into an outage.
+_RATE_LIMIT = int(os.environ.get("DB_UPLOAD_RATE_PER_HOUR", "6"))
 _rate_buckets: dict[str, deque] = {}
 _rate_lock = threading.Lock()
 
 
 def _client_ip(request: Request) -> str:
-    """Best-effort source IP — honours X-Forwarded-For (Render sits behind proxy)."""
+    """Best-effort source IP — honours X-Forwarded-For with right-most entry.
+
+    Hotfix H1 (2026-05-11): previously took the LEFT-most XFF value, which is
+    attacker-controlled. On Render the upstream proxy *appends* its observed
+    peer IP to XFF, so any value before it was sent by the client and can be
+    spoofed (e.g. ``X-Forwarded-For: 1.2.3.4`` makes every request look like
+    a fresh source — bypassing per-IP rate limit and forging the audit IP).
+    The right-most entry is the one Render itself wrote, so it is the only
+    XFF position we can trust. Fallback to ``request.client.host`` (the
+    direct TCP peer) when XFF is absent — that is the proxy itself in prod
+    but the real client when running locally without a proxy.
+    """
     xff = request.headers.get("x-forwarded-for")
     if xff:
-        return xff.split(",")[0].strip()
+        # Right-most non-empty entry — the one appended by our trusted proxy.
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
     return request.client.host if request.client else "unknown"
 
 
@@ -285,7 +303,8 @@ async def upload_db(
     chunks to stay under Render's 512MB RAM cap.
 
     Hardening (Fix R8, 2026-05-11):
-      * per-IP rate limit (DB_UPLOAD_RATE_PER_HOUR, default 1/hour)
+      * per-IP rate limit (DB_UPLOAD_RATE_PER_HOUR, default 6/hour as of
+        Hotfix H1 — was 1/hour, blocked legitimate retries)
       * append-only audit log row in ApiAuditLog with IP + payload size
       * X-API-Key auth retained as-is — bearer credential for the daily
         VPS uploader.

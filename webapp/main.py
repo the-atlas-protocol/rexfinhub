@@ -194,14 +194,27 @@ class CsrfMiddleware(BaseHTTPMiddleware):
         ):
             # Pull the presented token from header, form, or query.
             presented = request.headers.get(CSRF_HEADER)
+            ctype = (request.headers.get("content-type") or "").lower()
+
+            # Hotfix H1 (2026-05-11): for multipart bodies, REQUIRE the
+            # X-CSRF-Token header. Calling ``await request.form()`` would
+            # spool the entire upload to disk before we can reject the
+            # request — a free DoS vector against /admin/upload/*. Browsers
+            # that submit our admin forms always set the header via
+            # base.html's fetch wrapper, so legitimate flows still work;
+            # this only kills naive curl-an-empty-token POSTs and the DoS.
+            if not presented and "multipart/" in ctype:
+                from fastapi.responses import JSONResponse as _JR
+                return _JR(
+                    {"error": "CSRF validation failed", "detail":
+                     "Multipart admin requests must send X-CSRF-Token header."},
+                    status_code=403,
+                )
+
             if not presented:
-                # Form parsing consumes the body; cache it back so the
-                # downstream route handler can still read its fields.
-                ctype = (request.headers.get("content-type") or "").lower()
-                if (
-                    "application/x-www-form-urlencoded" in ctype
-                    or "multipart/form-data" in ctype
-                ):
+                # urlencoded forms are small and bounded by Starlette's
+                # default body limits, so consuming + caching them is safe.
+                if "application/x-www-form-urlencoded" in ctype:
                     try:
                         form = await request.form()
                         presented = form.get(CSRF_FORM_FIELD)
