@@ -10,15 +10,35 @@ from .sgml import parse_sgml_series_classes
 from .body_extractors import iter_txt_documents, extract_from_html_string, extract_from_primary_html, extract_from_primary_pdf
 from .manifest import (
     load_manifest, save_manifest, get_processed_accessions,
-    get_retry_accessions, record_success, record_error, PIPELINE_VERSION,
+    get_retry_accessions, record_success, record_error,
+    record_extraction_result, PIPELINE_VERSION,
 )
 from .ixbrl import extract_ixbrl_facts
 from .config import EXTRACTION_STRATEGIES, DEFAULT_EXTRACTION_STRATEGY
 
 log = logging.getLogger(__name__)
 
-_TICKER_STOPWORDS = {"THE","AND","FOR","WITH","ETF","FUND","RISK","USD","MEMBER",
-                     "SYMBOL","NAN","NONE","TBD","COM","INC","LLC","TRUST","DAILY","TARGET"}
+# 2026-05-11 audit-fix-R3: extended deny-list to plug SYMBOL/TICKER truncations
+# (SYM, SYMBO, TICKE, etc.) plus other column-header / English fragments that
+# the ticker proximity-window extractor was capturing as ticker values.
+_TICKER_STOPWORDS = {
+    # SYMBOL truncations
+    "SYM", "SYMB", "SYMBO", "SYMBOL", "SYMBOLS",
+    # TICKER truncations
+    "TIC", "TICK", "TICKE", "TICKER", "TICKERS",
+    # Column / table headers
+    "COL", "ROW", "ITEM", "PAGE", "NUM", "TOTAL", "NULL", "NAME",
+    "NAN", "NONE", "TBD", "TBA", "N/A", "NA",
+    # English connectives and determiners
+    "THE", "AND", "FOR", "WITH", "BY", "ALL", "OR", "OF",
+    # Currency / generic finance
+    "USD", "EUR", "GBP", "JPY", "CAD", "AUD",
+    # Fund-related words
+    "ETF", "ETN", "FUND", "FUNDS", "RISK", "MEMBER", "TRUST",
+    "CLASS", "SHARE", "SHARES", "DAILY", "TARGET",
+    # Corporate suffixes
+    "COM", "INC", "LLC",
+}
 def _valid_ticker(tok: str) -> bool:
     t = (tok or "").strip().upper()
     if not (2 <= len(t) <= 5): return False
@@ -595,7 +615,11 @@ def step3_extract_for_trust(client: SECClient, output_root, trust_name: str,
                 )
 
             rows_out.extend(extracted_rows)
-            record_success(manifest, accession, form, len(extracted_rows))
+            # 2026-05-11 audit-fix-R3: distinguish silent-zero extraction from
+            # genuine success. Filings that completed without raising but
+            # produced 0 rows get marked `extracted_zero` and will be retried
+            # on the next pipeline run (see manifest.get_retry_accessions).
+            record_extraction_result(manifest, accession, form, len(extracted_rows))
             metrics["new"] += 1
 
             # Track which strategy was used
