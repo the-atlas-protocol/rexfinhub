@@ -61,7 +61,17 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
                 pass
         return "PENDING", "485BXT filed (awaiting effectiveness)"
 
-    # 485APOS = Initial filing
+    # 485APOS = Initial filing (post-effective amendment FORM but used for
+    # both new funds AND material changes to existing funds).
+    #
+    # SEC Rule 485(a) effectiveness clock:
+    #   - 75 days for a NEW fund (initial registration via 485APOS)
+    #   - 60 days for a MATERIAL CHANGE to an existing effective fund
+    # Default here is 75 days because REX overwhelmingly files 485APOS for
+    # new-fund launches; the 60-day material-change path requires parsing
+    # the filing text (cover page wording or item 9 cross-reference) and
+    # is not implemented yet. When/if filing-text parsing lands, branch
+    # on the parsed signal and use 60 days for material-change rows.
     if form.startswith("485A"):
         if delaying:
             return "DELAYED", "485APOS with delaying amendment"
@@ -70,7 +80,7 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
                 return "EFFECTIVE", f"485APOS effective as of {eff_date}"
             else:
                 return "PENDING", f"485APOS effective date {eff_date} is future"
-        # Default: 75 days from filing
+        # Default: 75 days from filing (new-fund 485APOS clock).
         if filing_date:
             try:
                 fdt = pd.to_datetime(filing_date, errors="coerce")
