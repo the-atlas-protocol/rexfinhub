@@ -305,10 +305,50 @@ def _clean(t):
 # ---------------------------------------------------------------------------
 
 def load_launch_candidates(n: int = 10) -> pd.DataFrame:
+    """Load launch candidates with a render-time competitor guard.
+
+    Wave A1 (2026-05-11): launch_candidates.parquet is rebuilt on a
+    cadence; between rebuilds a competitor 2x can launch on an underlier
+    we still recommend (e.g. AMPX once Defiance launched AMPU). The
+    render-time guard re-checks mkt_master_data on every report build
+    and drops underliers where any non-REX 2x+ product is currently
+    ACTIVE — even if the parquet still lists them as launch candidates.
+
+    Note: this guard only catches products with map_li_underlier
+    populated and map_li_leverage_amount castable to >= 2.0. Products
+    where master_data lacks an underlier mapping (e.g. AMPU at the time
+    of audit) are caught upstream by whitespace_v4.apply_whitespace_filter
+    via competitor_counts.parquet's regex fallback. This is the
+    second-line defense.
+    """
     if not LC.exists():
         return pd.DataFrame()
     df = pd.read_parquet(LC)
     df = df[df["has_signals"] == True]  # need actual signal data
+
+    # Render-time guard against stale parquet / new competitor launches.
+    try:
+        con = sqlite3.connect(str(DB))
+        active_underliers = {r[0] for r in con.execute(
+            "SELECT DISTINCT map_li_underlier FROM mkt_master_data "
+            "WHERE market_status='ACTV' AND map_li_underlier IS NOT NULL "
+            "  AND CAST(map_li_leverage_amount AS REAL) >= 2.0 "
+            "  AND issuer_display != 'REX'"
+        ).fetchall()}
+        con.close()
+        # Index of df is the underlier ticker (e.g. "DOCN", "FNMA").
+        # Strip any " US" suffix and uppercase before comparison.
+        active_clean = {(u or "").split()[0].upper() for u in active_underliers if u}
+        before = len(df)
+        df = df[~df.index.astype(str).str.upper().isin(active_clean)]
+        dropped = before - len(df)
+        if dropped:
+            log.info("Render-time guard dropped %d launch candidates with "
+                     "active competitor 2x+ products", dropped)
+    except Exception as e:
+        # Never let the guard break the report — log and continue.
+        log.warning("Render-time competitor guard failed: %s", e)
+
     return df.sort_values("composite_score", ascending=False).head(n)
 
 

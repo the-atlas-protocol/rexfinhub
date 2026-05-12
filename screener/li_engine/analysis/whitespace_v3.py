@@ -37,11 +37,17 @@ WEIGHTS = {
     "theme_bonus":   0.14,   # curated theme membership
     "ret_1m":        0.12,   # recent price move — current momentum (not 1y lag)
     "rvol_90d":      0.09,   # sustained vol regime
-    "insider_pct":   0.08,   # insider alignment (post-launch validated)
     "ret_1y":        0.05,   # long-term trend (lagging — small weight only)
     # Negative
     "si_ratio":      -0.08,  # high SI predicts failure
     "inst_own_pct":  -0.07,  # institutional-heavy = retail avoids
+    # Per Wave A1 spec (2026-05-11): insider ownership is treated as a
+    # NEGATIVE predictor (sign flipped from +0.08). NOTE TO REVIEWER:
+    # whitespace_v2.py:199 records `IC vs success = +0.161` (positive) and
+    # generate_docx_v3.py / generate_docx_v4.py document insider_pct as a
+    # validated POSITIVE signal that passes robustness checks. The flip
+    # is applied per the audit directive — confirm intent before merge.
+    "insider_pct":   -0.08,
 }
 
 
@@ -119,7 +125,7 @@ def top_drivers_v3(row: pd.Series) -> list[str]:
         "rvol_30d_z":    ("30-day realized volatility", WEIGHTS["rvol_30d"]),
         "ret_1m_z":      ("recent 1-month momentum", WEIGHTS["ret_1m"]),
         "rvol_90d_z":    ("90-day realized volatility", WEIGHTS["rvol_90d"]),
-        "insider_pct_z": ("insider ownership", WEIGHTS["insider_pct"]),
+        "insider_pct_z": ("low insider ownership (negative weight)", WEIGHTS["insider_pct"]),
         "ret_1y_z":      ("1-year price trend", WEIGHTS["ret_1y"]),
     }
     contribs = []
