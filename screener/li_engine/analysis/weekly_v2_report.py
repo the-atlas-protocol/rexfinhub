@@ -24,6 +24,13 @@ from screener.li_engine.analysis.pre_ipo_filer_race import (
     load_pre_ipo_filer_race,
     render_filers_pills,
 )
+from screener.li_engine.analysis.recommendation_history import (
+    append_weekly_recommendations,
+    build_rows_from_renderer,
+    hit_rate_stats,
+    monday_of,
+    render_track_record_footer,
+)
 
 log = logging.getLogger(__name__)
 
@@ -709,10 +716,14 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
            filings_summary: dict, top_mentions: tuple[str, int],
            hot_take: str, earliest_comp: dict | None = None,
            launches_week: pd.DataFrame | None = None,
-           ipo_filers: dict | None = None) -> str:
+           ipo_filers: dict | None = None,
+           track_record: dict | None = None) -> str:
     ipo_filers = ipo_filers or {}
     earliest_comp = earliest_comp or {}
     today_str = date.today().strftime("%B %d, %Y")
+    # Track-record footer (Wave E1). Empty dict → renders "insufficient
+    # history" placeholder, so tests that don't pass stats still work.
+    track_record_html = render_track_record_footer(track_record or {})
     week_window = f"{filings_summary.get('week_start', '')} → {filings_summary.get('week_end', '')}"
 
     # Build top-5 lists for highlights
@@ -978,6 +989,7 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
       Stocks are scored on retail demand signals (volatility, options activity, momentum, attention, ownership patterns) and ranked across the full US equity universe. Recommendations are filtered so we never surface a name where an active leveraged product already exists.
       <br><br>
       <strong style="color:#1a1a2e;">Internal use only.</strong> REX Financial. Not investment advice.
+      {track_record_html}
     </td></tr>
   </table>
 </td></tr>
@@ -1022,9 +1034,16 @@ def main():
 
     ipo_filers = load_pre_ipo_filer_race()
 
+    # --- Wave E1: track-record stats (read-only, cheap) ---
+    try:
+        track_record = hit_rate_stats(rolling_days=90)
+    except Exception as e:
+        log.warning("hit_rate_stats failed (non-fatal): %s", e)
+        track_record = {}
+
     html = render(launch, whitespace, money_flow, filings_summary, top_mentions, hot_take,
                   earliest_comp=earliest_comp, launches_week=launches_week,
-                  ipo_filers=ipo_filers)
+                  ipo_filers=ipo_filers, track_record=track_record)
     # Hard-block: fail fast rather than ship placeholder text.
     if "Description pending" in html:
         raise RuntimeError(
@@ -1036,6 +1055,26 @@ def main():
     OUT.write_text(html, encoding="utf-8")
     log.info("Wrote %s (%.1f KB)", OUT, OUT.stat().st_size / 1024)
     print(f"Report: {OUT}")
+
+    # --- Wave E1: append this week's recommendations ---
+    # Only do this AFTER the HTML is written successfully so we never
+    # log recs from a failed/partial build. Idempotent on rerun.
+    try:
+        rows = build_rows_from_renderer(
+            week_of=monday_of(date.today()),
+            launch_df=launch,
+            whitespace_df=whitespace,
+            thesis_resolver=lambda t: _resolve_company_line(
+                t, sector=None, fund_name=None,
+            ),
+        )
+        result = append_weekly_recommendations(rows)
+        log.info(
+            "recommendation_history append: %d inserted, %d skipped",
+            result.get("inserted", 0), result.get("skipped", 0),
+        )
+    except Exception as e:
+        log.warning("append_weekly_recommendations failed (non-fatal): %s", e)
 
 
 if __name__ == "__main__":
