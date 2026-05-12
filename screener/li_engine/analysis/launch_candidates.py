@@ -12,16 +12,43 @@ Pipeline:
     4. Exclude paused filings (BBUP/FIGO/SPOU per Ryu — bbg leaves them as PEND but they won't launch)
     5. Score remaining underliers using whitespace_v4 composite (with hot-theme boost)
     6. Annotate # filed competitors per underlier
+
+Wave A2 (2026-05-11) — TIME-DECAY LAYER
+---------------------------------------
+For each underlier, we now query the most-recent REX filing and the most-recent
+competitor filing. Three decay components multiply into the final composite:
+
+    decay_factor = mention_decay * rex_filing_decay * competitor_filing_decay
+
+`rex_filing_decay`  : 0.50 if last REX filing >90d old without follow-up,
+                      0.20 if >180d. AMC's last REX filing is 2024-09-19
+                      (>600d ago) — its decay factor crushes the score.
+`competitor_filing_decay` : recency-weighted average over a 180-day audit
+                      window — fresh competitor filings count more.
+`mention_decay`     : exponential past MENTION_FRESH_DAYS (handled in v3).
+
+`is_stale_filing` and `display_effective_label` columns are emitted so the
+report layer can render strikethrough / "(STALE — Nd ago)" annotations
+without re-querying the DB.
 """
 from __future__ import annotations
 
 import json
 import logging
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from screener.li_engine.signals import (
+    COMPETITOR_AUDIT_DAYS,
+    REX_FILING_DEAD_DAYS,
+    REX_FILING_STALE_DAYS,
+    competitor_filing_recency_weight,
+    rex_filing_decay_factor,
+)
 
 log = logging.getLogger(__name__)
 
@@ -123,6 +150,88 @@ def get_rex_filed_underliers() -> dict[str, dict]:
             "source": "fund_extractions_regex",
         }
 
+    return out
+
+
+def load_filing_dates_for_underliers() -> pd.DataFrame:
+    """Per underlier, return:
+        last_rex_filing_date  : max filing_date across all REX filings
+        last_comp_filing_date : max filing_date across all competitor filings
+        comp_filings_180d     : list of (filing_date, registrant) tuples within
+                                the audit window for recency-weighted scoring
+        closest_effective_date_raw : earliest known effective_date (real or null)
+
+    Driven by the same fund_extractions + filings join the report uses, so the
+    "Closest effective date" we emit lines up exactly with what
+    `weekly_v2_report._section_card` renders.
+    """
+    from screener.li_engine.analysis.filed_underliers import extract_underlier
+
+    conn = sqlite3.connect(str(DB))
+    try:
+        df = pd.read_sql_query(
+            """
+            SELECT fe.series_name, fe.class_contract_name, fe.effective_date,
+                   f.filing_date, f.form, f.registrant
+            FROM fund_extractions fe
+            JOIN filings f ON f.id = fe.filing_id
+            WHERE f.filing_date IS NOT NULL
+            """,
+            conn,
+        )
+    finally:
+        conn.close()
+
+    if df.empty:
+        return pd.DataFrame(columns=[
+            "last_rex_filing_date", "last_comp_filing_date",
+            "closest_effective_date_raw", "n_comp_filings_180d",
+            "competitor_filing_decay",
+        ])
+
+    df["underlier"] = df["series_name"].apply(extract_underlier)
+    fb = df["underlier"].isna()
+    df.loc[fb, "underlier"] = df.loc[fb, "class_contract_name"].apply(extract_underlier)
+    df = df.dropna(subset=["underlier"])
+    df["underlier"] = df["underlier"].str.upper()
+    df["filing_date"] = pd.to_datetime(df["filing_date"], errors="coerce")
+    df["effective_date"] = pd.to_datetime(df["effective_date"], errors="coerce")
+    df = df.dropna(subset=["filing_date"])
+
+    df["is_rex"] = df["registrant"].astype(str).str.contains(
+        r"REX|ETF Opportunities", case=False, na=False, regex=True
+    )
+
+    today = pd.Timestamp(datetime.now(timezone.utc).date())
+    df["age_days"] = (today - df["filing_date"]).dt.days.astype(float)
+
+    rex_only = df[df["is_rex"]]
+    comp_only = df[~df["is_rex"]]
+
+    # Per-underlier aggregates
+    last_rex = rex_only.groupby("underlier")["filing_date"].max().rename("last_rex_filing_date")
+    last_comp = comp_only.groupby("underlier")["filing_date"].max().rename("last_comp_filing_date")
+    closest_eff = df.groupby("underlier")["effective_date"].min().rename("closest_effective_date_raw")
+
+    # Competitor decay: recency-weighted average over audit window
+    audit_window = comp_only[comp_only["age_days"] <= COMPETITOR_AUDIT_DAYS].copy()
+    if not audit_window.empty:
+        audit_window["recency_w"] = audit_window["age_days"].apply(
+            lambda d: competitor_filing_recency_weight(d)
+        )
+        # Per underlier: mean recency weight across all in-window comp filings.
+        # An underlier with one filing 7d ago scores ~0.96; one with several
+        # filings 150d ago scores ~0.17; one with no in-window filings -> 0.
+        comp_decay = audit_window.groupby("underlier")["recency_w"].mean().rename("competitor_filing_decay")
+        comp_count = audit_window.groupby("underlier").size().rename("n_comp_filings_180d")
+    else:
+        comp_decay = pd.Series(dtype=float, name="competitor_filing_decay")
+        comp_count = pd.Series(dtype=int, name="n_comp_filings_180d")
+
+    out = pd.concat([last_rex, last_comp, closest_eff, comp_decay, comp_count], axis=1)
+    out["n_comp_filings_180d"] = out["n_comp_filings_180d"].fillna(0).astype(int)
+    # Underliers with comp filings outside window get 0.0; with no filings at
+    # all in DB get NaN (treated as "no competitor pressure" at scoring time).
     return out
 
 
@@ -241,6 +350,61 @@ def build() -> pd.DataFrame:
         themes = load_themes()
         mentions = load_apewisdom_map(set(df.index))
         df = compute_score_v3(df, themes, mentions)
+
+        # ------------------------------------------------------------------
+        # WAVE A2: TIME-DECAY OVERRIDES (filing-driven, per-underlier)
+        # whitespace_v3 set rex/competitor decay = 1.0 because it has no
+        # filing context. We have it — apply real values now.
+        # ------------------------------------------------------------------
+        filing_dates = load_filing_dates_for_underliers()
+        # whitespace_v3 set rex_filing_decay/competitor_filing_decay to 1.0 as
+        # placeholders — drop them before the join so we get the real values.
+        df = df.drop(columns=["rex_filing_decay", "competitor_filing_decay",
+                              "days_since_rex_filing", "days_since_competitor_filing"],
+                     errors="ignore")
+        df = df.join(filing_dates, how="left")
+
+        today = pd.Timestamp(datetime.now(timezone.utc).date())
+        df["days_since_rex_filing"] = (today - df["last_rex_filing_date"]).dt.days
+        df["days_since_competitor_filing"] = (today - df["last_comp_filing_date"]).dt.days
+
+        # REX filing decay (step penalty for stale leads)
+        df["rex_filing_decay"] = df["days_since_rex_filing"].apply(
+            lambda d: rex_filing_decay_factor(d if pd.notna(d) else None)
+        )
+
+        # Competitor filing decay default = 1.0 (no in-window filings = no
+        # decay penalty); real value comes from filing_dates join above.
+        df["competitor_filing_decay"] = df["competitor_filing_decay"].fillna(1.0)
+
+        # Stale flag — used by report layer to render "(STALE — Nd ago)"
+        df["is_stale_filing"] = df["days_since_rex_filing"] >= REX_FILING_STALE_DAYS
+
+        # Pre-built display label so the report can render staleness without
+        # re-doing the math. None when no closest_effective_date_raw exists;
+        # report falls back to its existing "Closest effective date: n/a"
+        # branch in that case.
+        def _label(row):
+            ced = row.get("closest_effective_date_raw")
+            if pd.isna(ced):
+                return None
+            base = pd.to_datetime(ced).date().isoformat()
+            d = row.get("days_since_rex_filing")
+            if pd.notna(d) and d >= REX_FILING_STALE_DAYS:
+                tag = "DEAD" if d >= REX_FILING_DEAD_DAYS else "STALE"
+                return f"{base} (~{tag} — {int(d)}d since last REX filing, no follow-up)"
+            return base
+        df["display_effective_label"] = df.apply(_label, axis=1)
+
+        # Recompute final composite with full decay product
+        df["decay_factor"] = (
+            df["mention_decay"].fillna(1.0)
+            * df["rex_filing_decay"].fillna(1.0)
+            * df["competitor_filing_decay"].fillna(1.0)
+        )
+        df["composite_score"] = df["composite_score_pre_decay"] * df["decay_factor"]
+        df["score_pct"] = df["composite_score"].rank(pct=True) * 100
+
         df = df.sort_values("composite_score", ascending=False)
 
     return df
@@ -255,9 +419,13 @@ def main():
     print(f"\nLaunch candidates (REX filed, no live products anywhere): {len(df)}")
     if not df.empty:
         cols = ["sector", "rex_fund_name", "competitor_filed_total", "rvol_90d",
-                "ret_1m", "ret_1y", "mentions_24h", "is_hot_theme", "composite_score"]
+                "ret_1m", "ret_1y", "mentions_24h", "is_hot_theme",
+                "days_since_rex_filing", "decay_factor", "composite_score"]
         cols = [c for c in cols if c in df.columns]
         print(df[cols].head(15).to_string())
+        print()
+        print(f"Stale (>{REX_FILING_STALE_DAYS}d since last REX filing): "
+              f"{int(df['is_stale_filing'].sum())} of {len(df)} candidates")
 
 
 if __name__ == "__main__":
