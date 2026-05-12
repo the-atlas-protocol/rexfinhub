@@ -27,6 +27,7 @@ data/
 # top-level data/ artifact directory. Force-track it explicitly.
 !screener/li_engine/data/
 !screener/li_engine/data/**
+screener/li_engine/data/**/__pycache__/
 
 # Environment variables and secrets
 .env
