@@ -2075,7 +2075,19 @@ def send_digest_from_db(
     # Audit fix R7: capture "today in ET" ONCE at the top so the subject
     # always carries the market-local date even on early-AM ET sends, and
     # so all downstream renders share a consistent reference timestamp.
-    today_et = datetime.now(ET).date()
+    # Audit fix (Phase B): allow REPORT_DATE_OVERRIDE env var (YYYY-MM-DD) to pin
+    # the subject date to the data-as-of date — needed when sending Monday's
+    # close-of-business report on Tuesday morning so subject reflects the data
+    # date, not the send date.
+    import os as _os
+    _date_override = _os.environ.get("REPORT_DATE_OVERRIDE", "").strip()
+    if _date_override:
+        try:
+            today_et = datetime.strptime(_date_override, "%Y-%m-%d").date()
+        except ValueError:
+            today_et = datetime.now(ET).date()
+    else:
+        today_et = datetime.now(ET).date()
     _labels = {"daily": "Daily ETP Report", "morning": "Morning Brief",
                "evening": "Daily ETP Report"}
     subject_override = f"REX {_labels.get(edition, 'Daily ETP Report')}: {today_et.strftime('%m/%d/%Y')}"
