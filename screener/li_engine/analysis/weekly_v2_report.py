@@ -1265,23 +1265,62 @@ def _classify_orientation(ticker: str, row: pd.Series,
     return "OFFENSIVE"
 
 
+# REX naming convention suffix letters by leverage / direction.
+# Derived from existing REX tableau (NVDX=2x NVDA, MSTU=2x MSTR, AAPB=2x AAPL,
+# AMZU=2x AMZN, NVDS=-1x NVDA, MSTZ=-2x MSTR, etc.). Pattern is broadly
+# {root}{suffix}; not perfectly mechanical but close enough for a suggestion.
+_REX_SUFFIX_BY_DIRECTION = {
+    ("LONG", 2.0): "X",   # default 2x long
+    ("LONG", 3.0): "T",   # 3x long
+    ("LONG", 1.0): "L",   # 1x long (rare)
+    ("SHORT", 1.0): "S",  # -1x inverse
+    ("SHORT", 2.0): "Z",  # -2x inverse
+    ("SHORT", 3.0): "D",  # -3x inverse
+}
+
+
+def _synthesise_rex_symbol(ticker: str, direction: str = "LONG",
+                           leverage: float = 2.0) -> str:
+    """Build a conventional REX symbol for an underlier.
+
+    Rules (derived from existing tableau, not perfectly mechanical):
+      - Take the first 3 chars of ticker as the root, append the suffix letter.
+      - If ticker is <= 3 chars, use the full ticker as root.
+      - If a suffix is unknown, fall back to "X".
+    Examples: NVDA→NVDX (2x long), MSTR→MSTZ (-2x), AAPL→AAPS (-1x).
+    """
+    root = re.sub(r"[^A-Z0-9]", "", ticker.upper())[:3] if len(ticker) > 3 else ticker.upper()
+    suffix = _REX_SUFFIX_BY_DIRECTION.get((direction.upper(), float(leverage)), "X")
+    return f"{root}{suffix}"
+
+
 def _suggested_rex_ticker(ticker: str, row: pd.Series,
                           launch_lookup: dict | None = None) -> tuple[str, str]:
-    """Return (suggested_ticker, filing_status) for the card footer.
+    """Return (suggested_label, filing_status) for the card footer.
+
+    filing_status ∈ {EXISTING, FILED, DRAFT, NONE}.
 
     Priority:
-        1. Existing REX product on this underlier (FILED status)
-        2. Synthesised T-REX ticker (NONE status, conventional naming)
+        1. Existing REX product on this underlier (uses real ticker, EXISTING/FILED/DRAFT)
+        2. Synthesised REX symbol via convention (NONE status)
     """
     if launch_lookup and ticker in launch_lookup:
         info = launch_lookup[ticker]
         sym = _safe_str(info.get("rex_ticker"))
         if sym:
             status_raw = _safe_str(info.get("rex_market_status")).upper()
-            status = "FILED" if status_raw in ("FILED", "EFFECTIVE", "REGISTERED") else "DRAFT"
-            return sym, status
-    # Synthesise: T-REX 2X LONG <TICKER> → conventional symbol convention TBD
-    return f"(prospective) 2X {ticker}", "NONE"
+            if status_raw in ("LIVE", "ACTIVE", "TRADING", "LISTED"):
+                return sym, "EXISTING"
+            if status_raw in ("FILED", "EFFECTIVE", "REGISTERED"):
+                return sym, "FILED"
+            return sym, "DRAFT"
+    # Synthesise: REX 2x long convention (most common case for whitespace).
+    sym = _synthesise_rex_symbol(ticker, direction="LONG", leverage=2.0)
+    underlier_name = _safe_str(row.get("name")) or _safe_str(row.get("company_name")) or ticker
+    underlier_short = underlier_name.split(" - ")[0][:40]
+    # Label format: "REX 2X {underlier} ({SYM} suggested)"
+    label = f"REX 2X {underlier_short} ({sym} suggested)"
+    return label, "NONE"
 
 
 def _build_card_model(ticker: str, row: pd.Series, *,
@@ -1493,12 +1532,17 @@ def _render_card_v3(card: dict) -> str:
         "MODERATE": "#f39c12", "WEAK": "#7f8c8d",
     }.get(strength, "#7f8c8d")
 
-    suggested = _safe_str(card.get("suggested_ticker")) or f"(prospective) 2X {card.get('ticker','')}"
+    underlier_t = _safe_str(card.get("ticker", ""))
+    suggested = (
+        _safe_str(card.get("suggested_ticker"))
+        or f"REX 2X Long {underlier_t} (suggested)"
+    )
     filing_status = _safe_str(card.get("filing_status")) or "NONE"
     fs_color = {
-        "FILED":  "#27ae60",
-        "DRAFT":  "#f39c12",
-        "NONE":   "#7f8c8d",
+        "EXISTING": "#0984e3",
+        "FILED":    "#27ae60",
+        "DRAFT":    "#f39c12",
+        "NONE":     "#7f8c8d",
     }.get(filing_status, "#7f8c8d")
 
     return f'''
@@ -1686,7 +1730,7 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
         "No early-signal names worth watching.",
     )
 
-    # Killed
+    # Killed — section is only emitted when there are entries to show.
     if killed:
         killed_rows = "".join(
             f'<tr><td style="padding:0 30px 6px 30px;">'
@@ -1695,9 +1739,17 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
             f'</table></td></tr>'
             for t, r in killed
         )
+        killed_section_html = (
+            _render_section_header(
+                "Killed — Decayed Out From Prior Week",
+                "Tickers that were on last week's recommendation list but no "
+                "longer clear the WATCH bar. One-line decay reason per row.",
+                "#95a5a6",
+            )
+            + killed_rows
+        )
     else:
-        killed_rows = ('<tr><td style="padding:14px 30px;color:#7f8c8d;'
-                       'font-style:italic;">Nothing decayed out of last week\'s recs.</td></tr>')
+        killed_section_html = ""
 
     # Money flow rows (carry over from v2)
     flow_rows = []
@@ -1815,6 +1867,19 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
   </table>
 </td></tr>
 
+<!-- RISK FLAG LEGEND -->
+<tr><td style="padding:8px 30px 0;">
+  <div style="font-size:11px;color:#7f8c8d;font-style:italic;line-height:1.55;
+              border-top:1px dashed #d4d8dd;padding-top:8px;">
+    <strong style="color:#566573;font-style:normal;">Risk flag legend —</strong>
+    <strong>Capacity:</strong> mkt cap &lt; $1B ·
+    <strong>Liquidity:</strong> 30d ADV &lt; $5M ·
+    <strong>Single-Name:</strong> concentrated underlier (not diversified) ·
+    <strong>Regulatory:</strong> cannabis / gambling / crypto-mining exposure ·
+    <strong>Momentum-Fade:</strong> composite score down &gt; 30% wk/wk
+  </div>
+</td></tr>
+
 {_render_section_header(
     "Defensive — Should We Respond?",
     f"Competitor filed/launched in the last {DEFENSIVE_LOOKBACK_DAYS}d and REX has no filing on this underlier. Each card answers: do we file to defend share?",
@@ -1836,12 +1901,7 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
 )}
 {watch_html}
 
-{_render_section_header(
-    "Killed — Decayed Out From Prior Week",
-    "Tickers that were on last week's recommendation list but no longer clear the WATCH bar. One-line decay reason per row.",
-    "#95a5a6",
-)}
-{killed_rows}
+{killed_section_html}
 
 <!-- MONEY FLOW -->
 <tr><td style="padding:18px 30px 5px;">
