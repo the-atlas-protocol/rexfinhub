@@ -40,8 +40,23 @@ sys.path.insert(0, str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "data"
 TOKEN_FILE = DATA_DIR / ".preflight_token"
 RESULT_FILE = DATA_DIR / ".preflight_result.json"
+MAINTENANCE_FLAG = DATA_DIR / ".preflight_maintenance"
 EXPECTED_RECIPIENTS = PROJECT_ROOT / "config" / "expected_recipients.json"
 PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
+
+
+def _maintenance_window_active() -> bool:
+    """Return True if the operator-flagged maintenance window is active.
+
+    During an active maintenance window (touch data/.preflight_maintenance),
+    audit_attribution_completeness downgrades threshold-failures from 'fail'
+    to 'warn'. Use only while upstream classification fixes propagate; remove
+    the flag once primary_strategy / issuer_display populate normally.
+    """
+    try:
+        return MAINTENANCE_FLAG.exists()
+    except Exception:
+        return False
 
 # Thresholds — alert if exceeded
 BBG_MAX_AGE_HOURS = 12
@@ -464,8 +479,19 @@ def audit_attribution_completeness(db) -> dict:
             if pct_iss > 15:
                 issues.append(f"NULL issuer_display {pct_iss:.1f}% (threshold 15%)")
             if issues:
-                out["status"] = "fail"
-                out["detail"] = "; ".join(issues)
+                if _maintenance_window_active():
+                    # Operator opted into maintenance window — downgrade to warn so
+                    # the daily send can still go out while upstream fixes (R1/R2
+                    # apply_classification_sweep, etc.) propagate primary_strategy /
+                    # issuer_display. Remove data/.preflight_maintenance to restore
+                    # strict gating.
+                    out["status"] = "warn"
+                    out["detail"] = ("MAINTENANCE WINDOW ACTIVE — "
+                                     + "; ".join(issues)
+                                     + " — remove data/.preflight_maintenance to restore strict gating")
+                else:
+                    out["status"] = "fail"
+                    out["detail"] = "; ".join(issues)
             else:
                 out["detail"] = (
                     f"{total} ACTV: NULL strat={null_strat} ({pct_strat:.1f}%), "
