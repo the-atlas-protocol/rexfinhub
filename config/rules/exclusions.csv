@@ -25,3 +25,12 @@ RDVY US,,false_positive
 VSDA US,,false_positive
 WTMF US,,false_positive
 YUMY US,,false_positive
+KMCA US,,country_focus
+NYNY US,,regional_focus
+BUYB US,,factor_only
+CLUB US,,factor_only
+TPFC US,,factor_only
+TPFG US,,factor_only
+TPFI US,,fixed_income
+PCEB US,,fixed_income
+CLOO US,,fixed_income
