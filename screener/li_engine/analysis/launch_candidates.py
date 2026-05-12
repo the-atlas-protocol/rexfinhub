@@ -406,11 +406,18 @@ def build() -> pd.DataFrame:
         df["display_effective_label"] = df.apply(_label, axis=1)
 
         # Recompute final composite with full decay product
+        # Audit fix (post-FA3): decay columns may not exist if upstream signal
+        # pipeline didn't compute them — default to 1.0 (no decay) per column.
+        for col in ("mention_decay", "rex_filing_decay", "competitor_filing_decay"):
+            if col not in df.columns:
+                df[col] = 1.0
         df["decay_factor"] = (
             df["mention_decay"].fillna(1.0)
             * df["rex_filing_decay"].fillna(1.0)
             * df["competitor_filing_decay"].fillna(1.0)
         )
+        if "composite_score_pre_decay" not in df.columns:
+            df["composite_score_pre_decay"] = df["composite_score"]
         df["composite_score"] = df["composite_score_pre_decay"] * df["decay_factor"]
         df["score_pct"] = df["composite_score"].rank(pct=True) * 100
 
