@@ -558,12 +558,23 @@ def upload_screener_cache_to_render():
         print("  No screener cache found, skipping.")
         return
 
+    # Switched from session-cookie POST against /admin/upload/screener-cache
+    # to bearer-token POST against /api/v1/uploads/screener-cache (2026-05-12).
+    # The admin route became unreachable from machine-to-machine clients once
+    # CSRF middleware (audit fix R8) started rejecting multipart POSTs that
+    # lack an X-CSRF-Token header.
+    token = _load_env("RENDER_UPLOAD_TOKEN")
+    if not token:
+        raise RuntimeError(
+            "Screener cache upload to Render failed: RENDER_UPLOAD_TOKEN is not set "
+            "(add it to config/.env on the VPS and to the Render service env)."
+        )
+
     try:
-        session = requests.Session()
-        session.post(f"{DASHBOARD_URL}/login", data={"password": _load_env("ADMIN_PASSWORD"), "next": "/"})
         with open(cache_path, "rb") as f:
-            resp = session.post(
-                f"{DASHBOARD_URL}/admin/upload/screener-cache",
+            resp = requests.post(
+                f"{RENDER_API_URL}/uploads/screener-cache",
+                headers={"Authorization": f"Bearer {token}"},
                 files={"file": ("screener_cache.json", f, "application/json")},
                 timeout=60,
             )
