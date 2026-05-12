@@ -88,45 +88,45 @@ def _pipeline_root_impl(
     return _render_month(request, db, today.year, today.month, types)
 
 
-# Lifecycle status enum — extended from 6 to 15 values to capture the full
-# Counsel → Board → Filed → Effective → Listed workflow extracted from the
-# board approval emails. Strictly additive: every legacy 6-value row keeps
-# its existing status. Order below mirrors lifecycle progression so UI
-# dropdowns and filter pills read top-to-bottom.
+# Lifecycle status enum — collapsed back from 15 to 6 values on 2026-05-12
+# per Ryu's REX Ops review. Of the 15-value enum only 6 were ever actually
+# populated, and the operational vocabulary the team uses day-to-day is the
+# shorter 6-stage funnel. The full Counsel/Board granularity now lives in
+# the upcoming rex_status_history audit table (see scripts/migrate_rex_
+# status_2026-05-12.py) instead of polluting the primary status column.
+#
+# Lifecycle order (left-to-right) drives:
+#   • the dropdown on /operations/pipeline
+#   • the funnel widget column order
+#   • the status filter chips at the top of the products table
+#
+# Mapping summary (old -> new):
+#   Research, Counsel*, Pending Board, Board*, Not Approved by Board
+#       -> Under Consideration
+#   Target List -> Target List
+#   Filed, Filed (485A), Filed (485B), Awaiting Effective (no eff date)
+#       -> Filed
+#   Awaiting Effective (eff date set), Effective -> Effective
+#   Listed -> Listed
+#   Delisted, LIQU, INAC, EXPD, DLST -> Delisted
+#
+# 485A/B distinction lives in rex_products.latest_form, NOT in status.
 VALID_STATUSES = [
-    "Research",
-    "Target List",
-    "Counsel Review",          # NEW — under outside-counsel review
-    "Counsel Approved",        # NEW — counsel cleared for board
-    "Counsel Withdrawn",       # NEW — counsel pulled prior to board
-    "Pending Board",           # NEW — awaiting board vote
-    "Board Approved",          # NEW — board greenlit, pre-filing
-    "Not Approved by Board",   # NEW — board rejected
-    "Filed",
-    "Filed (485A)",            # NEW — 485APOS specifically
-    "Filed (485B)",            # NEW — 485BPOS specifically
-    "Awaiting Effective",
-    "Effective",               # NEW — effective but not yet listed
-    "Listed",
-    "Delisted",
+    "Under Consideration",  # was: Research / Counsel / Board / Pending Board
+    "Target List",          # formally targeted for build, pre-counsel
+    "Filed",                # was: Filed / Filed (485A/B) / Awaiting (no eff date)
+    "Effective",            # was: Effective / Awaiting (eff date set)
+    "Listed",               # was: Listed / ACTV — actively trading
+    "Delisted",             # was: Delisted / LIQU / INAC / EXPD / DLST
 ]
 
-# Color palette for status badges — tuned for 15 distinct lifecycle stages.
-# Greys for early/idle stages, ambers/oranges for review-in-flight, greens
-# for approved/effective/listed, reds for rejected/withdrawn/delisted.
+# Color palette for status badges — 6 distinct lifecycle stages.
+# Grey for early consideration, slate for target, blue for filed, teal for
+# effective-pre-launch, green for live trading, dim grey for retired.
 STATUS_COLORS = {
-    "Research":              "#94a3b8",  # slate
+    "Under Consideration":   "#94a3b8",  # slate
     "Target List":           "#64748b",  # darker slate
-    "Counsel Review":        "#fbbf24",  # amber
-    "Counsel Approved":      "#22c55e",  # light green
-    "Counsel Withdrawn":     "#f87171",  # light red
-    "Pending Board":         "#f59e0b",  # orange
-    "Board Approved":        "#16a34a",  # green
-    "Not Approved by Board": "#dc2626",  # red
     "Filed":                 "#2563eb",  # blue
-    "Filed (485A)":          "#3b82f6",  # blue (lighter)
-    "Filed (485B)":          "#1d4ed8",  # blue (darker)
-    "Awaiting Effective":    "#0891b2",  # cyan
     "Effective":             "#0d9488",  # teal
     "Listed":                "#059669",  # dark green
     "Delisted":              "#6b7280",  # dim grey
@@ -191,23 +191,19 @@ def _pipeline_summary_impl(request: Request):
     return RedirectResponse(url="/operations/pipeline", status_code=301)
 
 
-# "Filed but not yet effective" — full set of statuses that mean a product
-# has been filed/approved through some upstream gate but has NOT yet been
-# declared Effective by the SEC. Used for the Upcoming Effectiveness KPI
-# so it stays accurate as the lifecycle enum grows. Anything in this list
-# is awaiting an Effective transition.
+# "Filed but not yet effective" — set of statuses that mean a product has
+# been filed but has NOT yet been declared Effective by the SEC. Drives the
+# Upcoming Effectiveness KPI. Under the collapsed 6-value enum (2026-05-12)
+# this is simply ["Filed"]; pre-filing pipeline stages all live under
+# "Under Consideration" which is NOT pending-effective.
 PENDING_EFFECTIVE_STATUSES = [
     "Filed",
-    "Filed (485A)",
-    "Filed (485B)",
-    "Awaiting Effective",
-    "Counsel Approved",
-    "Pending Board",
-    "Board Approved",
 ]
 
 # Statuses that mean "done / no longer in the active pipeline". Used to
-# default-show Listed/Delisted instead of hiding them.
+# default-show Listed/Delisted instead of hiding them. Note: "Effective" is
+# included because once a product is Effective it's no longer something the
+# ops team needs to action — the next move is Listed which is a launch event.
 TERMINAL_STATUSES = ["Listed", "Delisted", "Effective"]
 
 
@@ -290,11 +286,17 @@ def _pipeline_products_impl(
         )
 
     # ---- KPIs (REX-branded products only) ----
+    # Under the collapsed 6-value enum (2026-05-12), "Awaiting Effective" is
+    # gone — pre-effective filings are just "Filed", and rows with an SEC-set
+    # effective date were migrated to "Effective". We keep the `awaiting`
+    # template variable populated with the Effective count for now so the
+    # existing pipeline_products.html KPI block doesn't error; O1 will rename
+    # the variable when the template gets its v6-enum pass.
     total = _rex_only_filter(db.query(RexProduct)).count()
     listed = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Listed").count()
     filed = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Filed").count()
-    awaiting = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Awaiting Effective").count()
-    research = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Research", "Target List"])).count()
+    awaiting = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Effective").count()
+    research = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Under Consideration", "Target List"])).count()
 
     # Activity metrics
     filings_last_7d = (
@@ -307,23 +309,28 @@ def _pipeline_products_impl(
         .filter(RexProduct.official_listed_date.between(today - timedelta(days=30), today))
         .count()
     )
+    # "Effectives in next N days" — under the 6-value enum, that's any
+    # product currently Filed or Effective (i.e. SEC has either accepted the
+    # filing or already declared it effective but it hasn't listed yet) with
+    # an estimated_effective_date in the target window.
+    pre_launch_statuses = ["Filed", "Effective"]
     effectives_next_30d = (
         _rex_only_filter(db.query(RexProduct))
-        .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+        .filter(RexProduct.status.in_(pre_launch_statuses))
         .filter(RexProduct.estimated_effective_date.between(today, month_ahead))
         .count()
     )
     effectives_next_90d = (
         _rex_only_filter(db.query(RexProduct))
-        .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+        .filter(RexProduct.status.in_(pre_launch_statuses))
         .filter(RexProduct.estimated_effective_date.between(today, quarter_ahead))
         .count()
     )
 
-    # Next launches — Filed/Awaiting with effective date in next 90 days
+    # Next launches — Filed/Effective with effective date in next 90 days
     next_launches = (
         _rex_only_filter(db.query(RexProduct))
-        .filter(RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+        .filter(RexProduct.status.in_(pre_launch_statuses))
         .filter(RexProduct.estimated_effective_date.between(today, quarter_ahead))
         .order_by(RexProduct.estimated_effective_date.asc())
         .limit(5)
@@ -402,58 +409,48 @@ def _pipeline_products_impl(
     }
 
     # ---- Pipeline funnel (lifecycle stages) ----
-    # Order per Ryu's May 2026 ops review: Live FIRST (the most important —
-    # what's actually trading) -> Effective -> Awaiting Effective -> Board
-    # -> Counsel -> Research -> Delisted (cold storage at end).
+    # 6-value enum order, LEFT-TO-RIGHT life-cycle (2026-05-12). Reads as a
+    # PM funnel from idea to retired:
     #
-    # Effective auto-derivation: 274 of 412 "Past Effective Date" rows have
-    # latest_form=485BPOS (post-effective amendment — by SEC rule, fund IS
-    # effective). Until status_history table lands, count those as Effective.
-    # Awaiting Effective shows the *remainder* (filed but no 485BPOS yet).
+    #   Under Consideration -> Target List -> Filed -> Effective ->
+    #   Listed -> Delisted
     #
-    # SEC filing rules reference:
-    #   485A   = initial registration (pre-effective)
-    #   485BPOS = post-effective amendment (fund IS effective per SEC)
-    #   485BXT = extension (still pre-effective)
-
-    # Compute auto-effective count (status=Awaiting/Filed AND latest_form=485BPOS)
-    auto_effective_q = lambda: (
+    # The granular Counsel / Board / Awaiting-Effective splits previously
+    # surfaced here are gone — they were noise (only 6 of 15 values were
+    # ever populated) and they now live in the status-history audit table
+    # for anyone who needs the deeper trail.
+    n_under_consideration = (
         _rex_only_filter(db.query(RexProduct))
-        .filter(RexProduct.status.in_(["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]))
-        .filter(RexProduct.latest_form == "485BPOS")
+        .filter(RexProduct.status == "Under Consideration").count()
     )
-    n_auto_effective = auto_effective_q().count()
-
-    # Awaiting Effective = total filed-state MINUS auto-effective
-    n_awaiting = (
+    n_target = (
         _rex_only_filter(db.query(RexProduct))
-        .filter(RexProduct.status.in_(["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]))
-        .filter((RexProduct.latest_form != "485BPOS") | (RexProduct.latest_form.is_(None)))
-        .count()
+        .filter(RexProduct.status == "Target List").count()
     )
-
-    # Effective = literal status='Effective' + auto-derived from 485BPOS
-    n_effective_literal = (
+    n_filed = (
         _rex_only_filter(db.query(RexProduct))
-        .filter(RexProduct.status == "Effective")
-        .count()
+        .filter(RexProduct.status == "Filed").count()
     )
-    n_effective_total = n_effective_literal + n_auto_effective
-
-    n_live = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Listed").count()
-    n_board = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Pending Board", "Board Approved", "Not Approved by Board"])).count()
-    n_counsel = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Counsel Review", "Counsel Approved", "Counsel Withdrawn"])).count()
-    n_research = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status.in_(["Research", "Target List"])).count()
-    n_delisted = _rex_only_filter(db.query(RexProduct)).filter(RexProduct.status == "Delisted").count()
+    n_effective_total = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status == "Effective").count()
+    )
+    n_live = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status == "Listed").count()
+    )
+    n_delisted = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status == "Delisted").count()
+    )
 
     funnel = [
-        {"label": "Live",               "count": n_live,         "statuses": ["Listed"]},
-        {"label": "Effective",          "count": n_effective_total, "statuses": ["Effective"]},
-        {"label": "Awaiting Effective", "count": n_awaiting,     "statuses": ["Filed", "Filed (485A)", "Filed (485B)", "Awaiting Effective"]},
-        {"label": "Board",              "count": n_board,        "statuses": ["Pending Board", "Board Approved", "Not Approved by Board"]},
-        {"label": "Counsel",            "count": n_counsel,      "statuses": ["Counsel Review", "Counsel Approved", "Counsel Withdrawn"]},
-        {"label": "Research / Target",  "count": n_research,     "statuses": ["Research", "Target List"]},
-        {"label": "Delisted",           "count": n_delisted,     "statuses": ["Delisted"]},
+        {"label": "Under Consideration", "count": n_under_consideration, "statuses": ["Under Consideration"]},
+        {"label": "Target List",         "count": n_target,              "statuses": ["Target List"]},
+        {"label": "Filed",               "count": n_filed,               "statuses": ["Filed"]},
+        {"label": "Effective",           "count": n_effective_total,     "statuses": ["Effective"]},
+        {"label": "Listed",              "count": n_live,                "statuses": ["Listed"]},
+        {"label": "Delisted",            "count": n_delisted,            "statuses": ["Delisted"]},
     ]
     funnel_max = max((f["count"] for f in funnel), default=1) or 1
 
@@ -538,7 +535,7 @@ def _pipeline_products_impl(
         )
         suite_breakdown[s]["filed"] = (
             _rex_only_filter(db.query(RexProduct))
-            .filter(RexProduct.product_suite == s, RexProduct.status.in_(["Filed", "Awaiting Effective"]))
+            .filter(RexProduct.product_suite == s, RexProduct.status.in_(["Filed", "Effective"]))
             .count()
         )
 
@@ -1015,7 +1012,7 @@ def _render_month(
     # ---- Build KPIs (always, regardless of type filter) ----
     total = db.query(RexProduct).count()
     listed = db.query(RexProduct).filter(RexProduct.status == "Listed").count()
-    filed = db.query(RexProduct).filter(RexProduct.status.in_(["Filed", "Awaiting Effective"])).count()
+    filed = db.query(RexProduct).filter(RexProduct.status.in_(["Filed", "Effective"])).count()
     dist_count_month = db.query(FundDistribution).filter(
         FundDistribution.ex_date.between(first_day, last_day)
     ).count()

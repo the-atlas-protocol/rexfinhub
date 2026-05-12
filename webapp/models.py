@@ -914,8 +914,15 @@ class RexProduct(Base):
     """REX product lifecycle tracker — from research to listing.
 
     Replaces the Excel-based REX Master Product Development Tracker.
-    470 products across 8 suites, tracked through:
-      Research → Target List → Filed → Awaiting Effective → Listed → Delisted
+    ~720 products across 8 suites, tracked through the collapsed 6-state
+    lifecycle adopted 2026-05-12:
+
+      Under Consideration → Target List → Filed → Effective → Listed → Delisted
+
+    The granular Counsel / Board / 485A-vs-485B distinctions previously
+    encoded in this column now live in (a) ``latest_form`` for the SEC
+    form-type detail and (b) the ``capm_audit_log`` for the historical
+    stage progression. See scripts/migrate_rex_status_2026-05-12.py.
     """
     __tablename__ = "rex_products"
 
@@ -923,7 +930,7 @@ class RexProduct(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     trust: Mapped[str | None] = mapped_column(String(200))
     product_suite: Mapped[str] = mapped_column(String(50), nullable=False)  # T-REX, IncomeMax, Premium Income, etc.
-    status: Mapped[str] = mapped_column(String(30), nullable=False)  # Research, Target List, Filed, Awaiting Effective, Listed, Delisted
+    status: Mapped[str] = mapped_column(String(30), nullable=False)  # Under Consideration, Target List, Filed, Effective, Listed, Delisted
     ticker: Mapped[str | None] = mapped_column(String(20))
     underlier: Mapped[str | None] = mapped_column(String(100))
     direction: Mapped[str | None] = mapped_column(String(20))  # Long, Short, Both
