@@ -1,0 +1,97 @@
+rex_ticker,rex_suite,rex_strategy,competitor_tickers,competitor_logic,notes
+ATCL US,Autocallable,Laddered S&P 500 autocallable income strategy,ACEI US|ACII US|ACYN US|ACYS US|CAGE US|CAIE US|CAIQ US|JELH US|JELM US|PAYH US|PAYM US|SBAR US|VAIE US,"Index-linked autocallable income ETFs (Calamos, FT Vest, Innovator, TrueShares, Janus, Simplify)",
+BNBR US,Crypto,Spot BNB ETF (spot+staking) - BNB + staking,OBNB US,Spot BNB ETF peers; REX/Osprey adds staking yield on ETH/SOL/BNB where applicable,
+DOJE US,Crypto,Spot DOGE ETF (spot) - Dogecoin,,Spot DOGE ETF peers; REX/Osprey adds staking yield on ETH/SOL/BNB where applicable,No direct US spot DOGE ETF competitor identified
+ESK US,Crypto,Spot ETH ETF (spot+staking) - Ether + staking,ETH US|ETHA US|ETHB US|ETHE US|ETHV US|ETHW US|EZET US|FETH US,Spot ETH ETF peers; REX/Osprey adds staking yield on ETH/SOL/BNB where applicable,
+OBTC US,Crypto,Spot BTC ETF (spot) - Bitcoin,ARKB US|BITB US|BRRR US|BTC US|BTCO US|BTCW US|EZBC US|FBTC US|GBTC US|HODL US|IBIT US,Spot BTC ETF peers; REX/Osprey adds staking yield on ETH/SOL/BNB where applicable,
+SSK US,Crypto,Spot SOL ETF (spot+staking) - Solana + staking,BSOL US|FSOL US|GSOL US|SOLZ US,Spot SOL ETF peers; REX/Osprey adds staking yield on ETH/SOL/BNB where applicable,
+XRPR US,Crypto,Spot XRP ETF (spot) - XRP,GXRP US|TOXR US|XRP US|XRPC US|XRPZ US,Spot XRP ETF peers; REX/Osprey adds staking yield on ETH/SOL/BNB where applicable,
+AIPI US,Equity Premium Income,Covered call on AI / semiconductor basket,CHAT US|FEPI US|GPIX US|JEPQ US|QQQI US|QYLD US,Tech / AI covered-call income peers,
+CEGI LN,Equity Premium Income,UCITS crypto-equity covered call + growth,BTCI US|CEPI US,UCITS wrapper; crypto-equity income + growth,UCITS-listed; competitor set is US analogues plus sister UCITS
+CEPI US,Equity Premium Income,Covered call on crypto-equity basket (BTC / ETH / mining / exchanges),BTCI US|LFGY US|NEHI US|XBCI US|YBTC US,Crypto-equity covered-call income ETFs,
+FEGI LN,Equity Premium Income,UCITS tech innovation covered call + growth,FEPI US|JEPI US|JEPQ US,UCITS wrapper; income + growth variant of FEPI LN,UCITS-listed; competitor set is US analogues plus sister UCITS
+FEPI LN,Equity Premium Income,UCITS covered call on Solactive FANG Innovation Index,FEPI US|JEPI US|JEPQ US,UCITS wrapper; peer set is US tech-CC analogues,UCITS-listed; competitor set is US analogues plus sister UCITS
+FEPI US,Equity Premium Income,Covered call on Solactive FANG Innovation Index (FANG+ tech basket),AIPI US|BALI US|GPIX US|JEPI US|JEPQ US|QQQI US|QYLD US|SPYI US,Tech-tilted covered-call income ETFs benchmarked on NDX / FANG+ / S&P tech,
+COII US,Growth & Income,Covered call + growth on single-name COIN (Coinbase Global),CONY US,"Single-stock covered-call / option-income ETFs on COIN (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
+CWII US,Growth & Income,Covered call + growth on single-name CRWV (CoreWeave),,"Single-stock covered-call / option-income ETFs on CRWV (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",No direct single-stock covered-call peer identified for CRWV
+GIF US,Growth & Income,Universe-style covered-call income on REX G&I single-name basket,GPIX US|QDTE US|XDTE US|YMAG US|YMAX US,Multi-name option-income fund-of-funds peers,REX GIF is the universe wrapper; peers are diversified option-income ETFs
+HOII US,Growth & Income,Covered call + growth on single-name HOOD (Robinhood Markets),HOOY US|HOOW US,"Single-stock covered-call / option-income ETFs on HOOD (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
+LLII US,Growth & Income,Covered call + growth on single-name LLY (Eli Lilly),,"Single-stock covered-call / option-income ETFs on LLY (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",No direct single-stock covered-call peer identified for LLY
+MSII US,Growth & Income,Covered call + growth on single-name MSTR (MicroStrategy),MSTY US|MSTW US|IMST US|MTYY US|MSST US,"Single-stock covered-call / option-income ETFs on MSTR (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
+NVII US,Growth & Income,Covered call + growth on single-name NVDA (NVIDIA),NVDY US|NVDW US,"Single-stock covered-call / option-income ETFs on NVDA (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
+PLTI US,Growth & Income,Covered call + growth on single-name PLTR (Palantir),PLTY US|PLTW US,"Single-stock covered-call / option-income ETFs on PLTR (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
+TSII US,Growth & Income,Covered call + growth on single-name TSLA (Tesla),TSLY US|TSLW US|TSYY US,"Single-stock covered-call / option-income ETFs on TSLA (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
+WMTI US,Growth & Income,Covered call + growth on single-name WMT (Walmart),,"Single-stock covered-call / option-income ETFs on WMT (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",No direct single-stock covered-call peer identified for WMT
+ULTI US,IncomeMax,Multi-leg option-overlay weekly income on broad equity basket,QDTE US|SLTY US|ULTY US|XDTE US|YMAG US|YMAX US,Ultra-high-yield option-overlay / 0DTE peers,
+BERZ US,MicroSectors,3x short ETN on FANG & Innovation (FANG+ adjacent / tech innovation basket),SQQQ US|TECS US|SOXS US,Comparable 3x short leveraged sector ETPs on FANG & Innovation,
+BNKD US,MicroSectors,3x short ETN on US Big Banks (US large-cap money-center banks),FAZ US,Comparable 3x short leveraged sector ETPs on US Big Banks,
+BNKU US,MicroSectors,3x long ETN on US Big Banks (US large-cap money-center banks),FAS US,Comparable 3x long leveraged sector ETPs on US Big Banks,
+BULZ US,MicroSectors,3x long ETN on FANG & Innovation (FANG+ adjacent / tech innovation basket),TQQQ US|TECL US|SOXL US,Comparable 3x long leveraged sector ETPs on FANG & Innovation,
+DULL US,MicroSectors,3x short ETN on Gold (Spot gold (XAU)),GLL US,Comparable 3x short leveraged sector ETPs on Gold,
+FLYD US,MicroSectors,3x short ETN on Travel (Airlines / cruise / hotels),,Comparable 3x short leveraged sector ETPs on Travel,No direct 3x short competitor identified for Travel
+FLYU US,MicroSectors,3x long ETN on Travel (Airlines / cruise / hotels),,Comparable 3x long leveraged sector ETPs on Travel,No direct 3x long competitor identified for Travel
+FNGA US,MicroSectors,3x long ETN on FANG+ (NYSE FANG+ Index (DELISTED 2024)),TQQQ US|TECL US|SOXL US,Comparable 3x long leveraged sector ETPs on FANG+,FNGA was DELISTED 2024; tracked here for historical context. Active 3x FANG+ exposure consolidated into FNGU
+FNGD US,MicroSectors,3x short ETN on FANG+ (NYSE FANG+ Index),SQQQ US|TECS US|SOXS US,Comparable 3x short leveraged sector ETPs on FANG+,
+FNGO US,MicroSectors,2x long ETN on FANG+ (NYSE FANG+ Index),QLD US|ROM US,Comparable 2x long leveraged sector ETPs on FANG+,
+FNGS US,MicroSectors,1x long ETN on FANG+ (NYSE FANG+ Index),QQQ US,Comparable 1x long leveraged sector ETPs on FANG+,
+FNGU US,MicroSectors,3x long ETN on FANG+ (NYSE FANG+ Index),TQQQ US|TECL US|SOXL US,Comparable 3x long leveraged sector ETPs on FANG+,
+GDXD US,MicroSectors,3x short ETN on Gold Miners (NYSE Arca Gold Miners),DUST US|JDST US,Comparable 3x short leveraged sector ETPs on Gold Miners,
+GDXU US,MicroSectors,3x long ETN on Gold Miners (NYSE Arca Gold Miners),NUGT US|JNUG US,Comparable 3x long leveraged sector ETPs on Gold Miners,
+NRGD US,MicroSectors,3x short ETN on Big Oil (US Big Oil index),DRIP US|ERY US,Comparable 3x short leveraged sector ETPs on Big Oil,
+NRGU US,MicroSectors,3x long ETN on Big Oil (US Big Oil index),GUSH US|ERX US,Comparable 3x long leveraged sector ETPs on Big Oil,
+OILD US,MicroSectors,3x short ETN on Oil E&P (Oil & gas exploration & production),DRIP US,Comparable 3x short leveraged sector ETPs on Oil E&P,
+OILU US,MicroSectors,3x long ETN on Oil E&P (Oil & gas exploration & production),GUSH US,Comparable 3x long leveraged sector ETPs on Oil E&P,
+SHNY US,MicroSectors,3x long ETN on Gold (Spot gold (XAU)),UGL US,Comparable 3x long leveraged sector ETPs on Gold,
+WTID US,MicroSectors,3x short ETN on Energy (Broad US energy),ERY US|DRIP US,Comparable 3x short leveraged sector ETPs on Energy,
+WTIU US,MicroSectors,3x long ETN on Energy (Broad US energy),ERX US|GUSH US,Comparable 3x long leveraged sector ETPs on Energy,
+TLDR US,T-Bill,Laddered short-duration US Treasury bills (1-12 week ladder),BIL US|BOXX US|CLIP US|FLOT US|GBIL US|JPST US|SGOV US|SHV US|TBIL US|ULST US|USFR US|WEEK US|XHLF US|XONE US,Short-duration / T-bill / ultra-short bond ETFs; WEEK US is closest ladder analogue,
+AAPX US,T-REX,2x daily long single-stock - Apple Inc.,AAPB US,"Same underlier (AAPL), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+AFRU US,T-REX,2x daily long single-stock - Affirm Holdings,,"Same underlier (AFRM), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+APHU US,T-REX,2x daily long single-stock - Amphenol Corp,,"Same underlier (APH), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+ARMU US,T-REX,2x daily long single-stock - Arm Holdings,ARMG US|ARMX US,"Same underlier (ARM), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+AXUP US,T-REX,2x daily long single-stock - Axon Enterprise,,"Same underlier (AXON), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+BBUP US,T-REX,2x daily long single-stock - BigBear.ai Holdings,BAIG US,"Same underlier (BBAI), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+BKNU US,T-REX,2x daily long single-stock - Booking Holdings,,"Same underlier (BKNG), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+BMNU US,T-REX,2x daily long single-stock - Bitmine Immersion Technologies,BMNG US,"Same underlier (BMNR), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+BTCL US,T-REX,2x daily long single-stock - Bitcoin,BITU US|BITX US,"Same underlier (BTC), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+BTCZ US,T-REX,2x daily short single-stock - Bitcoin (inverse),BITI US|SBIT US,"Same underlier (BTC), same direction (short), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+BULU US,T-REX,2x daily long single-stock - Webull Corp,BULG US|BULX US,"Same underlier (BULL), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+CCUP US,T-REX,2x daily long single-stock - Circle Internet Group,CRCA US|CRCG US,"Same underlier (CRCL), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+CIFU US,T-REX,2x daily long single-stock - Cipher Mining,CIFG US,"Same underlier (CIFR), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+CORD US,T-REX,2x daily short single-stock - CoreWeave (inverse),,"Same underlier (CRWV), same direction (short)",No direct leveraged competitor identified at same underlier+direction
+CRCD US,T-REX,2x daily short single-stock - Circle Internet Group (inverse),,"Same underlier (CRCL), same direction (short)",No direct leveraged competitor identified at same underlier+direction
+CRWU US,T-REX,2x daily long single-stock - CoreWeave,CRWG US|CWVX US,"Same underlier (CRWV), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+DJTU US,T-REX,2x daily long single-stock - Trump Media & Technology,,"Same underlier (DJT), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+DKUP US,T-REX,2x daily long single-stock - DraftKings,DKNX US,"Same underlier (DKNG), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+EOSU US,T-REX,2x daily long single-stock - EOS Energy Enterprises,,"Same underlier (EOSE), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+ETQ US,T-REX,2x daily short single-stock - Ether (inverse),ETHD US|SETH US,"Same underlier (ETH), same direction (short), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+ETU US,T-REX,2x daily long single-stock - Ether,ETHT US|ETHU US,"Same underlier (ETH), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+FGRU US,T-REX,2x daily long single-stock - Figure Tech,,"Same underlier (FIGR), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+FIGO US,T-REX,2x daily long single-stock - Figma,FIGG US,"Same underlier (FIG), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+GLXU US,T-REX,2x daily long single-stock - Galaxy Digital,GLGG US,"Same underlier (GLXY), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+GMEU US,T-REX,2x daily long single-stock - GameStop,,"Same underlier (GME), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+GOOX US,T-REX,2x daily long single-stock - Alphabet,GOU US|UGOO US,"Same underlier (GOOGL), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+KTUP US,T-REX,2x daily long single-stock - Kratos Defense,,"Same underlier (KTOS), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+MSFX US,T-REX,2x daily long single-stock - Microsoft,MSFL US,"Same underlier (MSFT), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+MSTU US,T-REX,2x daily long single-stock - MicroStrategy,MSOO US|MSTP US|MSTX US,"Same underlier (MSTR), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (3 peers)
+MSTZ US,T-REX,2x daily short single-stock - MicroStrategy (inverse),MSDD US|SMST US,"Same underlier (MSTR), same direction (short), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+NFLU US,T-REX,2x daily long single-stock - Netflix,,"Same underlier (NFLX), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+NVDQ US,T-REX,2x daily short single-stock - NVIDIA (inverse),NVD US|NVDS US,"Same underlier (NVDA), same direction (short), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+NVDX US,T-REX,2x daily long single-stock - NVIDIA,NVDB US|NVDG US|NVDL US|NVDO US,"Same underlier (NVDA), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (4 peers)
+PAAU US,T-REX,2x daily long single-stock - Pan American Silver,,"Same underlier (PAAS), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+PXIU US,T-REX,2x daily long single-stock - Upexi Inc,,"Same underlier (UPXI), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+RBLU US,T-REX,2x daily long single-stock - Roblox,,"Same underlier (RBLX), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+RDWU US,T-REX,2x daily long single-stock - Redwire Corp,,"Same underlier (RDW), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+ROBN US,T-REX,2x daily long single-stock - Robinhood Markets,HOOG US|HOOX US,"Same underlier (HOOD), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+SBTU US,T-REX,2x daily long single-stock - SharpLink Gaming,,"Same underlier (SBET), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+SMUP US,T-REX,2x daily long single-stock - NuScale Power,SMU US,"Same underlier (SMR), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+SNDU US,T-REX,2x daily long single-stock - SanDisk,SNXX US,"Same underlier (SNDK), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+SNOU US,T-REX,2x daily long single-stock - Snowflake,,"Same underlier (SNOW), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+SOLX US,T-REX,2x daily long single-stock - Solana,SLON US|SOLT US,"Same underlier (SOL), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+SPOU US,T-REX,2x daily long single-stock - Spotify,SPOG US,"Same underlier (SPOT), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (1 peers)
+TSLT US,T-REX,2x daily long single-stock - Tesla,TSL US|TSLG US|TSLI US|TSLO US|TSLR US,"Same underlier (TSLA), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (5 peers)
+TSLZ US,T-REX,2x daily short single-stock - Tesla (inverse),TSDD US|TSLQ US,"Same underlier (TSLA), same direction (short), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (2 peers)
+TTDU US,T-REX,2x daily long single-stock - Trade Desk,,"Same underlier (TTD), same direction (long)",No direct leveraged competitor identified at same underlier+direction
+XRPK US,T-REX,2x daily long single-stock - XRP,UXRP US|XRPT US|XXRP US,"Same underlier (XRP), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (3 peers)
+BMAX US,Thematic,Bitcoin corporate-treasury convertible bonds (MSTR / etc.),ACVT US|ICVT US|MST US|MSTY US|WNTR US,Closest cohort: convertible-bond ETFs and MSTR-overlay income ETFs (no direct peer),
+DRNZ US,Thematic,Drone industry pure-play (defense + commercial),BZZ US|DRNL US|ITA US|JEDI US|PPA US|SHLD US|UAV US|XAR US,"Drone-specific peers (JEDI, UAV) + adjacent defense ETFs",
