@@ -207,11 +207,17 @@ def apply_universe_filters(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def apply_whitespace_filter(df: pd.DataFrame) -> pd.DataFrame:
-    """Whitespace = NO live product anywhere AND no REX filing.
+    """Whitespace = NO live product anywhere AND no REX filing AND
+    no competitor 485APOS in the last 180 days.
 
     Uses competitor_counts.parquet which has fund-name regex fallback —
     catches new products like TRADR's AXTI (master_data has no map_li_underlier
     yet) and REX filings via fund_extractions regex (rex_extra_*).
+
+    The 180-day 485APOS gate (Wave A1, 2026-05-11): the audit found that
+    n_competitor_485apos_180d was being COMPUTED and joined onto the
+    universe but never USED as a filter. The report subtitle claims
+    "no competitor 485APOS in last 180d" — this enforces it.
     """
     cc_path = _ROOT / "data" / "analysis" / "competitor_counts.parquet"
     if cc_path.exists():
@@ -232,15 +238,23 @@ def apply_whitespace_filter(df: pd.DataFrame) -> pd.DataFrame:
         ws = df[~df.index.isin(excluded)].copy()
         log.info("Whitespace filter (cc-based): %d → %d (excluded %d)",
                  before, len(ws), before - len(ws))
-        return ws
+    else:
+        # Fallback to master-data-only filter
+        ws = df[
+            (df["n_comp_products"] == 0) &
+            (df["n_rex_products"] == 0) &
+            (df["n_rex_filed_any"] == 0)
+        ].copy()
+        log.info("After master-only whitespace filter: %d", len(ws))
 
-    # Fallback to master-data-only filter
-    ws = df[
-        (df["n_comp_products"] == 0) &
-        (df["n_rex_products"] == 0) &
-        (df["n_rex_filed_any"] == 0)
-    ].copy()
-    log.info("After master-only whitespace filter: %d", len(ws))
+    # 180-day competitor 485APOS gate — make the report subtitle honest.
+    if "n_competitor_485apos_180d" in ws.columns:
+        before = len(ws)
+        ws = ws[ws["n_competitor_485apos_180d"].fillna(0) == 0].copy()
+        log.info("After 180d competitor 485APOS gate: %d → %d (excluded %d)",
+                 before, len(ws), before - len(ws))
+    else:
+        log.warning("n_competitor_485apos_180d column missing — 180d gate skipped")
     return ws
 
 
