@@ -1372,13 +1372,20 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 
 
 def _gather_pipeline_funds() -> list[dict]:
-    """Query mkt_master_data for PEND funds with classification populated.
+    """Query mkt_master_data for IMMINENT launches — PEND with inception
+    in the next 30 days. Returns list of dicts with keys: ticker, fund_name,
+    issuer_display, primary_strategy, sub_strategy, inception_date,
+    market_status. Sorted by inception_date ASC (closest launch first).
 
-    Returns list of dicts with keys: ticker, fund_name, issuer_display,
-    primary_strategy, sub_strategy, inception_date, market_status.
-    Sorted by primary_strategy then fund_name.
+    Rescope (2026-05-12 per Ryu): the section was showing all PEND + DLST
+    rows including ones with no inception, ones months out, and delisted —
+    "weird, why is it shown to us." New scope is "what's launching SOON
+    that we should care about" — only PEND with a real near-term date.
+    DELAYED/DLST removed; if a fund slips past its date and hasn't gone
+    ACTV, it falls off this list (good — we'd flag stuck ones elsewhere).
     """
     import sqlite3 as _sqlite3
+    from datetime import date as _date, timedelta as _timedelta
     _db = Path(__file__).parent.parent / "data" / "etp_tracker.db"
     if not _db.exists():
         return []
@@ -1386,17 +1393,21 @@ def _gather_pipeline_funds() -> list[dict]:
         con = _sqlite3.connect(str(_db))
         con.row_factory = _sqlite3.Row
         cur = con.cursor()
+        today = _date.today().isoformat()
+        plus30 = (_date.today() + _timedelta(days=30)).isoformat()
         cur.execute("""
             SELECT ticker, fund_name, issuer_display, primary_strategy,
                    sub_strategy, inception_date, market_status
             FROM mkt_master_data
-            WHERE market_status IN ('PEND', 'DLST')
-              AND primary_strategy IS NOT NULL
+            WHERE market_status = 'PEND'
+              AND inception_date IS NOT NULL
+              AND inception_date >= ?
+              AND inception_date <= ?
               AND fund_name IS NOT NULL
               AND fund_name != ''
-            ORDER BY primary_strategy, sub_strategy, fund_name
-            LIMIT 200
-        """)
+            ORDER BY inception_date ASC, primary_strategy, fund_name
+            LIMIT 100
+        """, (today, plus30))
         rows = cur.fetchall()
         con.close()
         return [dict(r) for r in rows]
@@ -1435,20 +1446,17 @@ def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
                 name = name[:49] + "..."
             issuer = _esc(f.get("issuer_display") or "")
             sub = _esc(f.get("sub_strategy") or "")
-            ms = (f.get("market_status") or "").upper()
-            ms_color = _RED if ms == "DLST" else _ORANGE
-            ms_label = ms if ms else "PEND"
+            # Inception date is the new headline — when does this fund launch?
+            inc_raw = (f.get("inception_date") or "")[:10]  # 'YYYY-MM-DD'
             rows_html += (
                 f'<tr>'
+                f'<td style="padding:4px 6px;font-size:11px;font-weight:600;'
+                f'color:{_TEAL};white-space:nowrap;font-family:ui-monospace,monospace;">{_esc(inc_raw)}</td>'
                 f'<td style="padding:4px 6px;font-size:11px;font-weight:600;'
                 f'color:{_NAVY};white-space:nowrap;">{ticker}</td>'
                 f'<td style="padding:4px 6px;font-size:11px;color:{_NAVY};">{name}</td>'
                 f'<td style="padding:4px 6px;font-size:10px;color:{_GRAY};">{issuer}</td>'
                 f'<td style="padding:4px 6px;font-size:10px;color:{_GRAY};">{sub}</td>'
-                f'<td style="padding:4px 6px;text-align:center;">'
-                f'<span style="display:inline-block;padding:1px 5px;border-radius:3px;'
-                f'font-size:9px;font-weight:600;color:{_WHITE};background:{ms_color};">'
-                f'{ms_label}</span></td>'
                 f'</tr>'
             )
 
@@ -1473,11 +1481,11 @@ def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
             f'style="border-collapse:collapse;">'
             f'<tr>'
+            f'{col_hdr}Inception</td>'
             f'{col_hdr}Ticker</td>'
             f'{col_hdr}Fund Name</td>'
             f'{col_hdr}Issuer</td>'
             f'{col_hdr}Sub-Strategy</td>'
-            f'{col_hdr}Status</td>'
             f'</tr>'
             f'{rows_html}{overflow_html}'
             f'</table></div>'
@@ -1488,8 +1496,8 @@ def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_TEAL};">
-    Industry Pre-Launch Pipeline
-    <span style="font-size:11px;font-weight:400;color:{_GRAY};margin-left:8px;">{total} pending or delayed (Bloomberg)</span>
+    Upcoming Launches (Next 30 Days)
+    <span style="font-size:11px;font-weight:400;color:{_GRAY};margin-left:8px;">{total} industry funds inception &le; 30d</span>
   </div>
   {''.join(strategy_blocks)}
 </td></tr>"""
