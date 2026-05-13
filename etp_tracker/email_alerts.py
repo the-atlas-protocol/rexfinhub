@@ -1385,7 +1385,7 @@ def _gather_pipeline_funds() -> list[dict]:
     ACTV, it falls off this list (good — we'd flag stuck ones elsewhere).
     """
     import sqlite3 as _sqlite3
-    from datetime import date as _date, timedelta as _timedelta
+    from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
     _db = Path(__file__).parent.parent / "data" / "etp_tracker.db"
     if not _db.exists():
         return []
@@ -1393,8 +1393,14 @@ def _gather_pipeline_funds() -> list[dict]:
         con = _sqlite3.connect(str(_db))
         con.row_factory = _sqlite3.Row
         cur = con.cursor()
-        today = _date.today().isoformat()
-        plus30 = (_date.today() + _timedelta(days=30)).isoformat()
+        # ET-pinned today (Render runs in UTC — see _gather_daily_data note)
+        try:
+            from zoneinfo import ZoneInfo as _Z
+            _today_et = _datetime.now(_Z("America/New_York")).date()
+        except Exception:
+            _today_et = _date.today()
+        today = _today_et.isoformat()
+        plus30 = (_today_et + _timedelta(days=30)).isoformat()
         # Many brand-new PEND rows haven't been classified yet
         # (issuer_display + sub_strategy NULL). COALESCE issuer to trust
         # so the column never reads "None" — showing the trust name is
@@ -1520,13 +1526,27 @@ def _gather_daily_data(db_session, since_date: str | None = None,
     from datetime import date as date_type
     from webapp.models import Trust, FundStatus, Filing, FundExtraction
 
-    today = datetime.now()
+    # CRITICAL: pin "today" to America/New_York regardless of server TZ.
+    # Render runs in UTC — between ~20:00 ET and 23:59 ET that's already
+    # tomorrow UTC, so filings filtered WHERE filing_date = today return 0
+    # rows. The bug surfaced 2026-05-12 when /admin/digest/preview-daily
+    # returned a 34KB report on Render (sections empty) vs 93KB on VPS.
+    # See _gather_pipeline_funds and Filing queries below — all anchored on
+    # this `today_et`.
+    try:
+        from zoneinfo import ZoneInfo as _Z
+        _now_et = datetime.now(_Z("America/New_York"))
+    except Exception:
+        _now_et = datetime.now()  # Fallback if zoneinfo unavailable
+    today = _now_et
+    today_date = _now_et.date()
     if not since_date:
         # Daily report covers TODAY's filings only — matches user expectation that
-        # "today's report" means filings dated today, not a rolling 24h window.
+        # "today's report" means filings dated today (ET market day), not a
+        # rolling 24h window or UTC-day off-by-one.
         since_date = today.strftime("%Y-%m-%d")
     since_dt = date_type.fromisoformat(since_date)
-    yesterday = date_type.today() - timedelta(days=1)
+    yesterday = today_date - timedelta(days=1)
 
     # --- New launches: Bloomberg inception_date in last 7 days ---
     launches = []
@@ -1700,7 +1720,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         .join(Trust, Trust.id == FundStatus.trust_id)
         .where(FundStatus.status == "PENDING")
         .where(FundStatus.effective_date.isnot(None))
-        .where(FundStatus.effective_date >= date_type.today())
+        .where(FundStatus.effective_date >= today_date)
         .where(Trust.id.in_(select(_etf_trust_ids.c.trust_id)))
         .where(or_(
             FundStatus.fund_name.ilike("REX %"),
@@ -1757,7 +1777,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         .join(Trust, Trust.id == FundStatus.trust_id)
         .where(FundStatus.status == "EFFECTIVE")
         .where(FundStatus.effective_date >= yesterday)
-        .where(FundStatus.effective_date <= date_type.today())
+        .where(FundStatus.effective_date <= today_date)
         .where(Trust.id.in_(select(_etf_trust_ids.c.trust_id)))
     ).scalar() or 0
 
@@ -2454,7 +2474,7 @@ def _gather_morning_brief_data(db_session) -> dict:
     data = _gather_daily_data(db_session, edition="daily")
 
     # Calendar: PENDING funds with effective dates this week (Mon-Fri)
-    today = date_type.today()
+    today = today_date
     # Start of week (Monday)
     week_start = today - timedelta(days=today.weekday())
     # End of week (Sunday)
