@@ -195,6 +195,32 @@ def run_db_sync(changed_trusts=None):
     print("  Database synced.")
 
 
+def run_sync_rex_products_from_filings(dry_run: bool = False):
+    """Auto-create rex_products rows for newly-filed funds (closes the pipeline-lag gap).
+
+    Runs immediately after run_db_sync() so the /operations/pipeline page picks
+    up filings the same day they land. Idempotent — re-runs are safe; uses a
+    watermark file (data/.sync_rex_products_watermark) plus an in-script
+    (cik, series_id) / (cik, name) match check to suppress duplicates.
+    """
+    import subprocess as _sp
+    cmd = [sys.executable, str(PROJECT_ROOT / "scripts" / "sync_rex_products_from_filings.py")]
+    if dry_run:
+        cmd.append("--dry-run")
+    else:
+        cmd.extend(["--apply", "--no-prompt"])
+    result = _sp.run(cmd, capture_output=True, text=True, timeout=600)
+    if result.returncode != 0:
+        print(f"  WARN: sync_rex_products exit={result.returncode}: {result.stderr[-300:]}")
+        return
+    # Echo the summary lines (compact)
+    for line in result.stdout.splitlines():
+        if any(k in line for k in ("Mode", "Filings scanned", "New rex_products",
+                                     "Form transitions", "Status promotions",
+                                     "Listed (Phase 3)", "Watermark updated")):
+            print(f"  {line.strip()}")
+
+
 # ===================================================================
 # Step 3: Structured Notes
 # ===================================================================
@@ -864,6 +890,21 @@ def main():
                 print(f"  CRITICAL: DB sync failed: {e}")
                 critical_ok = False
                 errors.append(f"DB sync: {e}")
+
+        # === rex_products sync from new filings ===
+        # Auto-create rex_products rows for newly-filed 485APOS/485BPOS/485BXT
+        # so the /operations/pipeline page reflects new SEC filings on the day
+        # they land (closes the previous ~5-week lag where new fund rows were
+        # only created manually via insert_*.py one-shot scripts).
+        if skip_sec:
+            print("\n[3.5/8] rex_products sync: SKIPPED (no fresh filings)")
+        else:
+            print("\n[3.5/8] Syncing rex_products from new filings...")
+            try:
+                run_sync_rex_products_from_filings(dry_run=False)
+            except Exception as e:
+                print(f"  rex_products sync failed (non-fatal): {e}")
+                errors.append(f"rex_products sync: {e}")
 
         # === Archive C: cache to D: ===
         print("\n[4/8] Archiving cache C: -> D:...")
