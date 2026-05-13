@@ -1395,9 +1395,16 @@ def _gather_pipeline_funds() -> list[dict]:
         cur = con.cursor()
         today = _date.today().isoformat()
         plus30 = (_date.today() + _timedelta(days=30)).isoformat()
+        # Many brand-new PEND rows haven't been classified yet
+        # (issuer_display + sub_strategy NULL). COALESCE issuer to trust
+        # so the column never reads "None" — showing the trust name is
+        # always more useful than an em-dash.
         cur.execute("""
-            SELECT ticker, fund_name, issuer_display, primary_strategy,
-                   sub_strategy, inception_date, market_status
+            SELECT ticker, fund_name,
+                   COALESCE(NULLIF(issuer_display, ''), NULLIF(trust, ''), '') AS issuer_display,
+                   primary_strategy,
+                   COALESCE(NULLIF(sub_strategy, ''), '') AS sub_strategy,
+                   inception_date, market_status
             FROM mkt_master_data
             WHERE market_status = 'PEND'
               AND inception_date IS NOT NULL
