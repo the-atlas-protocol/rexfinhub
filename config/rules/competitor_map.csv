@@ -95,3 +95,5 @@ TTDU US,T-REX,2x daily long single-stock - Trade Desk,,"Same underlier (TTD), sa
 XRPK US,T-REX,2x daily long single-stock - XRP,UXRP US|XRPT US|XXRP US,"Same underlier (XRP), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (3 peers)
 BMAX US,Thematic,Bitcoin corporate-treasury convertible bonds (MSTR / etc.),ACVT US|ICVT US|MST US|MSTY US|WNTR US,Closest cohort: convertible-bond ETFs and MSTR-overlay income ETFs (no direct peer),
 DRNZ US,Thematic,Drone industry pure-play (defense + commercial),BZZ US|DRNL US|ITA US|JEDI US|PPA US|SHLD US|UAV US|XAR US,"Drone-specific peers (JEDI, UAV) + adjacent defense ETFs",
+DCRU US,T-REX,2x Long Discord (DCRD) single-stock,,"No US 2x DCRD competitor — Discord IPO'd Mar 2026; no leveraged ETF in market yet",DCRU may not be filed yet — placeholder for tracking
+,T-REX,2x Long Discord placeholder,,"No competitor identified",Add when DCRU US ticker assigned
