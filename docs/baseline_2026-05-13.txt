@@ -1,0 +1,37 @@
+BASELINE INTEGRATION TEST — 2026-05-13T16:36:56.476240Z
+Target: https://rex-etp-tracker.onrender.com
+Result: 33/33
+
+[PASS] health endpoint 200  — got 200
+[PASS] health JSON has commit  — commit=e4cb88ca
+[PASS] /operations/pipeline 200  — got 200
+[PASS] pipeline body > 50KB  — size=159654
+[PASS] pipeline shows 2026-05-10+ dates (sync worked)
+[PASS] pipeline lacks PEND/DELAYED jargon header
+[PASS] underlier race /NVDA 200  — got 200
+[PASS] underlier race /SNDK 200  — got 200
+[PASS] underlier race /QQQ 200  — got 200
+[PASS] underlier race /XOVR 200  — got 200
+[PASS] underlier race /ETH 200 (crypto bridge)
+[PASS] underlier race /XETUSD 200
+[PASS] /market/underlier?underlier=SNDK 200
+[PASS] /market/underlier?underlier=SNDK+US 200 (normalized)
+[PASS] /operations/reserved-symbols 200
+[PASS] reserved_symbols >= 250 rows  — got 282
+[PASS] /strategy 200  — got 200
+[PASS] /strategy/whitespace 200  — got 200
+[PASS] /strategy/race 200  — got 200
+[PASS] /strategy/ticker/NVDX 200  — got 200
+[PASS] /intel/ipo 200
+[PASS] /intel/ipo has SpaceX
+[PASS] /admin/digest/preview-daily 200  — got 200
+[PASS] daily preview > 50KB
+[PASS] daily preview has Upcoming Launches
+[PASS] daily preview has Upcoming Effectiveness
+[PASS] debug-daily today_et=2026-05-13
+[PASS] debug-daily pipeline_funds populated
+[PASS] debug-daily pending > 0
+[PASS] local rex_products 723 >= 700
+[PASS] local filings 626936 >= 600000
+[PASS] local mkt_master_data 7361 >= 7000
+[PASS] local newest filing <= 14d old (delta=9.692320289555937)
