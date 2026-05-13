@@ -1426,7 +1426,10 @@ def _gather_pipeline_funds(db_session=None) -> list[dict]:
                 }
                 for r in rows
             ]
-        except Exception:
+        except Exception as _exc:
+            log.warning("_gather_pipeline_funds session path failed: %s", _exc)
+            # Stash on the function for debug visibility (read by debug-daily endpoint).
+            _gather_pipeline_funds._last_error = repr(_exc)
             return []
 
     # Legacy fallback (no session passed) — direct sqlite3 to local file
