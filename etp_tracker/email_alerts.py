@@ -1488,8 +1488,8 @@ def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
 <tr><td style="padding:15px 30px 10px;">
   <div style="font-size:16px;font-weight:700;color:{_NAVY};margin:0 0 8px 0;
     padding-bottom:6px;border-bottom:2px solid {_TEAL};">
-    Funds in Pipeline (PEND/DELAYED)
-    <span style="font-size:11px;font-weight:400;color:{_GRAY};margin-left:8px;">{total} classified</span>
+    Industry Pre-Launch Pipeline
+    <span style="font-size:11px;font-weight:400;color:{_GRAY};margin-left:8px;">{total} pending or delayed (Bloomberg)</span>
   </div>
   {''.join(strategy_blocks)}
 </td></tr>"""
