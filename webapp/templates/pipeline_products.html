@@ -491,6 +491,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           {{ sort_th('estimated_effective_date', 'Effective Date', 'date') }}
           <th title="Latest Prospectus">Latest Prospectus</th>
           {{ sort_th('target_listing_date', 'Inception/Target', 'date') }}
+          <th title="Pipe-separated list of competitor tickers — click to edit (admin)">Competitors</th>
         </tr>
         {# Column-filter row — type to narrow visible rows. data-col-idx maps
            to the matching <td> in each <tbody> row. Vanilla JS handler in
@@ -507,6 +508,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           <th><input type="text" class="filter-input col-filter" data-col-idx="8" placeholder="Filter effective..." aria-label="Filter effective"></th>
           <th><input type="text" class="filter-input col-filter" data-col-idx="9" placeholder="Filter prospectus..." aria-label="Filter prospectus"></th>
           <th><input type="text" class="filter-input col-filter" data-col-idx="10" placeholder="Filter target..." aria-label="Filter inception/target"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="11" placeholder="Filter competitors..." aria-label="Filter competitors"></th>
         </tr>
       </thead>
       <tbody>
@@ -615,6 +617,10 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
               data-field="target_listing_date" data-field-type="date"
               {% if not is_listed and inception_date %}style="background:#fef9c3; color:#854d0e; font-weight:600;" title="Projected / target inception — not yet Listed"{% endif %}>
             {{ inception_date.strftime('%Y-%m-%d') if inception_date else '---' }}
+          </td>
+          {# Col 13: Competitors — pipe-separated tickers, admin-editable inline. #}
+          <td data-sort="{{ p.competitors or '' }}" data-field="competitors" title="{{ p.competitors or 'click to add' }}" style="font-family:ui-monospace, SFMono-Regular, monospace; font-size:11px; color:#475569; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ p.competitors or '---' }}
           </td>
         </tr>
         {% endfor %}
