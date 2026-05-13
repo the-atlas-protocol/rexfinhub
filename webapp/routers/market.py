@@ -367,13 +367,18 @@ def stock_coverage_redirect(request: Request, type: str = Query(default="income"
 def underlier_view(request: Request, db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     svc = _svc()
     available = svc.data_available(db)
+    # Normalize the underlier param so ?underlier=SNDK and ?underlier=SNDK+US
+    # both resolve to the same canonical key. Crypto shorthand (BTC, ETH)
+    # also maps to BBG canonical (XBTUSD, XETUSD).
+    from webapp.services.ticker_normalize import normalize_underlier
+    underlier_norm = normalize_underlier(underlier) if underlier else None
     if not available:
         return templates.TemplateResponse("market/underlier.html", {"request": request, "available": False, "active_tab": "underlier", "data_as_of": svc.get_data_as_of(db)})
     try:
-        summary = svc.get_underlier_summary(db, type, underlier)
+        summary = svc.get_underlier_summary(db, type, underlier_norm)
         return templates.TemplateResponse("market/underlier.html", {
             "request": request, "available": True, "active_tab": "underlier",
-            "summary": summary, "underlier_type": type, "selected_underlier": underlier,
+            "summary": summary, "underlier_type": type, "selected_underlier": underlier_norm,
             "data_as_of": svc.get_data_as_of(db),
         })
     except Exception as e:

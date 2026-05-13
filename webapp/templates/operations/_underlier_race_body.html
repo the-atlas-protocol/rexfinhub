@@ -188,7 +188,7 @@
           {% for c in comp_listed[:30] %}{{ comp_li(c) }}{% endfor %}
         </ul>
         {% if comp_listed | length > 30 %}
-          <ul><li class="empty">+ {{ (comp_listed | length) - 30 }} more — see <a href="/market/underlier?type=li&underlier={{ underlier }}+US">/market/underlier</a></li></ul>
+          <ul><li class="empty">+ {{ (comp_listed | length) - 30 }} more — see <a href="{{ market_underlier_url }}">/market/underlier</a></li></ul>
         {% endif %}
       {% endif %}
       {% if not rex_listed and not comp_listed %}
@@ -223,7 +223,6 @@
   <div class="ur-links">
     <a href="{{ stocks_url }}">Bloomberg signals ({{ stocks_url }})</a>
     <a href="{{ market_underlier_url }}">/market/underlier · {{ underlier }}</a>
-    <a href="{{ market_underlier_us_url }}">/market/underlier · {{ underlier }} US</a>
     <a href="{{ head_to_head_url }}">13F head-to-head</a>
   </div>
 

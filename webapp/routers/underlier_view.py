@@ -192,22 +192,45 @@ def _race_timeline(
 ) -> list[dict]:
     """Build a chronological filed-/listed-first event log."""
     events: list[dict] = []
+    # Per Ryu 2026-05-13: "REX does not file Tuttle products except T-REX."
+    # rex_products contains non-REX rows (Tuttle Capital, GSR, Hedgeye etc.)
+    # because the underlying SEC scraper indexes the whole trust universe.
+    # Use a name-prefix check to decide the actor label — match the same
+    # whitelist that _rex_only_filter on the pipeline page uses.
+    _REX_NAME_PREFIXES = ("REX ", "T-REX ", "REX-OSPREY", "REX- OSPREY",
+                          "MICROSECTORS")
+    def _actor_for(p) -> str:
+        nm = (p.name or "").upper()
+        if any(nm.startswith(pfx) for pfx in _REX_NAME_PREFIXES):
+            return "REX"
+        if "TUTTLE" in nm:
+            return "Tuttle"
+        if nm.startswith("GSR "):
+            return "GSR"
+        if nm.startswith("HEDGEYE"):
+            return "Hedgeye"
+        if nm.startswith("DEFIANCE"):
+            return "Defiance"
+        # Fall back to the trust name (best available attribution).
+        return (p.trust or "").split()[0] if p.trust else "Issuer"
+
     for p in rex_rows:
+        actor = _actor_for(p)
         if p.initial_filing_date:
             events.append({
                 "date": p.initial_filing_date,
                 "kind": "filed",
-                "actor": "REX",
+                "actor": actor,
                 "ticker": p.ticker or p.name[:20],
-                "label": f"REX filed {p.ticker or p.name[:30]}",
+                "label": f"{actor} filed {p.ticker or p.name[:30]}",
             })
         if p.official_listed_date:
             events.append({
                 "date": p.official_listed_date,
                 "kind": "listed",
-                "actor": "REX",
+                "actor": actor,
                 "ticker": p.ticker or p.name[:20],
-                "label": f"REX listed {p.ticker or p.name[:30]}",
+                "label": f"{actor} listed {p.ticker or p.name[:30]}",
             })
     # Inception dates from mkt_master_data are ISO-ish strings.
     for c in comp_rows:
@@ -296,8 +319,11 @@ def underlier_race(
         "timeline": timeline[-20:],  # most recent 20 events
         "modal": bool(modal),
         # Related surfaces — the panel links back out to richer views.
+        # Per Ryu 2026-05-13: drop the +US variant button — the canonical
+        # form has the suffix already stripped, and the route now normalizes
+        # both forms via webapp.services.ticker_normalize. Keeping two
+        # buttons just confuses the click target.
         "market_underlier_url": f"/market/underlier?type=li&underlier={key}",
-        "market_underlier_us_url": f"/market/underlier?type=li&underlier={key}+US",
         "stocks_url": f"/stocks/{key}",
         "head_to_head_url": f"/intel/head-to-head?underlying={key}",
     }
