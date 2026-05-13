@@ -246,9 +246,6 @@ class CsrfMiddleware(BaseHTTPMiddleware):
 
 templates = build_templates(WEBAPP_DIR / "templates")
 
-# Expose feature flags to all templates (used by base.html for conditional nav)
-templates.env.globals["enable_13f"] = bool(os.environ.get("ENABLE_13F"))
-
 # Canonical URL registry — templates can call {{ url('funds.detail', ticker='NVDX') }}
 from webapp.routes import url as _route_url
 templates.env.globals["url"] = _route_url
@@ -321,10 +318,9 @@ async def lifespan(app: FastAPI):
     from webapp.database import init_live_feed_db
     init_live_feed_db()
     log.info("Live feed database initialized (data/live_feed.db).")
-    if os.environ.get("ENABLE_13F"):
-        from webapp.database import init_holdings_db
-        init_holdings_db()
-        log.info("13F holdings database initialized (data/13f_holdings.db).")
+    from webapp.database import init_holdings_db
+    init_holdings_db()
+    log.info("13F holdings database initialized (data/13f_holdings.db).")
     _prewarm_caches()
     yield
 
@@ -456,15 +452,15 @@ def create_app() -> FastAPI:
     app.include_router(filings.router, prefix="/filings")
     app.include_router(universe.router)
 
-    # 13F Holdings: only enabled with ENABLE_13F=1 (local dev, separate DB)
-    if os.environ.get("ENABLE_13F"):
-        from webapp.routers import holdings
-        app.include_router(holdings.router)
-        # 13F Intelligence Hub (requires holdings data)
-        from webapp.routers import intel, intel_competitors, intel_insights
-        app.include_router(intel.router)
-        app.include_router(intel_competitors.router)
-        app.include_router(intel_insights.router)
+    # 13F Intel — internal product + sales intelligence. Admin-only via
+    # require_admin dependency on each router. Holdings DB is separate
+    # (data/13f_holdings.db); cross-DB ATTACH wires it to the main DB in
+    # webapp/database.py so MktMasterData joins work in-process.
+    from webapp.routers import holdings, intel, intel_competitors, intel_insights
+    app.include_router(holdings.router)
+    app.include_router(intel.router)
+    app.include_router(intel_competitors.router)
+    app.include_router(intel_insights.router)
     app.include_router(global_search.router)
     app.include_router(analytics.router)
     app.include_router(reports.router)
@@ -499,7 +495,6 @@ def create_app() -> FastAPI:
         operations,
         sec_etp,
         sec_notes,
-        sec_13f,
         tools_compare,
         tools_li,
         tools_simulators,
@@ -510,7 +505,6 @@ def create_app() -> FastAPI:
     app.include_router(operations.router)
     app.include_router(sec_etp.router)
     app.include_router(sec_notes.router)
-    app.include_router(sec_13f.router)
     app.include_router(tools_compare.router)
     app.include_router(tools_li.router)
     app.include_router(tools_simulators.router)

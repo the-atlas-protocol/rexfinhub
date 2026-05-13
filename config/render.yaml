@@ -2,7 +2,7 @@ services:
   - type: web
     name: etp-tracker
     runtime: python
-    plan: starter
+    plan: standard
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn webapp.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -29,4 +29,4 @@ services:
     disk:
       name: etp-data
       mountPath: /opt/render/project/src/data
-      sizeGB: 1
+      sizeGB: 10

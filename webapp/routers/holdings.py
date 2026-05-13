@@ -27,12 +27,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, desc, distinct
 from sqlalchemy.orm import Session
 
-from webapp.dependencies import get_holdings_db
+from webapp.dependencies import get_holdings_db, require_admin
 from webapp.models import Institution, Holding, CusipMapping, FundStatus, Filing, Trust
 
 log = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="webapp/templates")
 
 
@@ -1112,7 +1112,7 @@ def admin_refresh_holdings(
         return JSONResponse(
             {
                 "error": "13F ingestion cannot run on Render (large SEC downloads). "
-                         "Run scripts/fetch_13f.py locally and upload the resulting "
+                         "Run scripts/run_13f.py locally and upload the resulting "
                          "data/13f_holdings.db via the DB upload endpoint.",
             },
             status_code=503,

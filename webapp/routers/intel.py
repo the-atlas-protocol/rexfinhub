@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from webapp.dependencies import get_holdings_db as get_db
+from webapp.dependencies import get_holdings_db as get_db, require_admin
 from webapp.services.holdings_intel import (
     fmt_value,
     get_available_quarters,
@@ -42,7 +42,11 @@ from webapp.services.holdings_intel import (
 
 log = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/intel", tags=["intel"])
+router = APIRouter(
+    prefix="/intel",
+    tags=["intel"],
+    dependencies=[Depends(require_admin)],
+)
 templates = Jinja2Templates(directory="webapp/templates")
 
 

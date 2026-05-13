@@ -113,7 +113,7 @@
   <div class="kpi-card">
     <div class="kpi-label">Best Performer</div>
     {% if summary.kpis.best_performer %}
-    <div class="kpi-value positive" style="font-size:var(--text-md);"><a href="{% if enable_13f %}/holdings/fund/{{ summary.kpis.best_performer.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ summary.kpis.best_performer.ticker }}{% endif %}" title="{{ summary.kpis.best_performer.ticker }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ summary.kpis.best_performer.ticker }}</a></div>
+    <div class="kpi-value positive" style="font-size:var(--text-md);"><a href="{% if request.session.get("is_admin") %}/holdings/fund/{{ summary.kpis.best_performer.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ summary.kpis.best_performer.ticker }}{% endif %}" title="{{ summary.kpis.best_performer.ticker }}" style="color:inherit; text-decoration:none; font-weight:600;">{{ summary.kpis.best_performer.ticker }}</a></div>
     <div style="font-size:0.72rem;" class="positive">{{ summary.kpis.best_performer.return_1m_fmt }}</div>
     {% else %}
     <div class="kpi-value" style="font-size:var(--text-md);">--</div>
@@ -182,7 +182,7 @@
       <tbody id="best5Body">
         {% for p in summary.best5 %}
         <tr>
-          <td class="ticker-col"><a href="{% if enable_13f %}/holdings/fund/{{ p.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ p.ticker }}{% endif %}" title="{{ p.ticker }}" style="color: var(--blue); text-decoration: none; font-weight: 600;">{{ p.ticker }}</a></td>
+          <td class="ticker-col"><a href="{% if request.session.get("is_admin") %}/holdings/fund/{{ p.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ p.ticker }}{% endif %}" title="{{ p.ticker }}" style="color: var(--blue); text-decoration: none; font-weight: 600;">{{ p.ticker }}</a></td>
           <td style="word-wrap:break-word; white-space:normal; min-width:180px;">{{ p.fund_name }}</td>
           <td class="num-cell positive" style="text-align:center;">{{ p.return_1m_fmt }}</td>
         </tr>
@@ -197,7 +197,7 @@
       <tbody id="worst5Body">
         {% for p in summary.worst5 %}
         <tr>
-          <td class="ticker-col"><a href="{% if enable_13f %}/holdings/fund/{{ p.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ p.ticker }}{% endif %}" title="{{ p.ticker }}" style="color: var(--blue); text-decoration: none; font-weight: 600;">{{ p.ticker }}</a></td>
+          <td class="ticker-col"><a href="{% if request.session.get("is_admin") %}/holdings/fund/{{ p.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ p.ticker }}{% endif %}" title="{{ p.ticker }}" style="color: var(--blue); text-decoration: none; font-weight: 600;">{{ p.ticker }}</a></td>
           <td style="word-wrap:break-word; white-space:normal; min-width:180px;">{{ p.fund_name }}</td>
           <td class="num-cell negative" style="text-align:center;">{{ p.return_1m_fmt }}</td>
         </tr>
@@ -270,7 +270,7 @@
           <tbody>
             {% for p in suite.products %}
             <tr>
-              <td class="ticker-col" style="padding:3px 8px;"><a href="{% if enable_13f %}/holdings/fund/{{ p.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ p.ticker }}{% endif %}" title="{{ p.ticker }}" style="color: var(--blue); text-decoration: none; font-weight: 600;">{{ p.ticker }}</a></td>
+              <td class="ticker-col" style="padding:3px 8px;"><a href="{% if request.session.get("is_admin") %}/holdings/fund/{{ p.ticker }}{% else %}/sec/etp/filings?mode=funds&q={{ p.ticker }}{% endif %}" title="{{ p.ticker }}" style="color: var(--blue); text-decoration: none; font-weight: 600;">{{ p.ticker }}</a></td>
               <td class="name-cell" style="padding:3px 8px; max-width:220px;" title="{{ p.fund_name }}">{{ p.fund_name|truncate(35, true) }}</td>
               <td class="num-cell" style="padding:3px 8px; text-align:center;">{{ p.aum_fmt }}</td>
               <td class="num-cell" style="padding:3px 8px; text-align:center;">{{ p.flow_1w_fmt }}</td>
