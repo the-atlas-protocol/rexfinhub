@@ -600,8 +600,24 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           <td data-sort="{{ p.initial_filing_date.isoformat() if p.initial_filing_date else '' }}" data-field="initial_filing_date" data-field-type="date">{{ p.initial_filing_date.strftime('%Y-%m-%d') if p.initial_filing_date else '---' }}</td>
           {# Col 9: Latest Filing — derived in router (max of known SEC dates) #}
           <td data-sort="{{ row.latest_filing_date.isoformat() if row.latest_filing_date else '' }}">{{ row.latest_filing_date.strftime('%Y-%m-%d') if row.latest_filing_date else '---' }}</td>
-          {# Col 10: Effective Date #}
-          <td data-sort="{{ p.estimated_effective_date.isoformat() if p.estimated_effective_date else '' }}" data-field="estimated_effective_date" data-field-type="date">{{ p.estimated_effective_date.strftime('%Y-%m-%d') if p.estimated_effective_date else '---' }}</td>
+          {# Col 10: Effective Date — explicit value if present, else SEC
+             Rule 485(a) default (+75d from initial filing for 485APOS / 75d
+             new fund). Per Ryu 2026-05-13: "Every single prospectus related
+             filing has [an effective date]" — we should never show --- when
+             a 485A* / 485BPOS exists. #}
+          {% set _est_eff = p.estimated_effective_date %}
+          {% if not _est_eff and lp_form in ('485APOS','485BPOS','485BXT') and p.initial_filing_date %}
+            {% set _est_eff = p.initial_filing_date + timedelta(days=75) %}
+            {% set _est_eff_auto = true %}
+          {% else %}
+            {% set _est_eff_auto = false %}
+          {% endif %}
+          <td data-sort="{{ _est_eff.isoformat() if _est_eff else '' }}" data-field="estimated_effective_date" data-field-type="date">
+            {% if _est_eff %}
+              {{ _est_eff.strftime('%Y-%m-%d') }}
+              {% if _est_eff_auto %}<span style="font-size:10px; color:#94a3b8; font-style:italic;" title="SEC Rule 485(a) default: filing + 75 days for new fund. Update when 485BPOS lands.">est</span>{% endif %}
+            {% else %}---{% endif %}
+          </td>
           {# Col 11: Latest Prospectus — 485APOS / 485BPOS / 497 only, else dash #}
           <td>
             {% if lp_is_pros and p.latest_prospectus_link %}

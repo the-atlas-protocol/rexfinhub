@@ -225,7 +225,7 @@ def _pipeline_products_impl(
     sort: str | None = None,
     dir: str | None = None,
     page: int = 1,
-    per_page: str | int = 50,
+    per_page: str | int = "all",
     hide_terminal: int = 0,
     show_cold: int | None = None,  # legacy alias — ignored if hide_terminal supplied
     recent_days: int = 14,
@@ -862,6 +862,9 @@ def _pipeline_products_render(
         "products": products_page,  # legacy alias
         # Empty-ticker suggestion chips (O5) — keyed by rex_products.id
         "ticker_suggestions": ticker_suggestions,
+        # Make timedelta available in template for SEC Rule 485(a) +75d default
+        # on the Effective Date column when estimated_effective_date is NULL.
+        "timedelta": timedelta,
         "filtered_count": total_count,
         "page": page,
         "per_page": per_page_value,
