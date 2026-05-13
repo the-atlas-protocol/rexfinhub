@@ -1195,6 +1195,89 @@ def preview_daily(request: Request, db: Session = Depends(get_db)):
     return HTMLResponse(content=html)
 
 
+@router.get("/digest/debug-daily")
+def debug_daily(request: Request, db: Session = Depends(get_db)):
+    """Debug endpoint — returns the dict gathered for the daily digest as JSON.
+
+    Lets the operator compare what _gather_daily_data sees on this DB vs VPS
+    when the rendered HTML differs (e.g., Render missing sections that VPS has).
+    Reports row counts on each section's source data so empty sections can be
+    traced to either (a) missing source rows or (b) renderer logic.
+    """
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+
+    from etp_tracker.email_alerts import _gather_daily_data, _gather_pipeline_funds
+    from datetime import date
+    from sqlalchemy import text
+
+    # Gather what the daily build sees
+    try:
+        data = _gather_daily_data(db, edition="daily")
+    except Exception as e:
+        import traceback as _tb
+        return {"error": str(e), "trace": _tb.format_exc()}
+
+    # Section-by-section row counts
+    summary = {
+        "section_counts": {},
+        "section_keys_top_level": list(data.keys()) if isinstance(data, dict) else None,
+        "filings_today_db": None,
+        "filings_yesterday_db": None,
+        "rex_products_count": None,
+        "fund_status_pending_count": None,
+        "mkt_master_data_count": None,
+        "mkt_pend_30d_count": None,
+        "filing_analyses_count": None,
+        "today": date.today().isoformat(),
+    }
+
+    # Key section sizes from the gathered dict
+    for k in ("filing_groups", "updated_groups", "top_filings",
+              "pending", "launches", "pipeline_funds"):
+        v = data.get(k) if isinstance(data, dict) else None
+        if isinstance(v, list):
+            summary["section_counts"][k] = len(v)
+        elif v is None:
+            summary["section_counts"][k] = "MISSING_KEY"
+        else:
+            summary["section_counts"][k] = type(v).__name__
+
+    # Direct DB probes
+    today = date.today().isoformat()
+    try:
+        summary["filings_today_db"] = db.execute(
+            text("SELECT COUNT(*) FROM filings WHERE filing_date = :d AND form LIKE '485%'"),
+            {"d": today},
+        ).scalar()
+    except Exception as e:
+        summary["filings_today_db"] = f"ERR: {e}"
+    try:
+        summary["rex_products_count"] = db.execute(text("SELECT COUNT(*) FROM rex_products")).scalar()
+    except Exception as e:
+        summary["rex_products_count"] = f"ERR: {e}"
+    try:
+        summary["fund_status_pending_count"] = db.execute(
+            text("SELECT COUNT(*) FROM fund_status WHERE status='PENDING'")
+        ).scalar()
+    except Exception as e:
+        summary["fund_status_pending_count"] = f"ERR: {e}"
+    try:
+        summary["mkt_master_data_count"] = db.execute(text("SELECT COUNT(*) FROM mkt_master_data")).scalar()
+    except Exception as e:
+        summary["mkt_master_data_count"] = f"ERR: {e}"
+    try:
+        summary["mkt_pend_30d_count"] = len(_gather_pipeline_funds())
+    except Exception as e:
+        summary["mkt_pend_30d_count"] = f"ERR: {e}"
+    try:
+        summary["filing_analyses_count"] = db.execute(text("SELECT COUNT(*) FROM filing_analyses")).scalar()
+    except Exception as e:
+        summary["filing_analyses_count"] = f"ERR: {e}"
+
+    return summary
+
+
 @router.get("/digest/preview-weekly")
 def preview_weekly(request: Request, db: Session = Depends(get_db)):
     """Preview weekly digest HTML without sending."""
