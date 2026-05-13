@@ -1275,6 +1275,44 @@ def debug_daily(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         summary["filing_analyses_count"] = f"ERR: {e}"
 
+    # Diagnose Upcoming Launches: show today_et + sample mkt_master_data PEND rows
+    try:
+        from zoneinfo import ZoneInfo as _Z
+        _today_et = datetime.now(_Z("America/New_York")).date()
+    except Exception:
+        from datetime import date as _date
+        _today_et = _date.today()
+    summary["today_et"] = _today_et.isoformat()
+    summary["today_utc"] = date.today().isoformat()
+    try:
+        # Total PEND on Render
+        summary["mkt_pend_total"] = db.execute(
+            text("SELECT COUNT(*) FROM mkt_master_data WHERE market_status='PEND'")
+        ).scalar()
+        # PEND with non-null inception
+        summary["mkt_pend_with_inception"] = db.execute(
+            text("SELECT COUNT(*) FROM mkt_master_data WHERE market_status='PEND' AND inception_date IS NOT NULL")
+        ).scalar()
+        # Sample 3 rows to see the inception_date format
+        sample_rows = db.execute(
+            text("SELECT ticker, inception_date FROM mkt_master_data "
+                 "WHERE market_status='PEND' AND inception_date IS NOT NULL "
+                 "ORDER BY inception_date DESC LIMIT 5")
+        ).fetchall()
+        summary["mkt_pend_sample"] = [{"ticker": str(r[0]), "inception_date": str(r[1])} for r in sample_rows]
+        # Same query as _gather_pipeline_funds, see what comes back
+        from datetime import timedelta as _td
+        upper = (_today_et + _td(days=30)).isoformat()
+        rows = db.execute(
+            text("SELECT COUNT(*) FROM mkt_master_data "
+                 "WHERE market_status='PEND' AND inception_date IS NOT NULL "
+                 "AND inception_date >= :lo AND inception_date <= :hi"),
+            {"lo": _today_et.isoformat(), "hi": upper},
+        ).scalar()
+        summary["mkt_pend_30d_replay"] = {"count": rows, "lo": _today_et.isoformat(), "hi": upper}
+    except Exception as e:
+        summary["mkt_pend_diag"] = f"ERR: {e}"
+
     return summary
 
 
