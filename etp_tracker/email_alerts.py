@@ -1398,9 +1398,14 @@ def _gather_pipeline_funds(db_session=None) -> list[dict]:
     today = _today_et.isoformat()
     plus30 = (_today_et + _timedelta(days=30)).isoformat()
 
+    # NB: removed COALESCE to `trust` column — VPS has it, Render's
+    # mkt_master_data schema doesn't (schema drift). The 'trust' fallback
+    # would cause OperationalError on Render. Live with NULL issuer_display
+    # showing as "—" until the issuer-display backfill catches the new rows
+    # (typically same-day after the next classification sweep).
     sql = """
         SELECT ticker, fund_name,
-               COALESCE(NULLIF(issuer_display, ''), NULLIF(trust, ''), '') AS issuer_display,
+               COALESCE(NULLIF(issuer_display, ''), '') AS issuer_display,
                primary_strategy,
                COALESCE(NULLIF(sub_strategy, ''), '') AS sub_strategy,
                inception_date, market_status
