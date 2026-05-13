@@ -61,6 +61,7 @@ _REX_UPDATE_FIELDS: dict[str, tuple[str, str]] = {
     "cu_size":                  ("cu_size", "int_or_none"),
     "starting_nav":             ("starting_nav", "float_or_none"),
     "notes":                    ("notes", "str_or_none"),
+    "competitors":              ("competitors", "str_or_none"),
 }
 
 _VALID_STATUSES = {

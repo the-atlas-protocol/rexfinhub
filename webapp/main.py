@@ -481,6 +481,11 @@ def create_app() -> FastAPI:
     from webapp.routers import admin_rex_products
     app.include_router(admin_rex_products.router)
 
+    # IPO Intel — pre-IPO + recently-priced watchlist surfaced from
+    # config/ipo_watchlist.yaml. Read-only display page at /intel/ipo.
+    from webapp.routers import ipo_intel
+    app.include_router(ipo_intel.router)
+
     # L&I Strategy Engine — whitespace candidates, filing race, ticker deep-dive
     from webapp.routers import strategy
     app.include_router(strategy.router)

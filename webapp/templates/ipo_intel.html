@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}IPO Intel — REX FinHub{% endblock %}
+
+{% block extra_head %}
+<style>
+.ipo-page { max-width: 1400px; margin: 0 auto; padding: 24px; }
+.ipo-page h1 { margin: 0 0 4px 0; font-size: 28px; color: #1F3864; }
+.ipo-page .subtitle { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+.ipo-page .age-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+.ipo-page .age-fresh   { background: #d1fae5; color: #065f46; }
+.ipo-page .age-stale   { background: #fef3c7; color: #92400e; }
+.ipo-page .age-old     { background: #fee2e2; color: #991b1b; }
+.ipo-page section { margin-bottom: 32px; }
+.ipo-page section h2 {
+  font-size: 18px; color: #1F3864; margin: 0 0 8px 0;
+  border-bottom: 1px solid #e5e7eb; padding-bottom: 6px;
+}
+.ipo-page table {
+  width: 100%; border-collapse: collapse; background: #fff;
+  border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; font-size: 13px;
+}
+.ipo-page th {
+  background: #f9fafb; color: #475569; font-weight: 600;
+  padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.ipo-page td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+.ipo-page tr:hover td { background: #fafbfc; }
+.ipo-page .company { font-weight: 700; color: #1F3864; }
+.ipo-page .valuation { font-family: ui-monospace, SFMono-Regular, monospace; color: #047857; }
+.ipo-page .valuation-projected { color: #2563eb; font-size: 11px; }
+.ipo-page .desc { color: #475569; max-width: 500px; }
+.ipo-page .source-link { font-size: 11px; color: #6366f1; text-decoration: none; }
+.ipo-page .source-link:hover { text-decoration: underline; }
+.ipo-page .as-of { font-size: 11px; color: #94a3b8; }
+.ipo-page .empty { color: #94a3b8; font-style: italic; padding: 20px; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ipo-page">
+  <h1>
+    IPO Intel
+    {% if data_age_hours|float < 24 %}
+      <span class="age-badge age-fresh">Fresh ({{ data_age_hours }}h)</span>
+    {% elif data_age_hours|float < 168 %}
+      <span class="age-badge age-stale">{{ data_age_hours }}h old</span>
+    {% else %}
+      <span class="age-badge age-old">{{ data_age_hours }}h old — refresh</span>
+    {% endif %}
+  </h1>
+  <div class="subtitle">
+    Pre-IPO and recently-priced IPOs tracked for L&amp;I filing-race intelligence.
+    Source of truth: <code>{{ yaml_path }}</code> (edit YAML + redeploy to refresh).
+  </div>
+
+  {% for s in sections %}
+  <section>
+    <h2>{{ s.label }} <span style="color:#94a3b8; font-weight:400;">({{ s.rows|length }})</span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker / Tag</th>
+          <th>Company</th>
+          <th>Window</th>
+          <th>Valuation</th>
+          <th>Description</th>
+          <th>Source</th>
+          <th>As of</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in s.rows %}
+        <tr>
+          <td><strong>{{ r.ticker or '—' }}</strong></td>
+          <td class="company">{{ r.company or '—' }}</td>
+          <td>{{ r.expected_ipo_window or r.date or '—' }}</td>
+          <td class="valuation">
+            {{ r.valuation or '—' }}
+            {% if r.valuation_projected_usd %}
+              <div class="valuation-projected">→ ~${{ '%.0f'|format(r.valuation_projected_usd) }}B projected</div>
+            {% endif %}
+          </td>
+          <td class="desc">{{ r.desc or '' }}</td>
+          <td>
+            {% if r.source_url %}
+              <a href="{{ r.source_url }}" target="_blank" rel="noopener" class="source-link">↗ link</a>
+            {% endif %}
+          </td>
+          <td class="as-of">{{ r.as_of_date or r.last_round_date or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
+
+  {% if not sections %}
+  <div class="empty">No IPO data found in {{ yaml_path }}.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -959,6 +959,11 @@ class RexProduct(Base):
     starting_nav: Mapped[float | None] = mapped_column(Float)
 
     notes: Mapped[str | None] = mapped_column(Text)
+    # Pipe-separated list of competitor tickers ("NVDL|MSTU|TSLT").
+    # Editable inline via /admin/rex-products/update/{id}; surfaces on the
+    # pipeline page and any race/competitor view. Per-row override that
+    # supplements config/rules/competitor_map.csv (per-row wins over CSV).
+    competitors: Mapped[str | None] = mapped_column(Text)
     # JSON-encoded list of field names that have been manually overridden by
     # an admin via /admin/rex-products/update/{id}. The daily classifier +
     # bloomberg-chain sweeps consult this to avoid clobbering admin edits.
