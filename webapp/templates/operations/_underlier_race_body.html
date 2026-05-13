@@ -123,7 +123,7 @@
         {{ c.fund_name[:60] }}
         {% if c.leverage %} · {{ c.leverage }}{% endif %}
         {% if c.direction %} {{ c.direction }}{% endif %}
-        {% if c.aum %} · ${{ "%.0fM"|format(c.aum / 1_000_000) }}{% endif %}
+        {% if c.aum %} · ${{ "%.0fM"|format(c.aum) }}{% endif %}
       </div>
     </li>
   {%- endmacro %}
