@@ -1371,7 +1371,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
 </body></html>"""
 
 
-def _gather_pipeline_funds() -> list[dict]:
+def _gather_pipeline_funds(db_session=None) -> list[dict]:
     """Query mkt_master_data for IMMINENT launches — PEND with inception
     in the next 30 days. Returns list of dicts with keys: ticker, fund_name,
     issuer_display, primary_strategy, sub_strategy, inception_date,
@@ -1381,11 +1381,56 @@ def _gather_pipeline_funds() -> list[dict]:
     rows including ones with no inception, ones months out, and delisted —
     "weird, why is it shown to us." New scope is "what's launching SOON
     that we should care about" — only PEND with a real near-term date.
-    DELAYED/DLST removed; if a fund slips past its date and hasn't gone
-    ACTV, it falls off this list (good — we'd flag stuck ones elsewhere).
+
+    db_session: pass the FastAPI Session so we use the SAME DB the rest of
+    the app uses. The prior implementation opened its own sqlite3 connection
+    to a relative path that resolved to a different/empty DB on Render —
+    causing the section to render empty in production while VPS worked.
+    Falls back to the legacy path-based connection only if db_session is None.
     """
-    import sqlite3 as _sqlite3
     from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
+    # ET-pinned today (Render runs in UTC — see _gather_daily_data note)
+    try:
+        from zoneinfo import ZoneInfo as _Z
+        _today_et = _datetime.now(_Z("America/New_York")).date()
+    except Exception:
+        _today_et = _date.today()
+    today = _today_et.isoformat()
+    plus30 = (_today_et + _timedelta(days=30)).isoformat()
+
+    sql = """
+        SELECT ticker, fund_name,
+               COALESCE(NULLIF(issuer_display, ''), NULLIF(trust, ''), '') AS issuer_display,
+               primary_strategy,
+               COALESCE(NULLIF(sub_strategy, ''), '') AS sub_strategy,
+               inception_date, market_status
+        FROM mkt_master_data
+        WHERE market_status = 'PEND'
+          AND inception_date IS NOT NULL
+          AND inception_date >= :lo
+          AND inception_date <= :hi
+          AND fund_name IS NOT NULL
+          AND fund_name != ''
+        ORDER BY inception_date ASC, primary_strategy, fund_name
+        LIMIT 100
+    """
+    if db_session is not None:
+        try:
+            from sqlalchemy import text as _text
+            rows = db_session.execute(_text(sql), {"lo": today, "hi": plus30}).fetchall()
+            return [
+                {
+                    "ticker": r[0], "fund_name": r[1], "issuer_display": r[2],
+                    "primary_strategy": r[3], "sub_strategy": r[4],
+                    "inception_date": r[5], "market_status": r[6],
+                }
+                for r in rows
+            ]
+        except Exception:
+            return []
+
+    # Legacy fallback (no session passed) — direct sqlite3 to local file
+    import sqlite3 as _sqlite3
     _db = Path(__file__).parent.parent / "data" / "etp_tracker.db"
     if not _db.exists():
         return []
@@ -1393,34 +1438,7 @@ def _gather_pipeline_funds() -> list[dict]:
         con = _sqlite3.connect(str(_db))
         con.row_factory = _sqlite3.Row
         cur = con.cursor()
-        # ET-pinned today (Render runs in UTC — see _gather_daily_data note)
-        try:
-            from zoneinfo import ZoneInfo as _Z
-            _today_et = _datetime.now(_Z("America/New_York")).date()
-        except Exception:
-            _today_et = _date.today()
-        today = _today_et.isoformat()
-        plus30 = (_today_et + _timedelta(days=30)).isoformat()
-        # Many brand-new PEND rows haven't been classified yet
-        # (issuer_display + sub_strategy NULL). COALESCE issuer to trust
-        # so the column never reads "None" — showing the trust name is
-        # always more useful than an em-dash.
-        cur.execute("""
-            SELECT ticker, fund_name,
-                   COALESCE(NULLIF(issuer_display, ''), NULLIF(trust, ''), '') AS issuer_display,
-                   primary_strategy,
-                   COALESCE(NULLIF(sub_strategy, ''), '') AS sub_strategy,
-                   inception_date, market_status
-            FROM mkt_master_data
-            WHERE market_status = 'PEND'
-              AND inception_date IS NOT NULL
-              AND inception_date >= ?
-              AND inception_date <= ?
-              AND fund_name IS NOT NULL
-              AND fund_name != ''
-            ORDER BY inception_date ASC, primary_strategy, fund_name
-            LIMIT 100
-        """, (today, plus30))
+        cur.execute(sql.replace(":lo", "?").replace(":hi", "?"), (today, plus30))
         rows = cur.fetchall()
         con.close()
         return [dict(r) for r in rows]
@@ -1801,7 +1819,7 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         log.warning("Top Filings analysis failed: %s", _tf_err)
 
     # --- Funds in Pipeline (PEND/DELAYED) from Bloomberg master data ---
-    pipeline_funds = _gather_pipeline_funds()
+    pipeline_funds = _gather_pipeline_funds(db_session=db_session)
 
     return {
         "launches": launches,

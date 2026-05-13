@@ -1267,7 +1267,7 @@ def debug_daily(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         summary["mkt_master_data_count"] = f"ERR: {e}"
     try:
-        summary["mkt_pend_30d_count"] = len(_gather_pipeline_funds())
+        summary["mkt_pend_30d_count"] = len(_gather_pipeline_funds(db_session=db))
     except Exception as e:
         summary["mkt_pend_30d_count"] = f"ERR: {e}"
     try:
