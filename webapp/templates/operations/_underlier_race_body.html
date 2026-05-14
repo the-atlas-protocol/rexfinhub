@@ -69,6 +69,7 @@
   <a href="#" class="ur-modal-close" onclick="document.getElementById('underlierModal').style.display='none'; return false;">Close &times;</a>
   {% endif %}
 
+  {% if sister_count %}<div style="margin:-6px 0 10px; font-size:11px; color:#64748b;"><span style="background:#1F386415; color:#1F3864; border:1px solid #1F386433; padding:2px 8px; border-radius:10px; font-weight:600;">{{ sister_count }} REX product{{ "s" if sister_count != 1 else "" }} on {{ underlier }}</span></div>{% endif %}
   <div class="header-row">
     <h1><span class="ticker">{{ underlier }}</span> — pipeline race</h1>
     <span class="sub">REX vs competitor by lifecycle stage</span>
@@ -215,6 +216,18 @@
       <div class="ev {{ e.kind }}">
         <span class="dt">{{ e.date.isoformat() }}</span>
         <span class="lbl">{{ e.label }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if audit_timeline %}
+  <div class="ur-timeline" style="margin-top:12px;">
+    <h3>Recent edits — audit log</h3>
+    {% for a in audit_timeline %}
+      <div class="ev" style="display:flex; gap:10px; align-items:baseline; padding:3px 0; font-size:12px; border-bottom:1px dashed #f1f5f9;">
+        <span class="dt" style="font-family:ui-monospace, SFMono-Regular, monospace; color:#64748b; min-width:90px;">{{ a.changed_at[:10] if a.changed_at else '?' }}</span>
+        <span style="color:#0f172a;"><strong>{{ a.label[:40] if a.label else '?' }}</strong>: {{ a.field }} {% if a.old %}<span style="color:#94a3b8;">{{ (a.old or '')[:40] }} →</span> {% endif %}<span style="color:#0369a1;">{{ (a.new or 'NULL')[:40] }}</span></span>
       </div>
     {% endfor %}
   </div>

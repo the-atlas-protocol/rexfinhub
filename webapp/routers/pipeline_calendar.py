@@ -833,10 +833,57 @@ def _pipeline_products_render(
 
     is_admin = request.session.get("is_admin", False)
 
+    # ---- Race density per underlier (REX X / Comp Y) ----
+    # Cheap dual-aggregate: one GROUP BY on rex_products + one on mkt_master_data
+    # per underlier. Cached at row-render time via dict lookup. Used by the
+    # Underlier cell on each row to show competitive density at a glance.
+    try:
+        rex_counts_raw = db.execute(select(
+            func.upper(func.trim(RexProduct.underlier)),
+            func.count(RexProduct.id)
+        ).where(
+            RexProduct.underlier.isnot(None),
+            RexProduct.underlier != "",
+            RexProduct.status != "Delisted",
+        ).group_by(func.upper(func.trim(RexProduct.underlier)))).all()
+        rex_underlier_counts = {u: n for u, n in rex_counts_raw if u}
+    except Exception:
+        rex_underlier_counts = {}
+    try:
+        from webapp.models import MktMasterData
+        # Competitor count: any mkt_master_data row with same underlier where is_rex=False
+        # and market_status='ACTV'. Strip Bloomberg suffixes to match.
+        import sqlite3 as _sqlite3
+        raw = db.execute(select(
+            MktMasterData.map_li_underlier,
+            MktMasterData.map_cc_underlier,
+        ).where(
+            (MktMasterData.is_rex == False) | (MktMasterData.is_rex.is_(None)),
+            MktMasterData.market_status == "ACTV",
+        )).all()
+        comp_underlier_counts: dict[str, int] = {}
+        for li_u, cc_u in raw:
+            for raw_u in (li_u, cc_u):
+                if not raw_u:
+                    continue
+                norm = str(raw_u).replace(" US", "").replace(" Curncy", "").strip().upper()
+                if not norm:
+                    continue
+                comp_underlier_counts[norm] = comp_underlier_counts.get(norm, 0) + 1
+    except Exception:
+        comp_underlier_counts = {}
+    race_density = {}
+    for u in set(rex_underlier_counts) | set(comp_underlier_counts):
+        race_density[u] = {
+            "rex_n": rex_underlier_counts.get(u, 0),
+            "comp_n": comp_underlier_counts.get(u, 0),
+        }
+
     return templates.TemplateResponse("pipeline_products.html", {
         "request": request,
         "today": today,
         "is_admin": is_admin,
+        "race_density": race_density,
         # KPIs surfaced by the funnel + urgency cards. Recent Activity /
         # Quick Stats sections (and their dedicated keys: recent_activity,
         # recent_days, last_updated_overall, filings_last_7d,
