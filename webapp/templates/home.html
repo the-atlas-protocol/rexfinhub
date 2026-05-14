@@ -732,17 +732,10 @@
       <span class="ha-pillar-badge">10,535 institutions</span>
     </div>
     <ul class="ha-pillar-links">
-      {% if request.session.get("is_admin") %}
       <li><a href="/intel/">Market Overview</a><span class="ha-link-desc">13F aggregate view</span></li>
       <li><a href="/intel/rex">REX Quarter Report</a><span class="ha-link-desc">Institutional ownership of REX products</span></li>
       <li><a href="/holdings/">Browse Institutions</a><span class="ha-link-desc">Search 10,535 filers</span></li>
       <li><a href="/intel/rex/sales">Sales Intelligence</a><span class="ha-link-desc">Position changes in REX products</span></li>
-      {% else %}
-      <li><span style="color:#94a3b8;">Market Overview</span><span class="ha-link-desc">Admin only</span></li>
-      <li><span style="color:#94a3b8;">REX Quarter Report</span><span class="ha-link-desc">Admin only</span></li>
-      <li><span style="color:#94a3b8;">Browse Institutions</span><span class="ha-link-desc">Admin only</span></li>
-      <li><span style="color:#94a3b8;">Sales Intelligence</span><span class="ha-link-desc">Admin only</span></li>
-      {% endif %}
     </ul>
   </div>
 

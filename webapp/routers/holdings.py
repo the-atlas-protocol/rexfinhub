@@ -27,12 +27,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, desc, distinct
 from sqlalchemy.orm import Session
 
-from webapp.dependencies import get_holdings_db, require_admin
+from webapp.dependencies import get_holdings_db
 from webapp.models import Institution, Holding, CusipMapping, FundStatus, Filing, Trust
 
 log = logging.getLogger(__name__)
 
-router = APIRouter(dependencies=[Depends(require_admin)])
+router = APIRouter()
 templates = Jinja2Templates(directory="webapp/templates")
 
 
