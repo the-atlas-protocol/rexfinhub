@@ -586,7 +586,13 @@ async def upload_holdings_db(
                     total_out += len(chunk)
             total_in = total_out
 
+        # Dispose holdings_engine BEFORE the rename so SQLAlchemy releases
+        # its file handles, then move the new file into place, then re-init
+        # so subsequent requests pick up the new DB. Mirrors /db/upload pattern.
+        from webapp.database import holdings_engine, init_db
+        holdings_engine.dispose()
         shutil.move(tmp_path, str(holdings_db_path))
+        init_db()  # re-attach main_site, re-establish connection pool
 
         in_mb = total_in / 1_000_000
         out_mb = total_out / 1_000_000
