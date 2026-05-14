@@ -91,14 +91,41 @@ _FORM_RANK = {
 # estimated_effective_date when we can't see one in the filing yet.
 RULE_485A_DAYS = 75
 
-# REX-name prefixes used when the filing's CIK isn't in TRUST_CIKS but the
-# registrant name looks like one of REX's funds (e.g. cross-trust REX-Osprey
-# products filed via World Funds Trust or HANetf II ICAV).
+# REX-name prefixes -- the PRIMARY filter for "is this a REX product?".
+# We used to also accept "filing is from any curated trust" but that pulled in
+# Direxion / ProShares / Defiance / Innovator / Roundhill / etc. because those
+# competitor trusts live in TRUST_CIKS for filing-race monitoring. Curated
+# trust now plays no role; only the fund/registrant name decides.
 REX_NAME_PATTERNS = (
     re.compile(r"^T-?REX\b", re.IGNORECASE),
-    re.compile(r"^REX-OSPREY\b", re.IGNORECASE),
+    # REX-Osprey variants: hyphen+space, optional TM, trademark glyph
+    re.compile(r"^REX[\s\-]+\s*OSPREY", re.IGNORECASE),
     re.compile(r"^REX\s", re.IGNORECASE),
     re.compile(r"^MICROSECTORS\b", re.IGNORECASE),
+    re.compile(r"^OSPREY\b", re.IGNORECASE),  # Osprey Bitcoin Trust (REX subsidiary)
+)
+
+# Hard denylist of competitor brand prefixes -- belt+suspenders against any
+# future scenario where a competitor name happens to lead with "REX".
+COMPETITOR_NAME_PATTERNS = (
+    re.compile(r"^DIREXION\b", re.IGNORECASE),
+    re.compile(r"^PROSHARES\b", re.IGNORECASE),
+    re.compile(r"^DEFIANCE\b", re.IGNORECASE),
+    re.compile(r"^INNOVATOR\b", re.IGNORECASE),
+    re.compile(r"^ROUNDHILL\b", re.IGNORECASE),
+    re.compile(r"^TRADR\b", re.IGNORECASE),
+    re.compile(r"^GRANITESHARES\b", re.IGNORECASE),
+    re.compile(r"^AMPLIFY\b", re.IGNORECASE),
+    re.compile(r"^KODEX\b", re.IGNORECASE),
+    re.compile(r"^CORGI\b", re.IGNORECASE),
+    re.compile(r"^TUTTLE\b", re.IGNORECASE),
+    re.compile(r"^VOLATILITY\s+SHARES\b", re.IGNORECASE),
+    re.compile(r"^GLOBAL\s+X\b", re.IGNORECASE),
+    re.compile(r"^FIRST\s+TRUST\b", re.IGNORECASE),
+    re.compile(r"^THEMES\b", re.IGNORECASE),
+    re.compile(r"^GSR\b", re.IGNORECASE),
+    re.compile(r"^TIDAL\b", re.IGNORECASE),
+    re.compile(r"^HEDGEYE\b", re.IGNORECASE),
 )
 
 WATERMARK_FILE = PROJECT_ROOT / "data" / ".sync_rex_products_watermark"
@@ -143,7 +170,10 @@ def _fund_name_from_filing(filing, extraction) -> str:
 def _is_rex_name(name: str | None) -> bool:
     if not name:
         return False
-    return any(p.match(name.strip()) for p in REX_NAME_PATTERNS)
+    s = name.strip()
+    if any(p.match(s) for p in COMPETITOR_NAME_PATTERNS):
+        return False
+    return any(p.match(s) for p in REX_NAME_PATTERNS)
 
 
 def _later_form(old: str | None, new: str | None) -> bool:
@@ -360,10 +390,12 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
         fund_name = _fund_name_from_filing(f, ext)
 
         rex_name = _is_rex_name(fund_name) or _is_rex_name(f.registrant)
-        # Per the brief: we accept curated-trust filings + REX-name filings
-        # from non-curated trusts.  Non-curated, non-REX filings are skipped.
-        if not (in_curated_trust or rex_name):
+        # Name-based filter ONLY. Curated-trust is for filing-race monitoring,
+        # NOT for "this is a REX product." Without this check we leaked
+        # Direxion / ProShares / Defiance funds into rex_products.
+        if not rex_name:
             continue
+        _ = in_curated_trust  # retained for future audit/log use
 
         existing = _find_existing(f, fund_name, ext,
                                    by_cik_series, by_cik_name, by_trust_name)
@@ -547,6 +579,22 @@ def _backup_db() -> Path | None:
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
     dst = BACKUPS_DIR / f"etp_tracker_{stamp}_pre_sync_rex_products.db"
     shutil.copy2(DB_PATH, dst)
+    # Rotation: keep the 3 most-recent pre_sync snapshots only. Without this
+    # the fresh-poller (15-min cadence) accumulates 50+ snapshots/day at
+    # 633MB each and fills the VPS disk in 12-18 hours. 3 keepers = ~2GB cap.
+    try:
+        snapshots = sorted(
+            BACKUPS_DIR.glob("etp_tracker_*_pre_sync_rex_products.db"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        for old in snapshots[3:]:
+            try:
+                old.unlink()
+            except OSError:
+                pass
+    except Exception:
+        pass
     return dst
 
 

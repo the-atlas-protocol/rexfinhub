@@ -566,6 +566,15 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
             {% if p.underlier %}
               {% set _ul = p.underlier|replace(' US','')|replace(' Curncy','')|trim %}
               <a href="/operations/pipeline/underlier/{{ _ul }}" class="underlier-chip" data-underlier="{{ _ul }}" onclick="return openUnderlierPanel(event, '{{ _ul }}');" title="View REX vs competitor on {{ _ul }}" style="display:inline-block; font-size:11px; padding:1px 6px; color:#1F3864; background:#1F386410; border:1px solid #1F386433; border-radius:3px; font-family:ui-monospace, SFMono-Regular, monospace; text-decoration:none;">{{ _ul }} &rsaquo;</a>
+              {% set _ul_upper = _ul|upper %}
+              {% set _rd = race_density.get(_ul_upper) %}
+              {% if _rd %}
+                <div class="race-density" style="font-size:10px; color:#64748b; font-family:ui-monospace, SFMono-Regular, monospace; margin-top:2px; letter-spacing:-0.02em;" title="REX products on this underlier vs active competitor ETPs">
+                  <span style="color:#1F3864;">REX {{ _rd.rex_n }}</span>
+                  <span style="color:#94a3b8;"> · </span>
+                  <span style="color:#7c2d12;">Comp {{ _rd.comp_n }}</span>
+                </div>
+              {% endif %}
             {% else %}
               <span style="color:#cbd5e1;">---</span>
             {% endif %}

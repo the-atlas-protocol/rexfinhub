@@ -301,11 +301,54 @@ def underlier_race(
     rex_aum = sum(c["aum"] for c in rex_listed)
     rex_share_pct = (rex_aum / total_aum * 100) if total_aum > 0 else 0.0
 
+    # Audit timeline: last 10 capm_audit_log entries for any REX product on this underlier.
+    audit_timeline: list[dict] = []
+    try:
+        if rex_rows:
+            names = [r.name for r in rex_rows if r.name]
+            if names:
+                ph = ",".join("?" for _ in names)
+                raw = db.execute(
+                    f"""SELECT changed_at, action, field_name, old_value, new_value, row_label, changed_by
+                        FROM capm_audit_log
+                        WHERE row_label IN ({ph})
+                        ORDER BY changed_at DESC LIMIT 10""",
+                    names,
+                ).fetchall() if hasattr(db, "execute") else []
+                # When db is a SQLAlchemy session, raw SQL needs text() wrapping
+                if not raw:
+                    from sqlalchemy import text as _text
+                    raw = db.execute(
+                        _text(
+                            f"SELECT changed_at, action, field_name, old_value, new_value, row_label, changed_by "
+                            f"FROM capm_audit_log "
+                            f"WHERE row_label IN ({ph}) "
+                            f"ORDER BY changed_at DESC LIMIT 10"
+                        ),
+                        names,
+                    ).fetchall()
+                for r in raw:
+                    audit_timeline.append({
+                        "changed_at": r[0],
+                        "action": r[1],
+                        "field": r[2],
+                        "old": r[3],
+                        "new": r[4],
+                        "label": r[5],
+                        "by": r[6],
+                    })
+    except Exception:
+        audit_timeline = []
+
+    sister_count = len(rex_rows)
+
     ctx = {
         "request": request,
         "underlier": key,
         "underlier_url": key,  # URL token (already normalized)
         "rex_buckets": rex_buckets,
+        "audit_timeline": audit_timeline,
+        "sister_count": sister_count,
         "rex_listed": rex_listed,
         "comp_listed": comp_listed,
         "total_funds": len(comp_rows),

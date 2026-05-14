@@ -692,45 +692,25 @@ def upload_db_to_render():
     gz_path = str(render_db) + ".upload.gz"
 
     try:
-        print("  Preparing lean Render upload...", end=" ", flush=True)
-        # WAL checkpoint first — the watcher daemons write continuously,
-        # so .db-wal typically holds the most recent minutes of inserts.
-        # Without TRUNCATE, shutil.copy2 grabs a stale main-file snapshot
-        # and Render ends up missing all recently-added trusts/filings.
+        print("  Preparing Render upload...", end=" ", flush=True)
+        # 2026-05-14: Switched from (wal_checkpoint + shutil.copy2 + DROP TABLE
+        # + VACUUM) to SQLite's atomic .backup() API. The old path failed
+        # intermittently with "database disk image is malformed" because
+        # shutil.copy2 captured torn reads while the fresh-poller and
+        # bloomberg watcher held concurrent write locks. The DROP TABLE step
+        # was a no-op anyway (those tables live in the separate
+        # 13f_holdings.db). VACUUM only saved ~3% on size. .backup() is
+        # SQLite's documented online-backup API and handles all locking and
+        # consistency under concurrent writes.
         src = sqlite3.connect(str(db_path), isolation_level=None)
+        dst = sqlite3.connect(str(render_db), isolation_level=None)
         try:
-            src.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            src.backup(dst)
         finally:
+            dst.close()
             src.close()
-        shutil.copy2(db_path, render_db)
-        conn = sqlite3.connect(str(render_db), isolation_level=None)
-        # MINIMAL drop list — only tables the live webapp NEVER queries.
-        # Anything that any /webapp route touches stays. We keep the full row
-        # history (no more 90-day filings trim, no more 12-month time-series
-        # trim) so fund detail pages, filing explorer, and historical charts
-        # all populate correctly on Render.
-        #
-        # Verified safe to drop:
-        #   - analysis_results: empty, Claude analysis output (not yet wired in)
-        #   - pipeline_runs:    local SEC pipeline run tracking, only queried locally
-        #   - screener_uploads: local upload audit log
-        # Note: holdings/institutions/cusip_mappings live in the SEPARATE
-        # data/13f_holdings.db file, not in etp_tracker.db. The DROP IF EXISTS
-        # statements below are no-ops here but kept defensively.
-        drop_tables = [
-            "holdings", "institutions", "cusip_mappings",  # 13F (separate DB, no-op here)
-            "analysis_results",   # empty, not wired in yet
-            "pipeline_runs",      # local SEC pipeline tracking
-            "screener_uploads",   # local upload audit log
-        ]
-        for table in drop_tables:
-            conn.execute(f"DROP TABLE IF EXISTS [{table}]")
-        # NO row trimming. Either the table is dropped entirely or it's kept
-        # in full. Half-trimmed tables created the "missing data on Render" bugs.
-        conn.execute("VACUUM")
-        conn.close()
         raw_mb = render_db.stat().st_size / 1e6
-        print(f"{raw_mb:.0f} MB (was {db_path.stat().st_size / 1e6:.0f} MB)")
+        print(f"{raw_mb:.0f} MB")
 
         print("  Compressing...", end=" ", flush=True)
         with open(render_db, "rb") as f_in:
