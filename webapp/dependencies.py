@@ -3,7 +3,7 @@ FastAPI dependencies for the ETP Filing Tracker.
 """
 from __future__ import annotations
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from webapp.auth import is_auth_configured
@@ -43,6 +43,28 @@ def require_auth(request: Request):
     if user is None:
         return RedirectResponse("/auth/login", status_code=302)
     return user
+
+
+def is_admin(request: Request) -> bool:
+    """Return True if the current session is admin-authenticated."""
+    return request.session.get("is_admin", False)
+
+
+def require_admin(request: Request):
+    """Router-level dependency: redirects to the admin login if the
+    current session is not admin-authenticated. Apply via
+    `APIRouter(..., dependencies=[Depends(require_admin)])` to gate every
+    route on that router.
+
+    Raises HTTPException(302) with a Location header — browsers follow it
+    to /admin/. Non-browser callers (curl, fetch) receive a 302 with the
+    redirect target in the Location header and can detect the failure.
+    """
+    if not is_admin(request):
+        raise HTTPException(
+            status_code=302,
+            headers={"Location": "/admin/"},
+        )
 
 
 def freshness_context(request: Request, db=None):

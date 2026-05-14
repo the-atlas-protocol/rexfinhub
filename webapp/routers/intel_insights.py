@@ -29,7 +29,10 @@ from webapp.services.holdings_intel import (
 
 log = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/intel", tags=["intel"])
+router = APIRouter(
+    prefix="/intel",
+    tags=["intel"],
+)
 templates = Jinja2Templates(directory="webapp/templates")
 
 

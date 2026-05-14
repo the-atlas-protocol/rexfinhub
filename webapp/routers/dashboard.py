@@ -223,8 +223,6 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    enable_13f = os.environ.get("ENABLE_13F", "0") == "1"
-
     # Taxonomy summary — per-primary_strategy fund count from mkt_master_data
     taxonomy_summary = []
     try:
@@ -254,7 +252,6 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         "market_date": market_date,
         "filing_date": filing_date,
         "ownership_date": "Q4 2025",
-        "enable_13f": enable_13f,
         "notes_date": notes_date,
         "notes_product_count": notes_product_count,
         "capm_product_count": capm_product_count,
@@ -301,7 +298,7 @@ def api_aum_goal_history(slug: str, db: Session = Depends(get_db)):
 @router.get("/api/v1/home-kpis")
 def api_home_kpis(db: Session = Depends(get_db)):
     """Aggregate KPIs for the home page. Lives here (not holdings.py) so it
-    works on Render even without ENABLE_13F."""
+    works on Render — the holdings DB is now always-on and admin-gated."""
     import logging
     log = logging.getLogger(__name__)
 

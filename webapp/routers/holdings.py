@@ -1112,7 +1112,7 @@ def admin_refresh_holdings(
         return JSONResponse(
             {
                 "error": "13F ingestion cannot run on Render (large SEC downloads). "
-                         "Run scripts/fetch_13f.py locally and upload the resulting "
+                         "Run scripts/run_13f.py locally and upload the resulting "
                          "data/13f_holdings.db via the DB upload endpoint.",
             },
             status_code=503,

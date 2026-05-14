@@ -35,5 +35,3 @@ def _coming_soon(title: str):
 
 router.add_api_route("/filings", _coming_soon("Compare Filings"), methods=["GET"])
 router.add_api_route("/notes", _coming_soon("Compare Notes"), methods=["GET"])
-router.add_api_route("/13f-inst", _coming_soon("Compare 13F Institutions"), methods=["GET"])
-router.add_api_route("/13f-products", _coming_soon("Compare 13F Products"), methods=["GET"])

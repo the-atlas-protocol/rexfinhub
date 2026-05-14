@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-from sqlalchemy import select, func, distinct
+from sqlalchemy import distinct, func, select, text
 
 # ---------------------------------------------------------------------------
 # Project path setup
@@ -37,7 +37,7 @@ from webapp.database import (
     SessionLocal as MainSessionLocal,
     init_holdings_db as init_db,
 )
-from webapp.models import CusipMapping, Holding, Institution, MktMasterData
+from webapp.models import CusipMapping, FundStatus, Holding, Institution, MktMasterData, Trust
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +50,51 @@ SEC_EFTS_URL = (
     "https://efts.sec.gov/LATEST/search-index"
     "?q=%2213F-HR%22&dateRange=custom&startdt={start}&enddt={end}&forms=13F-HR"
 )
+OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
+
+
+def _openfigi_lookup_cusips(tickers: list[str]) -> dict[str, str]:
+    """Batch ticker→CUSIP lookup via OpenFIGI free API.
+
+    Returns dict of ticker → CUSIP for each ticker that resolved. Tickers
+    that don't resolve are silently absent from the result. Used to plug
+    the "stealth REX" gap where a product has filed with SEC but isn't yet
+    in Bloomberg-sourced MktMasterData.
+
+    Rate limits: 25 req/min, 5 instruments per request without an API key;
+    250 req/min, 100 per request with OPENFIGI_API_KEY. We batch to 5 per
+    request by default (no key required).
+    """
+    if not tickers:
+        return {}
+    api_key = os.environ.get("OPENFIGI_API_KEY")
+    batch_size = 100 if api_key else 5
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-OPENFIGI-APIKEY"] = api_key
+
+    result: dict[str, str] = {}
+    for i in range(0, len(tickers), batch_size):
+        chunk = tickers[i : i + batch_size]
+        payload = [{"idType": "TICKER", "idValue": t, "exchCode": "US"} for t in chunk]
+        try:
+            resp = requests.post(OPENFIGI_URL, json=payload, headers=headers, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            log.warning("OpenFIGI batch failed for %d tickers: %s", len(chunk), exc)
+            continue
+        for ticker, entry in zip(chunk, data):
+            matches = (entry or {}).get("data") or []
+            for m in matches:
+                cusip = m.get("cusip")
+                if cusip:
+                    result[ticker] = cusip.strip()
+                    break
+        # Respect 25/min rate limit if no API key
+        if not api_key:
+            time.sleep(2.5)
+    return result
 
 
 def _build_bulk_urls(quarter: str) -> list[str]:
@@ -110,6 +155,179 @@ def _fetch(url: str, user_agent: str, timeout: int = 30) -> requests.Response:
     resp = requests.get(url, headers=headers, timeout=timeout)
     resp.raise_for_status()
     return resp
+
+
+# ---------------------------------------------------------------------------
+# Ingest safeguards + post-ingest finalize
+# ---------------------------------------------------------------------------
+# These three helpers wrap every ingest function so the DB is never left
+# in a broken state:
+#   _backup_holdings_db()    — pre-ingest snapshot to data/backups/
+#   _post_ingest_finalize()  — dedupe + populate metadata + delta-check
+# The May 2026 audit found 14,443 duplicate rows, 100% NULL last_filed,
+# 100% NULL trust_id, and a 45% partial-ingest gap on Q4 2025 — all four
+# are caught (and the first three fixed) here.
+
+def _backup_holdings_db(label: str) -> "Path | None":
+    """Pre-ingest snapshot of data/13f_holdings.db to data/backups/.
+
+    Returns the backup path, or None if the source DB doesn't exist yet.
+    Idempotent — multiple backups in the same run get different timestamps.
+    """
+    import shutil
+
+    src = Path("data/13f_holdings.db")
+    if not src.exists():
+        log.info("No existing holdings DB to back up (first ingest)")
+        return None
+    backups = Path("data/backups")
+    backups.mkdir(parents=True, exist_ok=True)
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    dst = backups / f"13f_holdings_pre_{label}_{ts}.db"
+    shutil.copy2(src, dst)
+    size_mb = dst.stat().st_size // 1_000_000
+    log.info("Backup created: %s (%d MB)", dst, size_mb)
+    return dst
+
+
+def _post_ingest_dedupe(db) -> int:
+    """Delete exact-duplicate Holding rows (keep oldest id per group).
+
+    Group key: institution_id, cusip, report_date, value_usd, shares,
+    share_type. The May 2026 audit found 14,443 such duplicates.
+    """
+    result = db.execute(text("""
+        DELETE FROM holdings
+        WHERE id NOT IN (
+            SELECT MIN(id) FROM holdings
+            GROUP BY institution_id, cusip, report_date,
+                     value_usd, shares, share_type
+        )
+    """))
+    db.commit()
+    removed = result.rowcount or 0
+    if removed:
+        log.warning("Deduped %d exact-duplicate holdings rows", removed)
+    else:
+        log.info("No duplicate holdings found")
+    return removed
+
+
+def _post_ingest_metadata(db) -> dict:
+    """Populate institutions.last_filed and cusip_mappings.trust_id.
+
+    Both columns sat 100% NULL per the May 2026 audit. Done via SQL UPDATE
+    rather than per-row ORM mutation — much faster on 2.5M-row tables.
+    The trust_id join uses the cross-DB ATTACH ('main_site' alias set in
+    webapp/database.py:holdings_engine).
+    """
+    upd_last_filed = db.execute(text("""
+        UPDATE institutions
+        SET last_filed = (
+            SELECT MAX(h.report_date)
+            FROM holdings h
+            WHERE h.institution_id = institutions.id
+        ),
+        updated_at = CURRENT_TIMESTAMP
+        WHERE id IN (SELECT DISTINCT institution_id FROM holdings)
+    """))
+
+    # Match CusipMapping.ticker to FundStatus.ticker via the ATTACHed main DB.
+    # Strip a trailing " US" Bloomberg-style suffix on both sides.
+    upd_trust = db.execute(text("""
+        UPDATE cusip_mappings
+        SET trust_id = (
+            SELECT fs.trust_id
+            FROM main_site.fund_status fs
+            WHERE UPPER(TRIM(REPLACE(fs.ticker, ' US', ''))) =
+                  UPPER(TRIM(REPLACE(cusip_mappings.ticker, ' US', '')))
+              AND fs.trust_id IS NOT NULL
+            LIMIT 1
+        )
+        WHERE cusip_mappings.ticker IS NOT NULL
+          AND cusip_mappings.ticker != ''
+          AND cusip_mappings.trust_id IS NULL
+    """))
+    db.commit()
+    last_filed_count = upd_last_filed.rowcount or 0
+    trust_id_count = upd_trust.rowcount or 0
+    log.info(
+        "Metadata populated: %d institutions got last_filed, %d cusip_mappings got trust_id",
+        last_filed_count, trust_id_count,
+    )
+    return {
+        "institutions_last_filed_set": last_filed_count,
+        "cusip_trust_ids_set": trust_id_count,
+    }
+
+
+def _post_ingest_verify(db) -> dict:
+    """Row-count delta alert + DB integrity check.
+
+    Compares latest quarter row count to the prior quarter. If new < 80%
+    of prior, logs a loud warning (likely partial SEC ZIP — caught Q4 2025
+    issue retroactively in the audit). Runs PRAGMA integrity_check at the
+    end so corruption never goes silent.
+    """
+    quarters = [r[0] for r in db.execute(text(
+        "SELECT DISTINCT report_date FROM holdings ORDER BY report_date DESC LIMIT 2"
+    )).all()]
+
+    result: dict = {"latest_quarter": None, "prior_quarter": None,
+                    "delta_ratio": None, "integrity": "skipped"}
+
+    if quarters:
+        latest = quarters[0]
+        latest_count = db.execute(
+            text("SELECT COUNT(*) FROM holdings WHERE report_date = :d"),
+            {"d": latest},
+        ).scalar() or 0
+        result["latest_quarter"] = str(latest)
+        result["latest_count"] = latest_count
+
+        if len(quarters) >= 2:
+            prior = quarters[1]
+            prior_count = db.execute(
+                text("SELECT COUNT(*) FROM holdings WHERE report_date = :d"),
+                {"d": prior},
+            ).scalar() or 0
+            result["prior_quarter"] = str(prior)
+            result["prior_count"] = prior_count
+            ratio = (latest_count / prior_count) if prior_count else 1.0
+            result["delta_ratio"] = round(ratio, 3)
+            if ratio < 0.80:
+                log.warning(
+                    "DELTA ALERT: latest quarter %s = %d rows vs prior %s = %d rows "
+                    "(%.1f%%). Likely partial SEC ZIP — investigate before deploying.",
+                    latest, latest_count, prior, prior_count, ratio * 100,
+                )
+
+    try:
+        integrity = db.execute(text("PRAGMA integrity_check")).scalar()
+        result["integrity"] = integrity
+        if integrity and integrity != "ok":
+            log.error("DB INTEGRITY CHECK FAILED: %s", integrity)
+    except Exception as exc:
+        log.warning("integrity_check failed: %s", exc)
+
+    return result
+
+
+def _post_ingest_finalize(db, mode: str = "ingest") -> dict:
+    """Run dedupe + metadata + verify as a single post-ingest pass.
+
+    Called at the end of every ingest function so the DB is left in a
+    consistent state. Safe to call repeatedly (all three operations are
+    idempotent).
+    """
+    log.info("---- Post-ingest finalize (%s) ----", mode)
+    summary = {
+        "deduped": _post_ingest_dedupe(db),
+        "metadata": _post_ingest_metadata(db),
+        "verify": _post_ingest_verify(db),
+    }
+    log.info("Post-ingest finalize summary: %s", summary)
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -334,6 +552,57 @@ def seed_cusip_mappings() -> int:
 
         db.commit()
         log.info("Seeded %d CUSIP mappings from mkt_master_data", count)
+
+        # ------------------------------------------------------------------
+        # Stealth-REX gap: REX products filed with SEC but not yet in
+        # MktMasterData (Bloomberg hasn't ingested them). Look up missing
+        # CUSIPs via OpenFIGI and add them so 13F holdings for these
+        # products can be matched on next ingest.
+        # ------------------------------------------------------------------
+        stealth_rows = main_db.execute(
+            select(distinct(FundStatus.ticker), FundStatus.fund_name)
+            .join(Trust, FundStatus.trust_id == Trust.id)
+            .outerjoin(MktMasterData, func.upper(FundStatus.ticker) == func.upper(MktMasterData.ticker))
+            .where(Trust.is_rex.is_(True))
+            .where(FundStatus.ticker.isnot(None))
+            .where(FundStatus.ticker != "")
+            .where(
+                (MktMasterData.cusip.is_(None)) | (MktMasterData.cusip == "")
+            )
+        ).all()
+
+        if stealth_rows:
+            stealth_tickers = [t.strip().upper() for t, _ in stealth_rows if t and t.strip()]
+            stealth_name_map = {t.strip().upper(): name for t, name in stealth_rows if t}
+            log.info(
+                "Stealth-REX gap: %d REX tickers in FundStatus missing from MktMasterData — querying OpenFIGI",
+                len(stealth_tickers),
+            )
+            ticker_to_cusip = _openfigi_lookup_cusips(stealth_tickers)
+            log.info("OpenFIGI resolved %d / %d stealth-REX tickers", len(ticker_to_cusip), len(stealth_tickers))
+
+            stealth_count = 0
+            for ticker, cusip in ticker_to_cusip.items():
+                fund_name = stealth_name_map.get(ticker)
+                existing = db.execute(
+                    select(CusipMapping).where(CusipMapping.cusip == cusip)
+                ).scalar_one_or_none()
+                if existing:
+                    existing.ticker = ticker
+                    existing.fund_name = fund_name
+                    existing.source = "openfigi_stealth_rex"
+                else:
+                    db.add(CusipMapping(
+                        cusip=cusip,
+                        ticker=ticker,
+                        fund_name=fund_name,
+                        source="openfigi_stealth_rex",
+                    ))
+                stealth_count += 1
+            db.commit()
+            log.info("Seeded %d stealth-REX CUSIP mappings via OpenFIGI", stealth_count)
+            count += stealth_count
+
         return count
     finally:
         db.close()
@@ -365,6 +634,9 @@ def ingest_13f_dataset(
         "cusips_matched": 0,
         "errors": [],
     }
+
+    # Pre-ingest snapshot — safe to revert if anything below blows up
+    _backup_holdings_db(f"dataset_{quarter}")
 
     # ------------------------------------------------------------------
     # Step 1: Download ZIP (with cache)
@@ -535,6 +807,9 @@ def ingest_13f_dataset(
             stats["cusips_matched"],
         )
 
+        # Dedupe + metadata + integrity + delta check
+        stats["finalize"] = _post_ingest_finalize(db, mode=f"dataset_{quarter}")
+
     except Exception as exc:
         db.rollback()
         msg = f"Error during ingestion: {exc}"
@@ -598,6 +873,9 @@ def ingest_13f_incremental(
     if not filing_hits:
         log.info("No recent 13F-HR filings found")
         return stats
+
+    # Pre-ingest snapshot
+    _backup_holdings_db("incremental")
 
     db = SessionLocal()
     try:
@@ -686,6 +964,10 @@ def ingest_13f_incremental(
                 msg = f"Error parsing {accession}: {exc}"
                 log.warning(msg)
                 stats["errors"].append(msg)
+
+        # Run finalize inside the try so it gets the same session
+        if stats["filings_parsed"] > 0:
+            stats["finalize"] = _post_ingest_finalize(db, mode="incremental")
 
     finally:
         db.close()
@@ -1051,6 +1333,9 @@ def ingest_13f_local(tsv_dir: str) -> dict:
         len(accession_map), len(cik_info),
     )
 
+    # Pre-ingest snapshot
+    _backup_holdings_db("local")
+
     db = SessionLocal()
     try:
         cik_to_inst_id = _upsert_institutions(db, cik_info, accession_map)
@@ -1129,6 +1414,9 @@ def ingest_13f_local(tsv_dir: str) -> dict:
             stats["cusips_matched"],
             total_rows // 1000,
         )
+
+        # Dedupe + metadata + integrity + delta check
+        stats["finalize"] = _post_ingest_finalize(db, mode="local")
 
     except Exception as exc:
         db.rollback()
