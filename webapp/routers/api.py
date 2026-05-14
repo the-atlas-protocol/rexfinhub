@@ -513,6 +513,100 @@ async def upload_notes_db(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.post("/db/upload-holdings")
+async def upload_holdings_db(
+    request: Request,
+    file: UploadFile = File(...),
+    _: None = Depends(verify_api_key),
+):
+    """Replace the 13F holdings database with an uploaded copy.
+
+    Mirrors the /db/upload and /db/upload-notes pattern. Streams to disk in
+    64KB chunks. Accepts raw or gzipped (.gz) SQLite DB files. Same per-IP
+    rate limit + audit log.
+    """
+    import gzip as _gzip
+    from webapp.database import HOLDINGS_DB_PATH
+
+    route = "/api/v1/db/upload-holdings"
+    ip = _client_ip(request)
+    ua = request.headers.get("user-agent")
+
+    allowed, retry = _check_rate_limit(route, ip)
+    if not allowed:
+        _audit_log(route, "POST", ip, ua, False, 429, None,
+                   f"rate_limited retry_after={retry}s")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded for {route}. Retry in {retry}s.",
+            headers={"Retry-After": str(retry)},
+        )
+
+    holdings_db_path = HOLDINGS_DB_PATH
+    holdings_db_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = str(holdings_db_path) + ".uploading"
+
+    try:
+        is_gzipped = (file.filename or "").endswith(".gz") or file.content_type == "application/gzip"
+        total_in = 0
+        total_out = 0
+
+        if is_gzipped:
+            gz_tmp = tmp_path + ".gz"
+            with open(gz_tmp, "wb") as f:
+                while True:
+                    chunk = await file.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    total_in += len(chunk)
+            try:
+                os.unlink(str(holdings_db_path))
+            except OSError:
+                pass
+            with _gzip.open(gz_tmp, "rb") as gz_in:
+                with open(tmp_path, "wb") as f_out:
+                    while True:
+                        chunk = gz_in.read(65536)
+                        if not chunk:
+                            break
+                        f_out.write(chunk)
+                        total_out += len(chunk)
+            try:
+                os.unlink(gz_tmp)
+            except OSError:
+                pass
+        else:
+            with open(tmp_path, "wb") as f:
+                while True:
+                    chunk = await file.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    total_out += len(chunk)
+            total_in = total_out
+
+        shutil.move(tmp_path, str(holdings_db_path))
+
+        in_mb = total_in / 1_000_000
+        out_mb = total_out / 1_000_000
+        msg = f"13F holdings DB replaced ({out_mb:.1f} MB)"
+        if is_gzipped:
+            msg = f"13F holdings DB replaced ({in_mb:.1f} MB gzipped -> {out_mb:.1f} MB)"
+        _audit_log(route, "POST", ip, ua, True, 200, total_out,
+                   f"in={total_in} out={total_out} gzipped={is_gzipped}")
+        return {"status": "ok", "message": msg}
+    except Exception as e:
+        for p in [tmp_path, tmp_path + ".gz"]:
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+        log.error("Holdings DB upload failed: %s", e, exc_info=True)
+        _audit_log(route, "POST", ip, ua, False, 500, None, f"error: {str(e)[:500]}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 # ---------------------------------------------------------------------------
 # Pre-baked reports — VPS generates HTML, uploads here, admin reads static file
 # ---------------------------------------------------------------------------
