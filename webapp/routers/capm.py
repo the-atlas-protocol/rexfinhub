@@ -276,9 +276,20 @@ def _capm_index_impl(
         unified.append(row)
 
     # ------------------------------------------------------------------
-    # Stats from the FULL unified set BEFORE filtering — KPIs always show
-    # the true totals so the user knows the universe size, not just what
-    # passed the current filter.
+    # LIVE-ONLY default (per Ryu 2026-05-11): /operations/products is the
+    # live REX product registry, not a pipeline view. Filter to Listed
+    # funds only. Pipeline/pre-effective filings live on /operations/pipeline.
+    # ?include_all=1 query param opens the full set for admin review.
+    # ------------------------------------------------------------------
+    include_all = bool(request.query_params.get("include_all"))
+    if not include_all:
+        unified = [u for u in unified if (u.status_display or "").lower() == "listed"]
+
+    # ------------------------------------------------------------------
+    # Stats computed AFTER the live-only filter so KPIs match what the
+    # table shows. With ?include_all=1 they reflect the full unified set.
+    # Stats run BEFORE the suite/q filter so they stay stable while the
+    # user narrows the table.
     # ------------------------------------------------------------------
     total = len(unified)
     suite_counts: dict[str, int] = {}
@@ -297,16 +308,6 @@ def _capm_index_impl(
             except (ValueError, TypeError):
                 pass
         avg_fees[s] = round(sum(nums) / len(nums)) if nums else None
-
-    # ------------------------------------------------------------------
-    # LIVE-ONLY default (per Ryu 2026-05-11): /operations/products is the
-    # live REX product registry, not a pipeline view. Filter to Listed
-    # funds only. Pipeline/pre-effective filings live on /operations/pipeline.
-    # ?include_all=1 query param opens the full set for admin review.
-    # ------------------------------------------------------------------
-    include_all = bool(request.query_params.get("include_all"))
-    if not include_all:
-        unified = [u for u in unified if (u.status_display or "").lower() == "listed"]
 
     # ------------------------------------------------------------------
     # Filter (suite + free-text) AFTER stats so KPIs stay stable and users
