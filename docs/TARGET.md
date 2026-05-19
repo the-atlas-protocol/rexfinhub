@@ -135,8 +135,8 @@ Failures → "X passed / Y failed, here are the Y" in the 08:00 email. Ryu triag
 
 ### phases
 
-Phase 0a — Security hardening (2-3 days). MUST go first.
-Phase 0b — Triage patches for BUG-01 through BUG-05 (2-3 hours).
+Phase 0a — Security hardening (2-3 days). DEFERRED per Ryu 2026-05-19.
+~~Phase 0b — Triage patches for BUG-01 through BUG-04~~ **SHIPPED 2026-05-19** — see `DECISIONS/0002-phase-0b-triage-patches.md`. BUG-01/02/03 mitigated at the scraper layer; BUG-04 surfaces via audit. BUG-05 still open, deferred to Phase 6.
 Phase 1 — Cuts: kill 09:00 sweep, kill weekly trust universe sync, merge 4 Bloomberg-chain post-steps to 1 script, extend D-drive sync (1 week).
 Phase 2 — Admin pages: `/admin/cboe-cookie`, inline `target_inception_date` editor on `/operations/pipeline` (1 week).
 Phase 3 — Merge `capm_products` into `rex_products`. Drop `capm_products` (1 week).

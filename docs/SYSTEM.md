@@ -124,11 +124,11 @@ Secret values never appear in this doc — only locations + rotation status. See
 
 ### known-bugs
 
-- BUG-01: `/operations/pipeline` shows 0 competitors for Bitcoin underlier. Cause: string-based underlier comparison — REX uses "XBTUSD", competitors use "Bitcoin"/"BTC". Same problem affects index-type underliers (e.g. BMAXATCL Index). Workaround: none. Fix: Phase 4 — polymorphic [[underlier-master]] table.
-- BUG-02: `REX TSM Growth & Income ETF` (TSII) shows status `Listed` despite never trading. Cause: Phase 3 of `sync_rex_products_from_filings.py` matches on ticker only; SEC recycled TSII from TSM Growth & Income (filed, never effective) to TSLA Growth & Income (effective + trading), and the wrong row was promoted. Fix: fund-name cross-validation + nightly duplicate-ticker audit.
-- BUG-03: 13+ T-REX 2X products (WLTU, SOUU, SPOU, FMCU, SRFU, STSU, UIU, BREU, DEFU, HIVU, HOLU, HSDU, NAKU, NXTU) show status `Listed` with placeholder inception dates. Cause: Phase 3 accepts any parseable inception_date including bulk-seeded values. Fix: require inception_date > filing_date AND within last 60 days; structural fix in Phase 5.
-- BUG-04: BMAX US (a fund, now fully delisted) still shows `Listed` in `rex_products` despite Bloomberg having removed the ticker entirely. Cause: no Phase 4 demotion logic — sync only promotes. Fix: add Phase 4 audit that flags Listed rex_products whose ticker is absent from `mkt_master_data`.
-- BUG-05: Flow report's REX 1W flow KPI ($10.8M) does not match the issuer-table REX row ($16.4M). Cause: KPI uses `is_rex=1` filter (82 funds); issuer table groups by `issuer_display="REX"` which includes 1 fund with `is_rex=0` but `issuer_display="REX"` (AXTU). Fix: Phase 6 — survivorship rules.
+- BUG-01: ~~Bitcoin shows 0 competitors~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — canonicalization script normalizes crypto underliers to XBTUSD/XETUSD nightly. Index-type underliers (BMAXATCL Index) still affected; structural fix in Phase 4.
+- BUG-02: ~~TSII recycled-ticker false promotion~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — Phase 3 of sync_rex_products_from_filings.py now requires fund-name overlap before promotion. Nightly duplicate-ticker audit (`scripts/audit_duplicate_tickers.py`) surfaces any new cases in the morning email.
+- BUG-03: ~~13+ T-REX 2X products Listed with placeholder inception~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — Phase 3 now rejects inception dates before the filing date OR older than 60 days. Existing bad rows still need a one-time manual correction; new cases blocked.
+- BUG-04: ~~BMAX US Listed despite Bloomberg vanish~~ **DETECTED 2026-05-19 (Phase 0b, ADR 0002)** — new Phase 4 audit in sync_rex_products_from_filings.py flags vanished-from-Bloomberg tickers. Auto-demote opt-in via `data/.auto_demote_vanished` flag (off by default to avoid false positives from transient drop-outs).
+- BUG-05: Flow report's REX 1W flow KPI ($10.8M) does not match the issuer-table REX row ($16.4M). Cause: KPI uses `is_rex=1` filter (82 funds); issuer table groups by `issuer_display="REX"` which includes 1 fund with `is_rex=0` but `issuer_display="REX"` (AXTU). Fix: Phase 6 — survivorship rules. Still open.
 
 ### known-gaps
 
