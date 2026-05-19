@@ -12,6 +12,11 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Phase 4 Stages 1+2 shipped early** — pure additive schema work executed ahead of the ≥ 2026-05-26 ADR-stated start date because Stages 1-2 are non-disruptive (new tables + UUID column with no reads touching them yet).
+  - **Stage 1** (`scripts/migrate_canonical_id_schema.py`) — created 4 new tables (`product_master`, `identifier_xref`, `underlier_master`, `fund_underlier`) + added `rex_products.canonical_id TEXT` column. Idempotent.
+  - **Stage 2** (`scripts/backfill_product_master.py`) — generated UUIDs for all 541 rex_products rows; inserted 541 `product_master` rows; populated `rex_products.canonical_id` for every row. Validation: 0 NULL canonical_ids, counts match.
+  - Both local and VPS DB migrated cleanly.
+  - Stages 3-5 (identifier_xref backfill, underlier_master classification via OpenFIGI, fund_underlier population) remain on schedule for ≥ 2026-05-26 since they involve interpretive work that benefits from unhurried review.
 - **ADRs 0008 + 0009 + 0010 written + BUG-07 fixed** — closes the rebuild roadmap design phase.
   - **ADR 0008 (Phase 5, proposed)** — `DECISIONS/0008-status-history-bitemporal.md`. Designs bi-temporal `status_history` table + 3-source rule for Listed promotion. Structural fix for BMAX-class (BUG-04) ghost-Listed bug. Implementation ≥ 2026-06-10.
   - **ADR 0009 (Phase 6, proposed)** — `DECISIONS/0009-classification-override-and-assertions.md`. Single `classification_override` table replaces 6 rule CSVs; ~25 ops-as-assertions surface failures in the 08:00 ET triage email. Eliminates the largest of Ryu's three daily touchpoints. Implementation ≥ 2026-06-25.
