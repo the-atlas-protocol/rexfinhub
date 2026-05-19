@@ -2221,7 +2221,6 @@ def _render_recs_table(cards: list[dict], mode: str, empty_msg: str) -> str:
             ("Comp Filings", "center", "75px"),
             ("Earliest",     "center", "85px"),
         ])
-    base_cols.append(("REX Suggested", "left", "130px"))
 
     th_html = "".join(
         f'<th style="padding:7px 6px;text-align:{align};color:white;'
@@ -2289,7 +2288,11 @@ def _render_foreign_table() -> str:
         df = pd.read_parquet(path)
         if df.empty:
             return ""
-        if "composite_score" in df.columns:
+        # Sort by global market cap (USD) desc — biggest underliers first.
+        # Fallback to composite_score if market_cap_usd is missing.
+        if "market_cap_usd" in df.columns:
+            df = df.sort_values("market_cap_usd", ascending=False, na_position="last")
+        elif "composite_score" in df.columns:
             df = df.sort_values("composite_score", ascending=False)
         df = df.head(25)
     except Exception:
@@ -2358,7 +2361,7 @@ def _render_foreign_table() -> str:
     Foreign Launch Candidates
   </div>
   <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;font-style:italic;">
-    International tickers ranked by composite score. Comp Filings = total competitor L&amp;I filings; 2x Active = a competitor already has a live 2x product on this name.
+    Foreign underliers (Korea, Japan, Taiwan, HK, Europe, etc.) — ranked by underlier's global market cap (USD). Comp Filings = competitor <strong>US-listed L&amp;I</strong> filings tracking this foreign underlier; 2x Live = a competitor already has a live 2x <strong>US-listed</strong> ETP targeting this name.
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr style="background:#1a1a2e;">
@@ -2367,7 +2370,7 @@ def _render_foreign_table() -> str:
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Company</th>
       <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">Market</th>
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Sector</th>
-      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">Mkt Cap</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">Global Mkt Cap (USD)</th>
       <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">Comp Filings</th>
       <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">Issuers</th>
       <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">2x Live</th>
@@ -2392,8 +2395,10 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     week_window = f"{filings_summary.get('week_start', '')} → {filings_summary.get('week_end', '')}"
 
     # Bucket cards
-    defensive_cards = [c for c in cards if c["orientation"] == "DEFENSIVE"
-                       and c["tier"] in ("HIGH", "MEDIUM")]
+    # Defensive intentionally NOT tier-filtered: if a competitor filed against
+    # an underlier REX hasn't covered, surface it even if the signal-score
+    # only reached WATCH tier — the filing race itself is the decision driver.
+    defensive_cards = [c for c in cards if c["orientation"] == "DEFENSIVE"]
     offensive_cards = [c for c in cards if c["orientation"] == "OFFENSIVE"
                        and c["tier"] in ("HIGH", "MEDIUM")]
     watch_cards = [c for c in cards if c["tier"] == "WATCH"]
