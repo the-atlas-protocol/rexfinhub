@@ -1,0 +1,10 @@
+[Unit]
+Description=REX FinHub Morning Triage Timer (08:00 ET weekdays)
+# Phase 6 Stage 6 (ADR 0009): replaces the 20:15 ET pipeline_summary timer.
+
+[Timer]
+OnCalendar=Mon..Fri 08:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
