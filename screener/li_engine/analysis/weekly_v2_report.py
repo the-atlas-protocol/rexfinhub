@@ -1251,7 +1251,16 @@ def _load_prior_week_recs() -> set[str]:
             try:
                 raw = json.loads(prior.read_text(encoding="utf-8"))
                 if isinstance(raw, dict):
-                    return set(k.upper() for k in raw.keys())
+                    # Newer schema nests tickers under "theses"; fall back to
+                    # top-level keys for legacy files where tickers ARE the keys.
+                    theses = raw.get("theses")
+                    if isinstance(theses, dict) and theses:
+                        return set(k.upper() for k in theses.keys())
+                    # Legacy: filter out known metadata keys before returning
+                    META_KEYS = {"generated_at", "model", "theses",
+                                 "week_of", "created_at", "version"}
+                    return set(k.upper() for k in raw.keys()
+                               if k.lower() not in META_KEYS)
             except Exception:
                 pass
     return set()
@@ -2299,7 +2308,7 @@ def _render_foreign_table() -> str:
         sort_col = "composite_score" if "composite_score" in df.columns else None
         if sort_col:
             df = df.sort_values(sort_col, ascending=False)
-        df = df.head(15)
+        df = df.head(25)
     except Exception:
         return ""
 
@@ -2511,7 +2520,7 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     Stock Recommendations of the Week | {today_str}</div>
   <div style="color:#9bb1cc;font-size:11px;font-weight:500;letter-spacing:1px;
               text-transform:uppercase;margin-top:6px;">
-    Layout v4 · Tables · Defensive / Offensive / Watch / Foreign / IPO
+    Layout v4 · Tables · Defensive / Offensive / Foreign / IPO
   </div>
 </td></tr>
 
@@ -2587,13 +2596,6 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     "#27ae60",
 )}
 {offensive_html}
-
-{_render_section_header(
-    "Watch — Early Signals",
-    f"Names above the WATCH threshold (P{TIER_WATCH_PCT}) but not yet HIGH/MEDIUM, OR new entrants since last week. Re-check next cycle.",
-    "#0984e3",
-)}
-{watch_html}
 
 {foreign_html}
 
