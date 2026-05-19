@@ -12,6 +12,8 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Phase 3 Stages 1+2 shipped** — see `DECISIONS/0007-merge-capm-and-rex-products.md`. ADR written, schema migrated (rex_products grew from 30 to 46 columns), data backfilled (74/74 CapM rows merged with proper survivorship — Rex's NULL `direction` filled from CapM for 17 rows; manually_edited_fields unioned for 17 rows; 100% ticker overlap with no orphans). Both local and VPS DB migrated cleanly. `capm_products` and `capm_audit_log` retained for revert. Stage 3 (route refactor in `webapp/routers/capm.py`) deferred to next session — it's a 200-line surgical refactor of the 3-way merge logic that needs unhurried review.
+- **BUG-08 found + fixed on VPS** — `apply_issuer_brands.py` (an ExecStartPost step in the bloomberg-chain) was crashing on the cp1252 byte 0x97 in `config/rules/issuer_brand_overrides.csv`. Same root cause as the CSV encoding fix in PR #22, but VPS hadn't pulled the fix yet (VPS is still on `ee14f84` since the PR merge). SCP'd the corrected CSV to VPS directly. Next 21:00 ET bloomberg run should succeed.
 - **ADR 0005 written + implemented** — Cut 3 (scraper merge) analysis closed without retiring any of the three pathways. The three pathways (atom-watcher / fresh-poller / sec-scrape) serve distinct roles: discovery / 15-min enrichment / 4-hour artifact refresh.
   - New `scripts/intraday_refresh.py` wrapper — checks fresh-poller log mtime; if recent (<30 min) calls `run_daily.py --skip-sec`, else falls back to full `run_daily.py`.
   - New `deploy/systemd/rexfinhub-intraday-refresh.{service,timer}` — same 4×/day rhythm as the old sec-scrape units.

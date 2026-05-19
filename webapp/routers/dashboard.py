@@ -215,11 +215,15 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    # Capital Markets product count
+    # Capital Markets product count. Phase 3 (ADR 0007): reads rex_products
+    # since capm_products was merged into rex_products on 2026-05-19. Counts
+    # only rows that carry CapM-operational data (non-NULL inception_date is
+    # the indicator since every formerly-CapM row got inception_date populated
+    # in the Stage 2 backfill).
     capm_product_count = 0
     try:
-        from webapp.models import CapMProduct
-        capm_product_count = db.query(CapMProduct).count()
+        from webapp.models import RexProduct
+        capm_product_count = db.query(RexProduct).filter(RexProduct.inception_date.isnot(None)).count()
     except Exception:
         pass
 
