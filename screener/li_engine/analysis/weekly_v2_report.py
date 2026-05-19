@@ -2129,6 +2129,230 @@ def _render_section_header(title: str, subtitle: str, accent: str) -> str:
     '''
 
 
+# ---- v4 table-first renderer -----------------------------------------------
+# Replaces the card layout with dense tables for scannability. One row per
+# ticker. Defensive table shows competitor-filing columns; Offensive/Watch
+# drop those columns. Foreign launch candidates get their own table below.
+
+def _fmt_mcap_short(v) -> str:
+    """Format market cap as $X.XB / $XXXM for table cells."""
+    try:
+        if v is None or pd.isna(v) or float(v) <= 0:
+            return "—"
+        v = float(v)
+        if v >= 1e3:
+            return f"${v/1e3:.1f}B"
+        if v >= 1:
+            return f"${v:,.0f}M"
+        return f"${v*1000:.0f}K"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _fmt_vol_pct(v) -> str:
+    """Format realized vol as XX% (input is decimal e.g. 0.78 → 78%)."""
+    try:
+        if v is None or pd.isna(v):
+            return "—"
+        v = float(v)
+        # Heuristic: values < 5 are decimals (0.78), values ≥ 5 are percent points (78)
+        if v < 5:
+            v *= 100
+        return f"{v:.0f}%"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _fmt_ret(v) -> str:
+    """Format a return as +X% / -X% with color hint baked into caller."""
+    try:
+        if v is None or pd.isna(v):
+            return "—"
+        v = float(v) * (100 if abs(float(v)) < 5 else 1)
+        sign = "+" if v > 0 else ""
+        return f"{sign}{v:.0f}%"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _ret_color(v) -> str:
+    try:
+        if v is None or pd.isna(v) or float(v) == 0:
+            return "#7f8c8d"
+        return "#27ae60" if float(v) > 0 else "#e74c3c"
+    except (TypeError, ValueError):
+        return "#7f8c8d"
+
+
+def _render_recs_table(cards: list[dict], mode: str, empty_msg: str) -> str:
+    """Render a section's cards as one dense table.
+
+    mode: 'defensive' adds competitor-filing columns; 'offensive'/'watch' skip.
+    """
+    if not cards:
+        return (f'<tr><td style="padding:14px 30px;color:#7f8c8d;'
+                f'font-style:italic;">{empty_msg}</td></tr>')
+
+    show_comp = (mode == "defensive")
+
+    # Header row
+    base_cols = [
+        ("#",        "left",   "30px"),
+        ("Ticker",   "left",   "65px"),
+        ("Company",  "left",   None),
+        ("Sector",   "left",   "120px"),
+        ("Mkt Cap",  "right",  "65px"),
+        ("90d Vol",  "right",  "55px"),
+        ("1m",       "right",  "50px"),
+        ("1y",       "right",  "55px"),
+        ("Buzz",     "right",  "45px"),
+    ]
+    if show_comp:
+        base_cols.extend([
+            ("Comp Filings", "center", "75px"),
+            ("Earliest",     "center", "85px"),
+        ])
+    base_cols.append(("REX Suggested", "left", "130px"))
+
+    th_html = "".join(
+        f'<th style="padding:7px 6px;text-align:{align};color:white;'
+        f'font-size:10px;text-transform:uppercase;letter-spacing:0.4px;'
+        f'{f"width:{width};" if width else ""}">{label}</th>'
+        for label, align, width in base_cols
+    )
+
+    # Body rows
+    body_rows = []
+    for i, c in enumerate(cards, 1):
+        ticker = c.get("ticker", "")
+        company = (c.get("company_name", "") or "")[:38]
+        sector = (c.get("sector", "—") or "—")[:18]
+        mcap = _fmt_mcap_short(c.get("market_cap"))
+        vol = _fmt_vol_pct(c.get("rvol_90d"))
+        ret_1m_raw = c.get("ret_1m")
+        ret_1y_raw = c.get("ret_1y")
+        ret_1m = _fmt_ret(ret_1m_raw)
+        ret_1y = _fmt_ret(ret_1y_raw)
+        mentions = c.get("mentions_24h", 0) or 0
+
+        earliest = c.get("earliest_competitor", {}) or {}
+        comp_filings = earliest.get("n_filings", 0) or 0
+        earliest_date = _safe_str(earliest.get("earliest_filing_date"))[:10] or "—"
+
+        suggested = c.get("suggested_ticker", "")
+        filing_status = c.get("filing_status", "NONE")
+        if filing_status and filing_status != "NONE":
+            status_chip = (
+                f'<span style="background:#27ae60;color:white;padding:1px 5px;'
+                f'border-radius:6px;font-size:8px;font-weight:700;'
+                f'margin-left:4px;">{escape(filing_status)}</span>'
+            )
+        else:
+            status_chip = ""
+        suggested_html = (
+            f'<span style="font-family:\'Courier New\',monospace;font-weight:700;'
+            f'color:#0984e3;">{escape(suggested[:14])}</span>{status_chip}'
+        ) if suggested else "—"
+
+        cells = [
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#7f8c8d;text-align:left;">{i}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11.5px;font-weight:700;font-family:\'Courier New\',monospace;color:#0984e3;text-align:left;">{escape(ticker)}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#1a1a2e;text-align:left;">{escape(company)}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;text-align:left;">{escape(sector)}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;">{mcap}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;color:#566573;">{vol}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;color:{_ret_color(ret_1m_raw)};font-weight:600;">{ret_1m}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;color:{_ret_color(ret_1y_raw)};font-weight:600;">{ret_1y}</td>',
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;color:#566573;">{int(mentions)}</td>',
+        ]
+        if show_comp:
+            cells.extend([
+                f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;color:#e74c3c;font-weight:700;">{int(comp_filings) if comp_filings else "—"}</td>',
+                f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;text-align:center;color:#566573;font-variant-numeric:tabular-nums;">{earliest_date}</td>',
+            ])
+        cells.append(
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:left;">{suggested_html}</td>'
+        )
+        body_rows.append(f'<tr>{"".join(cells)}</tr>')
+
+    return f'''<tr><td style="padding:6px 30px 12px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr style="background:#1a1a2e;">{th_html}</tr>
+    {"".join(body_rows)}
+  </table>
+</td></tr>'''
+
+
+def _render_foreign_table() -> str:
+    """Load and render the foreign launch candidates table.
+
+    Sources data/analysis/foreign_launch_candidates.parquet — produced by
+    screener.li_engine.analysis.foreign_filings. Renders top 15 by composite.
+    """
+    try:
+        path = _ROOT / "data" / "analysis" / "foreign_launch_candidates.parquet"
+        if not path.exists():
+            return ""
+        df = pd.read_parquet(path)
+        if df.empty:
+            return ""
+        sort_col = "composite_score" if "composite_score" in df.columns else None
+        if sort_col:
+            df = df.sort_values(sort_col, ascending=False)
+        df = df.head(15)
+    except Exception:
+        return ""
+
+    rows = []
+    for i, (_, r) in enumerate(df.iterrows(), 1):
+        ticker = _safe_str(r.get("ticker") or r.get("symbol") or "")
+        company = (_safe_str(r.get("name") or r.get("company")) or "")[:36]
+        exchange = (_safe_str(r.get("exchange") or r.get("market")) or "")[:14]
+        sector = (_safe_str(r.get("sector")) or "—")[:16]
+        mcap = _fmt_mcap_short(r.get("market_cap"))
+        vol = _fmt_vol_pct(r.get("rvol_90d") or r.get("vol_90d"))
+        r1m_raw = r.get("ret_1m")
+        r1y_raw = r.get("ret_1y")
+        r1m = _fmt_ret(r1m_raw)
+        r1y = _fmt_ret(r1y_raw)
+        rows.append(f'''<tr>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#7f8c8d;">{i}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11.5px;font-weight:700;font-family:'Courier New',monospace;color:#0984e3;">{escape(ticker)}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;">{escape(company)}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;">{escape(exchange)}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;">{escape(sector)}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;">{mcap}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:#566573;">{vol}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:{_ret_color(r1m_raw)};font-weight:600;">{r1m}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:{_ret_color(r1y_raw)};font-weight:600;">{r1y}</td>
+</tr>''')
+
+    return f'''<!-- FOREIGN LAUNCH CANDIDATES -->
+<tr><td style="padding:18px 30px 5px;">
+  <div style="font-size:16px;font-weight:700;color:#1a1a2e;margin:0 0 4px 0;
+              padding-bottom:6px;border-bottom:2px solid #8e44ad;">
+    Foreign Launch Candidates
+  </div>
+  <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;font-style:italic;">
+    International tickers (KOSPI / TSE / TSEC / HKEX / XETRA / LSE) ranked by composite score.
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr style="background:#1a1a2e;">
+      <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">#</th>
+      <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Ticker</th>
+      <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Company</th>
+      <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Exchange</th>
+      <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Sector</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">Mkt Cap</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">90d Vol</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">1m</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">1y</th>
+    </tr>
+    {"".join(rows)}
+  </table>
+</td></tr>'''
+
+
 def render_v3(cards: list[dict], money_flow: pd.DataFrame,
               filings_summary: dict, top_mentions: tuple[str, int],
               hot_take: str, killed: list[tuple[str, str]],
@@ -2171,18 +2395,22 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
             for c in cards_list
         )
 
-    defensive_html = _render_card_block(
+    defensive_html = _render_recs_table(
         defensive_cards,
-        "No defensive plays this week — REX is not behind on any recent competitor filings.",
+        mode="defensive",
+        empty_msg="No defensive plays this week — REX is not behind on any recent competitor filings.",
     )
-    offensive_html = _render_card_block(
+    offensive_html = _render_recs_table(
         offensive_cards,
-        "No high-conviction whitespace shots this week.",
+        mode="offensive",
+        empty_msg="No high-conviction whitespace shots this week.",
     )
-    watch_html = _render_card_block(
-        watch_cards[:8],  # cap watch list
-        "No early-signal names worth watching.",
+    watch_html = _render_recs_table(
+        watch_cards[:15],  # widened cap; table is denser than cards
+        mode="watch",
+        empty_msg="No early-signal names worth watching.",
     )
+    foreign_html = _render_foreign_table()
 
     # Killed — section is only emitted when there are entries to show.
     if killed:
@@ -2283,7 +2511,7 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     Stock Recommendations of the Week | {today_str}</div>
   <div style="color:#9bb1cc;font-size:11px;font-weight:500;letter-spacing:1px;
               text-transform:uppercase;margin-top:6px;">
-    Layout v3 · Decision Cards · Defensive / Offensive / Watch / Killed
+    Layout v4 · Tables · Defensive / Offensive / Watch / Foreign / IPO
   </div>
 </td></tr>
 
@@ -2332,16 +2560,17 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
   </table>
 </td></tr>
 
-<!-- RISK FLAG LEGEND -->
+<!-- Column legend (v4 tables) -->
 <tr><td style="padding:8px 30px 0;">
   <div style="font-size:11px;color:#7f8c8d;font-style:italic;line-height:1.55;
               border-top:1px dashed #d4d8dd;padding-top:8px;">
-    <strong style="color:#566573;font-style:normal;">Risk flag legend —</strong>
-    <strong>Capacity:</strong> mkt cap &lt; $1B ·
-    <strong>Liquidity:</strong> 30d ADV &lt; $5M ·
-    <strong>Single-Name:</strong> concentrated underlier (not diversified) ·
-    <strong>Regulatory:</strong> cannabis / gambling / crypto-mining exposure ·
-    <strong>Momentum-Fade:</strong> composite score down &gt; 30% wk/wk
+    <strong style="color:#566573;font-style:normal;">Columns —</strong>
+    <strong>Mkt Cap</strong> in USD ·
+    <strong>90d Vol</strong> realized volatility (annualized %) ·
+    <strong>1m / 1y</strong> price return ·
+    <strong>Buzz</strong> 24h retail mention count ·
+    <strong>Comp Filings</strong> competitor 485APOS within 60 days ·
+    <strong>Earliest</strong> earliest competitor filing date.
   </div>
 </td></tr>
 
@@ -2365,6 +2594,8 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     "#0984e3",
 )}
 {watch_html}
+
+{foreign_html}
 
 {killed_section_html}
 
