@@ -1734,15 +1734,12 @@ def _render_signals_panel(card: dict) -> str:
     pre_decay = card.get("composite_score_pre_decay")
     strength = _safe_str(card.get("signal_strength")) or "WEAK"
 
-    # ---- Fallback: no signal_records → render legacy bar layout + note ----
+    # ---- Fallback: no signal_records → render legacy bar layout silently --
+    # (The A3 tiered-signals column is upstream-optional; the legacy z-score
+    # bars are still informative on their own. No cosmetic note needed.)
     if not records:
         legacy = card.get("signals") or []
-        legacy_html = _render_signals_panel_legacy(legacy)
-        note = (
-            '<div style="color:#7f8c8d;font-size:10px;font-style:italic;'
-            'margin-top:6px;">Tiered signals not available in this build</div>'
-        )
-        return legacy_html + note
+        return _render_signals_panel_legacy(legacy)
 
     parts: list[str] = []
 
