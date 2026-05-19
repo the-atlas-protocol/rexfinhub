@@ -2429,9 +2429,6 @@ def _build_defensive_from_recent_filings(cards: list[dict],
             if t:
                 rex_tickers.add(t.upper())
 
-    # Index existing cards (from whitespace_v4) for metric lookup
-    cards_by_ticker = {c.get("ticker", "").upper(): c for c in cards}
-
     by_ticker: dict[str, dict] = {}
     for _, row in comp_df.iterrows():
         ticker = (extract_underlier(row.get("series_name"))
@@ -2451,57 +2448,84 @@ def _build_defensive_from_recent_filings(cards: list[dict],
         rec["issuers"].add(_safe_str(row.get("registrant")))
         rec["fund_names"].add(_safe_str(row.get("series_name")))
 
-    # Fetch market metrics from mkt_master_data for any ticker not already in
-    # the whitespace_v4 cards. Most defensive tickers (CBRS, KIOXIA, etc.) live
-    # outside the candidate universe but Bloomberg still has them.
-    mkt_lookup: dict[str, dict] = {}
-    needed = [t for t in by_ticker if t not in cards_by_ticker]
-    if needed:
-        try:
-            conn = sqlite3.connect(str(DB))
-            placeholders = ",".join("?" for _ in needed)
-            mkt_df = pd.read_sql_query(
-                f"""
-                SELECT ticker_clean AS ticker, fund_name, sector,
-                       market_cap, rvol_90d, ret_1m, ret_1y, mentions_24h
-                FROM mkt_master_data
-                WHERE UPPER(ticker_clean) IN ({placeholders})
-                """,
-                conn, params=needed,
-            )
-            conn.close()
-            for _, mr in mkt_df.iterrows():
-                t = _safe_str(mr.get("ticker")).upper()
-                if t:
-                    mkt_lookup[t] = mr.to_dict()
-        except Exception as e:
-            log.info("mkt_master_data enrichment skipped: %s", e)
-
-    # Build synthetic Defensive cards
-    synthetic: list[dict] = []
+    # Pack the filing-race intel directly — these tickers are mostly private,
+    # newly IPO'd, or foreign, so REX's Bloomberg universe doesn't have them.
+    # We show the data we DO have: competitor fund name, # filings, issuers,
+    # earliest date.
+    out: list[dict] = []
     for ticker, rec in by_ticker.items():
-        src = cards_by_ticker.get(ticker) or mkt_lookup.get(ticker) or {}
-        # Field name compat: whitespace cards use 'company_name', mkt uses 'fund_name'
-        company = (src.get("company_name") or src.get("fund_name")
-                   or sorted(rec["fund_names"])[0] if rec["fund_names"] else ticker)
-        synthetic.append({
+        sample_fund = sorted(rec["fund_names"])[0] if rec["fund_names"] else ""
+        out.append({
             "ticker": ticker,
-            "company_name": company,
-            "sector": src.get("sector") or "—",
-            "tier": src.get("tier") or "WATCH",
-            "orientation": "DEFENSIVE",
-            "score": src.get("score", 0),
-            "market_cap": src.get("market_cap"),
-            "rvol_90d": src.get("rvol_90d"),
-            "ret_1m": src.get("ret_1m"),
-            "ret_1y": src.get("ret_1y"),
-            "mentions_24h": src.get("mentions_24h", 0),
-            "earliest_competitor": {
-                "n_filings": len(rec["filings"]),
-                "earliest_filing_date": min(rec["filings"]) if rec["filings"] else "",
-            },
+            "competitor_fund": sample_fund,
+            "issuers": sorted(i for i in rec["issuers"] if i),
+            "n_filings": len(rec["filings"]),
+            "earliest_filing_date": min(rec["filings"]) if rec["filings"] else "",
+            "latest_filing_date": max(rec["filings"]) if rec["filings"] else "",
         })
-    return synthetic
+    return out
+
+
+def _render_defensive_table(items: list[dict], empty_msg: str) -> str:
+    """Dedicated Defensive renderer — different schema than offensive cards.
+
+    Columns: # | Ticker | Competitor Fund (truncated) | Issuers | # Filings
+    (7d) | Earliest | Latest.
+    """
+    if not items:
+        return (f'<tr><td style="padding:14px 30px;color:#7f8c8d;'
+                f'font-style:italic;">{empty_msg}</td></tr>')
+
+    th = lambda label, align="left", width=None: (
+        f'<th style="padding:7px 6px;text-align:{align};color:white;'
+        f'font-size:10px;text-transform:uppercase;letter-spacing:0.4px;'
+        f'{f"width:{width};" if width else ""}">{label}</th>'
+    )
+    head = (
+        th("#", "left", "30px")
+        + th("Ticker", "left", "75px")
+        + th("Competitor Fund", "left", None)
+        + th("Issuers", "left", "180px")
+        + th("Filings (7d)", "center", "75px")
+        + th("Earliest", "center", "85px")
+        + th("Latest", "center", "85px")
+    )
+
+    body = []
+    for i, it in enumerate(items, 1):
+        ticker = it.get("ticker", "")
+        fund = (it.get("competitor_fund") or "")[:64]
+        issuers_list = it.get("issuers") or []
+        # Compress issuer names — show first 2, "+N more" tail
+        if len(issuers_list) > 2:
+            issuers_html = (
+                escape(issuers_list[0][:24]) + ", " +
+                escape(issuers_list[1][:24]) +
+                f' <span style="color:#7f8c8d;">+{len(issuers_list)-2}</span>'
+            )
+        else:
+            issuers_html = ", ".join(escape(s[:30]) for s in issuers_list) or "—"
+        n_filings = it.get("n_filings", 0)
+        earliest = it.get("earliest_filing_date") or "—"
+        latest = it.get("latest_filing_date") or "—"
+
+        body.append(
+            f'<tr>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#7f8c8d;">{i}</td>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11.5px;font-weight:700;font-family:\'Courier New\',monospace;color:#0984e3;">{escape(ticker)}</td>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#1a1a2e;">{escape(fund)}</td>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;">{issuers_html}</td>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;color:#e74c3c;font-weight:700;">{n_filings}</td>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;text-align:center;color:#566573;font-variant-numeric:tabular-nums;">{earliest}</td>'
+            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;text-align:center;color:#566573;font-variant-numeric:tabular-nums;">{latest}</td>'
+            f'</tr>'
+        )
+    return f'''<tr><td style="padding:6px 30px 12px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    <tr style="background:#1a1a2e;">{head}</tr>
+    {"".join(body)}
+  </table>
+</td></tr>'''
 
 
 def render_v3(cards: list[dict], money_flow: pd.DataFrame,
@@ -2525,12 +2549,10 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
                        and c["tier"] in ("HIGH", "MEDIUM")]
     watch_cards = [c for c in cards if c["tier"] == "WATCH"]
 
-    # Sort Defensive by competitor filing count desc, then earliest date asc
+    # Sort Defensive by filings count desc, then earliest date asc
     defensive_cards.sort(
-        key=lambda c: (
-            -(c.get("earliest_competitor", {}) or {}).get("n_filings", 0),
-            (c.get("earliest_competitor", {}) or {}).get("earliest_filing_date", "9999"),
-        )
+        key=lambda c: (-(c.get("n_filings", 0)),
+                       c.get("earliest_filing_date", "9999"))
     )
     offensive_cards.sort(key=lambda c: c["score"], reverse=True)
     watch_cards.sort(key=lambda c: c["score"], reverse=True)
@@ -2553,10 +2575,9 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
             for c in cards_list
         )
 
-    defensive_html = _render_recs_table(
+    defensive_html = _render_defensive_table(
         defensive_cards,
-        mode="defensive",
-        empty_msg="No defensive plays this week — REX is not behind on any recent competitor filings.",
+        empty_msg="No competitor 485APOS/485BPOS/N-1A filings in the last 7 days on names REX hasn't already filed.",
     )
     offensive_html = _render_recs_table(
         offensive_cards,
