@@ -144,7 +144,7 @@ Phase 2 — Admin pages: `/admin/cboe-cookie`, inline `target_inception_date` ed
 ~~Phase 3 — Merge `capm_products` into `rex_products`~~ **STAGES 1-3 SHIPPED 2026-05-19** (PR #24, ADR 0007). Schema migrated; 74/74 CapM rows backfilled into `rex_products`; `/operations/products` route refactored to 2-way merge. Stages 4-5 (grace period + drop table) deferred to ≥2026-05-26.
 Phase 3 — Merge `capm_products` into `rex_products`. Drop `capm_products` (1 week).
 Phase 4 — Build `product_master.canonical_id` + polymorphic `underlier_master` (2-3 weeks).
-Phase 5 — Build `status_history` bi-temporal table; 3-source rule for `Listed` promotion; auto-detect Bloomberg-vanished funds (2 weeks).
+Phase 5 — Build `status_history` bi-temporal table; 3-source rule for `Listed` promotion; auto-detect Bloomberg-vanished funds (2 weeks). **DESIGNED** in `DECISIONS/0008-status-history-bitemporal.md` (proposed); implementation starts after Phase 4 completes (~2026-06-10).
 Phase 6 — Replace 6 CSVs with `classification_override` table; ship ~25 data-quality assertions; move pipeline summary to 08:00 ET (1-2 weeks).
 Phase 7 — Migrate to `edgartools`; decommission `manually_edited_fields` JSON; consolidate state files (1 week).
 

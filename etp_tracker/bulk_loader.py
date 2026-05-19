@@ -61,13 +61,27 @@ def download_submissions_zip(
     dest_path: str | Path,
     user_agent: str = USER_AGENT_DEFAULT,
 ) -> Path:
-    """Download submissions.zip with progress. Returns path to downloaded file."""
+    """Download submissions.zip with progress. Returns path to downloaded file.
+
+    Atomic-write semantics (BUG-07 fix, 2026-05-19):
+      - Writes to ``<dest>.partial`` while streaming.
+      - Verifies content-length match (when SEC reports one).
+      - Verifies the zip parses (zipfile.ZipFile()).
+      - On success, atomic ``os.replace()`` to the final path.
+      - On any failure, leaves ``.partial`` in place + raises — the caller
+        sees a clean error instead of a corrupt file at the final path.
+
+    Before this fix, an interrupted download produced a partial file at the
+    final path that subsequent runs picked up as "fresh enough" and crashed
+    on ``BadZipFile``. See SYSTEM.md BUG-07.
+    """
     dest_path = Path(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
+    partial_path = dest_path.with_suffix(dest_path.suffix + ".partial")
 
     session = _build_session(user_agent)
     print(f"Downloading {SUBMISSIONS_ZIP_URL}")
-    print(f"  -> {dest_path}")
+    print(f"  -> {dest_path} (via {partial_path.name})")
 
     resp = session.get(SUBMISSIONS_ZIP_URL, stream=True, timeout=60)
     resp.raise_for_status()
@@ -76,7 +90,7 @@ def download_submissions_zip(
     downloaded = 0
     last_print = 0
 
-    with open(dest_path, "wb") as f:
+    with open(partial_path, "wb") as f:
         for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
             if chunk:
                 f.write(chunk)
@@ -93,10 +107,28 @@ def download_submissions_zip(
                         print(f"  {downloaded:,} bytes", flush=True)
                     last_print = downloaded
 
+    if total and downloaded != total:
+        raise IOError(
+            f"submissions.zip truncated: got {downloaded:,} of {total:,} bytes "
+            f"({downloaded/total*100:.1f}%). Partial saved at {partial_path}."
+        )
+
+    # Sanity-check the zip parses before the atomic swap.
+    try:
+        with zipfile.ZipFile(str(partial_path)) as zf:
+            entry_count = len(zf.namelist())
+    except zipfile.BadZipFile as e:
+        raise IOError(
+            f"submissions.zip downloaded but not a valid zip: {e}. "
+            f"Partial saved at {partial_path}."
+        ) from e
+
+    os.replace(str(partial_path), str(dest_path))
+
     if total:
-        print(f"  Download complete: {downloaded:,} / {total:,} bytes")
+        print(f"  Download complete: {downloaded:,} / {total:,} bytes, {entry_count:,} entries")
     else:
-        print(f"  Download complete: {downloaded:,} bytes")
+        print(f"  Download complete: {downloaded:,} bytes, {entry_count:,} entries")
 
     return dest_path
 
