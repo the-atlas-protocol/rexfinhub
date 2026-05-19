@@ -744,6 +744,79 @@ def main():
     write_result_json(audits, token)
     print(f"Structured result written: {RESULT_FILE}")
 
+    # --- AUTO-GO (zero-touch) -------------------------------------------
+    # When preflight returns clean PASS, auto-write the decision file so
+    # send_all.py --use-decision can fire without a human dashboard click.
+    # Override: touch data/.send_paused to disable auto-GO (manual mode).
+    overall = "pass"
+    if any(a["status"] == "fail" for a in audits):
+        overall = "fail"
+    elif any(a["status"] in ("warn", "error") for a in audits):
+        overall = "warn"
+
+    paused_flag = DATA_DIR / ".send_paused"
+    decision_file = DATA_DIR / ".preflight_decision.json"
+
+    auto_go_action = None
+    auto_go_reason = None
+    if paused_flag.exists():
+        auto_go_reason = f".send_paused flag present at {paused_flag}"
+    elif overall == "pass":
+        auto_go_action = "GO"
+        auto_go_reason = f"auto-GO: preflight overall_status=pass at {_now_et()}"
+    elif overall == "warn":
+        # WARN auto-GO is configurable; default OFF until explicit opt-in
+        warn_autogo_flag = DATA_DIR / ".autogo_on_warn"
+        if warn_autogo_flag.exists():
+            auto_go_action = "GO"
+            auto_go_reason = (f"auto-GO: preflight overall_status=warn with "
+                              f".autogo_on_warn opt-in flag at {_now_et()}")
+        else:
+            auto_go_reason = (f"no auto-GO: overall=warn; touch "
+                              f"data/.autogo_on_warn to enable WARN auto-GO")
+    else:
+        auto_go_reason = f"no auto-GO: overall_status={overall}"
+
+    if auto_go_action:
+        decision_payload = {
+            "token": token,
+            "action": auto_go_action,
+            "reason": auto_go_reason,
+            "decided_at": _now_et(),
+            "decided_by": "preflight_auto",
+        }
+        decision_file.write_text(json.dumps(decision_payload, indent=2),
+                                 encoding="utf-8")
+        print(f"AUTO-GO: decision written ({decision_file}) — {auto_go_reason}")
+    else:
+        # Remove stale decision file from prior auto-GO so we don't
+        # accidentally fire on yesterday's token.
+        if decision_file.exists():
+            try:
+                decision_file.unlink()
+                print(f"AUTO-GO skipped — removed stale decision file ({auto_go_reason})")
+            except OSError:
+                pass
+        else:
+            print(f"AUTO-GO skipped — {auto_go_reason}")
+
+    # --- Stage tracker --------------------------------------------------
+    # Append-only JSONL recording every pipeline stage outcome. Read by
+    # the end-of-day summary email so each stage's status is verifiable.
+    stage_log = DATA_DIR / ".pipeline_stages.jsonl"
+    try:
+        with stage_log.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "stage": "preflight",
+                "timestamp": _now_et(),
+                "overall_status": overall,
+                "auto_go_action": auto_go_action,
+                "auto_go_reason": auto_go_reason,
+                "token": token[:8],
+            }) + "\n")
+    except OSError as e:
+        print(f"WARN: stage log append failed: {e}")
+
     summary_html = build_summary_html(audits, token)
     out_html = PROJECT_ROOT / "outputs" / "preflight_summary.html"
     out_html.parent.mkdir(parents=True, exist_ok=True)
