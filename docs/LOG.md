@@ -12,6 +12,7 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **ADR 0005 written** — Cut 3 (scraper merge) analysis closed without retiring any of the three pathways. The three pathways (atom-watcher / fresh-poller / sec-scrape) serve distinct roles: discovery / 15-min enrichment / 4-hour artifact refresh. Decision: rename `rexfinhub-sec-scrape` → `rexfinhub-intraday-refresh` and skip the duplicate SEC scrape step in the wrapper. Implementation deferred to a follow-up commit. See `DECISIONS/0005-scraper-merge-analysis.md`.
 - **Phase 2 shipped** — self-service admin pages. See `DECISIONS/0004-phase-2-admin-pages.md`.
   - New `/admin/cboe-cookie` (paste-and-submit, 15-sec rotation) replaces the SSH-based `/cboe-cookie` skill as the primary path. SSH skill retained as fallback. Page shows cookie age, last sweep state, accepts bare token / `sessionid=…` / full `Cookie:` header (regex extracts the 32-char run). Backed by new `POST /pipeline/cboe-rotate` + `GET /pipeline/cboe-status` on the VPS pipeline API.
   - Inline target-inception editor on `/operations/pipeline`: column renamed "Inception/Target" → "Target Inception"; empty cells now show `＋ set` affordance when admin + non-Listed; JS POST endpoint switched from `/admin/products/update/{id}` to `/admin/rex-products/update/{id}` so edits actually register as manual overrides (was being silently clobbered by the daily Bloomberg-chain sweep before this fix).
