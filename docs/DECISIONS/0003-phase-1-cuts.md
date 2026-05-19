@@ -20,7 +20,7 @@ deciders: Ryu El-Asmar
 
 Items 1, 2, 4, 5 are mechanical — defensible without further investigation. Item 3 requires understanding the subtly different roles of `atom_watcher.py` (in-process every 60s for ALL filings), `poll_fresh_filings.py` (systemd every 15 min, curated CIKs only), and the 4×/day full-pipeline scrape (slow batch fallback). Premature merging risks missing filings.
 
-This ADR documents items 1, 2, 4, 5. Item 3 deferred to ADR 0004 after a code-level analysis.
+This ADR documents items 1, 2, 4, 5. Item 3 deferred to ADR 0005 after a code-level analysis (re-numbered from 0004 once 0004 was taken by Phase 2 admin pages).
 
 ## Decision
 
@@ -44,7 +44,7 @@ The `etp_tracker/atom_watcher.py` already auto-creates Trust rows for previously
 
 If we ever want quarterly metadata backfill, the unit files remain in place — re-enable selectively when needed.
 
-### Cut 3 (DEFERRED to ADR 0004)
+### Cut 3 (DEFERRED to ADR 0005)
 
 Investigate role overlap between atom_watcher / fresh-poller / 4×/day scrape before merging. None disabled in this ADR.
 
@@ -115,4 +115,4 @@ Manual user action (one-time):
 ## References
 
 - `docs/SYSTEM.md#workflows` (timer states updated)
-- `docs/TARGET.md#phases` (Phase 1 marked partially shipped; Cut 3 deferred to ADR 0004)
+- `docs/TARGET.md#phases` (Phase 1 marked partially shipped; Cut 3 deferred to ADR 0005)

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -396,6 +397,120 @@ def prepare_daily(_: None = Depends(verify_key)):
         return " | ".join(logs)
 
     return _run_in_background("prepare-daily", _do)
+
+
+# ---------------------------------------------------------------------------
+# CBOE cookie rotation — Phase 2 (ADR 0004)
+#
+# Replaces the cboe-cookie SSH skill flow. The Render admin page POSTs a
+# 32-char token to /admin/cboe-cookie, which forwards here. We:
+#   1. validate the token (32 lowercase-alphanumeric)
+#   2. write CBOE_SESSION_COOKIE=sessionid=<token> to config/.env
+#   3. probe live_check("AAPL") — fast feedback whether the cookie auth'd
+#   4. dispatch the recovery sweep in the background (~45 min)
+#   5. stamp data/.cboe_rotated_at so the admin page can show cookie age
+#
+# Probe + write are synchronous so the admin response carries the verdict.
+# Sweep is fire-and-forget — page polls /admin/cboe-cookie for status.
+# ---------------------------------------------------------------------------
+
+_CBOE_TOKEN_RE = re.compile(r"^[a-z0-9]{32}$")
+_CBOE_ROTATED_STAMP = PROJECT_ROOT / "data" / ".cboe_rotated_at"
+
+
+@app.post("/pipeline/cboe-rotate")
+def cboe_rotate(token: str, _: None = Depends(verify_key)):
+    """Rotate the CBOE_SESSION_COOKIE and kick off the recovery sweep.
+
+    Steps run inline so the caller receives the verdict:
+      - validate token shape
+      - rewrite config/.env in place (preserves other vars)
+      - probe live_check('AAPL') to confirm auth
+      - background-dispatch refresh_cboe_known_active + run_cboe_scan + upload
+
+    Returns: {ok, probe, sweep_state, rotated_at}. ``probe`` is the dict
+    returned by live_check; on auth failure the sweep is NOT dispatched.
+    """
+    token = (token or "").strip()
+    if not _CBOE_TOKEN_RE.fullmatch(token):
+        raise HTTPException(400, "token must be 32 lowercase alphanumeric chars")
+
+    env_file = PROJECT_ROOT / "config" / ".env"
+    if not env_file.exists():
+        raise HTTPException(500, f"missing {env_file}")
+
+    # Rewrite the CBOE_SESSION_COOKIE line; preserve everything else.
+    lines = env_file.read_text(encoding="utf-8").splitlines()
+    new_line = f"CBOE_SESSION_COOKIE=sessionid={token}"
+    found = False
+    for i, line in enumerate(lines):
+        if line.startswith("CBOE_SESSION_COOKIE="):
+            lines[i] = new_line
+            found = True
+            break
+    if not found:
+        lines.append(new_line)
+    env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    os.environ["CBOE_SESSION_COOKIE"] = f"sessionid={token}"
+
+    # Probe live_check — confirms the cookie actually authenticates.
+    from webapp.services.cboe.live import live_check
+    probe = live_check("AAPL")
+    probe_ok = bool(probe.get("ok"))
+
+    rotated_at = datetime.now().isoformat()
+    _CBOE_ROTATED_STAMP.parent.mkdir(parents=True, exist_ok=True)
+    _CBOE_ROTATED_STAMP.write_text(rotated_at, encoding="utf-8")
+
+    sweep_state = "skipped (probe failed)"
+    if probe_ok:
+        def _sweep():
+            cmds = [
+                [sys.executable, str(PROJECT_ROOT / "scripts" / "refresh_cboe_known_active.py")],
+                [sys.executable, str(PROJECT_ROOT / "scripts" / "run_cboe_scan.py"), "--tier", "full"],
+                [sys.executable, str(PROJECT_ROOT / "scripts" / "run_daily.py"), "--upload"],
+            ]
+            outputs: list[str] = []
+            for cmd in cmds:
+                try:
+                    proc = subprocess.run(cmd, cwd=str(PROJECT_ROOT),
+                                          capture_output=True, text=True, timeout=3600)
+                    outputs.append(f"{Path(cmd[1]).stem} rc={proc.returncode}")
+                except Exception as e:
+                    outputs.append(f"{Path(cmd[1]).stem} ERROR: {e}")
+                    break
+            return " | ".join(outputs)
+        # _run_in_background returns {"status":"started"} or {"status":"busy"}.
+        bg = _run_in_background("cboe-sweep", _sweep)
+        sweep_state = bg.get("status", "unknown")
+
+    return {
+        "ok": True,
+        "probe": {k: (v.isoformat() if hasattr(v, "isoformat") else v)
+                  for k, v in probe.items()},
+        "sweep_state": sweep_state,
+        "rotated_at": rotated_at,
+    }
+
+
+@app.get("/pipeline/cboe-status")
+def cboe_status(_: None = Depends(verify_key)):
+    """Cookie freshness — drives the admin page's status panel."""
+    rotated_at = None
+    age_hours = None
+    if _CBOE_ROTATED_STAMP.exists():
+        try:
+            rotated_at = _CBOE_ROTATED_STAMP.read_text(encoding="utf-8").strip()
+            dt = datetime.fromisoformat(rotated_at)
+            age_hours = round((datetime.now() - dt).total_seconds() / 3600, 1)
+        except Exception:
+            pass
+    return {
+        "rotated_at": rotated_at,
+        "age_hours": age_hours,
+        "running": _state["running"],
+        "last_result": _state["last_result"],
+    }
 
 
 @app.post("/pipeline/recipients/add")

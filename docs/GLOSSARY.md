@@ -97,8 +97,16 @@ updated: 2026-05-19
 **Definition**: First trading day of a fund (when the first NAV strikes and first trade prints). Distinct from [[effective-date]] (which is regulatory) and from filing date. Authoritative source: Bloomberg's `inception_date` field once `market_status=ACTV`, validated by observation of first trade.
 **Where it lives**: `mkt_master_data.inception_date`, `rex_products.official_listed_date` (sometimes).
 **Synonyms**: launch date, first-trade date.
-**Not to be confused with**: [[effective-date]] (SEC), target_inception_date (planned launch, set by Ryu on `/operations/pipeline`).
+**Not to be confused with**: [[effective-date]] (SEC), [[target-inception-date]] (planned launch, set by Ryu on `/operations/pipeline`).
 **Status**: canonical.
+
+### target-inception-date
+
+**Definition**: Ryu's planned/expected launch date for a REX product, entered manually on `/operations/pipeline` when the product is in `Under Consideration` / `Target List` / `Filed` / `Effective` status. The data column is `rex_products.target_listing_date` — the schema and user vocabulary diverge here for historical reasons; ADR 0004 canonized that "target inception date" (user) = `target_listing_date` (column).
+**Where it lives**: `rex_products.target_listing_date`. Edited via the **Target Inception** column on `/operations/pipeline` (yellow cells for non-Listed rows; click to edit when admin). Saves go through `POST /admin/rex-products/update/{id}`, which writes the value AND appends `target_listing_date` to `manually_edited_fields` so the daily Bloomberg-chain sweep skips this column on this row.
+**Synonyms**: target inception, planned launch date, expected inception.
+**Not to be confused with**: [[inception-date]] (actual first trading day, set after the fact), [[effective-date]] (SEC regulatory), `initial_filing_date` (when the 485APOS landed).
+**Status**: canonical (label); the schema column will fold into the future `status_history` bi-temporal table at Phase 5.
 
 ### is-rex-flag
 

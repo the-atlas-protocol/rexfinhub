@@ -15,7 +15,7 @@ updated: 2026-05-19
 
 The design invariants we won't compromise on:
 
-1. **One canonical product identifier**. A synthetic UUID per fund/filing. Tickers, CUSIPs, ISINs, FIGIs, CIKs, SEC series IDs all map to it via a side table with `valid_from`/`valid_to`. Tickers being recycled by SEC during pre-launch never re-points an existing product. (See `DECISIONS/0004-canonical-product-id.md` — proposed.)
+1. **One canonical product identifier**. A synthetic UUID per fund/filing. Tickers, CUSIPs, ISINs, FIGIs, CIKs, SEC series IDs all map to it via a side table with `valid_from`/`valid_to`. Tickers being recycled by SEC during pre-launch never re-points an existing product. (See `DECISIONS/0006-canonical-product-id.md` — proposed.)
 2. **Polymorphic underlier reference**. Underliers are typed (equity / etp / index / crypto_pair / basket / commodity / fx / rate), not string tickers. Resolution via [OpenFIGI](https://www.openfigi.com/) where applicable.
 3. **Bi-temporal lifecycle**. Every status change appends a row to `status_history`; nothing updates in place. `valid_from`/`valid_to` (reality time) + `tx_from`/`tx_to` (knowledge time) per SCD-2 / SQL:2011 patterns.
 4. **Deterministic survivorship**. When sources disagree, a declared per-field source priority resolves the conflict. No ad-hoc winner-picking.
@@ -137,8 +137,9 @@ Failures → "X passed / Y failed, here are the Y" in the 08:00 email. Ryu triag
 
 Phase 0a — Security hardening (2-3 days). DEFERRED per Ryu 2026-05-19.
 ~~Phase 0b — Triage patches for BUG-01 through BUG-04~~ **SHIPPED 2026-05-19** — see `DECISIONS/0002-phase-0b-triage-patches.md`. BUG-01/02/03 mitigated at the scraper layer; BUG-04 surfaces via audit. BUG-05 still open, deferred to Phase 6.
-~~Phase 1 — Cuts (round 1)~~ **PARTIALLY SHIPPED 2026-05-19** — see `DECISIONS/0003-phase-1-cuts.md`. Cuts 1/2/4/5 done. Cut 3 (scraper merge) deferred to ADR 0004 — needs role-overlap analysis between `atom_watcher.py`, `poll_fresh_filings.py`, and the 4×/day SEC scrape before any can be safely retired.
+~~Phase 1 — Cuts (round 1)~~ **PARTIALLY SHIPPED 2026-05-19** — see `DECISIONS/0003-phase-1-cuts.md`. Cuts 1/2/4/5 done. Cut 3 (scraper merge) still deferred — needs role-overlap analysis between `atom_watcher.py`, `poll_fresh_filings.py`, and the 4×/day SEC scrape before any can be safely retired (re-numbered to ADR 0005 since ADR 0004 took the Phase 2 slot).
 Phase 1 — Cuts: kill 09:00 sweep, kill weekly trust universe sync, merge 4 Bloomberg-chain post-steps to 1 script, extend D-drive sync (1 week).
+~~Phase 2 — Admin pages~~ **SHIPPED 2026-05-19** — see `DECISIONS/0004-phase-2-admin-pages.md`. `/admin/cboe-cookie` replaces the SSH skill (paste-and-submit, 15 sec). Inline target-inception editor on `/operations/pipeline`: column renamed to "Target Inception", `＋ set` affordance on empty cells, JS endpoint switched to `/admin/rex-products/update/{id}` so edits register as manual overrides in `manually_edited_fields` (was silently clobbered by the daily Bloomberg-chain sweep before this fix).
 Phase 2 — Admin pages: `/admin/cboe-cookie`, inline `target_inception_date` editor on `/operations/pipeline` (1 week).
 Phase 3 — Merge `capm_products` into `rex_products`. Drop `capm_products` (1 week).
 Phase 4 — Build `product_master.canonical_id` + polymorphic `underlier_master` (2-3 weeks).
@@ -168,7 +169,7 @@ What gets removed:
 ### known-gaps
 
 - GAP-01: ADR for the `capm_products` merge not yet written. Will land as `DECISIONS/0002-merge-capm-and-rex-products.md` before Phase 3.
-- GAP-02: ADR for canonical-product-id not yet written. Will land as `DECISIONS/0004-canonical-product-id.md` before Phase 4.
+- GAP-02: ADR for canonical-product-id not yet written. Will land as `DECISIONS/0006-canonical-product-id.md` before Phase 4 (re-numbered from 0004 — 0004 is Phase 2 admin pages; 0005 is the Cut 3 scraper merge analysis).
 - GAP-03: ADR for survivorship rule table not yet written. Will land before Phase 5.
 - GAP-04: Open question — keep `mkt_report_cache` pre-bake or compute on demand? Re-evaluate after Phase 4 ships and Render perf can be measured.
 - GAP-05: Open question — keep weekly trust universe sync as quarterly metadata backfill OR delete entirely? Ryu prefers delete; needs one more verification that atom watcher truly catches every new ETP issuer's first 485APOS within 1-3 min.

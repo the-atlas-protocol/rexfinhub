@@ -16,7 +16,7 @@ Three touchpoints. Everything else fires automatically.
 | Time (ET) | Touchpoint | What it takes |
 |---|---|---|
 | 08:00 | Read morning `[PIPELINE]` summary email | ~2 min — scan, triage any red items by asking Claude to investigate |
-| 09:00-17:30 | Paste CBOE cookie when banner shows stale (ONLY when stale, not daily) | 30 sec — see `### touchpoint-cboe-cookie` |
+| 09:00-17:30 | Paste CBOE cookie at `/admin/cboe-cookie` when banner shows stale (ONLY when stale, not daily) | 15 sec — see `### touchpoint-cboe-cookie` |
 | (4:30-5:30 PM no longer applies) | Bloomberg file pulls itself via Graph API from SharePoint at 17:15 ET. No action. | 0 — see `### touchpoint-bloomberg-pull` (this is the change from the old workflow) |
 | Anytime | When a new REX filing appears in `Under Consideration`/`Target List`, enter target inception date on `/operations/pipeline` | 30 sec — see `### touchpoint-pipeline-inception-date` |
 
@@ -26,17 +26,15 @@ If you find yourself doing anything else (editing a CSV, clicking sync, force-op
 
 When `[[cboe-cookie]]` expires (~every 30-60 days), the public page `/filings/symbols` shows a red banner.
 
-**Today's flow** (interim, until Phase 2):
-1. Open Chrome devtools on the CBOE issuer portal
-2. Copy the `sessionid` cookie value (32-char lowercase alphanumeric)
-3. Paste in chat to Claude — the `/cboe-cookie` skill auto-rotates VPS `.env`, verifies with a live probe, kicks off the ~45-min recovery sweep, and pushes an in-progress DB to Render so the banner flips from red to blue within seconds
-
-**Future flow** (Phase 2):
+**Primary flow** (Phase 2 — ADR 0004, shipped 2026-05-19):
 1. Navigate to `https://rexfinhub.com/admin/cboe-cookie`
-2. Page shows current cookie age + last scan time
-3. Paste 32-char token in textarea
-4. Click "Update + Rescan"
-5. Page returns success and the scan runs in background
+2. Page shows current cookie age (green <24h / amber <48h / red ≥48h) + last sweep state
+3. Open Chrome devtools on the CBOE issuer portal → Application → Cookies → copy the `sessionid` value
+4. Paste in the form. Submit. The page auto-extracts the 32-char token from whatever you pasted (bare value, `sessionid=<…>`, or full `Cookie:` header).
+5. Server writes the VPS `.env`, runs a `live_check("AAPL")` probe inline (verdict shown on next page render), and dispatches the ~45-min recovery sweep in the background. The Render DB upload happens at the end of the sweep so the public banner flips green within ~10 sec of probe success.
+
+**Fallback flow** (when the webapp itself is unreachable):
+- The `/cboe-cookie` SSH skill remains operational. Paste a 32-char token in chat to Claude and the skill rotates via SSH instead of via the webapp. Same end result; preserved as a backup path.
 
 ### touchpoint-bloomberg-pull
 
@@ -51,14 +49,14 @@ When `[[cboe-cookie]]` expires (~every 30-60 days), the public page `/filings/sy
 
 When a new REX product is filed and appears on `/operations/pipeline`:
 
-**Today**:
+**Flow** (Phase 2 — ADR 0004, shipped 2026-05-19):
 - Filing automatically creates a `rex_products` row with status set per filing form
-- No inline-edit UI yet for target_inception_date
+- The **Target Inception** column (yellow cells for any non-Listed row) is click-to-edit when you're logged in as admin
+- Empty cells show `＋ set` as the affordance; click it, a date picker appears, pick a date, hit Enter — auto-saves
+- The save (a) updates `rex_products.target_listing_date`, (b) appends to `capm_audit_log` with old/new value, and (c) flags the field in `manually_edited_fields` so the next Bloomberg-chain sweep does NOT clobber your input. This is what makes it a real manual override rather than a transient input.
+- On the actual inception (Phase 5+), the 3-source rule promotes status to `Listed`, `official_listed_date` is set, and your prior input becomes the planned-vs-actual lead-time baseline
 
-**Future** (Phase 2):
-- `/operations/pipeline` shows an editable `target_inception_date` cell for any `Under Consideration` / `Target List` row
-- You input the expected launch date; it auto-saves
-- On the actual inception, the 3-source rule promotes status to `Listed` and your input becomes the audit baseline (planned-vs-actual lead time)
+**Data-layer note**: the runbook calls this `target_inception_date` (user vocabulary). The schema column is `rex_products.target_listing_date`. ADR 0004 canonizes that these are the same field — no separate column. The glossary entry `target-inception-date` resolves to `target_listing_date`.
 
 ### touchpoint-morning-triage
 

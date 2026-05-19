@@ -12,12 +12,16 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Phase 2 shipped** — self-service admin pages. See `DECISIONS/0004-phase-2-admin-pages.md`.
+  - New `/admin/cboe-cookie` (paste-and-submit, 15-sec rotation) replaces the SSH-based `/cboe-cookie` skill as the primary path. SSH skill retained as fallback. Page shows cookie age, last sweep state, accepts bare token / `sessionid=…` / full `Cookie:` header (regex extracts the 32-char run). Backed by new `POST /pipeline/cboe-rotate` + `GET /pipeline/cboe-status` on the VPS pipeline API.
+  - Inline target-inception editor on `/operations/pipeline`: column renamed "Inception/Target" → "Target Inception"; empty cells now show `＋ set` affordance when admin + non-Listed; JS POST endpoint switched from `/admin/products/update/{id}` to `/admin/rex-products/update/{id}` so edits actually register as manual overrides (was being silently clobbered by the daily Bloomberg-chain sweep before this fix).
+  - Docs reconciliation: runbook's `target_inception_date` (user vocabulary) is canonized as `rex_products.target_listing_date` (schema). No new column added.
 - **Phase 1 partially shipped** — cuts round 1. See `DECISIONS/0003-phase-1-cuts.md`.
   - `rexfinhub-classification-sweep.timer` → DISABLED on VPS (was 09:00 weekdays)
   - `rexfinhub-bulk-sync.timer` → DISABLED on VPS (was Sun 07:00)
   - 4 ExecStartPost lines in `rexfinhub-bloomberg-chain.service` → 1 line calling new `scripts/apply_bloomberg_post_steps.py`
   - `scripts/sync_vps_to_d_drive.sh` extended to pull every nightly backup (was: only latest); header notes Task Scheduler schedule at 23:30 ET
-  - Cut 3 (scraper merge) deferred to ADR 0004 pending code-overlap analysis
+  - Cut 3 (scraper merge) deferred to ADR 0005 pending code-overlap analysis (re-numbered from 0004 once 0004 took the Phase 2 slot)
 - **Phase 0b shipped** — triage patches for BUG-01 through BUG-04. See `DECISIONS/0002-phase-0b-triage-patches.md`.
   - BUG-01 Bitcoin underlier mismatch → new `scripts/canonicalize_crypto_underliers.py` (nightly cron at 02:30 ET)
   - BUG-02 TSII recycled-ticker false promotion → `_names_overlap()` cross-check in Phase 3 + new `scripts/audit_duplicate_tickers.py` (nightly cron at 02:35 ET) + new row in 20:15 pipeline summary email

@@ -1763,6 +1763,127 @@ def ticker_qc(request: Request, db: Session = Depends(get_db)):
     })
 
 
+# ---------------------------------------------------------------------------
+# CBOE cookie rotation — Phase 2 (ADR 0004)
+#
+# Self-service rotation page that replaces the cboe-cookie SSH skill. Ryu
+# pastes the 32-char sessionid into a form, the server:
+#   - validates the token shape (32 lowercase alphanumeric)
+#   - forwards to VPS /pipeline/cboe-rotate (writes .env + probes + dispatches
+#     the recovery sweep)
+#   - shows the verdict on the next page render
+#
+# On Render: always proxies through _call_vps because the cookie lives on
+# the VPS .env, not on Render. On local dev: writes the local config/.env
+# (used only when running webapp locally for development).
+# ---------------------------------------------------------------------------
+
+_CBOE_TOKEN_RE = re.compile(r"^[a-z0-9]{32}$")
+
+
+@router.get("/cboe-cookie")
+def cboe_cookie_page(request: Request):
+    """Render the self-service cookie rotation page."""
+    if not _is_admin(request):
+        return templates.TemplateResponse("admin_login.html", {"request": request, "error": None})
+
+    # Pull current cookie status from VPS (age + last sweep state).
+    status = _call_vps("/pipeline/cboe-status", method="GET") if _ON_RENDER else None
+    if not status:
+        # Local fallback — read the rotated_at stamp directly.
+        from datetime import datetime as _dt
+        stamp = PROJECT_ROOT / "data" / ".cboe_rotated_at"
+        rotated_at = None
+        age_hours = None
+        if stamp.exists():
+            try:
+                rotated_at = stamp.read_text(encoding="utf-8").strip()
+                age_hours = round((_dt.now() - _dt.fromisoformat(rotated_at)).total_seconds() / 3600, 1)
+            except Exception:
+                pass
+        status = {"rotated_at": rotated_at, "age_hours": age_hours,
+                  "running": None, "last_result": None}
+
+    return templates.TemplateResponse("admin_cboe_cookie.html", {
+        "request": request,
+        "status": status,
+        "result": request.query_params.get("result"),
+        "error": request.query_params.get("error"),
+    })
+
+
+@router.post("/cboe-cookie")
+def cboe_cookie_rotate(request: Request, token: str = Form("")):
+    """Accept a new CBOE cookie, dispatch rotation + recovery sweep."""
+    if not _is_admin(request):
+        return RedirectResponse("/admin/", status_code=302)
+
+    token = (token or "").strip()
+    # Tolerate paste of "sessionid=<32>" or "Cookie: sessionid=<32>" — extract
+    # the 32-char run.
+    m = re.search(r"[a-z0-9]{32}", token)
+    if not m:
+        return RedirectResponse("/admin/cboe-cookie?error=invalid_token", status_code=303)
+    token = m.group(0)
+
+    if _ON_RENDER:
+        import requests as _req
+        api_key = os.environ.get("API_KEY", "")
+        if not api_key:
+            try:
+                env = PROJECT_ROOT / "config" / ".env"
+                for line in env.read_text().splitlines():
+                    if line.startswith("API_KEY="):
+                        api_key = line.split("=", 1)[1].strip()
+            except Exception:
+                pass
+        try:
+            resp = _req.post(
+                f"{_VPS_API}/pipeline/cboe-rotate",
+                headers={"X-API-Key": api_key},
+                params={"token": token},
+                timeout=30,
+                verify=False,
+            )
+            if resp.status_code != 200:
+                return RedirectResponse(f"/admin/cboe-cookie?error=vps_{resp.status_code}", status_code=303)
+            data = resp.json()
+            probe_ok = data.get("probe", {}).get("ok")
+            sweep = data.get("sweep_state", "?")
+            result = f"rotated;probe={'ok' if probe_ok else 'FAIL'};sweep={sweep}"
+            return RedirectResponse(f"/admin/cboe-cookie?result={result}", status_code=303)
+        except Exception as e:
+            log.error("CBOE rotate failed: %s", e)
+            return RedirectResponse("/admin/cboe-cookie?error=vps_unreachable", status_code=303)
+
+    # Local dev path — write directly + probe.
+    try:
+        env_file = PROJECT_ROOT / "config" / ".env"
+        lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
+        new_line = f"CBOE_SESSION_COOKIE=sessionid={token}"
+        found = False
+        for i, line in enumerate(lines):
+            if line.startswith("CBOE_SESSION_COOKIE="):
+                lines[i] = new_line
+                found = True
+                break
+        if not found:
+            lines.append(new_line)
+        env_file.parent.mkdir(parents=True, exist_ok=True)
+        env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        os.environ["CBOE_SESSION_COOKIE"] = f"sessionid={token}"
+        (PROJECT_ROOT / "data" / ".cboe_rotated_at").parent.mkdir(parents=True, exist_ok=True)
+        (PROJECT_ROOT / "data" / ".cboe_rotated_at").write_text(datetime.now().isoformat())
+
+        from webapp.services.cboe.live import live_check
+        probe = live_check("AAPL")
+        result = f"rotated;probe={'ok' if probe.get('ok') else 'FAIL'};sweep=local-skipped"
+        return RedirectResponse(f"/admin/cboe-cookie?result={result}", status_code=303)
+    except Exception as e:
+        log.error("Local CBOE rotate failed: %s", e)
+        return RedirectResponse("/admin/cboe-cookie?error=local_write", status_code=303)
+
+
 # --- Data File Upload ---
 # NOTE: Bloomberg upload removed (2026-03-03).  Market data is synced to
 # SQLite locally via run_daily.py -> market_sync.sync_market_data(), then the

@@ -549,6 +549,8 @@ document.getElementById('cls-search').addEventListener('keydown', function(e) { 
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
       <a href="/admin/ticker-qc" style="font-size:12px; color:var(--blue); text-decoration:none;">Ticker QC</a>
       <span style="color:var(--border);">|</span>
+      <a href="/admin/cboe-cookie" style="font-size:12px; color:var(--blue); text-decoration:none;" title="Self-service rotation of CBOE_SESSION_COOKIE — replaces the SSH skill flow">CBOE Cookie</a>
+      <span style="color:var(--border);">|</span>
       <div style="font-size:12px; color:var(--muted);">
         Claude API: {% if ai_configured %}<span style="color:var(--green);">OK</span>{% else %}<span style="color:var(--red);">Not configured</span>{% endif %}
         · {{ ai_usage_today }} analyses today

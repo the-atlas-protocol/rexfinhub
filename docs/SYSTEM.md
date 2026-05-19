@@ -100,6 +100,7 @@ All times Eastern. Mon-Fri unless noted.
 | `/filings/symbols` | `webapp/routers/symbols.py` | `mkt_cboe_reserved_symbols` |
 | `/intel/holdings`, `/intel/competitors`, `/intel/insights` | `webapp/routers/intel.py` + `intel_competitors.py` + `intel_insights.py` | `holdings.db` |
 | `/admin/*` | `webapp/routers/admin*.py` | Various; gated by `ADMIN_PASSWORD` |
+| `/admin/cboe-cookie` | `webapp/routers/admin.py::cboe_cookie_page,cboe_cookie_rotate` (Phase 2, ADR 0004) | Proxies to VPS `POST /pipeline/cboe-rotate` + `GET /pipeline/cboe-status` for `.env` rewrite + `live_check("AAPL")` probe + recovery sweep dispatch |
 | `/api/v1/db/upload`, `/api/v1/db/upload-notes`, `/api/v1/db/upload-holdings` | `webapp/routers/api.py` | Inbound from VPS daily |
 
 ### secrets-inventory
