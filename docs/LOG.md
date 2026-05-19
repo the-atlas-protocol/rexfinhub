@@ -12,6 +12,13 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Phases 4 + 5 + 6 schema/backfill all shipped early** — pure additive work; zero risk to live read paths. ADR-stated start dates honored only for behavior-changing stages.
+  - **Phase 4 Stage 3** (`scripts/backfill_identifier_xref.py`) — 1756 identifier_xref rows: 165 tickers, 517 CIKs, 503 series_ids, 503 class_contract_ids, 68 bloomberg tickers. All valid_to=NULL.
+  - **Phase 4 Stage 4** (`scripts/backfill_underlier_master.py`) — heuristic classifier ran across 601 distinct underlier strings from rex_products + mkt_master_data. Output: 10 crypto_pair, 3 index, 520 equity, 4 basket, 64 unknown. 477 underlier_master rows inserted (deduped by display_symbol).
+  - **Phase 4 Stage 5** (`scripts/backfill_fund_underlier.py`) — 507 of 541 rex_products linked to underlier_master (34 with no underlier text = pre-launch filings). All effective_to=NULL.
+  - **Phase 5 Stages 1+2** (`scripts/migrate_status_history.py`) — status_history bi-temporal table created. 608 rows synthesized: 541 current-state + 67 historical effective rows for Listed funds (dated inception_date − 75 days per SEC Rule 485(a)).
+  - **Phase 6 Stages 1+2** (`scripts/migrate_classification_override.py`) — classification_override + assertion_run tables created. 486 override rows migrated from 7 rule CSVs. 4795 unmatched CSV tickers are competitor products without canonical_ids (expected — those aren't REX-managed).
+  - All scripts ran on both local + VPS DBs. Idempotent re-runs are no-ops.
 - **Phase 4 Stages 1+2 shipped early** — pure additive schema work executed ahead of the ≥ 2026-05-26 ADR-stated start date because Stages 1-2 are non-disruptive (new tables + UUID column with no reads touching them yet).
   - **Stage 1** (`scripts/migrate_canonical_id_schema.py`) — created 4 new tables (`product_master`, `identifier_xref`, `underlier_master`, `fund_underlier`) + added `rex_products.canonical_id TEXT` column. Idempotent.
   - **Stage 2** (`scripts/backfill_product_master.py`) — generated UUIDs for all 541 rex_products rows; inserted 541 `product_master` rows; populated `rex_products.canonical_id` for every row. Validation: 0 NULL canonical_ids, counts match.
