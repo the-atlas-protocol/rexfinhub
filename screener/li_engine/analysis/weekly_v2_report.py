@@ -1077,7 +1077,7 @@ TIER_HIGH_PCT = 85
 TIER_MEDIUM_PCT = 60
 TIER_WATCH_PCT = 40
 
-DEFENSIVE_LOOKBACK_DAYS = 30  # competitor filing within N days → defensive trigger
+DEFENSIVE_LOOKBACK_DAYS = 60  # competitor filing within N days → defensive trigger
 
 
 def _normalize_thesis_entry(entry) -> dict:
@@ -2089,9 +2089,11 @@ def _render_card_v3(card: dict) -> str:
                              font-weight:700;margin-left:6px;">{escape(suggested)}</span>
               </td>
               <td style="text-align:right;">
-                <span style="background:{fs_color};color:white;padding:2px 8px;
-                             border-radius:10px;font-size:9px;font-weight:700;
-                             letter-spacing:0.5px;">{filing_status}</span>
+                {(
+                  f'<span style="background:{fs_color};color:white;padding:2px 8px;'
+                  f'border-radius:10px;font-size:9px;font-weight:700;'
+                  f'letter-spacing:0.5px;">{filing_status}</span>'
+                ) if filing_status and filing_status != "NONE" else ''}
               </td>
             </tr>
           </table>

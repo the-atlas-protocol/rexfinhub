@@ -92,24 +92,35 @@ def _build_stock_recs(db) -> tuple[str, str]:
     return subject, html_path.read_text(encoding="utf-8")
 
 
+def _build_portfolio_suite(db) -> tuple[str, str]:
+    from pathlib import Path
+    from webapp.services.portfolio_suite_flow import build_html
+    project_root = Path(__file__).resolve().parent.parent
+    db_path = str(project_root / "data" / "etp_tracker.db")
+    xlsm_path = str(project_root / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm")
+    return build_html(db_path, xlsm_path)
+
+
 # (key, builder, list_type, critical)
 # critical=True means a failure aborts the rest of the bundle.
 REPORTS = {
-    "daily":      (_build_daily,      "daily",      True),
-    "weekly":     (_build_weekly,     "weekly",     False),
-    "li":         (_build_li,         "li",         False),
-    "income":     (_build_income,     "income",     False),
-    "flow":       (_build_flow,       "flow",       False),
-    "autocall":   (_build_autocall,   "autocall",   False),
-    "stock_recs": (_build_stock_recs, "stock_recs", False),
+    "daily":           (_build_daily,           "daily",           True),
+    "weekly":          (_build_weekly,          "weekly",          False),
+    "li":              (_build_li,              "li",              False),
+    "income":          (_build_income,          "income",          False),
+    "flow":            (_build_flow,            "flow",            False),
+    "autocall":        (_build_autocall,        "autocall",        False),
+    "stock_recs":      (_build_stock_recs,      "stock_recs",      False),
+    "portfolio_suite": (_build_portfolio_suite, "portfolio_suite", False),
 }
 
 BUNDLES = {
-    "all":        ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs"],
-    "daily":      ["daily"],
-    "weekly":     ["weekly", "li", "income", "flow"],
-    "autocall":   ["autocall"],
-    "stock_recs": ["stock_recs"],
+    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs"],
+    "daily":           ["daily"],
+    "weekly":          ["weekly", "li", "income", "flow"],
+    "autocall":        ["autocall"],
+    "stock_recs":      ["stock_recs"],
+    "portfolio_suite": ["portfolio_suite"],
 }
 
 
