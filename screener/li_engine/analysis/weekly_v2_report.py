@@ -2382,6 +2382,99 @@ def _render_foreign_table() -> str:
 </td></tr>'''
 
 
+def _build_defensive_from_recent_filings(cards: list[dict],
+                                          window_days: int = 7) -> list[dict]:
+    """Build Defensive cards from competitor 485APOS filings in the last N days,
+    NOT from the whitespace_v4 candidate universe.
+
+    For each competitor L&I filing in the window:
+      1. Extract underlier ticker via filed_underliers.extract_underlier
+      2. Drop if REX has filed on that ticker (any time, any form)
+      3. Aggregate per ticker: count of filings, earliest date, issuers
+      4. Augment with market metrics from existing cards or mkt_master_data
+    """
+    from screener.li_engine.analysis.filed_underliers import extract_underlier
+    conn = sqlite3.connect(str(DB))
+    try:
+        comp_df = pd.read_sql_query(
+            f"""
+            SELECT f.filing_date, f.registrant, fe.series_name, fe.class_contract_name
+            FROM filings f
+            JOIN fund_extractions fe ON fe.filing_id = f.id
+            WHERE f.form IN ('485APOS', '485BPOS', 'N-1A')
+              AND f.filing_date >= date('now', '-{int(window_days)} days')
+              AND f.registrant NOT LIKE '%REX%'
+              AND f.registrant NOT LIKE '%ETF Opportunities%'
+            """,
+            conn,
+        )
+        # Tickers REX has filed on EVER — used to filter out names we already cover
+        rex_df = pd.read_sql_query(
+            """
+            SELECT fe.series_name, fe.class_contract_name
+            FROM filings f
+            JOIN fund_extractions fe ON fe.filing_id = f.id
+            WHERE (f.registrant LIKE '%REX%' OR f.registrant LIKE '%ETF Opportunities%')
+              AND f.form IN ('485APOS', '485BPOS', 'N-1A')
+            """,
+            conn,
+        )
+    finally:
+        conn.close()
+
+    rex_tickers: set[str] = set()
+    for col in ("series_name", "class_contract_name"):
+        for n in rex_df[col].dropna():
+            t = extract_underlier(n)
+            if t:
+                rex_tickers.add(t.upper())
+
+    # Index existing cards (from whitespace_v4) for metric lookup
+    cards_by_ticker = {c.get("ticker", "").upper(): c for c in cards}
+
+    by_ticker: dict[str, dict] = {}
+    for _, row in comp_df.iterrows():
+        ticker = (extract_underlier(row.get("series_name"))
+                  or extract_underlier(row.get("class_contract_name")))
+        if not ticker:
+            continue
+        ticker = ticker.upper()
+        if ticker in rex_tickers:
+            continue
+        rec = by_ticker.setdefault(ticker, {
+            "ticker": ticker,
+            "filings": [],
+            "issuers": set(),
+            "fund_names": set(),
+        })
+        rec["filings"].append(_safe_str(row.get("filing_date"))[:10])
+        rec["issuers"].add(_safe_str(row.get("registrant")))
+        rec["fund_names"].add(_safe_str(row.get("series_name")))
+
+    # Build synthetic Defensive cards
+    synthetic: list[dict] = []
+    for ticker, rec in by_ticker.items():
+        src = cards_by_ticker.get(ticker, {})
+        synthetic.append({
+            "ticker": ticker,
+            "company_name": src.get("company_name") or "—",
+            "sector": src.get("sector") or "—",
+            "tier": src.get("tier") or "WATCH",
+            "orientation": "DEFENSIVE",
+            "score": src.get("score", 0),
+            "market_cap": src.get("market_cap"),
+            "rvol_90d": src.get("rvol_90d"),
+            "ret_1m": src.get("ret_1m"),
+            "ret_1y": src.get("ret_1y"),
+            "mentions_24h": src.get("mentions_24h", 0),
+            "earliest_competitor": {
+                "n_filings": len(rec["filings"]),
+                "earliest_filing_date": min(rec["filings"]) if rec["filings"] else "",
+            },
+        })
+    return synthetic
+
+
 def render_v3(cards: list[dict], money_flow: pd.DataFrame,
               filings_summary: dict, top_mentions: tuple[str, int],
               hot_take: str, killed: list[tuple[str, str]],
@@ -2395,16 +2488,21 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     week_window = f"{filings_summary.get('week_start', '')} → {filings_summary.get('week_end', '')}"
 
     # Bucket cards
-    # Defensive intentionally NOT tier-filtered: if a competitor filed against
-    # an underlier REX hasn't covered, surface it even if the signal-score
-    # only reached WATCH tier — the filing race itself is the decision driver.
-    defensive_cards = [c for c in cards if c["orientation"] == "DEFENSIVE"]
+    # Defensive built from raw 485APOS filings in last 7 days where REX hasn't
+    # filed — NOT filtered through the whitespace_v4 candidate universe. This
+    # surfaces every name a competitor is racing on, regardless of signal score.
+    defensive_cards = _build_defensive_from_recent_filings(cards, window_days=7)
     offensive_cards = [c for c in cards if c["orientation"] == "OFFENSIVE"
                        and c["tier"] in ("HIGH", "MEDIUM")]
     watch_cards = [c for c in cards if c["tier"] == "WATCH"]
 
-    # Sort each bucket by score desc
-    defensive_cards.sort(key=lambda c: c["score"], reverse=True)
+    # Sort Defensive by competitor filing count desc, then earliest date asc
+    defensive_cards.sort(
+        key=lambda c: (
+            -(c.get("earliest_competitor", {}) or {}).get("n_filings", 0),
+            (c.get("earliest_competitor", {}) or {}).get("earliest_filing_date", "9999"),
+        )
+    )
     offensive_cards.sort(key=lambda c: c["score"], reverse=True)
     watch_cards.sort(key=lambda c: c["score"], reverse=True)
 
@@ -2613,8 +2711,8 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
 </td></tr>
 
 {_render_section_header(
-    "Defensive — Should We Respond?",
-    f"Competitor filed/launched in the last {DEFENSIVE_LOOKBACK_DAYS}d and REX has no filing on this underlier. Each card answers: do we file to defend share?",
+    "Defensive — This Week's Filing Race",
+    "Every underlier a competitor filed an L&I 485APOS / 485BPOS / N-1A on in the last 7 days (including today) where REX has not also filed. Sorted by filing count desc.",
     "#e74c3c",
 )}
 {defensive_html}
