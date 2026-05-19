@@ -100,6 +100,7 @@ All times Eastern. Mon-Fri unless noted.
 | `/filings/symbols` | `webapp/routers/symbols.py` | `mkt_cboe_reserved_symbols` |
 | `/intel/holdings`, `/intel/competitors`, `/intel/insights` | `webapp/routers/intel.py` + `intel_competitors.py` + `intel_insights.py` | `holdings.db` |
 | `/admin/*` | `webapp/routers/admin*.py` | Various; gated by `ADMIN_PASSWORD` |
+| `/admin/cboe-cookie` | `webapp/routers/admin.py::cboe_cookie_page,cboe_cookie_rotate` (Phase 2, ADR 0004) | Proxies to VPS `POST /pipeline/cboe-rotate` + `GET /pipeline/cboe-status` for `.env` rewrite + `live_check("AAPL")` probe + recovery sweep dispatch |
 | `/api/v1/db/upload`, `/api/v1/db/upload-notes`, `/api/v1/db/upload-holdings` | `webapp/routers/api.py` | Inbound from VPS daily |
 
 ### secrets-inventory
@@ -122,6 +123,18 @@ All times Eastern. Mon-Fri unless noted.
 
 Secret values never appear in this doc — only locations + rotation status. See `DECISIONS/0003-rotate-exposed-secrets.md` (proposed).
 
+### scraper-pathways
+
+Three pathways with distinct roles (ADR 0005 — closed Phase 1 Cut 3):
+
+| Unit | Cadence | Source | CIK universe | Writes | Latency |
+|---|---|---|---|---|---|
+| `rexfinhub-atom-watcher.service` (daemon) | every 60 s, 24/7 | SEC atom feed | ALL filers | `filing_alerts`; auto-creates `trusts` | ~1-3 min |
+| `rexfinhub-fresh-poller.timer` | every 15 min, Mon-Fri 08:00-20:45 ET | SEC submissions JSON + daily-index pre-flight | curated ~290 | `filings` + `rex_products` | ~15-20 min |
+| `rexfinhub-intraday-refresh.timer` (was `rexfinhub-sec-scrape.timer`) | 4×/day, Mon-Fri 08:00/12:00/16:00/20:00 ET | (delegated; skips scrape if fresh-poller is fresh) | (delegated) | classification + screener + parquets + DB compact + Render upload | ~5-8 min fast path |
+
+The intraday-refresh wrapper (`scripts/intraday_refresh.py`) reads `data/.poll_fresh_filings.log` mtime: if fresh-poller ran within 30 min, calls `run_daily.py --skip-sec`. Otherwise calls full `run_daily.py` as a safety fallback. See `DECISIONS/0005-scraper-merge-analysis.md`.
+
 ### known-bugs
 
 - BUG-01: ~~Bitcoin shows 0 competitors~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — canonicalization script normalizes crypto underliers to XBTUSD/XETUSD nightly. Index-type underliers (BMAXATCL Index) still affected; structural fix in Phase 4.
@@ -129,6 +142,8 @@ Secret values never appear in this doc — only locations + rotation status. See
 - BUG-03: ~~13+ T-REX 2X products Listed with placeholder inception~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — Phase 3 now rejects inception dates before the filing date OR older than 60 days. Existing bad rows still need a one-time manual correction; new cases blocked.
 - BUG-04: ~~BMAX US Listed despite Bloomberg vanish~~ **DETECTED 2026-05-19 (Phase 0b, ADR 0002)** — new Phase 4 audit in sync_rex_products_from_filings.py flags vanished-from-Bloomberg tickers. Auto-demote opt-in via `data/.auto_demote_vanished` flag (off by default to avoid false positives from transient drop-outs).
 - BUG-05: Flow report's REX 1W flow KPI ($10.8M) does not match the issuer-table REX row ($16.4M). Cause: KPI uses `is_rex=1` filter (82 funds); issuer table groups by `issuer_display="REX"` which includes 1 fund with `is_rex=0` but `issuer_display="REX"` (AXTU). Fix: Phase 6 — survivorship rules. Still open.
+- BUG-06: ~~Old `rexfinhub-sec-scrape.service` killed by SIGTERM at step 3.5/8 on 2026-05-19 16:00 ET~~ **MITIGATED 2026-05-19 (ADR 0005)** — the old unit had a drop-in (`10-sync-rex-products.conf`) that ran `sync_rex_products_from_filings.py --apply` as `ExecStartPost`, racing against the same call inside `run_daily.main()` step 3.5/8. The new `intraday-refresh` unit has no such drop-in and uses `--skip-sec` to bypass the whole code path when fresh-poller has run recently. Old unit + drop-in remain in `/etc/systemd/system/` (disabled) for revert; can be removed once new unit has run cleanly for a week.
+- BUG-07: `temp/submissions.zip` corrupted (partial download, missing EOCD record). Renamed to `temp/submissions.zip.corrupt-2026-05-19` on VPS 2026-05-19; `sync_trust_universe.py` will re-download on next universe sync (universe-sync is non-fatal so pipeline keeps running either way). Underlying cause: download interruption during the nightly fetch — should add a `.partial` rename + atomic move in `download_submissions_zip()`.
 
 ### known-gaps
 

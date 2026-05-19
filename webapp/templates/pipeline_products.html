@@ -490,7 +490,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           {{ sort_th('latest_filing_date', 'Latest Filing', 'date') }}
           {{ sort_th('estimated_effective_date', 'Effective Date', 'date') }}
           <th title="Latest Prospectus">Latest Prospectus</th>
-          {{ sort_th('target_listing_date', 'Inception/Target', 'date') }}
+          {{ sort_th('target_listing_date', 'Target Inception', 'date') }}
           <th title="Pipe-separated list of competitor tickers — click to edit (admin)">Competitors</th>
         </tr>
         {# Column-filter row — type to narrow visible rows. data-col-idx maps
@@ -507,7 +507,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           <th><input type="text" class="filter-input col-filter" data-col-idx="7" placeholder="Filter latest..." aria-label="Filter latest filing"></th>
           <th><input type="text" class="filter-input col-filter" data-col-idx="8" placeholder="Filter effective..." aria-label="Filter effective"></th>
           <th><input type="text" class="filter-input col-filter" data-col-idx="9" placeholder="Filter prospectus..." aria-label="Filter prospectus"></th>
-          <th><input type="text" class="filter-input col-filter" data-col-idx="10" placeholder="Filter target..." aria-label="Filter inception/target"></th>
+          <th><input type="text" class="filter-input col-filter" data-col-idx="10" placeholder="Filter inception..." aria-label="Filter target inception"></th>
           <th><input type="text" class="filter-input col-filter" data-col-idx="11" placeholder="Filter competitors..." aria-label="Filter competitors"></th>
         </tr>
       </thead>
@@ -637,11 +637,18 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
               <span style="color:#cbd5e1;">---</span>
             {% endif %}
           </td>
-          {# Col 12: Inception/Target — yellow when projected (status != Listed) #}
+          {# Col 12: Target Inception — Ryu's planned launch date. Yellow when
+             still projected (status != Listed). For Listed rows, displays the
+             official inception date instead (read-only field). Admin can
+             click to edit when not Listed. Phase 2 (ADR 0004): this IS the
+             "target_inception_date" the runbook refers to — same field,
+             clearer label. #}
+          {% set _edit_hint = 'Click to set target inception date' if is_admin and not is_listed else ('Actual inception (Listed)' if is_listed else 'Projected target inception') %}
           <td data-sort="{{ inception_date.isoformat() if inception_date else '' }}"
               data-field="target_listing_date" data-field-type="date"
-              {% if not is_listed and inception_date %}style="background:#fef9c3; color:#854d0e; font-weight:600;" title="Projected / target inception — not yet Listed"{% endif %}>
-            {{ inception_date.strftime('%Y-%m-%d') if inception_date else '---' }}
+              title="{{ _edit_hint }}"
+              {% if not is_listed %}style="background:#fef9c3; color:#854d0e; font-weight:600; {% if is_admin %}cursor:pointer;{% endif %}"{% endif %}>
+            {{ inception_date.strftime('%Y-%m-%d') if inception_date else (is_admin and not is_listed and '＋ set' or '---') }}
           </td>
           {# Col 13: Competitors — pipe-separated tickers, admin-editable inline. #}
           <td data-sort="{{ p.competitors or '' }}" data-field="competitors" title="{{ p.competitors or 'click to add' }}" style="font-family:ui-monospace, SFMono-Regular, monospace; font-size:11px; color:#475569; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
@@ -1146,7 +1153,7 @@ function makeInlineEditable(tableSelector, updateUrl) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    makeInlineEditable('#pipelineTable', '/admin/products/update/{id}');
+    makeInlineEditable('#pipelineTable', '/admin/rex-products/update/{id}');
 });
 
 document.addEventListener('keydown', function(e) {

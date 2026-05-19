@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}CBOE Cookie Rotation — REX Admin{% endblock %}
+
+{% block content %}
+<style>
+  .cbc-wrap { max-width: 760px; margin: 24px auto; padding: 0 20px; }
+  .cbc-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+  .cbc-card h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+  .cbc-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .cbc-row .lbl { color: #64748b; }
+  .cbc-row .val { color: #0f172a; font-weight: 500; font-family: ui-monospace, SFMono-Regular, monospace; }
+  .cbc-form input[type=text] {
+    width: 100%; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;
+  }
+  .cbc-form input[type=text]:focus { outline: none; border-color: #1F3864; box-shadow: 0 0 0 3px rgba(31,56,100,0.15); }
+  .cbc-form button {
+    margin-top: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+    background: #1F3864; color: #fff; border: 0; border-radius: 6px; cursor: pointer;
+  }
+  .cbc-form button:hover { background: #16294a; }
+  .cbc-hint { color: #64748b; font-size: 11px; margin-top: 8px; line-height: 1.5; }
+  .cbc-banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+  .cbc-banner.ok    { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+  .cbc-banner.warn  { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+  .cbc-banner.fail  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+  .age-fresh { color: #059669; } .age-stale { color: #d97706; } .age-old { color: #dc2626; }
+</style>
+
+<div class="cbc-wrap">
+  <div style="font-size:12px; color:#94a3b8; margin-bottom:8px;">
+    <a href="/admin/" style="color:#1F3864; text-decoration:none;">&laquo; Admin</a>
+  </div>
+  <h1 style="font-size:24px; font-weight:700; color:#0f172a; margin:0 0 4px;">CBOE Cookie Rotation</h1>
+  <p style="font-size:13px; color:#64748b; margin:0 0 18px;">
+    Self-service rotation of <code>CBOE_SESSION_COOKIE</code>. Replaces the SSH skill flow.
+    Paste the 32-char <code>sessionid</code> from CBOE devtools (Application → Cookies → <code>sessionid</code>).
+  </p>
+
+  {% if result %}
+    {% set r_ok    = 'probe=ok' in result %}
+    {% set r_fail  = 'probe=FAIL' in result %}
+    <div class="cbc-banner {% if r_ok %}ok{% elif r_fail %}fail{% else %}warn{% endif %}">
+      <strong>{{ 'Rotated' if r_ok else 'Rotated but probe failed' if r_fail else 'Rotated' }}.</strong>
+      Raw: <code>{{ result }}</code>
+      {% if r_ok %}— recovery sweep dispatched (~45 min). Check
+        <a href="https://rexfinhub.com/filings/symbols" target="_blank">/filings/symbols</a> for the refreshing banner.
+      {% endif %}
+      {% if r_fail %}— the new token did not authenticate against CBOE. Re-copy from devtools and try again.{% endif %}
+    </div>
+  {% endif %}
+  {% if error %}
+    <div class="cbc-banner fail">
+      <strong>Error:</strong> <code>{{ error }}</code>.
+      {% if error == 'invalid_token' %}Expected 32 lowercase alphanumeric chars. Paste the bare token, "sessionid=&lt;…&gt;", or the full <code>Cookie:</code> header — the server extracts the 32-char run.
+      {% elif error == 'vps_unreachable' %}VPS pipeline API didn't respond. Try again, or rotate via SSH skill.
+      {% elif error == 'local_write' %}Local <code>config/.env</code> write failed. Check perms.
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="cbc-card">
+    <h2>Current state</h2>
+    {% set age = status.age_hours %}
+    <div class="cbc-row">
+      <span class="lbl">Last rotated</span>
+      <span class="val">{{ status.rotated_at or '—' }}</span>
+    </div>
+    <div class="cbc-row">
+      <span class="lbl">Age</span>
+      <span class="val {% if age is none %}{% elif age < 24 %}age-fresh{% elif age < 48 %}age-stale{% else %}age-old{% endif %}">
+        {% if age is none %}unknown{% else %}{{ age }} h{% endif %}
+      </span>
+    </div>
+    <div class="cbc-row">
+      <span class="lbl">VPS task running</span>
+      <span class="val">{{ status.running or 'idle' }}</span>
+    </div>
+    {% if status.last_result %}
+      <div class="cbc-row">
+        <span class="lbl">Last task</span>
+        <span class="val">{{ status.last_result.name }} — {{ status.last_result.status }}</span>
+      </div>
+      <div class="cbc-row">
+        <span class="lbl">Detail</span>
+        <span class="val" style="font-size:11px; max-width:60%; text-align:right; word-break:break-all;">{{ (status.last_result.detail or '')[:200] }}</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="cbc-card">
+    <h2>Rotate</h2>
+    <form method="POST" action="/admin/cboe-cookie" class="cbc-form" autocomplete="off">
+      <label for="token" style="display:block; font-size:12px; color:#64748b; margin-bottom:6px;">New sessionid</label>
+      <input type="text" id="token" name="token" placeholder="32 lowercase alphanumeric chars (e.g. ur6mnjf3t634fmxdmt1hq0nccyupmrc4)" autofocus>
+      <div class="cbc-hint">
+        Pasting <code>sessionid=&lt;value&gt;</code> or the full <code>Cookie:</code> header is fine — the server extracts the token.
+        After submit: cookie is written to VPS <code>config/.env</code>, a live probe runs against <code>AAPL</code>, and the
+        recovery sweep is dispatched in the background if the probe succeeds.
+      </div>
+      <button type="submit">Rotate cookie</button>
+    </form>
+  </div>
+
+  <details style="font-size:12px; color:#64748b; padding: 12px 16px; background: #f8fafc; border-radius: 6px;">
+    <summary style="cursor:pointer; font-weight:600;">Where do I find the sessionid?</summary>
+    <ol style="margin:8px 0 0 18px; line-height:1.7;">
+      <li>Open <a href="https://www.cboe.com/symbols/" target="_blank">cboe.com/symbols/</a> in a logged-in browser.</li>
+      <li>Open devtools (F12) → <strong>Application</strong> tab → <strong>Cookies</strong> → <code>https://www.cboe.com</code>.</li>
+      <li>Find the <strong><code>sessionid</code></strong> row (NOT <code>csrftoken</code>, NOT <code>__cf_bm</code>) and copy the Value.</li>
+      <li>Paste here. Submit.</li>
+    </ol>
+  </details>
+</div>
+{% endblock %}
