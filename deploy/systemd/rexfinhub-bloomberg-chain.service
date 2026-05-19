@@ -14,10 +14,9 @@ EnvironmentFile=/home/jarvis/rexfinhub/config/.env
 Environment=TZ=America/New_York
 Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
 ExecStart=/home/jarvis/venv/bin/python -c "from webapp.services.graph_files import download_bloomberg_from_sharepoint; from webapp.database import init_db, SessionLocal; from webapp.services.market_sync import sync_market_data; download_bloomberg_from_sharepoint(); init_db(); db=SessionLocal(); sync_market_data(db); db.close(); print('Bloomberg pull + sync complete')"
-ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/apply_fund_master.py
-ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/apply_underlier_overrides.py
-ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/apply_issuer_brands.py
-ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/apply_classification_sweep.py --apply --apply-medium
+# Phase 1 (ADR 0003): 4 ExecStartPost lines consolidated into one wrapper
+# script for fewer moving parts + single place for logging/timing.
+ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/apply_bloomberg_post_steps.py
 StandardOutput=journal
 StandardError=journal
 TimeoutStartSec=1800

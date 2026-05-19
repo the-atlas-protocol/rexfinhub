@@ -70,15 +70,15 @@ All times Eastern. Mon-Fri unless noted.
 | Every 15 min (market hrs) | Fresh-poller systemd wrap | `scripts/poll_fresh_filings.py` + `rexfinhub-fresh-poller.timer` | Redundant with atom watcher — see GAP-04 |
 | 08:00 | SEC reconciler | `scripts/sec_reconciler.py` + `rexfinhub-reconciler.timer` | |
 | 08/12/16/20:00 | SEC bulk scrape | `etp_tracker/run_pipeline.py` + `rexfinhub-sec-scrape.timer` | 4×/day batch |
-| 09:00 | Classification sweep email | `scripts/classification_sweep.py --post-summary` + `rexfinhub-classification-sweep.timer` | REDUNDANT — see GAP-05 |
-| 17:15 + 21:00 | [[bloomberg-pull]] + chain | `rexfinhub-bloomberg.timer` → `rexfinhub-bloomberg-chain.service` | 4 ExecStartPost: apply_fund_master, apply_underlier_overrides, apply_issuer_brands, apply_classification_sweep |
+| ~~09:00~~ | ~~Classification sweep email~~ | ~~`scripts/classification_sweep.py`~~ | **DISABLED 2026-05-19 (ADR 0003)** — unit file kept in repo for revert |
+| 17:15 + 21:00 | [[bloomberg-pull]] + chain | `rexfinhub-bloomberg.timer` → `rexfinhub-bloomberg-chain.service` | One consolidated ExecStartPost: `scripts/apply_bloomberg_post_steps.py` (wraps fund_master / underlier_overrides / issuer_brands / classification_sweep). Per ADR 0003. |
 | 18:30 | [[preflight]] audit + [[auto-go]] | `scripts/preflight_check.py` + `rexfinhub-preflight.timer` | PR #16: writes `.preflight_decision.json` on pass or warn-with-flag |
 | 19:00 | [[gate]] auto-open | `rexfinhub-gate-open.timer` | Flips `.send_enabled` to true |
 | 19:30 | Daily pipeline + send | `scripts/run_daily.py` + `scripts/send_all.py --use-decision --send` + `rexfinhub-daily.timer` | Mon=`all` bundle, Tue-Fri=`daily` bundle |
 | 20:00 | [[gate]] auto-close | `rexfinhub-gate-close.timer` | |
 | 20:15 | Pipeline summary email | `scripts/pipeline_summary.py` + jarvis crontab | PR #17: emails relasmar@rexfin.com |
 | 23:00 | DB backup | `rexfinhub-db-backup.timer` | 14-day rotation on VPS |
-| Sun 07:00 | Trust universe bulk sync | `scripts/sync_trust_universe.py` + `rexfinhub-bulk-sync.timer` | REDUNDANT — see GAP-06 |
+| ~~Sun 07:00~~ | ~~Trust universe bulk sync~~ | ~~`scripts/sync_trust_universe.py`~~ | **DISABLED 2026-05-19 (ADR 0003)** — atom watcher covers new-CIK discovery |
 | Feb/May/Aug/Nov 19-20 @ 06:00 | 13F quarterly + 7-day incremental | `scripts/run_13f.py auto` + `rexfinhub-13f-quarterly.timer` | Aligns with SEC quarterly publication |
 | Fri 06:00 | Parquet rebuild | `rexfinhub-parquet-rebuild.timer` | Whitespace v4 + screener |
 
