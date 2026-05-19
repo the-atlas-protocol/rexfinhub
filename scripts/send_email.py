@@ -135,6 +135,16 @@ def _build_autocall(db) -> str:
     return html
 
 
+def _build_portfolio_suite(db) -> str:
+    from pathlib import Path
+    from webapp.services.portfolio_suite_flow import build_html
+    project_root = Path(__file__).resolve().parent.parent
+    db_path = str(project_root / "data" / "etp_tracker.db")
+    xlsm_path = str(project_root / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm")
+    _, html = build_html(db_path, xlsm_path)
+    return html
+
+
 def _build_intelligence_brief(db) -> str:
     from etp_tracker.intelligence_brief import build_intelligence_brief
     return build_intelligence_brief(db, lookback_days=1)
