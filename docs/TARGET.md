@@ -145,8 +145,8 @@ Phase 2 — Admin pages: `/admin/cboe-cookie`, inline `target_inception_date` ed
 Phase 3 — Merge `capm_products` into `rex_products`. Drop `capm_products` (1 week).
 Phase 4 — Build `product_master.canonical_id` + polymorphic `underlier_master` (2-3 weeks).
 Phase 5 — Build `status_history` bi-temporal table; 3-source rule for `Listed` promotion; auto-detect Bloomberg-vanished funds (2 weeks). **DESIGNED** in `DECISIONS/0008-status-history-bitemporal.md` (proposed); implementation starts after Phase 4 completes (~2026-06-10).
-Phase 6 — Replace 6 CSVs with `classification_override` table; ship ~25 data-quality assertions; move pipeline summary to 08:00 ET (1-2 weeks).
-Phase 7 — Migrate to `edgartools`; decommission `manually_edited_fields` JSON; consolidate state files (1 week).
+Phase 6 — Replace 6 CSVs with `classification_override` table; ship ~25 data-quality assertions; move pipeline summary to 08:00 ET (1-2 weeks). **DESIGNED** in `DECISIONS/0009-classification-override-and-assertions.md` (proposed); implementation starts after Phase 5 completes (~2026-06-25).
+Phase 7 — Migrate to `edgartools`; decommission `manually_edited_fields` JSON; consolidate state files (1 week). **DESIGNED** in `DECISIONS/0010-edgartools-migration.md` (proposed); implementation starts after Phase 6 completes (~2026-07-15).
 
 Total: 11-14 weeks. Phase 0 delivers immediate wins; Phases 1-2 deliver UX wins; Phases 3-7 are the structural rebuild.
 
