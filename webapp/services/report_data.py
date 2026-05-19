@@ -2071,7 +2071,16 @@ def get_flow_report(db: Session | None = None) -> dict:
     }
 
     # --- REX KPIs (ALL active REX ETPs, deduplicated) ---
-    rex_df = active_deduped[active_deduped["is_rex"] == 1]
+    # BUG-05 FIX (2026-05-19): match what the issuer table will display under
+    # the "REX" row. The issuer table groups by issuer_display; if a fund has
+    # issuer_display='REX' but is_rex=0 (data drift — e.g. AXTU pre-fix),
+    # the old is_rex=1-only filter would under-count by that fund's flow.
+    # Use UNION semantics so the KPI box and issuer table agree.
+    is_rex_mask = active_deduped.get("is_rex", pd.Series(False, index=active_deduped.index)) == 1
+    rex_brand_mask = pd.Series(False, index=active_deduped.index)
+    if "issuer_display" in active_deduped.columns:
+        rex_brand_mask = active_deduped["issuer_display"].astype(str).str.strip().str.upper() == "REX"
+    rex_df = active_deduped[is_rex_mask | rex_brand_mask]
     rex_aum = float(rex_df["aum"].sum())
     rex_flow_1w = float(rex_df["fund_flow_1week"].sum())
     rex_flow_1m = float(rex_df["fund_flow_1month"].sum())
