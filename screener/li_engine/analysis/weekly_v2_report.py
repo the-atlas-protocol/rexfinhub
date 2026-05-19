@@ -2248,21 +2248,6 @@ def _render_recs_table(cards: list[dict], mode: str, empty_msg: str) -> str:
         comp_filings = earliest.get("n_filings", 0) or 0
         earliest_date = _safe_str(earliest.get("earliest_filing_date"))[:10] or "—"
 
-        suggested = c.get("suggested_ticker", "")
-        filing_status = c.get("filing_status", "NONE")
-        if filing_status and filing_status != "NONE":
-            status_chip = (
-                f'<span style="background:#27ae60;color:white;padding:1px 5px;'
-                f'border-radius:6px;font-size:8px;font-weight:700;'
-                f'margin-left:4px;">{escape(filing_status)}</span>'
-            )
-        else:
-            status_chip = ""
-        suggested_html = (
-            f'<span style="font-family:\'Courier New\',monospace;font-weight:700;'
-            f'color:#0984e3;">{escape(suggested[:14])}</span>{status_chip}'
-        ) if suggested else "—"
-
         cells = [
             f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#7f8c8d;text-align:left;">{i}</td>',
             f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11.5px;font-weight:700;font-family:\'Courier New\',monospace;color:#0984e3;text-align:left;">{escape(ticker)}</td>',
@@ -2279,9 +2264,6 @@ def _render_recs_table(cards: list[dict], mode: str, empty_msg: str) -> str:
                 f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;color:#e74c3c;font-weight:700;">{int(comp_filings) if comp_filings else "—"}</td>',
                 f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;text-align:center;color:#566573;font-variant-numeric:tabular-nums;">{earliest_date}</td>',
             ])
-        cells.append(
-            f'<td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:left;">{suggested_html}</td>'
-        )
         body_rows.append(f'<tr>{"".join(cells)}</tr>')
 
     return f'''<tr><td style="padding:6px 30px 12px;">
@@ -2295,8 +2277,10 @@ def _render_recs_table(cards: list[dict], mode: str, empty_msg: str) -> str:
 def _render_foreign_table() -> str:
     """Load and render the foreign launch candidates table.
 
-    Sources data/analysis/foreign_launch_candidates.parquet — produced by
-    screener.li_engine.analysis.foreign_filings. Renders top 15 by composite.
+    Sources data/analysis/foreign_launch_candidates.parquet. The parquet
+    has institutional/competition metrics — NOT price returns or vol —
+    so columns mirror that schema (Mkt Cap / Sector / Competitor filings
+    + REX status). Top 25 by composite_score.
     """
     try:
         path = _ROOT / "data" / "analysis" / "foreign_launch_candidates.parquet"
@@ -2305,35 +2289,66 @@ def _render_foreign_table() -> str:
         df = pd.read_parquet(path)
         if df.empty:
             return ""
-        sort_col = "composite_score" if "composite_score" in df.columns else None
-        if sort_col:
-            df = df.sort_values(sort_col, ascending=False)
+        if "composite_score" in df.columns:
+            df = df.sort_values("composite_score", ascending=False)
         df = df.head(25)
     except Exception:
         return ""
 
+    def _fmt_mcap_usd(v):
+        """Foreign parquet has market_cap_usd in raw dollars."""
+        try:
+            if v is None or pd.isna(v) or float(v) <= 0:
+                return "—"
+            v = float(v) / 1e6  # convert to millions for _fmt_mcap_short
+            return _fmt_mcap_short(v)
+        except (TypeError, ValueError):
+            return "—"
+
+    def _rex_status_chip(s):
+        s = (_safe_str(s) or "").lower()
+        if s == "active":
+            return f'<span style="background:#27ae60;color:white;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700;">ACTIVE</span>'
+        if s == "pending":
+            return f'<span style="background:#f39c12;color:white;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700;">FILED</span>'
+        if s in ("none", ""):
+            return f'<span style="color:#7f8c8d;font-size:10px;">—</span>'
+        return f'<span style="color:#566573;font-size:10px;">{escape(s)}</span>'
+
     rows = []
     for i, (_, r) in enumerate(df.iterrows(), 1):
-        ticker = _safe_str(r.get("ticker") or r.get("symbol") or "")
-        company = (_safe_str(r.get("name") or r.get("company")) or "")[:36]
-        exchange = (_safe_str(r.get("exchange") or r.get("market")) or "")[:14]
-        sector = (_safe_str(r.get("sector")) or "—")[:16]
-        mcap = _fmt_mcap_short(r.get("market_cap"))
-        vol = _fmt_vol_pct(r.get("rvol_90d") or r.get("vol_90d"))
-        r1m_raw = r.get("ret_1m")
-        r1y_raw = r.get("ret_1y")
-        r1m = _fmt_ret(r1m_raw)
-        r1y = _fmt_ret(r1y_raw)
+        ticker = _safe_str(r.get("foreign_ticker") or "")
+        company = (_safe_str(r.get("name")) or "")[:34]
+        market = (_safe_str(r.get("market")) or "—")[:8]
+        sector = (_safe_str(r.get("sector")) or "—")[:18]
+        mcap = _fmt_mcap_usd(r.get("market_cap_usd"))
+        comp_total = int(r.get("competitor_filings_total") or 0)
+        comp_issuers = int(r.get("competitor_distinct_issuers") or 0)
+        comp_2x = (_safe_str(r.get("competitor_2x_status")) or "").lower()
+        comp_2x_html = (
+            f'<span style="color:#e74c3c;font-weight:700;">YES</span>'
+            if comp_2x == "active" else
+            f'<span style="color:#7f8c8d;">—</span>'
+        )
+        rex_html = _rex_status_chip(r.get("rex_status"))
+        score = r.get("composite_score") or 0
+        try:
+            score_str = f"{float(score):.1f}"
+        except (TypeError, ValueError):
+            score_str = "—"
+
         rows.append(f'''<tr>
   <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#7f8c8d;">{i}</td>
   <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11.5px;font-weight:700;font-family:'Courier New',monospace;color:#0984e3;">{escape(ticker)}</td>
   <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;">{escape(company)}</td>
-  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;">{escape(exchange)}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;text-align:center;">{escape(market)}</td>
   <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:10.5px;color:#566573;">{escape(sector)}</td>
   <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums;">{mcap}</td>
-  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:#566573;">{vol}</td>
-  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:{_ret_color(r1m_raw)};font-weight:600;">{r1m}</td>
-  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:{_ret_color(r1y_raw)};font-weight:600;">{r1y}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;color:#566573;">{comp_total or "—"}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;color:#566573;">{comp_issuers or "—"}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;">{comp_2x_html}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:center;">{rex_html}</td>
+  <td style="padding:6px 6px;border-bottom:1px solid #ecf0f1;font-size:11px;text-align:right;color:#1a1a2e;font-weight:700;">{score_str}</td>
 </tr>''')
 
     return f'''<!-- FOREIGN LAUNCH CANDIDATES -->
@@ -2343,19 +2358,21 @@ def _render_foreign_table() -> str:
     Foreign Launch Candidates
   </div>
   <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;font-style:italic;">
-    International tickers (KOSPI / TSE / TSEC / HKEX / XETRA / LSE) ranked by composite score.
+    International tickers ranked by composite score. Comp Filings = total competitor L&amp;I filings; 2x Active = a competitor already has a live 2x product on this name.
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr style="background:#1a1a2e;">
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">#</th>
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Ticker</th>
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Company</th>
-      <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Exchange</th>
+      <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">Market</th>
       <th style="padding:7px 8px;text-align:left;color:white;font-size:10px;text-transform:uppercase;">Sector</th>
       <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">Mkt Cap</th>
-      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">90d Vol</th>
-      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">1m</th>
-      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">1y</th>
+      <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">Comp Filings</th>
+      <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">Issuers</th>
+      <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">2x Live</th>
+      <th style="padding:7px 8px;text-align:center;color:white;font-size:10px;text-transform:uppercase;">REX</th>
+      <th style="padding:7px 8px;text-align:right;color:white;font-size:10px;text-transform:uppercase;">Score</th>
     </tr>
     {"".join(rows)}
   </table>
@@ -2472,9 +2489,16 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
         ''')
     flow_rows_html = "".join(flow_rows)
 
-    # IPO rows
+    # IPO rows — sort by last_round_date descending (newest first).
+    # Recently-priced rows have an IPO date in last_round_date; pre-IPO rows
+    # have the most recent tender/funding round date — both work as sort keys.
+    ipo_sorted = sorted(
+        IPO_DATA,
+        key=lambda x: (_safe_str(x.get("last_round_date")) or "1900-01-01"),
+        reverse=True,
+    )
     ipo_rows = []
-    for ipo in IPO_DATA:
+    for ipo in ipo_sorted:
         race = ipo_filers.get(ipo['ticker']) or ipo_filers.get(ipo['company']) or {}
         filers_html = render_filers_pills(race.get('filers', []))
         ipo_rows.append(f'''
@@ -2598,8 +2622,6 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
 {offensive_html}
 
 {foreign_html}
-
-{killed_section_html}
 
 <!-- MONEY FLOW -->
 <tr><td style="padding:18px 30px 5px;">
