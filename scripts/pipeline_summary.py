@@ -31,6 +31,7 @@ ET = ZoneInfo("America/New_York")
 PREFLIGHT_RESULT = DATA_DIR / ".preflight_result.json"
 DECISION_FILE = DATA_DIR / ".preflight_decision.json"
 GATE_LOG = DATA_DIR / ".gate_state_log.jsonl"
+DUPLICATE_TICKERS_AUDIT = DATA_DIR / ".duplicate_tickers_audit.json"
 STAGES_LOG = DATA_DIR / ".pipeline_stages.jsonl"
 SEND_LOG = DATA_DIR / ".send_log.json"
 PAUSED_FLAG = DATA_DIR / ".summary_paused"
@@ -187,6 +188,24 @@ def build_summary() -> str:
     # --- Stage log entries today ---
     stages_today = _today_only(_read_jsonl(STAGES_LOG), "timestamp")
     n_stages = len(stages_today)
+
+    # --- Data quality: duplicate tickers (Bug 2 audit) ---
+    dup_audit = _read_json(DUPLICATE_TICKERS_AUDIT) or {}
+    dup_count = int(dup_audit.get("duplicate_count", 0) or 0)
+    dup_rows = dup_audit.get("duplicates") or []
+    if dup_count == 0:
+        rows.append(_row(
+            "7. Duplicate-ticker audit", "ok",
+            "0 tickers with multiple rex_products rows",
+            dup_audit.get("generated_at", "")[:19],
+        ))
+    else:
+        sample = ", ".join(d["ticker"] for d in dup_rows[:5])
+        rows.append(_row(
+            "7. Duplicate-ticker audit", "warn",
+            f"{dup_count} ticker(s) shared across multiple rex_products rows ({sample}{'...' if dup_count > 5 else ''}) — see data/.duplicate_tickers_audit.json",
+            dup_audit.get("generated_at", "")[:19],
+        ))
 
     # --- HTML envelope ---
     overall_color = "#27ae60" if pf_status == "pass" else ("#e67e22" if pf_status == "warn" else "#e74c3c")

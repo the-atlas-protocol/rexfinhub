@@ -12,6 +12,12 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Phase 0b shipped** — triage patches for BUG-01 through BUG-04. See `DECISIONS/0002-phase-0b-triage-patches.md`.
+  - BUG-01 Bitcoin underlier mismatch → new `scripts/canonicalize_crypto_underliers.py` (nightly cron at 02:30 ET)
+  - BUG-02 TSII recycled-ticker false promotion → `_names_overlap()` cross-check in Phase 3 + new `scripts/audit_duplicate_tickers.py` (nightly cron at 02:35 ET) + new row in 20:15 pipeline summary email
+  - BUG-03 placeholder inception dates → inception sanity gates in Phase 3 (inception ≥ filing_date AND within 60 days)
+  - BUG-04 vanished-from-Bloomberg funds → new `phase4_demote_vanished_from_market()` (audit-only; auto-demote behind `.auto_demote_vanished` flag)
+  - `SyncStats.vanished_count` field added; `phase3` reports per-row sanity skip counts in logs.
 - Docs framework adopted: six canonical docs (`INDEX`, `SYSTEM`, `TARGET`, `RUNBOOK`, `GLOSSARY`, `LOG`) + `DECISIONS/` (ADRs) + `raw/` (preserved audits). See `DECISIONS/0001-docs-framework.md`.
 - Reshape: ~8,000-word `REXFINHUB_ARCHITECTURE.md` v3 moved to `raw/`; content split across SYSTEM (as-is), TARGET (to-be), RUNBOOK (ops).
 - Glossary bootstrapped with 15 terms-in-conflict: rex-product, capm-product, canonical-product-id, etp-category, is-rex-flag, gate, auto-go, preflight, send-pipeline, bloomberg-pull, cboe-cookie, fresh-poller, effective-date, inception-date, survivorship, underlier-master.

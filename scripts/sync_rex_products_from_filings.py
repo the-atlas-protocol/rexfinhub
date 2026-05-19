@@ -223,6 +223,7 @@ class SyncStats:
     form_transitions: int = 0
     status_promotions: int = 0
     listed_promotions: int = 0
+    vanished_count: int = 0   # Phase 4: tickers absent from mkt_master_data
     skipped_admin_override: int = 0
     skipped_already_matched: int = 0
     by_date: dict[str, int] = field(default_factory=dict)
@@ -505,9 +506,53 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
     return stats
 
 
+_NAME_BOILERPLATE = frozenset({
+    "REX", "T-REX", "TREX", "REX-OSPREY", "OSPREY", "2X", "3X", "DAILY",
+    "TARGET", "ETF", "ETN", "STRATEGY", "INCOMEMAX", "LONG", "INVERSE",
+    "SHORT", "PREMIUM", "INCOME", "GROWTH", "&", "AND", "THE", "OF",
+    "MICROSECTORS", "FUND", "TRUST", "FANG", "LEVERAGED",
+})
+
+
+def _name_tokens(name: str | None) -> set[str]:
+    """Tokenise a fund name, drop boilerplate, return uppercase set."""
+    if not name:
+        return set()
+    return {t.upper().strip(",.()-") for t in name.split() if t.strip()} - _NAME_BOILERPLATE
+
+
+def _names_overlap(a: str | None, b: str | None) -> bool:
+    """True if two fund names share at least one meaningful (non-boilerplate)
+    token. Used in Phase 3 to validate a ticker match before promoting status.
+
+    Recycled-ticker case (Bug 2): SEC reassigns TSII from "TSM Growth & Income"
+    to "TSLA Growth & Income". Ticker matches but fund names share no
+    meaningful tokens — return False so we don't promote the wrong row.
+    """
+    ta, tb = _name_tokens(a), _name_tokens(b)
+    if not ta or not tb:
+        # Fail-open when either side is missing — older rex_products rows
+        # may lack a name; ticker match alone is acceptable there.
+        return True
+    return bool(ta & tb)
+
+
 def phase3_activate_from_market(db, dry_run: bool) -> SyncStats:
     """Promote ``status='Effective'`` rex_products to 'Listed' when Bloomberg
-    says the ticker is ACTV and has an inception date.
+    says the ticker is ACTV AND inception date is sane AND fund name overlaps.
+
+    Sanity gates added 2026-05-19 (Phase 0b triage patches for Bugs 2 + 3):
+
+    1. Fund-name overlap (Bug 2 — TSII recycling case): rex_products.name
+       must share at least one non-boilerplate token with mkt_master_data
+       fund_name. Prevents promoting the wrong rex row when SEC has recycled
+       a ticker across two unrelated funds.
+
+    2. Inception-date sanity (Bug 3 — placeholder dates): the parsed
+       inception_date must be ON OR AFTER the rex_products.initial_filing_date
+       AND within the last 60 calendar days. Catches bulk-seeded placeholder
+       dates (e.g., a dozen products all stamped 2026-02-18 before they
+       actually traded).
 
     Returns a SyncStats with only listed_promotions filled in.
     """
@@ -526,25 +571,55 @@ def phase3_activate_from_market(db, dry_run: bool) -> SyncStats:
     if not eff_rows:
         return stats
 
-    # Build ticker -> (market_status, inception) index from mkt_master_data
+    # Build ticker -> (market_status, inception, fund_name) index from mkt_master_data
     mkt_rows = db.execute(select(MktMasterData)).scalars().all()
-    mkt_index: dict[str, tuple[str | None, str | None]] = {}
+    mkt_index: dict[str, tuple[str | None, str | None, str | None]] = {}
     for m in mkt_rows:
         if not m.ticker:
             continue
         key = m.ticker.strip().upper().replace(" US", "")
-        mkt_index[key] = (m.market_status, m.inception_date)
+        mkt_index[key] = (m.market_status, m.inception_date, m.fund_name)
+
+    today = date.today()
+    skipped_name_mismatch = 0
+    skipped_stale_inception = 0
+    skipped_pre_filing = 0
 
     for p in eff_rows:
         ticker_n = (p.ticker or "").strip().upper().replace(" US", "")
         info = mkt_index.get(ticker_n)
         if not info:
             continue
-        mkt_status, inception_raw = info
+        mkt_status, inception_raw, mkt_name = info
         if (mkt_status or "").upper() != "ACTV":
             continue
         inc = _parse_inception(inception_raw)
         if inc is None:
+            continue
+
+        # Bug 2 patch: fund-name cross-validation before ticker-based promotion
+        if not _names_overlap(p.name, mkt_name):
+            skipped_name_mismatch += 1
+            log.info(
+                "phase3 skip name-mismatch: rex='%s' (%s) vs mkt='%s' (%s)",
+                (p.name or "")[:50], p.ticker, (mkt_name or "")[:50], ticker_n,
+            )
+            continue
+
+        # Bug 3 patch: inception-date sanity (must be > filing and within 60d)
+        if p.initial_filing_date and inc < p.initial_filing_date:
+            skipped_pre_filing += 1
+            log.info(
+                "phase3 skip inception-before-filing: %s inc=%s filed=%s",
+                p.ticker, inc, p.initial_filing_date,
+            )
+            continue
+        if (today - inc).days > 60:
+            skipped_stale_inception += 1
+            log.info(
+                "phase3 skip stale-inception: %s inc=%s (%d days old)",
+                p.ticker, inc, (today - inc).days,
+            )
             continue
 
         overrides = _parse_overrides(p.manually_edited_fields)
@@ -565,6 +640,73 @@ def phase3_activate_from_market(db, dry_run: bool) -> SyncStats:
     if not dry_run:
         db.commit()
 
+    if skipped_name_mismatch or skipped_stale_inception or skipped_pre_filing:
+        log.info(
+            "phase3 sanity skips: name-mismatch=%d stale-inception=%d pre-filing=%d",
+            skipped_name_mismatch, skipped_stale_inception, skipped_pre_filing,
+        )
+
+    return stats
+
+
+def phase4_demote_vanished_from_market(db, dry_run: bool) -> SyncStats:
+    """Demote ``status='Listed'`` rex_products whose ticker has completely
+    disappeared from mkt_master_data (BMAX US case — Bloomberg reclaimed
+    the ticker after delisting, so we get no LIQU signal — the row is just
+    gone).
+
+    Doesn't auto-flip to Delisted (rarely there are transient drop-outs).
+    Instead it logs a warning so the morning summary surfaces the candidate.
+    Auto-demotion behind an explicit opt-in flag .auto_demote_vanished — see
+    DECISIONS/0005-vanished-from-bloomberg.md (proposed).
+
+    Returns a SyncStats with vanished_count populated.
+    """
+    from sqlalchemy import select
+    from webapp.models import RexProduct, MktMasterData
+
+    stats = SyncStats()
+
+    listed_rows = db.execute(
+        select(RexProduct).where(
+            RexProduct.status == "Listed",
+            RexProduct.ticker.is_not(None),
+        )
+    ).scalars().all()
+
+    if not listed_rows:
+        return stats
+
+    mkt_tickers = {
+        m.ticker.strip().upper().replace(" US", "")
+        for m in db.execute(select(MktMasterData.ticker)).all()
+        if m[0]
+    }
+
+    auto_demote = (PROJECT_ROOT / "data" / ".auto_demote_vanished").exists()
+
+    vanished = []
+    for p in listed_rows:
+        ticker_n = (p.ticker or "").strip().upper().replace(" US", "")
+        if ticker_n in mkt_tickers:
+            continue
+        vanished.append(p)
+        log.warning(
+            "phase4 ticker vanished from Bloomberg: %s (%s) — rex still Listed",
+            p.ticker, (p.name or "")[:60],
+        )
+        if auto_demote:
+            overrides = _parse_overrides(p.manually_edited_fields)
+            if "status" not in overrides:
+                if not dry_run:
+                    _audit(db, "UPDATE", p.id, "status", p.status, "Delisted",
+                           (p.ticker or p.name or f"#{p.id}")[:60])
+                    p.status = "Delisted"
+
+    if not dry_run and auto_demote and vanished:
+        db.commit()
+
+    stats.vanished_count = len(vanished)
     return stats
 
 
@@ -684,10 +826,15 @@ def main(argv: list[str] | None = None) -> int:
         stats1 = phase1_2_sync_filings(db, since=since, dry_run=dry_run,
                                          trust_ciks=trust_ciks_norm)
         stats3 = phase3_activate_from_market(db, dry_run=dry_run)
+        stats4 = phase4_demote_vanished_from_market(db, dry_run=dry_run)
     finally:
         db.close()
 
     _print_report(stats1, stats3, since, dry_run)
+    if stats4.vanished_count:
+        print(f"\nPhase 4 (vanished from Bloomberg): {stats4.vanished_count} "
+              f"Listed ticker(s) absent from mkt_master_data. "
+              f"See logs; auto-demote behind .auto_demote_vanished flag.")
 
     if not dry_run:
         write_watermark(date.today())
