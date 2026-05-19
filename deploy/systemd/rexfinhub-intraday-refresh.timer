@@ -1,0 +1,16 @@
+[Unit]
+Description=REX FinHub Intraday Refresh Timer (4x/day, weekdays)
+# Phase 1 Cut 3 (ADR 0005): renamed from rexfinhub-sec-scrape.timer.
+
+[Timer]
+# VPS timezone set to America/New_York — DST handled automatically.
+# Same 4x/day rhythm as the old sec-scrape timer; intraday_refresh.py decides
+# inside whether to run the full pipeline or the --skip-sec fast path.
+OnCalendar=Mon..Fri 08:00:00
+OnCalendar=Mon..Fri 12:00:00
+OnCalendar=Mon..Fri 16:00:00
+OnCalendar=Mon..Fri 20:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

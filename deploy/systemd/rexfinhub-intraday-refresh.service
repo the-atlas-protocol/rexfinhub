@@ -1,0 +1,24 @@
+[Unit]
+Description=REX FinHub Intraday Refresh (artifact rebuild + Render upload, 4x/day)
+# Phase 1 Cut 3 (ADR 0005): renamed from rexfinhub-sec-scrape. The SEC scrape
+# half is delegated to rexfinhub-fresh-poller.timer (15-min cadence). This
+# unit now focuses on the artifact rebuild + Render upload.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET (audit fix R7).
+Environment=TZ=America/New_York
+Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
+# intraday_refresh.py checks .poll_fresh_filings.log mtime: if fresh-poller ran
+# in the last 30 min it calls run_daily.py --skip-sec (fast path, ~5-8 min).
+# Otherwise it falls back to the full run_daily.py (~15-20 min) so we never
+# silently miss SEC filings if fresh-poller is stuck.
+ExecStart=/home/jarvis/venv/bin/python scripts/intraday_refresh.py
+TimeoutStartSec=7200
+StandardOutput=journal
+StandardError=journal

@@ -123,6 +123,18 @@ All times Eastern. Mon-Fri unless noted.
 
 Secret values never appear in this doc — only locations + rotation status. See `DECISIONS/0003-rotate-exposed-secrets.md` (proposed).
 
+### scraper-pathways
+
+Three pathways with distinct roles (ADR 0005 — closed Phase 1 Cut 3):
+
+| Unit | Cadence | Source | CIK universe | Writes | Latency |
+|---|---|---|---|---|---|
+| `rexfinhub-atom-watcher.service` (daemon) | every 60 s, 24/7 | SEC atom feed | ALL filers | `filing_alerts`; auto-creates `trusts` | ~1-3 min |
+| `rexfinhub-fresh-poller.timer` | every 15 min, Mon-Fri 08:00-20:45 ET | SEC submissions JSON + daily-index pre-flight | curated ~290 | `filings` + `rex_products` | ~15-20 min |
+| `rexfinhub-intraday-refresh.timer` (was `rexfinhub-sec-scrape.timer`) | 4×/day, Mon-Fri 08:00/12:00/16:00/20:00 ET | (delegated; skips scrape if fresh-poller is fresh) | (delegated) | classification + screener + parquets + DB compact + Render upload | ~5-8 min fast path |
+
+The intraday-refresh wrapper (`scripts/intraday_refresh.py`) reads `data/.poll_fresh_filings.log` mtime: if fresh-poller ran within 30 min, calls `run_daily.py --skip-sec`. Otherwise calls full `run_daily.py` as a safety fallback. See `DECISIONS/0005-scraper-merge-analysis.md`.
+
 ### known-bugs
 
 - BUG-01: ~~Bitcoin shows 0 competitors~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — canonicalization script normalizes crypto underliers to XBTUSD/XETUSD nightly. Index-type underliers (BMAXATCL Index) still affected; structural fix in Phase 4.
