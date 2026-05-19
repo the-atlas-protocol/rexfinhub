@@ -141,6 +141,7 @@ Phase 0a — Security hardening (2-3 days). DEFERRED per Ryu 2026-05-19.
 Phase 1 — Cuts: kill 09:00 sweep, kill weekly trust universe sync, merge 4 Bloomberg-chain post-steps to 1 script, extend D-drive sync (1 week).
 ~~Phase 2 — Admin pages~~ **SHIPPED 2026-05-19** — see `DECISIONS/0004-phase-2-admin-pages.md`. `/admin/cboe-cookie` replaces the SSH skill (paste-and-submit, 15 sec). Inline target-inception editor on `/operations/pipeline`: column renamed to "Target Inception", `＋ set` affordance on empty cells, JS endpoint switched to `/admin/rex-products/update/{id}` so edits register as manual overrides in `manually_edited_fields` (was silently clobbered by the daily Bloomberg-chain sweep before this fix).
 Phase 2 — Admin pages: `/admin/cboe-cookie`, inline `target_inception_date` editor on `/operations/pipeline` (1 week).
+~~Phase 3 — Merge `capm_products` into `rex_products`~~ **STAGES 1-3 SHIPPED 2026-05-19** (PR #24, ADR 0007). Schema migrated; 74/74 CapM rows backfilled into `rex_products`; `/operations/products` route refactored to 2-way merge. Stages 4-5 (grace period + drop table) deferred to ≥2026-05-26.
 Phase 3 — Merge `capm_products` into `rex_products`. Drop `capm_products` (1 week).
 Phase 4 — Build `product_master.canonical_id` + polymorphic `underlier_master` (2-3 weeks).
 Phase 5 — Build `status_history` bi-temporal table; 3-source rule for `Listed` promotion; auto-detect Bloomberg-vanished funds (2 weeks).
