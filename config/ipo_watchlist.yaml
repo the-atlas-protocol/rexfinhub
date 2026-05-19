@@ -46,10 +46,10 @@ high_profile_pre_ipo:
     as_of_date: "2026-05-18"
 
   - ticker: xAI
-    company: xAI
+    company: xAI (post-X/Twitter merger)
     date: "Speculative (2026-2027)"
     valuation: "~$200B (2026 funding round; Grok 3 + Memphis cluster)"
-    desc: "Grok models, Musk-led. Memphis 100K H100 cluster + Tesla/X integration narrative. Valuation 4x'd in 12 months on training-compute scale."
+    desc: "Grok foundation models. Musk's other AI co. xAI absorbed X (formerly Twitter) in the 2025 merger — NOT related to SpaceX. Memphis 100K H100 cluster + X-feed integration drives training data advantage."
     valuation_usd: 200.0
     last_round_date: "2026-03-08"
     source_url: "https://www.ft.com/content/xai-200b-valuation-2026"
@@ -101,17 +101,6 @@ high_profile_pre_ipo:
     as_of_date: "2026-05-18"
 
   # ---------- AI Infrastructure / Chips ----------
-  - ticker: Cerebras
-    company: Cerebras Systems
-    date: "Has filed S-1 (under CFIUS review)"
-    valuation: "Targeted ~$8B at filing"
-    desc: "Wafer-scale AI accelerator chips. AI-infra exposure outside the Nvidia trade. CFIUS review tied to G42 (UAE) backing."
-    valuation_usd: 8.0
-    last_round_date: "2024-09-30"
-    source_url: "https://www.reuters.com/technology/cerebras-files-ipo-2024-09-30/"
-    expected_ipo_window: "Filed S-1"
-    as_of_date: "2026-05-18"
-
   - ticker: Groq
     company: Groq Inc
     date: "Speculative"
@@ -334,6 +323,17 @@ high_profile_pre_ipo:
 # valuation_usd is post-IPO market cap when known; null when not material.
 # ===========================================================================
 recently_priced:
+
+  - ticker: CBRS
+    company: Cerebras Systems
+    date: "IPO'd (post-CFIUS)"
+    valuation: "Public — wafer-scale AI accelerator"
+    desc: "Wafer-scale AI accelerator chips. Public market AI-infra exposure outside the Nvidia trade."
+    valuation_usd: null
+    last_round_date: "2024-09-30"
+    source_url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=CBRS"
+    expected_ipo_window: "Priced"
+    as_of_date: "2026-05-18"
 
   - ticker: ALMR
     company: Alamar Biosciences
