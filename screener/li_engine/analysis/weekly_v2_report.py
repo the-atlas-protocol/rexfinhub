@@ -2451,13 +2451,42 @@ def _build_defensive_from_recent_filings(cards: list[dict],
         rec["issuers"].add(_safe_str(row.get("registrant")))
         rec["fund_names"].add(_safe_str(row.get("series_name")))
 
+    # Fetch market metrics from mkt_master_data for any ticker not already in
+    # the whitespace_v4 cards. Most defensive tickers (CBRS, KIOXIA, etc.) live
+    # outside the candidate universe but Bloomberg still has them.
+    mkt_lookup: dict[str, dict] = {}
+    needed = [t for t in by_ticker if t not in cards_by_ticker]
+    if needed:
+        try:
+            conn = sqlite3.connect(str(DB))
+            placeholders = ",".join("?" for _ in needed)
+            mkt_df = pd.read_sql_query(
+                f"""
+                SELECT ticker_clean AS ticker, fund_name, sector,
+                       market_cap, rvol_90d, ret_1m, ret_1y, mentions_24h
+                FROM mkt_master_data
+                WHERE UPPER(ticker_clean) IN ({placeholders})
+                """,
+                conn, params=needed,
+            )
+            conn.close()
+            for _, mr in mkt_df.iterrows():
+                t = _safe_str(mr.get("ticker")).upper()
+                if t:
+                    mkt_lookup[t] = mr.to_dict()
+        except Exception as e:
+            log.info("mkt_master_data enrichment skipped: %s", e)
+
     # Build synthetic Defensive cards
     synthetic: list[dict] = []
     for ticker, rec in by_ticker.items():
-        src = cards_by_ticker.get(ticker, {})
+        src = cards_by_ticker.get(ticker) or mkt_lookup.get(ticker) or {}
+        # Field name compat: whitespace cards use 'company_name', mkt uses 'fund_name'
+        company = (src.get("company_name") or src.get("fund_name")
+                   or sorted(rec["fund_names"])[0] if rec["fund_names"] else ticker)
         synthetic.append({
             "ticker": ticker,
-            "company_name": src.get("company_name") or "—",
+            "company_name": company,
             "sector": src.get("sector") or "—",
             "tier": src.get("tier") or "WATCH",
             "orientation": "DEFENSIVE",
