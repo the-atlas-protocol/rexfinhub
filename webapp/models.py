@@ -968,6 +968,30 @@ class RexProduct(Base):
     # an admin via /admin/rex-products/update/{id}. The daily classifier +
     # bloomberg-chain sweeps consult this to avoid clobbering admin edits.
     manually_edited_fields: Mapped[str | None] = mapped_column(Text)
+
+    # === Phase 3 (ADR 0007): CapM-derived columns ===
+    # Merged from the former capm_products table on 2026-05-19. All nullable;
+    # backfilled by scripts/migrate_capm_data_to_rex.py from the 74-row CapM
+    # overlay. See docs/DECISIONS/0007-merge-capm-and-rex-products.md.
+    bb_ticker: Mapped[str | None] = mapped_column(String(30))
+    inception_date: Mapped[date | None] = mapped_column(Date)
+    issuer: Mapped[str | None] = mapped_column(String(200))
+    fixed_fee: Mapped[str | None] = mapped_column(String(20))
+    variable_fee: Mapped[str | None] = mapped_column(String(50))
+    cut_off: Mapped[str | None] = mapped_column(String(20))
+    custodian: Mapped[str | None] = mapped_column(String(100))
+    our_category: Mapped[str | None] = mapped_column(String(50))
+    product_type: Mapped[str | None] = mapped_column(String(50))
+    category: Mapped[str | None] = mapped_column(String(50))
+    sub_category: Mapped[str | None] = mapped_column(String(50))
+    leverage: Mapped[str | None] = mapped_column(String(10))
+    underlying_ticker: Mapped[str | None] = mapped_column(String(50))
+    underlying_name: Mapped[str | None] = mapped_column(String(300))
+    # CapM's expense_ratio coexists with rex's mgt_fee. Phase 5 survivorship
+    # resolves which wins. KEEP BOTH for now.
+    expense_ratio: Mapped[float | None] = mapped_column(Float)
+    bmo_suite: Mapped[str | None] = mapped_column(String(50))
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

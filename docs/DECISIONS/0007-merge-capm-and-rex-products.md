@@ -10,6 +10,14 @@ deciders: Ryu El-Asmar
 
 ## Context
 
+**Audit data (2026-05-19)**:
+- `capm_products`: **74 rows**
+- `rex_products`: **541 rows**
+- Overlap: **100% of CapM tickers exist in `rex_products`** — every merge target is an UPDATE, not an INSERT.
+- `capm_audit_log`: 1,263 rows. The `table_name` column already supports `'rex_products'` (verified during Phase 2 work) — same log serves both tables.
+- No FK constraints point at `capm_products.id`. No unique constraint conflicts on merge.
+- **Critical asymmetry**: CapM has better `direction` data (concrete "Long"/"Short"/"Both") than Rex (mostly NULL). Migration must NOT silently overwrite CapM direction with Rex's NULL.
+
 The database has two parallel products tables that should be one:
 
 - **`rex_products`** — the lifecycle tracker. Source of truth for `Under Consideration → Filed → Effective → Target List → Listed → Delisted` status. SEC-derived (CIK, series_id, class_contract_id, filing dates). Drives `/operations/pipeline`.
@@ -68,18 +76,30 @@ Type reconciliation:
 - After stage 1: `rex_products` has the new columns (NULL for all existing rows); `capm_products` unchanged; no code reads the new columns yet.
 
 **Stage 2 — Data backfill**.
-- New script `scripts/migrate_capm_data_to_rex.py`. For each `capm_products` row:
+- New script `scripts/migrate_capm_data_to_rex.py`. Given the 100% overlap, every CapM row maps to an existing Rex row via ticker. For each `capm_products` row:
   1. Find matching `rex_products` row by `ticker` (case-insensitive, trim).
-  2. If found: copy CapM fields into the new columns (only fill NULLs — never overwrite an existing rex_products value).
-  3. If not found: insert a new `rex_products` row with `status=NULL` (no lifecycle inferred) and CapM data populated.
-- Reports: rows updated / rows created / rows skipped (with reason).
+  2. **Survivorship rules** (per-field):
+     - `direction`: **CapM wins when CapM is non-NULL** (Rex's NULLs get filled). This is the one exception to "never overwrite Rex" because Rex's direction is empirically incomplete and CapM's is hand-curated.
+     - `name` ← `fund_name` only if Rex's `name` is empty.
+     - `product_suite` ← `suite_source` only if Rex's `product_suite` is empty.
+     - `latest_prospectus_link` ← `prospectus_link` only if Rex's is empty.
+     - `competitors` ← `competitor_products` only if Rex's is empty.
+     - All new CapM-only columns (`bb_ticker`, `inception_date`, `issuer`, fee fields, `our_category`, `product_type`, `category`, `sub_category`, `leverage`, `underlying_*`, `expense_ratio`, `bmo_suite`) populated unconditionally.
+     - `manually_edited_fields`: union the two sets — admin edits on either side are preserved.
+  3. If no matching ticker (should not happen per audit, but defensive): log + skip.
+- Reports: rows updated / rows where direction was filled / rows skipped (with reason).
 - Idempotent — running twice is a no-op after the first run.
 
 **Stage 3 — Repoint routes + services to read `rex_products`**.
-- `webapp/routers/capm.py::_capm_index_impl` 3-way merge becomes a 2-way merge (`rex_products` + `mkt_master_data`).
+- `webapp/routers/capm.py::_capm_index_impl` (lines 155-463) 3-way merge becomes a 2-way merge (`rex_products` + `mkt_master_data`). 210 lines of JOIN logic simplifies considerably.
+- `webapp/routers/capm.py::_capm_export_impl` (CSV export at `/operations/products/export.csv`) queries CapM directly today — switches to `rex_products`.
+- `webapp/routers/capm.py::_capm_update_impl` writes to CapM today. After merge, it writes to `rex_products` (or delegate to the existing `/admin/rex-products/update/{id}` route from Phase 2).
+- `webapp/routers/dashboard.py:221-222` uses `CapMProduct.count()` for a sidebar KPI — flip to RexProduct.
 - `webapp/routers/admin_products.py::update_product` already writes `rex_products` (verified during Phase 2 work) — no change needed.
+- `webapp/templates/capm.html` (529 lines) — most rendering logic unchanged, but field names update where they were ambiguous (`fund_name` → `name`, etc.).
 - Flow report builders that read `capm_products` for issuer/competitor mappings switch to `rex_products`.
 - `scripts/import_capm.py` (the source-of-truth reconciler for CapM xlsx imports) gets a `--target rex_products` flag; default stays `capm_products` during the dual-write window.
+- `webapp/database.py::_capm_seed_if_empty()` is replaced by `_rex_seed_capm_columns_if_empty()` — same safety guard (skip if `capm_audit_log` has entries), reads from a NEW seed file `webapp/data_static/rex_products_capm_overlay.csv` containing only the 18 CapM-derived columns keyed by ticker. The original `capm_products.csv` is kept under `webapp/data_static/` for revert.
 
 **Stage 4 — Dual-write grace period (1 week)**.
 - `capm_products` table NOT dropped.
@@ -101,7 +121,8 @@ Revert path at any stage: re-enable the previous stage's reads. Schema columns a
 
 - The 4-axis classification (`our_category`, `product_type`, `category`, `sub_category`) moves with the data but its replacement (single `classification_override` table) is Phase 6 work.
 - `RexProduct.expense_ratio` (from CapM) and `RexProduct.mgt_fee` (SEC) coexist with NULL semantics until Phase 5 survivorship rules.
-- The `capm_audit_log` table is NOT renamed yet — the table_name column already supports `'rex_products'` rows, so the existing log records both. A future rename to `product_audit_log` is a cosmetic Phase 6+ change.
+- The `capm_audit_log` table is NOT renamed yet — the table_name column already supports `'rex_products'` rows (verified during Phase 2 work; admin_rex_products.py writes there with `table_name='rex_products'`). The existing 1,263 historic CapM rows stay as-is with `table_name='capm_products'` for historical traceability. A future rename to `product_audit_log` is a cosmetic Phase 6+ change.
+- `capm_trust_aps` (40 rows, separate table, no FK to capm_products) is **OUT OF SCOPE** for Phase 3. Its merge into a unified `trust_aps` table is a future smaller ADR if needed.
 
 ## Consequences
 
