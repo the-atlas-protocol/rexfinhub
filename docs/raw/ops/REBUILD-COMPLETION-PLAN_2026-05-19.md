@@ -233,18 +233,24 @@ verified working tonight (FULL run, rc=2, send correctly gate-blocked).
 
 ### Track 3 — Phase 4b: Underlier Completion  *(this worktree's named purpose)*
 
-**Objective:** every REX product has a fully resolved, typed underlier. This is
-the BUILD half of Phase 4b; the column drop is Track 4b.
+**Objective:** every Listed REX product resolves to a typed (non-unknown)
+underlier. The freeform-column drop is Track 4b.
 
-| # | Step | Type |
-|---|---|---|
-| 3.1 | Classify the **12 remaining unknown underliers** — they are alt-coin / custom baskets with no FIGI. Model them directly as `basket` or `crypto_pair` type (same pattern as `fix_microsectors_underliers.py`), not via OpenFIGI. Define basket constituents where known. | [BUILD] |
-| 3.2 | Wire an **OpenFIGI client** for the `equity`/`etp`-type underliers that *do* have FIGIs — populate `underlier_master.primary_figi`. Free tier (25 req / 6 s) is sufficient at this volume; batch with backoff. | [BUILD] |
-| 3.3 | Re-run the underlier coverage assertion. Target: **0 unknown** underliers; every Listed REX product has a `fund_underlier` link. | [PROVE] |
-| 3.4 | Add a permanent assertion: "every active product resolves to a typed underlier" — so regressions surface in the morning triage. | [BUILD] |
+**Audit (2026-05-20) — replanned.** `underlier_master` had **15** rows typed
+`unknown`, not 12. Only **2** of the 15 actually affect REX products; the other
+13 are orphan rows that entered via the full competitor universe in
+`mkt_master_data` and no REX fund links them.
 
-**Dependencies:** none for 3.1–3.4. **Verification:** assertion suite shows
-100% underlier coverage; `underlier_master` has zero `underlier_type='unknown'`.
+| # | Step | Type | Status |
+|---|---|---|---|
+| 3.1 | Repoint the **5 MicroSectors 3X ETNs** (FNGU, NRGU, NRGD, BNKU, BNKD) off the junk `0` underlier onto the correct Solactive/NYSE index underliers. `fix_microsectors_underliers.py` had skipped them — it only handled funds with *no* link; these had a *wrong* link. | [BUILD] | `fix_underlier_classification.py` |
+| 3.2 | Reclassify the **13 orphan `unknown` rows** + the `-` row (ULTI) to their correct polymorphic types — `commodity` (XAU/XAG), `crypto_pair` (the alt-coins), `basket` (multi-crypto, ULTI's option-strategy). | [BUILD] | same script |
+| 3.3 | Strengthen the `underlier_id_coverage` assertion to flag a Listed fund linked to an `unknown`-type underlier, not just a missing link — catches the junk-underlier class permanently. | [BUILD] | `run_assertions.py` |
+| 3.4 | OpenFIGI `primary_figi` enrichment — **descoped from the critical path** (audit replan). The equities are already correctly typed; `primary_figi` has no current consumer. Optional future enrichment. | [DESCOPED] | — |
+
+**Dependencies:** none. **Verification:** after `fix_underlier_classification.py`,
+`underlier_master` has exactly 1 `unknown` row (the literal junk `0`, which no
+fund references), and 0 Listed REX funds link to an unknown-type underlier.
 
 ---
 
