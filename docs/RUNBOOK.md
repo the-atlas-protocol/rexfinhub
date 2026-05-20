@@ -15,7 +15,7 @@ Three touchpoints. Everything else fires automatically.
 
 | Time (ET) | Touchpoint | What it takes |
 |---|---|---|
-| 08:00 | Read morning `[PIPELINE]` summary email | ~2 min — scan, triage any red items by asking Claude to investigate |
+| 08:00 | Read morning `[REX TRIAGE]` email | ~2 min — scan, triage any red items by asking Claude to investigate |
 | 09:00-17:30 | Paste CBOE cookie at `/admin/cboe-cookie` when banner shows stale (ONLY when stale, not daily) | 15 sec — see `### touchpoint-cboe-cookie` |
 | (4:30-5:30 PM no longer applies) | Bloomberg file pulls itself via Graph API from SharePoint at 17:15 ET. No action. | 0 — see `### touchpoint-bloomberg-pull` (this is the change from the old workflow) |
 | Anytime | When a new REX filing appears in `Under Consideration`/`Target List`, enter target inception date on `/operations/pipeline` | 30 sec — see `### touchpoint-pipeline-inception-date` |
@@ -64,7 +64,7 @@ When a new REX product is filed and appears on `/operations/pipeline`:
 
 Email contents:
 - Overall ALL CLEAR / N ITEMS badge at top
-- 15 assertions grouped by category (freshness / classification / lifecycle / send_pipeline / integrity)
+- 25 assertions grouped by category (freshness / classification / lifecycle / send_pipeline / integrity)
 - Failed assertions inline-render with sample failures + ticker/canonical_id
 
 **Triage flow**:
@@ -171,6 +171,5 @@ If something feels off but no email said so:
 
 ### known-gaps
 
-- GAP-01: This runbook documents future-state touchpoints (Phase 2 admin pages) that don't yet exist. Sections marked "Future" describe the target, not current capability.
-- GAP-02: No `/admin/dashboard` that shows live status (gate state, last preflight outcome, secret-expiry warnings). Today these checks require SSH.
-- GAP-03: No way to triage from mobile. The 08:00 email is readable but action requires being at a desk.
+- GAP-01: No single `/admin/dashboard` showing live status (gate state, last preflight outcome, secret-expiry warnings) in one view. `/admin/system-state` (Phase 7B) covers flags + preflight runs + events; a fully unified dashboard is still missing.
+- GAP-02: No way to triage from mobile. The 08:00 email is readable but action requires being at a desk.

@@ -1,7 +1,7 @@
 ---
 adr: 0006
 title: Phase 4 — Canonical product identifier + polymorphic underlier
-status: proposed
+status: accepted
 date: 2026-05-19
 deciders: Ryu El-Asmar
 ---

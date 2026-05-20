@@ -1,7 +1,7 @@
 ---
 adr: 0007
 title: Phase 3 — Merge capm_products into rex_products
-status: proposed
+status: accepted
 date: 2026-05-19
 deciders: Ryu El-Asmar
 ---

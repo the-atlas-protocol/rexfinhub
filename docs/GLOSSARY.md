@@ -39,10 +39,10 @@ updated: 2026-05-19
 ### canonical-product-id
 
 **Definition**: Synthetic UUID primary key for a REX product. Stable across ticker recycling, fund-name changes, and identifier rotations. Backed by `product_master.canonical_id` in the target architecture.
-**Where it lives**: `product_master` table (proposed — see [TARGET.md#data-model](TARGET.md#data-model)).
+**Where it lives**: `product_master.canonical_id`; also `rex_products.canonical_id` (FK). See [TARGET.md#data-model](TARGET.md#data-model).
 **Synonyms**: product UUID, canonical ID.
-**Not to be confused with**: [[rex-product]] row PK (currently `rex_products.id` integer).
-**Status**: proposed (Phase 4 of the rebuild roadmap).
+**Not to be confused with**: [[rex-product]] row PK (`rex_products.id` integer).
+**Status**: canonical — Phase 4 schema + backfill shipped 2026-05-19.
 
 ### capm-product
 
@@ -50,7 +50,7 @@ updated: 2026-05-19
 **Where it lives**: `capm_products` table; admin edit UI at `/admin/rex-products`.
 **Synonyms**: capm row, curated product row.
 **Not to be confused with**: [[rex-product]] (which covers all 552 REX products, but lacks the Capital Markets fields).
-**Status**: deprecated — Phase 3 of rebuild merges these columns into `rex_products` and drops this table. See `DECISIONS/0002-merge-capm-and-rex-products.md` (proposed).
+**Status**: deprecated — Phase 3 merged these columns into `rex_products` (Stages 1-3 shipped 2026-05-19); the table will be dropped after the dual-write proof gate (Track 4a). See `DECISIONS/0007-merge-capm-and-rex-products.md` (accepted).
 
 ### cboe-cookie
 
@@ -58,7 +58,7 @@ updated: 2026-05-19
 **Where it lives**: `config/.env` on VPS; consumed by `webapp/services/cboe/*` and `scripts/run_cboe_scan.py`.
 **Synonyms**: CBOE session, sessionid.
 **Not to be confused with**: any other API key (CBOE is browser-session-based, not API-key-based).
-**Status**: canonical. Rotation flow: paste 32-char token via `/cboe-cookie` skill (today) or `/admin/cboe-cookie` page (proposed Phase 2).
+**Status**: canonical. Rotation flow: paste the 32-char token at the `/admin/cboe-cookie` page (Phase 2, shipped 2026-05-19) or via the `/cboe-cookie` SSH skill (fallback).
 
 ### effective-date
 
@@ -70,18 +70,18 @@ updated: 2026-05-19
 
 ### etp-category
 
-**Definition**: REX's proprietary taxonomy assigning each ETP to one of LI / CC / Crypto / Defined / Thematic (or NULL if out-of-scope). Populated by `market/auto_classify.py` + `config/rules/fund_mapping.csv` overrides; planned to migrate to `classification_override` table.
+**Definition**: REX's proprietary taxonomy assigning each ETP to one of LI / CC / Crypto / Defined / Thematic (or NULL if out-of-scope). Resolved by the classification resolver: `classification_override` table → Bloomberg value → `market/auto_classify.py` auto-classifier.
 **Where it lives**: `mkt_master_data.etp_category`.
 **Synonyms**: REX taxonomy category, fund category.
 **Not to be confused with**: Bloomberg's own classification fields (which we ignore).
-**Status**: canonical (today). Migration target: replace CSV-based overrides with `classification_override` table — Phase 6.
+**Status**: canonical. CSV-based overrides replaced by the `classification_override` table (Phase 6 shipped 2026-05-19); the 6 legacy rule CSVs are pending deletion (Track 4c).
 
 ### fresh-poller
 
 **Definition**: SEC EDGAR atom-feed watcher running every 15 minutes during market hours. Detects new 485-series filings within 1-3 minutes of SEC acceptance and inserts to `filing_alerts`. Auto-creates `trusts` rows for previously unknown CIKs.
 **Where it lives**: `etp_tracker/atom_watcher.py`, `scripts/poll_fresh_filings.py`, systemd `rexfinhub-fresh-poller.timer`.
 **Synonyms**: atom watcher, fresh-filings poller, edgar watcher.
-**Not to be confused with**: the 4×/day batch scrape (`rexfinhub-sec-scrape.timer`), which is the slower fallback.
+**Not to be confused with**: the 4×/day intraday refresh (`rexfinhub-intraday-refresh.timer`), which handles classification/screener/upload, not filing discovery.
 **Status**: canonical.
 
 ### gate
@@ -142,16 +142,16 @@ updated: 2026-05-19
 
 ### survivorship
 
-**Definition**: Deterministic rule for picking which data source wins when SEC, Bloomberg, CBOE, and manual overrides disagree on a single field. Per-field source priority (e.g., for `inception_date`: CBOE listing notice > exchange Form 25 > Bloomberg ACTV first-seen > manual). Not yet codified — planned as part of the rebuild.
-**Where it lives**: planned in `webapp/services/survivorship.py` (proposed Phase 5).
+**Definition**: Deterministic rule for picking which data source wins when SEC, Bloomberg, CBOE, and manual overrides disagree on a single field. Per-field source priority (e.g., for `inception_date`: CBOE listing notice > exchange Form 8-A > Bloomberg ACTV first-seen > manual). Codified as part of Phase 5.
+**Where it lives**: `webapp/services/survivorship.py` (shipped Phase 5); priority table in [TARGET.md#survivorship](TARGET.md#survivorship).
 **Synonyms**: source precedence, golden-record rule.
 **Not to be confused with**: classification override (which is a manual write, not a survivorship rule).
-**Status**: proposed.
+**Status**: canonical.
 
 ### underlier-master
 
 **Definition**: Polymorphic table mapping `underlier_id` → typed reference (equity / etp / index / crypto_pair / basket / commodity / fx / rate) with appropriate identifier per type (FIGI for stocks/ETPs/crypto via OpenFIGI; index_code for indices; etc.). Replaces string-based underlier columns in `mkt_master_data` and `rex_products`.
-**Where it lives**: planned in `underlier_master` table (Phase 4).
+**Where it lives**: `underlier_master` table (shipped Phase 4, 2026-05-19); fund↔underlier links in `fund_underlier`.
 **Synonyms**: underlier dimension, polymorphic underlier.
-**Not to be confused with**: `map_li_underlier` / `map_cc_underlier` / `map_crypto_underlier` string columns (today's broken state).
-**Status**: proposed.
+**Not to be confused with**: `map_li_underlier` / `map_cc_underlier` / `map_crypto_underlier` string columns (the legacy freeform state, pending removal in Phase 4b).
+**Status**: canonical.

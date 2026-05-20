@@ -992,6 +992,17 @@ class RexProduct(Base):
     expense_ratio: Mapped[float | None] = mapped_column(Float)
     bmo_suite: Mapped[str | None] = mapped_column(String(50))
 
+    # === Phase 4 (ADR 0006): canonical identity ===
+    # FK into product_master.canonical_id; backfilled by
+    # scripts/backfill_product_master.py. Nullable until Phase 4b makes it
+    # NOT NULL after the freeform-column drop.
+    canonical_id: Mapped[str | None] = mapped_column(String(36))
+
+    # === Phase 5 (ADR 0008): denormalized status cache ===
+    # Mirror of the open status_history row; maintained by the reconciler.
+    # status_history is authoritative — this column is a read cache only.
+    status_cached: Mapped[str | None] = mapped_column(String(30))
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
