@@ -723,18 +723,39 @@ def upload_db_to_render():
         gz_mb = Path(gz_path).stat().st_size / 1e6
         print(f"{gz_mb:.0f} MB")
 
-        with open(gz_path, "rb") as f:
-            resp = requests.post(
-                f"{RENDER_API_URL}/db/upload",
-                files={"file": ("etp_tracker.db.gz", f, "application/gzip")},
-                headers=headers,
-                timeout=600,
-            )
-        if resp.status_code == 200:
-            print(f"  Uploaded to Render ({gz_mb:.0f} MB compressed)")
+        # 2026-05-19: Render API has been returning "Response ended
+        # prematurely" / IncompleteRead on the 88 MB POST. Adding
+        # retry-with-exponential-backoff. Three attempts: 0s, 30s, 90s.
+        max_attempts = 3
+        last_err = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                if attempt > 1:
+                    backoff = 30 if attempt == 2 else 90
+                    print(f"  Retry {attempt}/{max_attempts} after {backoff}s sleep...",
+                          flush=True)
+                    import time as _t
+                    _t.sleep(backoff)
+                with open(gz_path, "rb") as f:
+                    resp = requests.post(
+                        f"{RENDER_API_URL}/db/upload",
+                        files={"file": ("etp_tracker.db.gz", f, "application/gzip")},
+                        headers=headers,
+                        timeout=600,
+                    )
+                if resp.status_code == 200:
+                    print(f"  Uploaded to Render ({gz_mb:.0f} MB compressed) on attempt {attempt}/{max_attempts}")
+                    break
+                last_err = f"HTTP {resp.status_code} {resp.text[:200]}"
+                print(f"  attempt {attempt} got HTTP {resp.status_code}; retrying")
+            except (requests.exceptions.ConnectionError,
+                    requests.exceptions.ChunkedEncodingError,
+                    requests.exceptions.ReadTimeout) as net_err:
+                last_err = str(net_err)
+                print(f"  attempt {attempt} network error: {net_err}; retrying")
         else:
             raise RuntimeError(
-                f"Render DB upload failed: HTTP {resp.status_code} {resp.text[:200]}"
+                f"Render DB upload failed after {max_attempts} attempts: {last_err}"
             )
     except RuntimeError:
         raise
