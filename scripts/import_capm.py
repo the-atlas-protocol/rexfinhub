@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Import Capital Markets Product List from Excel into capm_products table.
+"""Import Capital Markets Product List from Excel into rex_products.
 
 Reads per-suite operational sheets (T-REX, REX, REX-OSPREY, BMO) and the
-ALL PRODUCTS LIST classification sheet, merges by ticker, and upserts into
-the DB.
+ALL PRODUCTS LIST classification sheet, merges by ticker, and upserts the
+CapM fields into rex_products. (capm_products was retired in Track 4a —
+rex_products is the single product table.)
 
 Usage:
     python scripts/import_capm.py
@@ -13,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from datetime import date, datetime, time
@@ -23,10 +25,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)
 
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import func, text
 
 from webapp.database import init_db, SessionLocal
-from webapp.models import CapMProduct, CapMTrustAP
+from webapp.models import CapMTrustAP, RexProduct
 
 DEFAULT_FILE = Path.home() / "Downloads" / "Capital Markets Product List .xlsx"
 
@@ -255,6 +257,45 @@ def fill_bmo_suites(products: dict[str, dict], wb_path: str) -> None:
     wb.close()
 
 
+# --- Track 4a: import target is rex_products (capm_products retired) -------
+# Identity columns — fill only when rex_products' value is empty.
+_COND_FILLS = {
+    "fund_name":           "name",
+    "suite_source":        "product_suite",
+    "prospectus_link":     "latest_prospectus_link",
+    "competitor_products": "competitors",
+}
+# CapM-managed columns — the Excel is the source of truth; overwrite, except
+# any field the admin has pinned via rex_products.manually_edited_fields.
+_CAPM_OVERWRITE = {
+    "bb_ticker":         "bb_ticker",
+    "inception_date":    "inception_date",
+    "trust":             "trust",
+    "issuer":            "issuer",
+    "exchange":          "exchange",
+    "cu_size":           "cu_size",
+    "fixed_fee":         "fixed_fee",
+    "variable_fee":      "variable_fee",
+    "cut_off":           "cut_off",
+    "custodian":         "custodian",
+    "lmm":               "lmm",
+    "our_category":      "our_category",
+    "product_type":      "product_type",
+    "category":          "category",
+    "sub_category":      "sub_category",
+    "direction":         "direction",
+    "leverage":          "leverage",
+    "underlying_ticker": "underlying_ticker",
+    "underlying_name":   "underlying_name",
+    "expense_ratio":     "expense_ratio",
+    "bmo_suite":         "bmo_suite",
+}
+
+
+def _empty(v) -> bool:
+    return v is None or (isinstance(v, str) and v.strip() == "")
+
+
 def import_capm(file_path: str, dry_run: bool = False) -> dict:
     """Main import function. Returns summary stats."""
     print(f"Reading: {file_path}")
@@ -315,62 +356,64 @@ def import_capm(file_path: str, dry_run: bool = False) -> dict:
             print(f"    {ticker:8s} | {suite:12s} | {name}")
         return {"total": len(all_products), "inserted": 0, "updated": 0}
 
-    # 4. Upsert into database
+    # 4. Upsert CapM fields into rex_products. capm_products was retired in
+    #    Track 4a — rex_products is the single product table. Match by ticker;
+    #    identity columns fill-only-if-empty, CapM-managed columns overwrite
+    #    (except fields the admin pinned via manually_edited_fields).
     init_db()
     db = SessionLocal()
-    inserted = 0
     updated = 0
+    unmatched: list[str] = []
 
     try:
         for ticker, data in all_products.items():
-            existing = db.query(CapMProduct).filter(CapMProduct.ticker == ticker).first()
+            rex = (
+                db.query(RexProduct)
+                .filter(func.upper(func.trim(RexProduct.ticker)) == ticker.upper().strip())
+                .first()
+            )
+            if rex is None:
+                unmatched.append(ticker)
+                continue
 
-            if existing:
-                # Update all fields
-                for field, value in data.items():
-                    if field == "ticker":
+            try:
+                edited = set(json.loads(rex.manually_edited_fields or "[]"))
+            except (json.JSONDecodeError, TypeError):
+                edited = set()
+
+            changed = False
+            # Identity columns — fill only when rex_products' value is empty.
+            for src, dst in _COND_FILLS.items():
+                v = data.get(src)
+                if not _empty(v) and _empty(getattr(rex, dst, None)):
+                    setattr(rex, dst, v)
+                    changed = True
+            # CapM-managed columns — Excel is source of truth; skip admin-pinned.
+            for src, dst in _CAPM_OVERWRITE.items():
+                if dst in edited:
+                    continue
+                v = data.get(src)
+                if _empty(v):
+                    continue
+                if dst == "cu_size":
+                    try:
+                        v = int(str(v).replace(",", "").strip())
+                    except (ValueError, TypeError):
                         continue
-                    if hasattr(existing, field) and value is not None:
-                        setattr(existing, field, value)
-                existing.updated_at = datetime.utcnow()
+                if getattr(rex, dst, None) != v:
+                    setattr(rex, dst, v)
+                    changed = True
+
+            if changed:
+                rex.updated_at = datetime.utcnow()
                 updated += 1
-            else:
-                # Insert new
-                product = CapMProduct(
-                    fund_name=data.get("fund_name", ticker),
-                    ticker=ticker,
-                    bb_ticker=data.get("bb_ticker"),
-                    inception_date=data.get("inception_date"),
-                    trust=data.get("trust"),
-                    issuer=data.get("issuer"),
-                    exchange=data.get("exchange"),
-                    cu_size=data.get("cu_size"),
-                    fixed_fee=data.get("fixed_fee"),
-                    variable_fee=data.get("variable_fee"),
-                    cut_off=data.get("cut_off"),
-                    custodian=data.get("custodian"),
-                    lmm=data.get("lmm"),
-                    prospectus_link=data.get("prospectus_link"),
-                    suite_source=data.get("suite_source"),
-                    our_category=data.get("our_category"),
-                    product_type=data.get("product_type"),
-                    category=data.get("category"),
-                    sub_category=data.get("sub_category"),
-                    direction=data.get("direction"),
-                    leverage=data.get("leverage"),
-                    underlying_ticker=data.get("underlying_ticker"),
-                    underlying_name=data.get("underlying_name"),
-                    expense_ratio=data.get("expense_ratio"),
-                    competitor_products=data.get("competitor_products"),
-                    bmo_suite=data.get("bmo_suite"),
-                )
-                db.add(product)
-                inserted += 1
 
         db.commit()
-        print(f"\n  Inserted: {inserted}")
-        print(f"  Updated:  {updated}")
-        print(f"  Total:    {inserted + updated}")
+        print(f"\n  rex_products rows updated: {updated}")
+        if unmatched:
+            print(f"  Unmatched tickers (no rex_products row — skipped): {len(unmatched)}")
+            for t in sorted(unmatched):
+                print(f"    {t}")
     except Exception as e:
         db.rollback()
         print(f"\n  ERROR: {e}")
@@ -378,7 +421,7 @@ def import_capm(file_path: str, dry_run: bool = False) -> dict:
     finally:
         db.close()
 
-    return {"total": len(all_products), "inserted": inserted, "updated": updated}
+    return {"total": len(all_products), "updated": updated, "unmatched": len(unmatched)}
 
 
 def read_trust_aps(wb_path: str) -> list[dict]:
