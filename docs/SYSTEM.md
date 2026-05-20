@@ -67,9 +67,9 @@ All times Eastern. Mon-Fri unless noted.
 |---|---|---|---|
 | 03:00 | CBOE symbol reservation scan | `scripts/run_cboe_scan.py` + systemd `rexfinhub-cboe.timer` | Requires [[cboe-cookie]] |
 | Every 60s (market hrs) | [[fresh-poller]] (atom watcher) | `etp_tracker/atom_watcher.py` | Catches new filings ~1-3 min |
-| Every 15 min (market hrs) | Fresh-poller systemd wrap | `scripts/poll_fresh_filings.py` + `rexfinhub-fresh-poller.timer` | Redundant with atom watcher — see GAP-04 |
+| Every 15 min (market hrs) | Fresh-poller systemd wrap | `scripts/poll_fresh_filings.py` + `rexfinhub-fresh-poller.timer` | Distinct role from atom watcher — see `### scraper-pathways` (ADR 0005) |
 | 08:00 | SEC reconciler | `scripts/sec_reconciler.py` + `rexfinhub-reconciler.timer` | |
-| 08/12/16/20:00 | SEC bulk scrape | `etp_tracker/run_pipeline.py` + `rexfinhub-sec-scrape.timer` | 4×/day batch |
+| 08:05/12:05/16:05/20:05 | SEC intraday refresh | `scripts/intraday_refresh.py` + `rexfinhub-intraday-refresh.timer` | 4×/day; skips the SEC scrape when fresh-poller is fresh (ADR 0005) |
 | ~~09:00~~ | ~~Classification sweep email~~ | ~~`scripts/classification_sweep.py`~~ | **DISABLED 2026-05-19 (ADR 0003)** — unit file kept in repo for revert |
 | 17:15 + 21:00 | [[bloomberg-pull]] + chain | `rexfinhub-bloomberg.timer` → `rexfinhub-bloomberg-chain.service` | One consolidated ExecStartPost: `scripts/apply_bloomberg_post_steps.py` (wraps fund_master / underlier_overrides / issuer_brands / classification_sweep). Per ADR 0003. |
 | 18:30 | [[preflight]] audit + [[auto-go]] | `scripts/preflight_check.py` + `rexfinhub-preflight.timer` | PR #16: writes `.preflight_decision.json` on pass or warn-with-flag |
@@ -122,7 +122,7 @@ All times Eastern. Mon-Fri unless noted.
 | `SMTP_*` | .env (local + VPS, not Render) | SMTP fallback (dormant) | MEDIUM | Consider removing |
 | `RENDER_UPLOAD_TOKEN` | .env (VPS only) | Possibly unused | MEDIUM if used | Investigate |
 
-Secret values never appear in this doc — only locations + rotation status. See `DECISIONS/0003-rotate-exposed-secrets.md` (proposed).
+Secret values never appear in this doc — only locations + rotation status. Acute rotation (the GitHub-exposed `ADMIN_PASSWORD`) is Track 0 of the rebuild completion plan; broader hardening is the deferred Phase 0a.
 
 ### scheduled-units
 
@@ -135,7 +135,7 @@ Secret values never appear in this doc — only locations + rotation status. See
 | `rexfinhub-gate-open.timer` | 19:00 ET Mon-Fri | Opens the send gate |
 | `rexfinhub-daily.timer` | 19:30 ET Mon-Fri | Send daily report via `send_all.py --bundle daily --use-decision` |
 | `rexfinhub-gate-close.timer` | 20:00 ET Mon-Fri | Closes the send gate |
-| `rexfinhub-intraday-refresh.timer` | 4×/day Mon-Fri 08/12/16/20 ET | classification + screener + parquets + DB compact + Render upload |
+| `rexfinhub-intraday-refresh.timer` | 4×/day Mon-Fri 08:05/12:05/16:05/20:05 ET | classification + screener + parquets + DB compact + Render upload |
 | `rexfinhub-morning-triage.timer` | 08:00 ET Mon-Fri | Phase 6 Stage 6: assertion runner + morning triage email |
 | `rexfinhub-cboe.timer` | 03:00 ET daily | CBOE symbol reservation scanner (full sweep) |
 | `rexfinhub-13f-quarterly.timer` | Feb/May/Aug/Nov 19th 06:00 ET | 13F holdings pipeline |
@@ -169,13 +169,12 @@ The intraday-refresh wrapper (`scripts/intraday_refresh.py`) reads `data/.poll_f
 
 ### known-gaps
 
-- GAP-01: `AZURE_CLIENT_SECRET` expiry date unknown. If it lapses, BOTH email send AND Bloomberg pull fail silently. Action: check Azure Portal + set calendar reminder.
+- GAP-01: `AZURE_CLIENT_SECRET` expiry date unknown. If it lapses, BOTH email send AND Bloomberg pull fail silently. Action: check Azure Portal + set calendar reminder (Track 0 of the completion plan).
 - GAP-02: No CSRF middleware on FastAPI admin routes. Combined with `SameSite=Lax` cookies, a malicious link could trigger state changes if Ryu is signed in.
 - GAP-03: No IP allowlist on `/api/v1/db/upload`. Anyone with `API_KEY` can overwrite production DB.
-- GAP-04: `rexfinhub-fresh-poller.timer` and `etp_tracker/atom_watcher.py` overlap. One should be retired.
-- GAP-05: 09:00 morning classification sweep emails the same gap data shown in 18:30 preflight and 20:15 summary — redundant notification.
-- GAP-06: Weekly trust universe sync redundant with [[fresh-poller]] for new-CIK discovery; only useful for metadata backfill (entity_type, regulatory_act).
-- GAP-07: `/operations/products` 3-way merge between `rex_products` + `capm_products` + `mkt_master_data` is fragile. Merge `capm_products` → `rex_products` (Phase 3).
-- GAP-08: 6 manual classification CSVs in `config/rules/` are the source of Ryu's "edit-CSV" pain. Replace with `classification_override` table (Phase 6).
-- GAP-09: Status assignment is in-place string update on `rex_products.status`. No audit trail of when a product transitioned through Filed → Effective → Listed. Fix: bi-temporal `status_history` table (Phase 5).
-- GAP-10: 124 funds (2.4% of active) have NULL `primary_strategy`. Masked by `.preflight_maintenance` flag → preflight WARN instead of FAIL.
+- GAP-04: `/operations/products` merge across `rex_products` + `capm_products` + `mkt_master_data` is still fragile while `capm_products` survives. Phase 3 Stages 1-3 shipped; dropping `capm_products` is Track 4a.
+- GAP-05: The 6 manual classification CSVs in `config/rules/` still exist. `classification_override` shipped (Phase 6); deleting the CSVs is Track 4c.
+- GAP-06: Direct in-place writes to `rex_products.status` still occur. `status_history` shipped (Phase 5); deprecating direct writes is Track 5A.
+- GAP-07: 124 funds (2.4% of active) have NULL `primary_strategy`. Masked by the `preflight_maintenance` flag → preflight WARN instead of FAIL.
+
+Resolved 2026-05-19 (ADR 0005): fresh-poller vs atom-watcher overlap — both kept, distinct roles. Resolved 2026-05-19 (ADR 0003): 09:00 classification sweep + weekly trust universe sync both disabled.

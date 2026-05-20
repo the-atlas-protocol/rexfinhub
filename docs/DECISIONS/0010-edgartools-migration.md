@@ -1,7 +1,7 @@
 ---
 adr: 0010
 title: Phase 7 — Migrate to edgartools + decommission manually_edited_fields
-status: proposed
+status: accepted
 date: 2026-05-19
 deciders: Ryu El-Asmar
 ---

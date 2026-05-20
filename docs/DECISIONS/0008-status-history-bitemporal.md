@@ -1,7 +1,7 @@
 ---
 adr: 0008
 title: Phase 5 — Bi-temporal status_history + 3-source Listed rule
-status: proposed
+status: accepted
 date: 2026-05-19
 deciders: Ryu El-Asmar
 ---

@@ -1,7 +1,7 @@
 ---
 adr: 0009
 title: Phase 6 — Single classification_override table + ops-as-assertions
-status: proposed
+status: accepted
 date: 2026-05-19
 deciders: Ryu El-Asmar
 ---
