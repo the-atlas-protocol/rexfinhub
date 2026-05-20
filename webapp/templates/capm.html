@@ -266,11 +266,18 @@ table.capm tr:hover { background:#fafbfc; }
       <tbody>
         {% for p in products %}
         {% set status_cls = ('Listed' if p.status_display == 'Listed' else ('Pending' if p.status_display == 'Pending' else ('Filed' if p.status_display == 'Filed' else ('Awaiting' if 'Awaiting' in (p.status_display or '') else ('Delisted' if p.status_display == 'Delisted' else 'other'))))) %}
-        <tr data-id="{{ p.id }}">
+        <tr data-id="{{ p.id }}" data-canonical-id="{{ p.canonical_id or '' }}">
           <td class="ticker-col" data-field="ticker">
             {{ p.ticker or '--' }}
             {% if p.edited_fields %}
               <span class="override-badge" title="Manually edited fields: {{ p.edited_fields|join(', ') }}">edited</span>
+            {% endif %}
+            {% if is_admin and p.canonical_id %}
+              <button class="classify-override-btn" type="button"
+                      data-canonical-id="{{ p.canonical_id }}"
+                      data-ticker="{{ p.ticker or '' }}"
+                      data-fund-name="{{ p.fund_name or '' }}"
+                      title="Open classification override editor (Phase 6 Stage 4)">⊞</button>
             {% endif %}
           </td>
           <td class="name-col" title="{{ p.fund_name }}" data-field="fund_name">{{ p.fund_name[:55] }}{% if p.fund_name|length > 55 %}...{% endif %}</td>
@@ -402,6 +409,233 @@ table.capm tr:hover { background:#fafbfc; }
 {% endblock %}
 
 {% block scripts %}
+
+{# Phase 6 Stage 4 (ADR 0009) — classify-override modal #}
+{% if is_admin %}
+<style>
+  .classify-override-btn {
+    margin-left: 6px;
+    padding: 0 6px;
+    font-size: 11px;
+    font-family: inherit;
+    background: #f1f5f9;
+    color: #1F3864;
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 16px;
+    vertical-align: middle;
+  }
+  .classify-override-btn:hover { background: #e0e7ff; border-color: #6366f1; }
+
+  #classifyOverlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15,23,42,0.5); z-index: 9999;
+    display: none; align-items: center; justify-content: center;
+  }
+  #classifyOverlay.open { display: flex; }
+  #classifyModal {
+    background: #fff; max-width: 520px; width: 92%; padding: 22px 26px;
+    border-radius: 8px; box-shadow: 0 8px 32px rgba(15,23,42,0.4);
+  }
+  #classifyModal h3 { margin: 0 0 4px; font-size: 16px; color: #0f172a; }
+  #classifyModal .ticker-sub { font-size: 12px; color: #64748b; margin-bottom: 18px; font-family: ui-monospace, monospace; }
+  #classifyModal label { display: block; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 4px; }
+  #classifyModal select, #classifyModal input[type=text], #classifyModal textarea {
+    width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 4px;
+    font-family: inherit; box-sizing: border-box;
+  }
+  #classifyModal textarea { resize: vertical; min-height: 60px; }
+  #classifyModal .row { display: flex; gap: 10px; align-items: center; }
+  #classifyModal .blacklist-row { margin: 14px 0 6px; font-size: 12px; color: #475569; }
+  #classifyModal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  #classifyModal button {
+    padding: 8px 14px; font-size: 13px; font-weight: 600;
+    border: 0; border-radius: 4px; cursor: pointer; font-family: inherit;
+  }
+  #classifyModal button.primary { background: #1F3864; color: #fff; }
+  #classifyModal button.primary:hover { background: #16294a; }
+  #classifyModal button.secondary { background: #e2e8f0; color: #0f172a; }
+  #classifyModal .existing-overrides {
+    margin-top: 14px; padding: 8px 10px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;
+    font-size: 11px; color: #475569; max-height: 110px; overflow: auto;
+  }
+  #classifyModal .existing-overrides .row-line {
+    padding: 3px 0; border-bottom: 1px dashed #e2e8f0; display: flex;
+    justify-content: space-between; gap: 10px;
+  }
+  #classifyModal .delete-link { color: #b91c1c; cursor: pointer; text-decoration: underline; font-size: 11px; }
+</style>
+
+<div id="classifyOverlay" role="dialog" aria-modal="true" aria-labelledby="classifyTitle">
+  <div id="classifyModal">
+    <h3 id="classifyTitle">Classification override</h3>
+    <div class="ticker-sub" id="classifyTickerSub"></div>
+
+    <label for="classifyFieldName">Field</label>
+    <select id="classifyFieldName"></select>
+
+    <label for="classifyValue">Value</label>
+    <input id="classifyValue" type="text" placeholder="e.g. LI, Crypto, Plain Beta">
+
+    <div class="blacklist-row">
+      <label style="display:inline-flex; gap:6px; text-transform:none; letter-spacing:0; font-size:12px; color:#475569; margin:0;">
+        <input id="classifyBlacklist" type="checkbox">
+        Blacklist (set NULL — refuse to classify this field even if Bloomberg/auto would)
+      </label>
+    </div>
+
+    <label for="classifyReason">Reason (recorded in audit log)</label>
+    <textarea id="classifyReason" placeholder="e.g. Bloomberg has Crypto but prospectus is clearly LI"></textarea>
+
+    <div class="existing-overrides" id="classifyExisting">Loading current overrides…</div>
+
+    <div class="actions">
+      <button type="button" class="secondary" id="classifyCancel">Cancel</button>
+      <button type="button" class="primary" id="classifySubmit">Save override</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+    var FIELD_NAMES = [
+        "etp_category", "issuer_display", "is_rex",
+        "primary_strategy", "asset_class", "sub_strategy",
+        "mechanism", "direction", "leverage_ratio",
+        "reset_period", "cap_pct", "buffer_pct", "barrier_pct",
+        "concentration", "region", "duration_bucket",
+        "credit_quality", "underlier_id", "expense_ratio_override"
+    ];
+    var overlay = document.getElementById("classifyOverlay");
+    var titleSub = document.getElementById("classifyTickerSub");
+    var fieldSel = document.getElementById("classifyFieldName");
+    var valInp   = document.getElementById("classifyValue");
+    var reasonInp = document.getElementById("classifyReason");
+    var blacklistCk = document.getElementById("classifyBlacklist");
+    var existing = document.getElementById("classifyExisting");
+    var cancelBtn = document.getElementById("classifyCancel");
+    var submitBtn = document.getElementById("classifySubmit");
+    var currentCid = null;
+
+    FIELD_NAMES.forEach(function(f) {
+        var o = document.createElement("option");
+        o.value = f; o.textContent = f;
+        fieldSel.appendChild(o);
+    });
+
+    function loadExisting(cid) {
+        existing.textContent = "Loading current overrides…";
+        fetch("/admin/classify-overrides/" + encodeURIComponent(cid), { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.overrides || data.overrides.length === 0) {
+                    existing.textContent = "No overrides set yet for this product.";
+                    return;
+                }
+                existing.innerHTML = "<strong>Current overrides:</strong><br>" +
+                    data.overrides.map(function(o) {
+                        var displayVal = o.value === null ? "<em>(blacklisted)</em>" : o.value;
+                        return '<div class="row-line"><span><code>' + o.field_name + '</code> = ' + displayVal +
+                               ' <span style="color:#94a3b8;">— ' + (o.reason || 'no reason').slice(0, 40) + '</span></span>' +
+                               '<span class="delete-link" data-field="' + o.field_name + '">delete</span></div>';
+                    }).join("");
+                existing.querySelectorAll(".delete-link").forEach(function(el) {
+                    el.addEventListener("click", function() {
+                        if (!confirm("Delete override for " + el.dataset.field + "?")) return;
+                        fetch("/admin/classify-override/" + encodeURIComponent(currentCid) +
+                              "?field_name=" + encodeURIComponent(el.dataset.field),
+                              { method: "DELETE", credentials: "same-origin" })
+                            .then(function(r) { return r.json(); })
+                            .then(function(data) {
+                                showToast("Override removed: " + el.dataset.field);
+                                loadExisting(currentCid);
+                            });
+                    });
+                });
+            })
+            .catch(function(err) {
+                existing.textContent = "Error loading overrides: " + err;
+            });
+    }
+
+    function openModal(btn) {
+        currentCid = btn.dataset.canonicalId;
+        titleSub.textContent = (btn.dataset.ticker || "<no ticker>") + " — " + (btn.dataset.fundName || "").slice(0, 60);
+        fieldSel.value = "etp_category";
+        valInp.value = "";
+        reasonInp.value = "";
+        blacklistCk.checked = false;
+        loadExisting(currentCid);
+        overlay.classList.add("open");
+        setTimeout(function() { valInp.focus(); }, 60);
+    }
+
+    function closeModal() {
+        overlay.classList.remove("open");
+        currentCid = null;
+    }
+
+    document.querySelectorAll(".classify-override-btn").forEach(function(btn) {
+        btn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            openModal(btn);
+        });
+    });
+
+    cancelBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", function(e) {
+        if (e.target === overlay) closeModal();
+    });
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
+    });
+
+    blacklistCk.addEventListener("change", function() {
+        valInp.disabled = blacklistCk.checked;
+        if (blacklistCk.checked) valInp.style.opacity = "0.5";
+        else valInp.style.opacity = "1";
+    });
+
+    submitBtn.addEventListener("click", function() {
+        if (!currentCid) return;
+        var fd = new FormData();
+        fd.append("field_name", fieldSel.value);
+        fd.append("value", valInp.value);
+        fd.append("reason", reasonInp.value);
+        if (blacklistCk.checked) fd.append("blacklist", "true");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving…";
+        fetch("/admin/classify-override/" + encodeURIComponent(currentCid), {
+            method: "POST", body: fd, credentials: "same-origin"
+        })
+        .then(function(r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Save override";
+            if (data.changed) {
+                showToast("Override saved: " + fieldSel.value + " = " + (blacklistCk.checked ? "(blacklisted)" : valInp.value));
+            } else {
+                showToast("No change (already at this value)");
+            }
+            loadExisting(currentCid);
+            valInp.value = ""; reasonInp.value = ""; blacklistCk.checked = false;
+            valInp.disabled = false; valInp.style.opacity = "1";
+        })
+        .catch(function(err) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Save override";
+            showToast("Save failed: " + err, true);
+        });
+    });
+})();
+</script>
+{% endif %}
+
 <script>
 window._isAdmin = {% if is_admin %}true{% else %}false{% endif %};
 
