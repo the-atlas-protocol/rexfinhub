@@ -135,7 +135,7 @@ def main() -> int:
     try:
         # Pull distinct strings from all underlier source columns
         sources_sql = []
-        for col in ("underlier", "underlying_ticker", "underlying_name"):
+        for col in ("underlying_ticker", "underlying_name"):
             sources_sql.append(f"SELECT DISTINCT {col} as v FROM rex_products WHERE {col} IS NOT NULL AND TRIM({col}) <> ''")
         for col in ("map_li_underlier", "map_cc_underlier", "map_crypto_underlier"):
             sources_sql.append(f"SELECT DISTINCT {col} as v FROM mkt_master_data WHERE {col} IS NOT NULL AND TRIM({col}) <> ''")

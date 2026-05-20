@@ -69,8 +69,12 @@ def main() -> int:
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     try:
+        # Track 4b: rex_products.underlier was dropped (now a hybrid resolving
+        # FROM underlier_master). underlier_master is built here from the
+        # CapM-sourced underlying_* columns + mkt_master_data — not from the
+        # hybrid (that would be circular).
         rex_rows = conn.execute("""
-            SELECT id, canonical_id, underlier, underlying_ticker, underlying_name,
+            SELECT id, canonical_id, underlying_ticker, underlying_name,
                    initial_filing_date, created_at
             FROM rex_products
             WHERE canonical_id IS NOT NULL
@@ -98,7 +102,7 @@ def main() -> int:
 
         for r in rex_rows:
             # Pick preferred underlier text — most specific first
-            raw = (r["underlying_ticker"] or r["underlier"] or r["underlying_name"] or "").strip()
+            raw = (r["underlying_ticker"] or r["underlying_name"] or "").strip()
             if not raw:
                 stats["no_underlier"] += 1
                 continue
