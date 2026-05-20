@@ -47,6 +47,20 @@ STATUS_LISTED = "listed"
 STATUS_DELISTED = "delisted"
 STATUS_SUSPENDED = "suspended"
 
+# CapM-case mapping for the legacy rex_products.status column. Phase 5 Stage 5
+# (Track 5A): the reconciler keeps this in sync so the pipeline page, flow
+# report, and templates — which still read rex_products.status — stay
+# consistent with status_history.
+_CAPM_CASE_STATUS = {
+    "under_consideration": "Under Consideration",
+    "target_list": "Target List",
+    "filed": "Filed",
+    "effective": "Effective",
+    "listed": "Listed",
+    "delisted": "Delisted",
+    "suspended": "Suspended",
+}
+
 
 def gather_evidence(conn: sqlite3.Connection, canonical_id: str) -> dict:
     """Collect all evidence for one canonical_id across SEC / Bloomberg / Exchange.
@@ -117,36 +131,42 @@ def gather_evidence(conn: sqlite3.Connection, canonical_id: str) -> dict:
 
 
 def derive_status(evidence: dict) -> str:
-    """Apply the 3-source rule + lifecycle precedence to derive the proposed status."""
+    """Derive the proposed status from evidence.
+
+    Bloomberg `market_status` is authoritative for whether a fund is trading:
+    LIQU/INAC/EXPD/DLST -> delisted; ACTV -> listed. This is necessary because
+    ETNs (the BMO MicroSectors line etc.) never file 485-series SEC forms — an
+    SEC-form-based rule alone wrongly classifies actively-trading ETNs as
+    pre-filing (audit 2026-05-20: FNGU/NRGU/BNKU et al. would be demoted to
+    `under_consideration`). ADR 0008's anti-ghost-Listed intent still holds:
+    `listed` still REQUIRES Bloomberg ACTV — it is just no longer ALSO gated
+    on an SEC 485 form that a whole product class never files.
+
+    For products NOT yet on the Bloomberg active feed, SEC + exchange evidence
+    drives the pre-launch lifecycle (filed -> effective -> target_list).
+    """
     if not evidence:
         return STATUS_UNDER_CONSIDERATION
 
-    # Delisted takes absolute precedence (Bloomberg LIQU)
+    # Bloomberg market_status is definitive for the trading-state.
     if evidence.get("bloomberg_liqu_evidence"):
         return STATUS_DELISTED
+    if evidence.get("bloomberg_actv_evidence"):
+        return STATUS_LISTED
 
-    # 3-source rule for Listed
+    # Not yet on the Bloomberg active feed — SEC + exchange evidence drives
+    # the pre-launch lifecycle.
     sec_cat = bool(evidence.get("sec_effective_evidence"))
-    bbg_cat = bool(evidence.get("bloomberg_actv_evidence"))
     exchange_cat = bool(
         evidence.get("bloomberg_first_trade_evidence")
         or evidence.get("cboe_listing_evidence")
     )
-    if sec_cat and bbg_cat and exchange_cat:
-        return STATUS_LISTED
-
-    # 2-of-3 with SEC+exchange but no Bloomberg ACTV = Target List (post-effective, awaiting active feed)
-    if sec_cat and exchange_cat and not bbg_cat:
+    if sec_cat and exchange_cat:
         return STATUS_TARGET_LIST
-
-    # SEC effective alone (no exchange/Bloomberg yet) = Effective
     if sec_cat:
         return STATUS_EFFECTIVE
-
-    # SEC filed (485APOS) but not yet effective = Filed
     if evidence.get("sec_filed_evidence"):
         return STATUS_FILED
-
     return STATUS_UNDER_CONSIDERATION
 
 
@@ -187,13 +207,14 @@ def append_transition(
         canonical_id, new_status, now, now,
         "reconciler_v1", json.dumps(evidence), set_by, now,
     ))
-    # Phase 5 Stage 4: refresh the denormalized cache on rex_products.
-    # The original rex_products.status column (CapM-case "Listed" etc.)
-    # is retained for backward compat with templates + flow report;
-    # status_cached carries the lowercase canonical form ("listed").
+    # Phase 5 Stage 4+5: refresh the denormalized state on rex_products.
+    # status_cached carries the lowercase canonical form ("listed");
+    # status carries the legacy CapM-case form ("Listed") for the readers
+    # that still use it. status_history is the authority — driving both
+    # here keeps every consumer consistent (Track 5A).
     conn.execute(
-        "UPDATE rex_products SET status_cached = ? WHERE canonical_id = ?",
-        (new_status, canonical_id),
+        "UPDATE rex_products SET status_cached = ?, status = ? WHERE canonical_id = ?",
+        (new_status, _CAPM_CASE_STATUS.get(new_status, new_status), canonical_id),
     )
 
 
@@ -202,6 +223,8 @@ def main() -> int:
     ap.add_argument("--db", default=str(DEFAULT_DB))
     ap.add_argument("--apply", action="store_true",
                     help="Actually write transitions. Default: dry-run.")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="Explicit no-op — dry-run is the default unless --apply.")
     ap.add_argument("--only-canonical-id", default=None,
                     help="Reconcile only the given canonical_id (debugging).")
     args = ap.parse_args()
@@ -276,10 +299,23 @@ def main() -> int:
             print("\nDRY-RUN — no changes written. Use --apply to commit.")
             return 0
 
+        applied = 0
+        skipped_demotions = 0
         for cid, cur, new, ev in transitions:
+            # Promote on evidence; delist on Bloomberg LIQU (-> delisted ranks
+            # highest in _is_promotion). NEVER demote mid-lifecycle: a missing
+            # ticker mapping or an absent SEC form is not proof that a trading
+            # fund stopped trading. Conservative by design — too-high statuses
+            # are corrected explicitly (demote_liqu_dlst_rex_products.py), not
+            # by the reconciler guessing from absent evidence.
+            if cur is not None and not _is_promotion(cur, new):
+                skipped_demotions += 1
+                continue
             append_transition(conn, cid, cur, new, ev, set_by="reconciler")
+            applied += 1
         conn.commit()
-        print(f"\nCommitted {len(transitions)} status transitions.")
+        print(f"\nCommitted {applied} status transitions "
+              f"({skipped_demotions} non-LIQU demotions skipped — conservative).")
         return 0
     finally:
         conn.close()
