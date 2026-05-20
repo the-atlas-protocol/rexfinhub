@@ -272,7 +272,10 @@ _REX_UPDATE_FIELDS = {
     "status":                   ("status",                   "status"),
     "product_suite":            ("product_suite",            "suite"),
     "ticker":                   ("ticker",                   "str_or_none"),
-    "underlier":                ("underlier",                "str_or_none"),
+    # Track 4b: rex_products.underlier is a derived hybrid (no setter). The
+    # "underlier" form field is kept (template compat) but writes to the real
+    # underlying_ticker column; ensure_canonical_identity resolves it nightly.
+    "underlier":                ("underlying_ticker",        "str_or_none"),
     "direction":                ("direction",                "str_or_none"),
     "trust":                    ("trust",                    "str_or_none"),
     "initial_filing_date":      ("initial_filing_date",      "date"),
@@ -390,13 +393,21 @@ def add_product(
         product_suite=product_suite,
         status=status,
         ticker=ticker or None,
-        underlier=underlier or None,
+        # Track 4b: rex_products.underlier is a derived hybrid (no setter). The
+        # admin-entered underlier text is stored on underlying_ticker; the
+        # nightly ensure_canonical_identity resolves it into underlier_master.
+        underlying_ticker=underlier or None,
         direction=direction or None,
         trust=trust or None,
         notes=notes or None,
     )
     db.add(p)
     db.commit()
+    # Track 5B: a product added with status "Under Consideration" is a
+    # pre-filing entry. When its SEC filing later arrives, the filing pipeline
+    # (sync_rex_products_from_filings) name-matches it to this row and advances
+    # it to Filed in place — no duplicate. canonical identity is assigned by
+    # the nightly ensure_canonical_identity step.
     return RedirectResponse(url="/admin/products/?msg=added", status_code=302)
 
 
