@@ -142,7 +142,6 @@ Secret values never appear in this doc — only locations + rotation status. Acu
 | `rexfinhub-db-backup.timer` | 23:00 ET daily | DB backup to `data/backups/` |
 | `rexfinhub-reconciler.timer` | 08:00 ET weekdays | rex_products + market reconciliation |
 | Cron: pipeline_summary | 20:15 ET Mon-Fri | Legacy 20:15 summary email (kept during morning-triage dual-period) |
-| Cron: canonicalize_crypto_underliers | 02:30 ET daily | BUG-01 mitigation |
 | Cron: audit_duplicate_tickers | 02:35 ET daily | BUG-02 mitigation |
 
 ### scraper-pathways
@@ -159,7 +158,7 @@ The intraday-refresh wrapper (`scripts/intraday_refresh.py`) reads `data/.poll_f
 
 ### known-bugs
 
-- BUG-01: ~~Bitcoin shows 0 competitors~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — canonicalization script normalizes crypto underliers to XBTUSD/XETUSD nightly. Index-type underliers (BMAXATCL Index) still affected; structural fix in Phase 4.
+- BUG-01: ~~Bitcoin shows 0 competitors~~ **RESOLVED 2026-05-20** — the Phase 4 structural fix is live: underliers are typed in `underlier_master` and `rex_products.underlier` is a hybrid resolving from it. The interim nightly `canonicalize_crypto_underliers` cron has been retired (Track 4b).
 - BUG-02: ~~TSII recycled-ticker false promotion~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — Phase 3 of sync_rex_products_from_filings.py now requires fund-name overlap before promotion. Nightly duplicate-ticker audit (`scripts/audit_duplicate_tickers.py`) surfaces any new cases in the morning email.
 - BUG-03: ~~13+ T-REX 2X products Listed with placeholder inception~~ **MITIGATED 2026-05-19 (Phase 0b, ADR 0002)** — Phase 3 now rejects inception dates before the filing date OR older than 60 days. Existing bad rows still need a one-time manual correction; new cases blocked.
 - BUG-04: ~~BMAX US Listed despite Bloomberg vanish~~ **CLOSED 2026-05-19** for the LIQU/DLST case (BMAX, XRPK, SOLX, FNGA demoted by `scripts/demote_liqu_dlst_rex_products.py`); **`.auto_demote_vanished` flag enabled** on VPS so `phase4_demote_vanished_from_market` auto-runs on future vanish cases. The `scripts/run_assertions.py::listed_has_mkt_data` check surfaces any new BMAX-class candidates in the morning triage email.

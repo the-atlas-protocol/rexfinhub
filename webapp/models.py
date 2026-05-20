@@ -9,9 +9,10 @@ from datetime import datetime, date
 
 from sqlalchemy import (
     Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text,
-    UniqueConstraint,
+    UniqueConstraint, column, select, table,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 
 from webapp.database import Base, HoldingsBase, LiveFeedBase
 
@@ -910,6 +911,19 @@ class NyseHoliday(Base):
 
 # --- REX Product Pipeline ---
 
+# Track 4b: lightweight Core table refs for the RexProduct.underlier hybrid.
+# The Phase 4 tables (fund_underlier, underlier_master) have no ORM model;
+# these refs let the hybrid resolve the canonical underlier without one.
+_fund_underlier_tbl = table(
+    "fund_underlier",
+    column("canonical_id"), column("underlier_id"), column("effective_to"),
+)
+_underlier_master_tbl = table(
+    "underlier_master",
+    column("underlier_id"), column("display_symbol"),
+)
+
+
 class RexProduct(Base):
     """REX product lifecycle tracker — from research to listing.
 
@@ -932,7 +946,6 @@ class RexProduct(Base):
     product_suite: Mapped[str] = mapped_column(String(50), nullable=False)  # T-REX, IncomeMax, Premium Income, etc.
     status: Mapped[str] = mapped_column(String(30), nullable=False)  # Under Consideration, Target List, Filed, Effective, Listed, Delisted
     ticker: Mapped[str | None] = mapped_column(String(20))
-    underlier: Mapped[str | None] = mapped_column(String(100))
     direction: Mapped[str | None] = mapped_column(String(20))  # Long, Short, Both
 
     # Filing lifecycle dates
@@ -1012,6 +1025,36 @@ class RexProduct(Base):
         Index("idx_rex_product_ticker", "ticker"),
         Index("idx_rex_product_series", "series_id"),
     )
+
+    # === Track 4b: `underlier` is no longer a stored column ===
+    # It resolves from the canonical underlier_master via fund_underlier —
+    # underlier_master is the single typed source of truth (Phase 4 / ADR
+    # 0006). This hybrid preserves the `.underlier` interface (Python attr
+    # access AND SQL filter/sort/group-by) so every existing reader works
+    # unchanged after the physical column is dropped.
+    @hybrid_property
+    def underlier(self):
+        sess = object_session(self)
+        if sess is None or not self.canonical_id:
+            return None
+        return sess.execute(
+            select(_underlier_master_tbl.c.display_symbol)
+            .where(_fund_underlier_tbl.c.underlier_id == _underlier_master_tbl.c.underlier_id)
+            .where(_fund_underlier_tbl.c.canonical_id == self.canonical_id)
+            .where(_fund_underlier_tbl.c.effective_to.is_(None))
+            .limit(1)
+        ).scalar()
+
+    @underlier.expression
+    def underlier(cls):
+        return (
+            select(_underlier_master_tbl.c.display_symbol)
+            .where(_fund_underlier_tbl.c.underlier_id == _underlier_master_tbl.c.underlier_id)
+            .where(_fund_underlier_tbl.c.canonical_id == cls.canonical_id)
+            .where(_fund_underlier_tbl.c.effective_to.is_(None))
+            .limit(1)
+            .scalar_subquery()
+        )
 
 
 # --- Filing Watcher Models ---
