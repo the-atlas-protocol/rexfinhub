@@ -302,17 +302,148 @@ def check_rex_aum_consistency(conn: sqlite3.Connection) -> tuple:
             f"{len(rows)} ACTV funds with issuer_display='REX' but is_rex=0 (AXTU class)")
 
 
-@_make_assertion("active_etp_count_sanity", "reports_kpi")
-def check_active_count(conn: sqlite3.Connection) -> tuple:
-    """Active ETP count should be in [1000, 10000] — anything outside is suspect."""
+@_make_assertion("rex_etp_count_sanity", "reports_kpi")
+def check_rex_count(conn: sqlite3.Connection) -> tuple:
+    """REX-branded ACTV count should be in [60, 150] (current ~82 + room to grow)."""
     n = conn.execute("""
         SELECT COUNT(DISTINCT ticker_clean) FROM mkt_master_data
-        WHERE market_status = 'ACTV' AND fund_type IN ('ETF', 'ETN')
+        WHERE market_status = 'ACTV' AND is_rex = 1
     """).fetchone()[0] or 0
-    passed = 1000 <= n <= 10000
+    passed = 60 <= n <= 150
     return (passed, 0 if passed else 1,
-            [{"active_etp_count": n}],
-            f"active ETP count: {n} (expected [1000, 10000])")
+            [{"rex_actv_count": n}],
+            f"REX ACTV count: {n} (expected [60, 150])")
+
+
+# ============================================================================
+# SECRETS + INFRA HEALTH
+# ============================================================================
+
+@_make_assertion("audit_log_freshness", "infra")
+def check_audit_log_freshness(conn: sqlite3.Connection) -> tuple:
+    """capm_audit_log should have at least one entry from the last 7 days.
+    Catches a stalled-edits / paralyzed-admin scenario.
+    """
+    row = conn.execute("""
+        SELECT MAX(changed_at) FROM capm_audit_log
+    """).fetchone()
+    if not row or not row[0]:
+        return (False, 1, [], "capm_audit_log is empty")
+    latest_str = str(row[0])
+    try:
+        latest = datetime.fromisoformat(latest_str.replace("Z", "+00:00"))
+        if latest.tzinfo:
+            latest = latest.replace(tzinfo=None)
+        age_d = (datetime.utcnow() - latest).total_seconds() / 86400
+        passed = age_d < 7
+        return (passed, 0 if passed else 1,
+                [{"latest_audit": latest_str, "age_days": round(age_d, 1)}],
+                f"latest capm_audit_log entry {age_d:.1f} days ago (threshold 7)")
+    except (ValueError, TypeError) as e:
+        return (False, 1, [], f"failed to parse: {e}")
+
+
+@_make_assertion("fund_underlier_weight_sanity", "integrity")
+def check_fund_underlier_weight(conn: sqlite3.Connection) -> tuple:
+    """For multi-underlier (basket) funds, weights should sum to ~1.0.
+
+    Single-underlier funds with weight=NULL are OK (implicit 100%).
+    """
+    rows = conn.execute("""
+        SELECT canonical_id, ROUND(SUM(COALESCE(weight, 0)), 4) AS sum_w,
+               COUNT(*) AS n_underliers
+        FROM fund_underlier
+        WHERE effective_to IS NULL
+        GROUP BY canonical_id
+        HAVING n_underliers > 1
+           AND ABS(sum_w - 1.0) > 0.01
+        LIMIT 20
+    """).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"canonical_id": r[0][:8] + "...", "sum_weight": r[1],
+              "n": r[2]} for r in rows[:5]],
+            f"{len(rows)} multi-underlier funds with weights not summing to 1.0")
+
+
+@_make_assertion("classification_override_coverage", "integrity")
+def check_override_categories(conn: sqlite3.Connection) -> tuple:
+    """Sanity: no more than 25% of override rows have field_name='etp_category'.
+
+    If we're overriding etp_category on most products, the auto-classifier
+    is broken — that's a signal to investigate (not just rubber-stamp).
+    """
+    total = conn.execute("SELECT COUNT(*) FROM classification_override").fetchone()[0] or 0
+    if total < 50:
+        return (True, 0, [], f"only {total} overrides total — threshold not meaningful yet")
+    etp_n = conn.execute(
+        "SELECT COUNT(*) FROM classification_override WHERE field_name='etp_category'"
+    ).fetchone()[0] or 0
+    pct = etp_n / total * 100
+    passed = pct <= 25.0
+    return (passed, 0 if passed else 1,
+            [{"etp_category_overrides": etp_n, "total_overrides": total,
+              "pct": round(pct, 1)}],
+            f"{pct:.1f}% of overrides are etp_category (threshold 25%)")
+
+
+@_make_assertion("backup_recent", "infra")
+def check_backup(conn: sqlite3.Connection) -> tuple:
+    """Most recent data/backups/etp_tracker_*.db should be < 30 hours old."""
+    backup_dir = PROJECT_ROOT / "data" / "backups"
+    if not backup_dir.exists():
+        return (True, 0, [], "no backups dir (local dev DB)")
+    backups = sorted(backup_dir.glob("etp_tracker*.db*"),
+                     key=lambda p: p.stat().st_mtime, reverse=True)
+    if not backups:
+        return (False, 1, [], "no backups found")
+    age_h = (datetime.utcnow().timestamp() - backups[0].stat().st_mtime) / 3600
+    passed = age_h < 30
+    return (passed, 0 if passed else 1,
+            [{"latest_backup": backups[0].name, "age_h": round(age_h, 1)}],
+            f"latest backup {age_h:.1f}h old (threshold 30h)")
+
+
+@_make_assertion("preflight_token_valid", "send_pipeline")
+def check_preflight_token(conn: sqlite3.Connection) -> tuple:
+    """If decision file exists, its token must match the current preflight token."""
+    token_path = PROJECT_ROOT / "data" / ".preflight_token"
+    decision_path = PROJECT_ROOT / "data" / ".preflight_decision.json"
+    if not (token_path.exists() and decision_path.exists()):
+        return (True, 0, [], "no token/decision pair (no preflight run yet)")
+    try:
+        import json as _j
+        token_data = _j.loads(token_path.read_text(encoding="utf-8"))
+        cur_token = token_data.get("token") if isinstance(token_data, dict) else str(token_data).strip()
+        decision = _j.loads(decision_path.read_text(encoding="utf-8"))
+        dec_token = decision.get("token")
+    except (json.JSONDecodeError, OSError, AttributeError) as e:
+        return (False, 1, [], f"parse failure: {e}")
+    passed = cur_token == dec_token
+    return (passed, 0 if passed else 1,
+            [{"current_token": (cur_token or '')[:8], "decision_token": (dec_token or '')[:8]}],
+            f"preflight_token vs decision_token match: {passed}")
+
+
+@_make_assertion("legacy_capm_dual_write_active", "integrity")
+def check_capm_dual_write(conn: sqlite3.Connection) -> tuple:
+    """Stage 4 grace period: capm_products row count should still match rex_products
+    rows with CapM fields populated (i.e. CapM-overlay rows in rex).
+
+    During the Stage 4 grace period (until ≥2026-05-26) capm_products is the
+    revert anchor; this catches accidental writes that would break revert.
+    """
+    capm_n = conn.execute("SELECT COUNT(*) FROM capm_products").fetchone()[0] or 0
+    overlay_n = conn.execute(
+        "SELECT COUNT(*) FROM rex_products WHERE inception_date IS NOT NULL"
+    ).fetchone()[0] or 0
+    # Allow ±5 row drift (legit: a new fund may be added to rex_products before
+    # the next CapM import runs).
+    drift = abs(capm_n - overlay_n)
+    passed = drift <= 5
+    return (passed, 0 if passed else 1,
+            [{"capm_products_rows": capm_n, "rex_overlay_rows": overlay_n,
+              "drift": drift}],
+            f"capm_products vs rex CapM-overlay drift: {drift} (threshold 5)")
 
 
 # ============================================================================
@@ -417,7 +548,11 @@ ASSERTIONS = [
         check_primary_strategy, check_underlier_id, check_etp_category,
         check_date_inversion, check_duplicate_active_tickers, check_listed_has_actv,
         check_recipient_lists, check_send_log_yesterday, check_autogo_decision_recent,
-        check_rex_aum_consistency, check_active_count,
+        check_rex_aum_consistency, check_rex_count,
+        # Added in second batch
+        check_audit_log_freshness, check_fund_underlier_weight,
+        check_override_categories, check_backup, check_preflight_token,
+        check_capm_dual_write,
         # Phase 4/5/6 integrity (added 2026-05-19 evening)
         check_canonical_id, check_xref_consistency, check_override_canonical_id,
         check_status_history_current, check_status_cached,
