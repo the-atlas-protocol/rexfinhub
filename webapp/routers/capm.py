@@ -398,6 +398,7 @@ def _build_unified_row(
         # target and every row is inline-editable.
         editable_capm_id=rex.id,
         editable_rex_id=rex.id,
+        canonical_id=rex.canonical_id,  # Phase 4 — drives the classify-override UI hook
         ticker=ticker or "",
         fund_name=fund_name,
         bb_ticker=rex.bb_ticker,
