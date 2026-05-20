@@ -12,6 +12,13 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Production hygiene pass (PRs #41-#44)** —
+  - **Phase 6 Stage 7 prerequisite**: `scripts/apply_classification_overrides.py` wired into bloomberg-chain ExecStartPost. Tomorrow's 17:15 ET chain run will apply the 106 applicable overrides automatically. First run: 3 issuer_display fixes applied to mkt_master_data.
+  - **Phase 7 Part B**: `scripts/migrate_state_tables.py` created `system_flags` / `preflight_run` / `system_event` tables. VPS: 5 flags + 1 preflight run + 105 events backfilled. Dual-read window opens; files remain authoritative until Stage 2+ flips reads.
+  - **BUG-04 BMAX class closed (4 rows demoted)**: `scripts/demote_liqu_dlst_rex_products.py` demoted BMAX (LIQU), XRPK (DLST), SOLX (DLST), FNGA (LIQU) from `Listed` → `Delisted` on both local + VPS. Audit-logged to `capm_audit_log`. Complements existing `phase4_demote_vanished_from_market` (vanished case).
+  - **`rexfinhub-morning-triage.timer` ENABLED on VPS** — first fire tomorrow 08:00 ET. Runs `run_assertions.py` then `morning_triage_email.py`. Old 20:15 ET `pipeline_summary.py` cron-job stays running during dual-period.
+  - **status_reconciler dry-run wired into bloomberg-chain** — tomorrow's 17:15 run produces fresh transition diff in `data/.status_reconciler.log` for operator review before `--apply` flip.
+  - **Assertions 10 → 15**: 5 new integrity checks (canonical_id coverage, xref consistency excl. CIK, override validity, status_history currentness, status_cached drift). VPS run: 13/15 PASS; the 2 FAILs are real findings (8 NULL-underlier ETNs mostly MicroSectors, + SPOU rex=Listed/Bloomberg=PEND).
 - **Daily report L6-blocked at 19:30 ET, retry sent at 20:03 ET** — auto-send blocked because `etfupdates@rexfin.com` was at 6/6 daily cap from this morning's 06:00 ET frozen freeze-send (7 reports went to that address this morning). Test-send to `relasmar@rexfin.com` (with `--allow-self-loop`) confirmed daily report body OK (77,789 chars). Cap temp-raised 6→12 on VPS via in-place edit, daily bundle sent to `etfupdates@rexfin.com`, cap reverted to 6. See `.send_audit.json` entry at 20:04:39-04:00 with `allowed=true, phase=result`.
 - **Phase 6 Stage 4 + L6 bypass flag shipped** (PR #38).
   - `etp_tracker/email_alerts.py::_send_html_digest` now accepts `bypass_rate_limit=False` parameter. `scripts/send_all.py` exposes it as `--bypass-rate-limit`. Future post-freeze retries no longer need the temp-edit dance.
