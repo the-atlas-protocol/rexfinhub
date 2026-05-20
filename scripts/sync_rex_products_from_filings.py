@@ -683,7 +683,12 @@ def phase4_demote_vanished_from_market(db, dry_run: bool) -> SyncStats:
         if m[0]
     }
 
-    auto_demote = (PROJECT_ROOT / "data" / ".auto_demote_vanished").exists()
+    # Phase 7 Part B Stage 2 (ADR 0010): DB-first flag read; legacy file fallback.
+    try:
+        from webapp.services.system_flags import get_flag
+        auto_demote = get_flag("auto_demote_vanished")
+    except ImportError:
+        auto_demote = (PROJECT_ROOT / "data" / ".auto_demote_vanished").exists()
 
     vanished = []
     for p in listed_rows:
