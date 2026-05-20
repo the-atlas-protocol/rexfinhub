@@ -480,10 +480,15 @@ def create_app() -> FastAPI:
     # Phase 6 Stage 4 (ADR 0009): classification_override admin endpoints
     # POST /admin/classify-override/{canonical_id} writes an override row;
     # GET /admin/classify-overrides/{canonical_id} lists all overrides for
-    # a product. Future HTMX inline-edit UI on /operations/products will
-    # hit these endpoints.
+    # a product. HTMX inline-edit UI on /operations/products hits these.
     from webapp.routers import admin_classify
     app.include_router(admin_classify.router)
+
+    # Phase 7B Stage 2 (ADR 0010): /admin/system-state page exposes the
+    # new system_flags / preflight_run / system_event tables. Operator
+    # can toggle flags directly from the UI; flips dual-write to DB+file.
+    from webapp.routers import admin_system_state
+    app.include_router(admin_system_state.router)
 
     # IPO Intel — pre-IPO + recently-priced watchlist surfaced from
     # config/ipo_watchlist.yaml. Read-only display page at /intel/ipo.

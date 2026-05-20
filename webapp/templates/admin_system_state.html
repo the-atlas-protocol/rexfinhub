@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}System State — REX Admin{% endblock %}
+
+{% block content %}
+<style>
+  .ss-wrap { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
+  .ss-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px 20px; margin-bottom: 20px; }
+  .ss-section h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+  .ss-section table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ss-section th, .ss-section td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .ss-section th { font-weight: 600; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; }
+  .ss-section code { font-family: ui-monospace, monospace; font-size: 11px; color: #0f172a; }
+  .ss-on  { display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border-radius:3px; font-weight:600; font-size:11px; }
+  .ss-off { display:inline-block; padding:2px 8px; background:#f1f5f9; color:#475569; border-radius:3px; font-weight:500; font-size:11px; }
+  .ss-drift { background:#fef3c7; color:#92400e; font-weight:700; }
+  .ss-flag-form { display:inline; }
+  .ss-flag-form button { padding:3px 8px; font-size:11px; border:1px solid #cbd5e1; border-radius:3px; background:#fff; cursor:pointer; }
+  .ss-flag-form button:hover { background:#f1f5f9; }
+  .ss-detail-cell { max-width:520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace, monospace; font-size:10px; color:#64748b; }
+</style>
+
+<div class="ss-wrap">
+  <div style="font-size:12px; color:#94a3b8; margin-bottom:8px;">
+    <a href="/admin/" style="color:#1F3864; text-decoration:none;">&laquo; Admin</a>
+  </div>
+  <h1 style="font-size:22px; font-weight:700; color:#0f172a; margin:0 0 4px;">System State</h1>
+  <p style="font-size:13px; color:#64748b; margin:0 0 18px;">
+    Phase 7 Part B tables: <code>system_flags</code> / <code>preflight_run</code> / <code>system_event</code>.
+    DB rows are authoritative; legacy files retained during dual-write window.
+  </p>
+
+  <div class="ss-section">
+    <h2>System flags</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Flag</th><th>DB</th><th>File</th><th>Effective</th>
+          <th>Set at</th><th>Set by</th><th>Notes</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in flags_rows %}
+        {% set diag = flags_diag.get(row[0], {}) %}
+        {% set is_drift = (diag.get('db') is not none and diag.get('file') is not none and diag.get('db') != diag.get('file')) %}
+        <tr {% if is_drift %}class="ss-drift"{% endif %}>
+          <td><code>{{ row[0] }}</code></td>
+          <td>{% if diag.get('db') %}<span class="ss-on">SET</span>{% else %}<span class="ss-off">unset</span>{% endif %}</td>
+          <td>{% if diag.get('file') %}<span class="ss-on">SET</span>{% else %}<span class="ss-off">unset</span>{% endif %}</td>
+          <td>{% if diag.get('effective') %}<span class="ss-on">SET</span>{% else %}<span class="ss-off">unset</span>{% endif %}</td>
+          <td>{{ (row[2] or '')[:19] }}</td>
+          <td><code>{{ row[3] or '' }}</code></td>
+          <td>{{ row[4] or '' }}</td>
+          <td>
+            <form method="POST" action="/admin/system-flag/{{ row[0] }}" class="ss-flag-form">
+              <input type="hidden" name="value" value="{% if diag.get('effective') %}0{% else %}1{% endif %}">
+              <button type="submit">{% if diag.get('effective') %}Clear{% else %}Set{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ss-section">
+    <h2>Preflight runs (last 20)</h2>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Ran at</th><th>Result</th><th>Decision</th><th>Token</th></tr>
+      </thead>
+      <tbody>
+        {% for r in preflight_rows %}
+        <tr>
+          <td>{{ r[0] }}</td>
+          <td>{{ (r[1] or '')[:19] }}</td>
+          <td>
+            {% set result = r[2] or '' %}
+            <span style="display:inline-block;padding:2px 8px;border-radius:3px;font-weight:600;font-size:11px;
+              {% if result == 'pass' %}background:#dcfce7;color:#166534;{% elif result == 'warn' %}background:#fef3c7;color:#92400e;{% elif result == 'fail' %}background:#fee2e2;color:#991b1b;{% endif %}">
+              {{ result|upper }}
+            </span>
+          </td>
+          <td><code>{{ r[3] or '—' }}</code></td>
+          <td><code>{{ (r[4] or '')[:12] }}</code></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ss-section">
+    <h2>System events by type</h2>
+    <table>
+      <thead><tr><th>Event type</th><th>Count</th></tr></thead>
+      <tbody>
+        {% for c in event_counts %}
+        <tr><td><code>{{ c[0] }}</code></td><td>{{ c[1] }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ss-section">
+    <h2>Recent system events (last 30)</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Type</th><th>At</th><th>Details</th></tr></thead>
+      <tbody>
+        {% for r in event_rows %}
+        <tr>
+          <td>{{ r[0] }}</td>
+          <td><code>{{ r[1] }}</code></td>
+          <td>{{ (r[2] or '')[:19] }}</td>
+          <td class="ss-detail-cell" title="{{ r[3] or '' }}">{{ r[3] or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
