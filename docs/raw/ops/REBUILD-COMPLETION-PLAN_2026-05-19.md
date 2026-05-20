@@ -254,16 +254,44 @@ fund references), and 0 Listed REX funds link to an unknown-type underlier.
 
 ---
 
-### Track 4 — Arm & Prove the Four Retirements
+### Track 4 — Complete the Migrations, Then Retire
 
 **Objective:** retire the four legacy artifacts that keep the architecture from
-being the *only* path. Per the Governing Principle, each passes all three proof
-gates, then waits *armed* for Ryu's go (Decision D2 = arm + prove now, fire on go).
+being the *only* path.
 
-> **D2 is set:** I build every drop script and reconciliation check and run the
-> proof-diffs now. The instant a diff is clean, the drop is armed; it fires on
-> your explicit go — possibly today, possibly before the ADR's 7-day mark.
-> **Nothing fires autonomously.**
+> **AUDIT REPLAN (2026-05-20).** A precise grep sweep — an earlier
+> excerpt-based agent audit proved unreliable and was discarded — found:
+>
+> - **4a `capm_products` — READY.** The route cutover is *already complete*:
+>   `/operations/products`, its export, and the admin inline-edit all read
+>   `RexProduct` now (Phase 3 Stage 3 genuinely shipped). Only the dual-write
+>   importer (`import_capm.py`), the startup seed (`database.py`), and the
+>   `legacy_capm_dual_write_active` drift assertion still touch the table.
+>   Remove the dual-write + seed, prove drift = 0, then DROP.
+> - **4b `rex_products.underlier` — DONE via hybrid.** Converted the column to
+>   a `hybrid_property` resolving from `underlier_master` via `fund_underlier`
+>   — every reader (Python attr access AND SQL filter/sort/group-by) works
+>   unchanged, the physical column is dropped behind a Gate-C proof, and the
+>   `canonicalize_crypto_underliers` nightly cron is retired (its job is now
+>   structural via `underlier_master`). `underlying_ticker` / `underlying_name`
+>   are kept — they are CapM operational columns (same family as the other
+>   merged CapM fields), not the architectural underlier source of truth.
+> - **4c 6 rule CSVs — NEEDS MIGRATION (largest, highest-risk).** The CSVs are
+>   the *primary* classification source for the full ~2,400-fund universe, read
+>   by the daily pipeline (`auto_classify.classify_all`), `data_engine.py`,
+>   `report_data.py`, `report_emails.py`, `preflight_check.py`,
+>   `classification_validator.py`, and `admin.py`. The `classification_override`
+>   table (486 rows) is NOT a full replacement. Requires a complete rules→DB
+>   sync as the live classification path before the CSVs can be retired.
+> - **4d 14 flag files — NEEDS MIGRATION.** `system_flags.py` exists but ~15
+>   direct file readers across `admin.py`, `graph_email.py`, `send_all.py`,
+>   `email_alerts.py`, `weekly_digest.py`, `admin_health.py`, etc. bypass it;
+>   the `.preflight_*` files have no migration layer. Repoint all readers +
+>   extend the migration, then delete the files.
+>
+> Each sub-track ends with the 3-gate proof of death. Per the `/goal`, once a
+> sub-track's proof is fully green the retirement fires. The Phase 3/6/7B
+> "shipped" status covered schema + data; this is the code-cutover work.
 
 #### Track 4a — Retire `capm_products` (Phase 3 Stages 4–5)
 
