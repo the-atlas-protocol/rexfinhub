@@ -60,18 +60,52 @@ When a new REX product is filed and appears on `/operations/pipeline`:
 
 ### touchpoint-morning-triage
 
-The `[PIPELINE]` summary email arrives at 20:15 ET tonight, moving to 08:00 ET after Phase 6.
+**Phase 6 Stage 6 (shipped 2026-05-19)**: The new `[REX TRIAGE]` email fires at 08:00 ET Mon-Fri via `rexfinhub-morning-triage.timer`. Replaces the older 20:15 ET `[PIPELINE]` summary (which remains running during dual-period).
 
 Email contents:
-- Overall PASS / WARN / FAIL badge at top
-- 6 stage rows (Bloomberg sync → Classification → Preflight → GO/HOLD → Gate transitions → Email sends) with green/amber/red status
-- After Phase 6: ~25 data-quality assertions listed; failed ones called out
+- Overall ALL CLEAR / N ITEMS badge at top
+- 15 assertions grouped by category (freshness / classification / lifecycle / send_pipeline / integrity)
+- Failed assertions inline-render with sample failures + ticker/canonical_id
 
 **Triage flow**:
-1. Open email
-2. Scan for red items
+1. Open email at start of day
+2. Scan for FAIL items in each category
 3. If all green → done (~30 sec)
-4. If red → quote the failure to Claude in chat. Claude investigates + proposes fix. You approve.
+4. If FAIL → either fix directly (e.g. demote a wrong-Listed via admin) or quote it to Claude for investigation
+
+### touchpoint-classify-override
+
+When the auto-classifier or Bloomberg gets a product wrong, write a manual override via the new admin endpoint (Phase 6 Stage 4, ADR 0009):
+
+```bash
+# Set an override (e.g. change etp_category for a fund)
+curl -X POST https://rexfinhub.com/admin/classify-override/<canonical_id> \
+  -b "session=<your_admin_session_cookie>" \
+  -d "field_name=etp_category" \
+  -d "value=LI" \
+  -d "reason=Bloomberg has it as Crypto but it's clearly LI per prospectus"
+
+# Or blacklist (NULL value, force "do not classify"):
+curl -X POST https://rexfinhub.com/admin/classify-override/<canonical_id> \
+  -b "session=..." \
+  -d "field_name=etp_category" \
+  -d "blacklist=true" \
+  -d "reason=Pre-launch — classification premature"
+
+# List current overrides for a product:
+curl https://rexfinhub.com/admin/classify-overrides/<canonical_id> \
+  -b "session=..."
+
+# Remove an override (revert to Bloomberg/auto):
+curl -X DELETE 'https://rexfinhub.com/admin/classify-override/<canonical_id>?field_name=etp_category' \
+  -b "session=..."
+```
+
+Override takes effect on the **next bloomberg-chain run** (17:15 ET) when `apply_classification_overrides.py` runs as a post-step and writes the override values into `mkt_master_data`. Audit-logged via `capm_audit_log`.
+
+Field-name whitelist: `etp_category`, `issuer_display`, `is_rex`, `primary_strategy`, `asset_class`, `sub_strategy`, `mechanism`, `direction`, `leverage_ratio`, `reset_period`, `cap_pct`, `buffer_pct`, `barrier_pct`, `concentration`, `region`, `duration_bucket`, `credit_quality`, `underlier_id`, `expense_ratio_override`.
+
+HTMX inline-edit UI on `/operations/products` is the planned follow-up; for now use curl or build form requests manually.
 
 ### red-button-procedures
 
