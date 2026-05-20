@@ -133,18 +133,27 @@ def check_primary_strategy(conn: sqlite3.Connection) -> tuple:
 
 @_make_assertion("underlier_id_coverage", "classification")
 def check_underlier_id(conn: sqlite3.Connection) -> tuple:
-    """Every active REX product should have a resolved underlier_id via fund_underlier."""
+    """Every Listed REX product resolves to a typed (non-unknown) underlier.
+
+    Catches both a missing fund_underlier link AND a link that points to an
+    'unknown'-type underlier_master row (the junk-underlier case — e.g. the
+    MicroSectors ETNs that were linked to the junk '0' underlier).
+    """
     rows = conn.execute("""
         SELECT rp.ticker, rp.name
         FROM rex_products rp
-        LEFT JOIN fund_underlier fu ON fu.canonical_id = rp.canonical_id
         WHERE rp.status = 'Listed'
-          AND fu.canonical_id IS NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM fund_underlier fu
+              JOIN underlier_master um ON um.underlier_id = fu.underlier_id
+              WHERE fu.canonical_id = rp.canonical_id
+                AND um.underlier_type != 'unknown'
+          )
         LIMIT 20
     """).fetchall()
     return (len(rows) == 0, len(rows),
             [{"ticker": r[0], "name": r[1]} for r in rows[:5]],
-            f"{len(rows)} Listed REX products missing fund_underlier link")
+            f"{len(rows)} Listed REX products without a resolved (typed) underlier")
 
 
 @_make_assertion("etp_category_coverage", "classification")
