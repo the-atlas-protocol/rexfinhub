@@ -10,6 +10,15 @@ updated: 2026-05-19
 >
 > Each entry: `## YYYY-MM-DD` header; bullet entries; link to PR / ADR / commit where appropriate.
 
+## 2026-05-20
+
+- **Rebuild completion plan adopted** — `docs/raw/ops/REBUILD-COMPLETION-PLAN_2026-05-19.md` is the live execution plan for all remaining rebuild work, organized as Tracks 0-6 under a Build·Prove·Retire principle: retire no legacy artifact until a 3-gate proof of death (static grep / runtime access / equivalence diff) is green. Status lifecycle clarified with Ryu: `under_consideration` is pre-filing; a filing matcher (Phase 5B / Track 5B) attaches incoming 485-series filings to the pre-existing `canonical_id` instead of minting duplicates; `target_list → listed` auto-promotes via the reconciler's 3-source rule (Bloomberg ACTV alone is insufficient).
+- **Track 1 — documentation reconciliation** (PR #62). Fixed the 17 documentation defects from the architecture audit: removed stale TARGET.md "planned" phase lines, defined Phase 4b + Phase 5B, reconciled `fund_underlier` / `status_history` enum / `identifier_xref` / `product_master` schema drift to the shipped code, corrected the assertion count (15 → 25), fixed the classify-override route name, closed stale gaps across all four canonical docs, flipped ADRs 0006-0010 `proposed` → `accepted`, and declared `rex_products.canonical_id` + `status_cached` on the `RexProduct` ORM model.
+- **Track 2 — Phase 1 Cut 3 closeout.**
+  - Cut 3 verified: the `intraday-refresh` wrapper ran a full manual pass (rc=2 partial-success; the send step was correctly gate-blocked outside the 19:00-20:00 window). The earlier SIGTERM kill — fresh-poller's `Conflicts=` directive terminating the heavy job at 20:00 — was fixed in PR #61 (`Conflicts=` removed, timer offset to :05).
+  - **Render DB upload race fixed** — `upload_db_to_render` used the fixed path `etp_tracker_render.db.upload.gz` and deleted it in a `finally` block, so two concurrent `run_daily` invocations would race: one process's cleanup deleted the file the other was mid-upload on, and the retry sleep widened that window to 30-90s. This was the root cause of the `FileNotFoundError: etp_tracker_render.db.upload.gz` in the 2026-05-19 verification run. Fix: per-process unique paths (`etp_tracker_render.{pid}.db`).
+  - **Screener-cache upload now retries** — `upload_screener_cache_to_render` had no retry (unlike the DB upload), so a transient Render HTTP 503 failed it outright. Added a 3-attempt retry with 0/15/45s backoff.
+
 ## 2026-05-19
 
 - **Autonomous evening push (PRs #45-#59)** —
