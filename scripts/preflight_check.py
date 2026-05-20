@@ -754,26 +754,34 @@ def main():
     elif any(a["status"] in ("warn", "error") for a in audits):
         overall = "warn"
 
+    # Phase 7 Part B Stage 2 (ADR 0010): prefer DB-backed system_flags reads;
+    # fall back to legacy file-exists check when the helper isn't importable.
     paused_flag = DATA_DIR / ".send_paused"
     decision_file = DATA_DIR / ".preflight_decision.json"
+    try:
+        from webapp.services.system_flags import get_flag as _flag
+        _send_paused = _flag("send_paused")
+        _autogo_on_warn = _flag("autogo_on_warn")
+    except ImportError:
+        _send_paused = paused_flag.exists()
+        _autogo_on_warn = (DATA_DIR / ".autogo_on_warn").exists()
 
     auto_go_action = None
     auto_go_reason = None
-    if paused_flag.exists():
-        auto_go_reason = f".send_paused flag present at {paused_flag}"
+    if _send_paused:
+        auto_go_reason = f"send_paused flag is set"
     elif overall == "pass":
         auto_go_action = "GO"
         auto_go_reason = f"auto-GO: preflight overall_status=pass at {_now_et()}"
     elif overall == "warn":
         # WARN auto-GO is configurable; default OFF until explicit opt-in
-        warn_autogo_flag = DATA_DIR / ".autogo_on_warn"
-        if warn_autogo_flag.exists():
+        if _autogo_on_warn:
             auto_go_action = "GO"
             auto_go_reason = (f"auto-GO: preflight overall_status=warn with "
-                              f".autogo_on_warn opt-in flag at {_now_et()}")
+                              f"autogo_on_warn flag set at {_now_et()}")
         else:
-            auto_go_reason = (f"no auto-GO: overall=warn; touch "
-                              f"data/.autogo_on_warn to enable WARN auto-GO")
+            auto_go_reason = (f"no auto-GO: overall=warn; set autogo_on_warn "
+                              f"flag to enable WARN auto-GO")
     else:
         auto_go_reason = f"no auto-GO: overall_status={overall}"
 
