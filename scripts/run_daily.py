@@ -596,25 +596,41 @@ def upload_screener_cache_to_render():
             "(add it to config/.env on the VPS and to the Render service env)."
         )
 
-    try:
-        with open(cache_path, "rb") as f:
-            resp = requests.post(
-                f"{RENDER_API_URL}/uploads/screener-cache",
-                headers={"Authorization": f"Bearer {token}"},
-                files={"file": ("screener_cache.json", f, "application/json")},
-                timeout=60,
-            )
-        if resp.status_code == 200:
-            keys = resp.json().get("keys", [])
-            print(f"  Uploaded {cache_path.stat().st_size / 1024:.0f} KB ({len(keys)} keys)")
-        else:
-            raise RuntimeError(
-                f"Screener cache upload to Render failed: HTTP {resp.status_code}"
-            )
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Screener cache upload error: {e}") from e
+    # 2026-05-19: Render API intermittently returns HTTP 503 / connection
+    # errors. Retry with backoff, mirroring upload_db_to_render (this upload
+    # is only ~500 KB, so shorter backoffs: 0s, 15s, 45s).
+    import time as _t
+    max_attempts = 3
+    last_err = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            if attempt > 1:
+                backoff = 15 if attempt == 2 else 45
+                print(f"  Screener cache retry {attempt}/{max_attempts} after {backoff}s...",
+                      flush=True)
+                _t.sleep(backoff)
+            with open(cache_path, "rb") as f:
+                resp = requests.post(
+                    f"{RENDER_API_URL}/uploads/screener-cache",
+                    headers={"Authorization": f"Bearer {token}"},
+                    files={"file": ("screener_cache.json", f, "application/json")},
+                    timeout=60,
+                )
+            if resp.status_code == 200:
+                keys = resp.json().get("keys", [])
+                print(f"  Uploaded {cache_path.stat().st_size / 1024:.0f} KB "
+                      f"({len(keys)} keys) on attempt {attempt}/{max_attempts}")
+                return
+            last_err = f"HTTP {resp.status_code}"
+            print(f"  attempt {attempt} got HTTP {resp.status_code}; retrying")
+        except (requests.exceptions.ConnectionError,
+                requests.exceptions.ChunkedEncodingError,
+                requests.exceptions.ReadTimeout) as net_err:
+            last_err = str(net_err)
+            print(f"  attempt {attempt} network error: {net_err}; retrying")
+    raise RuntimeError(
+        f"Screener cache upload to Render failed after {max_attempts} attempts: {last_err}"
+    )
 
 
 def upload_parquets_to_render():
@@ -678,6 +694,7 @@ def upload_parquets_to_render():
 def upload_db_to_render():
     """Upload stripped SQLite DB to Render (no 13F tables)."""
     import gzip
+    import os
     import sqlite3
     import requests
 
@@ -688,7 +705,12 @@ def upload_db_to_render():
 
     api_key = _load_api_key()
     headers = {"X-API-Key": api_key} if api_key else {}
-    render_db = PROJECT_ROOT / "data" / "etp_tracker_render.db"
+    # Per-process unique paths. Two concurrent run_daily invocations (e.g. a
+    # manual intraday-refresh overlapping a scheduled one) must not share the
+    # intermediate DB / .gz: one process's finally-cleanup would delete the
+    # file the other is mid-upload on. Observed 2026-05-19 — a retry sleep
+    # widened that window and attempt 2 hit FileNotFoundError on the .gz.
+    render_db = PROJECT_ROOT / "data" / f"etp_tracker_render.{os.getpid()}.db"
     gz_path = str(render_db) + ".upload.gz"
 
     try:
