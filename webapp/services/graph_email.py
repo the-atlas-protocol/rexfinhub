@@ -108,11 +108,17 @@ def send_email(
     Returns True on success, False on failure.
     """
     # --- SEND GATE (mirrors the gate in email_alerts._send_html_digest) ---
-    from pathlib import Path as _P
-    _gate = _P(__file__).resolve().parent.parent.parent / "config" / ".send_enabled"
-    _gate_open = bypass_gate or (_gate.exists() and _gate.read_text().strip().lower() == "true")
+    # Phase 7B (ADR 0010): DB-backed system_flags is authoritative; the helper
+    # falls back to the legacy file if it is unavailable.
+    try:
+        from webapp.services.system_flags import get_flag as _flag
+        _gate_open = bypass_gate or _flag("send_enabled")
+    except ImportError:
+        from pathlib import Path as _P
+        _gate = _P(__file__).resolve().parent.parent.parent / "config" / ".send_enabled"
+        _gate_open = bypass_gate or (_gate.exists() and _gate.read_text().strip().lower() == "true")
     if not _gate_open:
-        log.warning("SEND BLOCKED (Graph): config/.send_enabled is not 'true'. Subject: %s", subject)
+        log.warning("SEND BLOCKED (Graph): send_enabled flag is not set. Subject: %s", subject)
         return False
     # --- END SEND GATE ---
 

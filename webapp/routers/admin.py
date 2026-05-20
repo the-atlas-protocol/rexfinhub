@@ -107,10 +107,9 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    # Send gate status
-    from pathlib import Path as _P
-    gate_file = _P(__file__).resolve().parent.parent.parent / "config" / ".send_enabled"
-    send_gate_open = gate_file.exists() and gate_file.read_text().strip().lower() == "true"
+    # Send gate status — DB-backed system_flags (Phase 7B).
+    from webapp.services.system_flags import get_flag as _flag
+    send_gate_open = _flag("send_enabled")
 
     # Classification proposals
     from webapp.models import ClassificationProposal
@@ -224,16 +223,15 @@ def toggle_gate(request: Request):
     """Toggle email send gate on/off."""
     if not _is_admin(request):
         return RedirectResponse("/admin/", status_code=302)
-    from pathlib import Path as _P
-    gate = _P(__file__).resolve().parent.parent.parent / "config" / ".send_enabled"
-    if gate.exists() and gate.read_text().strip().lower() == "true":
-        gate.unlink()
-        log.info("Send gate LOCKED by admin (IP: %s)", request.client.host if request.client else "unknown")
+    from webapp.services.system_flags import get_flag, set_flag
+    _ip = request.client.host if request.client else "unknown"
+    if get_flag("send_enabled"):
+        set_flag("send_enabled", False, set_by="admin:gate-toggle")
+        log.info("Send gate LOCKED by admin (IP: %s)", _ip)
         return RedirectResponse("/admin/?gate=locked", status_code=303)
     else:
-        gate.parent.mkdir(parents=True, exist_ok=True)
-        gate.write_text("true")
-        log.info("Send gate UNLOCKED by admin (IP: %s)", request.client.host if request.client else "unknown")
+        set_flag("send_enabled", True, set_by="admin:gate-toggle")
+        log.info("Send gate UNLOCKED by admin (IP: %s)", _ip)
         return RedirectResponse("/admin/?gate=unlocked", status_code=303)
 
 

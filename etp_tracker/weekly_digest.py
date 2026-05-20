@@ -1414,10 +1414,15 @@ def build_weekly_digest_html(
 def _send_weekly_html(subject: str, html_body: str, recipients: list[str]) -> bool:
     """Send weekly digest HTML to a list of recipients."""
     # --- SEND GATE (matches email_alerts._send_html_digest pattern) ---
-    from pathlib import Path as _P
-    _gate = _P(__file__).resolve().parent.parent / "config" / ".send_enabled"
-    if not _gate.exists() or _gate.read_text().strip().lower() != "true":
-        log.warning("SEND BLOCKED (Weekly): config/.send_enabled is not 'true'. Subject: %s", subject)
+    try:
+        from webapp.services.system_flags import get_flag as _flag
+        _gate_open = _flag("send_enabled")
+    except ImportError:
+        from pathlib import Path as _P
+        _gate = _P(__file__).resolve().parent.parent / "config" / ".send_enabled"
+        _gate_open = _gate.exists() and _gate.read_text().strip().lower() == "true"
+    if not _gate_open:
+        log.warning("SEND BLOCKED (Weekly): send_enabled flag is not set. Subject: %s", subject)
         return False
     # --- END SEND GATE ---
 

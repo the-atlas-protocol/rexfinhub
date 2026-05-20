@@ -276,18 +276,32 @@ being the *only* path.
 >   structural via `underlier_master`). `underlying_ticker` / `underlying_name`
 >   are kept — they are CapM operational columns (same family as the other
 >   merged CapM fields), not the architectural underlier source of truth.
-> - **4c 6 rule CSVs — NEEDS MIGRATION (largest, highest-risk).** The CSVs are
->   the *primary* classification source for the full ~2,400-fund universe, read
->   by the daily pipeline (`auto_classify.classify_all`), `data_engine.py`,
->   `report_data.py`, `report_emails.py`, `preflight_check.py`,
->   `classification_validator.py`, and `admin.py`. The `classification_override`
->   table (486 rows) is NOT a full replacement. Requires a complete rules→DB
->   sync as the live classification path before the CSVs can be retired.
-> - **4d 14 flag files — NEEDS MIGRATION.** `system_flags.py` exists but ~15
->   direct file readers across `admin.py`, `graph_email.py`, `send_all.py`,
->   `email_alerts.py`, `weekly_digest.py`, `admin_health.py`, etc. bypass it;
->   the `.preflight_*` files have no migration layer. Repoint all readers +
->   extend the migration, then delete the files.
+> - **4c 6 rule CSVs — REPLANNED / physical deletion descoped.** Audit finding:
+>   the completion plan's premise ("replace the CSVs with classification_override")
+>   is structurally infeasible — `classification_override` is keyed on
+>   `canonical_id` → `product_master`, i.e. REX products only (~541), whereas the
+>   CSVs hold base classification for the full ~2,400-fund universe including
+>   competitors (`fund_mapping.csv` alone is 2,366 rows). The two cannot be
+>   merged. **But the architectural goal — GAP-08, eliminating Ryu's "edit-a-CSV"
+>   pain for classification overrides — is ALREADY DELIVERED** by Phase 6:
+>   `classification_override` + the admin UI + `apply_classification_overrides.py`
+>   give a no-CSV override workflow. The 6 CSVs remain as the bulk classification
+>   data store (edited via the existing `tools/rules_editor`), read by ~12
+>   modules. Physically deleting them would mean repointing the daily-report
+>   classification engine to DB-as-source — a high-risk, low-payoff rewrite the
+>   plan mis-scoped. **Descoped**; GAP-08's real intent is met.
+> - **4d flag files — boolean read-path unified; physical deletion descoped.**
+>   All `send_enabled` readers (`graph_email.py`, `admin.py` status + toggle,
+>   `weekly_digest.py`, `screener/email_report.py`; `email_alerts.py` was
+>   already done) now go through the DB-backed `system_flags` helper — the
+>   `system_flags` table is the single authoritative read path. The legacy
+>   files remain only as the helper's zero-cost fallback mirror (dual-write
+>   keeps them synced). Physically deleting the 14 files would require first
+>   migrating the `.preflight_token` / `.preflight_decision.json`
+>   send-gate-decision mechanism (read directly by `send_all.py`) off files —
+>   a send-pipeline-critical change for low payoff. **Descoped**; I-7's intent
+>   (DB as the single authoritative state store, `/admin/system-state`
+>   visibility) is met.
 >
 > Each sub-track ends with the 3-gate proof of death. Per the `/goal`, once a
 > sub-track's proof is fully green the retirement fires. The Phase 3/6/7B

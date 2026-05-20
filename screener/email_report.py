@@ -23,10 +23,15 @@ def send_screener_report(
     Returns True on success.
     """
     # --- SEND GATE (matches email_alerts._send_html_digest pattern) ---
-    from pathlib import Path as _P
-    _gate = _P(__file__).resolve().parent.parent / "config" / ".send_enabled"
-    if not _gate.exists() or _gate.read_text().strip().lower() != "true":
-        log.warning("SEND BLOCKED (Screener): config/.send_enabled is not 'true'.")
+    try:
+        from webapp.services.system_flags import get_flag as _flag
+        _gate_open = _flag("send_enabled")
+    except ImportError:
+        from pathlib import Path as _P
+        _gate = _P(__file__).resolve().parent.parent / "config" / ".send_enabled"
+        _gate_open = _gate.exists() and _gate.read_text().strip().lower() == "true"
+    if not _gate_open:
+        log.warning("SEND BLOCKED (Screener): send_enabled flag is not set.")
         return False
     # --- END SEND GATE ---
 
