@@ -84,23 +84,30 @@ def main() -> int:
         um_rows = conn.execute("SELECT underlier_id, display_symbol FROM underlier_master").fetchall()
         um_by_symbol = {r["display_symbol"]: r["underlier_id"] for r in um_rows}
 
-        existing_links = {
-            (row[0], row[1], row[2])
-            for row in conn.execute(
-                "SELECT canonical_id, underlier_id, effective_from FROM fund_underlier"
+        # Product-level idempotency: this backfill assigns the single primary
+        # underlier, so it only links products that have NO open fund_underlier
+        # row yet. Re-running must never add a SECOND link to an already-linked
+        # product (a per-(canonical_id,underlier_id) check is not enough — a
+        # re-run that resolves a different source column would mint a dup).
+        existing_linked = {
+            row[0] for row in conn.execute(
+                "SELECT DISTINCT canonical_id FROM fund_underlier WHERE effective_to IS NULL"
             ).fetchall()
         }
 
         print(f"DB: {db_path}")
         print(f"rex_products rows: {len(rex_rows)}")
         print(f"underlier_master rows: {len(um_rows)}")
-        print(f"existing fund_underlier rows: {len(existing_links)}")
+        print(f"products already linked: {len(existing_linked)}")
 
         stats = {"resolved": 0, "no_underlier": 0, "no_match": 0, "already_linked": 0}
         to_insert = []
         unmatched_samples = []
 
         for r in rex_rows:
+            if r["canonical_id"] in existing_linked:
+                stats["already_linked"] += 1
+                continue
             # Pick preferred underlier text — most specific first
             raw = (r["underlying_ticker"] or r["underlying_name"] or "").strip()
             if not raw:
@@ -119,10 +126,6 @@ def main() -> int:
                 continue
 
             effective_from = r["initial_filing_date"] or r["created_at"] or datetime.utcnow().isoformat()
-            key = (r["canonical_id"], uid, effective_from)
-            if key in existing_links:
-                stats["already_linked"] += 1
-                continue
             stats["resolved"] += 1
             to_insert.append((r["canonical_id"], uid, None, effective_from))
 

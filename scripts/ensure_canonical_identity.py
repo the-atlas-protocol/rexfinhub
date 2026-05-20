@@ -38,11 +38,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 PY = sys.executable
 
 # Dependency order matters: product_master mints canonical_id first; the rest
-# key off it.
+# key off it. backfill_underlier_master is deliberately NOT here — it is a
+# heuristic re-classifier that would mint noise rows on a nightly cadence;
+# new underlier strings are handled targeted, surfaced by the
+# underlier_id_coverage assertion. backfill_fund_underlier links new products
+# to EXISTING underlier_master rows only.
 STEPS = [
     "backfill_product_master.py",
     "backfill_identifier_xref.py",
-    "backfill_underlier_master.py",
     "backfill_fund_underlier.py",
 ]
 
