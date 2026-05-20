@@ -108,6 +108,7 @@ def admin_page(request: Request, db: Session = Depends(get_db)):
         pass
 
     # Send gate status — DB-backed system_flags (Phase 7B).
+    from pathlib import Path as _P  # used later in this route (sec_metrics, send_log)
     from webapp.services.system_flags import get_flag as _flag
     send_gate_open = _flag("send_enabled")
 
