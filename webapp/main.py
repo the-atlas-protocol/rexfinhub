@@ -477,6 +477,14 @@ def create_app() -> FastAPI:
     from webapp.routers import admin_rex_products
     app.include_router(admin_rex_products.router)
 
+    # Phase 6 Stage 4 (ADR 0009): classification_override admin endpoints
+    # POST /admin/classify-override/{canonical_id} writes an override row;
+    # GET /admin/classify-overrides/{canonical_id} lists all overrides for
+    # a product. Future HTMX inline-edit UI on /operations/products will
+    # hit these endpoints.
+    from webapp.routers import admin_classify
+    app.include_router(admin_classify.router)
+
     # IPO Intel — pre-IPO + recently-priced watchlist surfaced from
     # config/ipo_watchlist.yaml. Read-only display page at /intel/ipo.
     from webapp.routers import ipo_intel

@@ -185,7 +185,8 @@ def _resolve_recipients(list_type: str, override_to: str | None) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def _send_one(key: str, db, override_to: str | None, dry_run: bool,
-              bypass_gate: bool, allow_self_loop: bool) -> dict:
+              bypass_gate: bool, allow_self_loop: bool,
+              bypass_rate_limit: bool = False) -> dict:
     """Build + (optionally) send one report. Returns status dict."""
     builder, list_type, critical = REPORTS[key]
     out: dict = {
@@ -219,6 +220,7 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
             subject_override=subject,
             bypass_gate=bypass_gate,
             allow_self_loop=allow_self_loop,
+            bypass_rate_limit=bypass_rate_limit,
         )
         out["status"] = "sent" if ok else "failed"
         if not ok:
@@ -246,6 +248,11 @@ def main():
     ap.add_argument("--allow-self-loop", action="store_true",
                     help="Permit recipients matching AZURE_SENDER (relasmar@rexfin.com). "
                          "Refused by default — production sends should never self-loop.")
+    ap.add_argument("--bypass-rate-limit", action="store_true",
+                    help="Skip the L6 per-recipient daily cap check. Use ONLY for "
+                         "operator-driven re-sends after a freeze send already burned "
+                         "the day's cap (e.g. 2026-05-19 19:30 ET retry). Logged in "
+                         "send_audit.json with phase='bypass_rate_limit'.")
     ap.add_argument("--use-decision", action="store_true",
                     help="Read data/.preflight_decision.json and only fire if action=GO. "
                          "Verifies the recorded token against data/.preflight_token. "
@@ -368,7 +375,8 @@ def main():
                             override_to=args.to,
                             dry_run=dry_run,
                             bypass_gate=args.bypass_gate,
-                            allow_self_loop=args.allow_self_loop)
+                            allow_self_loop=args.allow_self_loop,
+                            bypass_rate_limit=args.bypass_rate_limit)
             results.append(res)
             print(f"  status:    {res['status']}")
             if res["subject"]:
