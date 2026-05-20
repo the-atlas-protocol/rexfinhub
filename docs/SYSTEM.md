@@ -86,7 +86,7 @@ All times Eastern. Mon-Fri unless noted.
 
 | DB / Path | Tables (primary) | Writer | Size |
 |---|---|---|---|
-| `/home/jarvis/rexfinhub/data/etp_tracker.db` | `mkt_master_data`, `rex_products`, `capm_products`, `filings`, `fund_extractions`, `fund_status`, `trusts`, `email_recipients`, `mkt_cboe_reserved_symbols`, `mkt_pipeline_runs`, `mkt_report_cache` | Daily pipeline + admin UI | ~650 MB |
+| `/home/jarvis/rexfinhub/data/etp_tracker.db` | `mkt_master_data`, `rex_products`, `capm_products`, `filings`, `fund_extractions`, `fund_status`, `trusts`, `email_recipients`, `mkt_cboe_reserved_symbols`, `mkt_pipeline_runs`, `mkt_report_cache`, **`product_master`, `identifier_xref`, `underlier_master`, `fund_underlier`** (Phase 4), **`status_history`** (Phase 5), **`classification_override`, `assertion_run`** (Phase 6), **`system_flags`, `preflight_run`, `system_event`** (Phase 7B) | Daily pipeline + admin UI | ~669 MB |
 | `/home/jarvis/rexfinhub/data/holdings.db` | `Institution`, `Holding`, `CusipMapping` | `scripts/run_13f.py` (quarterly) | ~850 MB |
 | `/home/jarvis/rexfinhub/data/structured_notes.db` (if present) | Structured-product extraction tables | Structured notes pipeline | ~290 MB |
 
@@ -101,6 +101,7 @@ All times Eastern. Mon-Fri unless noted.
 | `/intel/holdings`, `/intel/competitors`, `/intel/insights` | `webapp/routers/intel.py` + `intel_competitors.py` + `intel_insights.py` | `holdings.db` |
 | `/admin/*` | `webapp/routers/admin*.py` | Various; gated by `ADMIN_PASSWORD` |
 | `/admin/cboe-cookie` | `webapp/routers/admin.py::cboe_cookie_page,cboe_cookie_rotate` (Phase 2, ADR 0004) | Proxies to VPS `POST /pipeline/cboe-rotate` + `GET /pipeline/cboe-status` for `.env` rewrite + `live_check("AAPL")` probe + recovery sweep dispatch |
+| `/admin/classify-override/{canonical_id}` | `webapp/routers/admin_classify.py` (Phase 6 Stage 4, ADR 0009) | POST upserts a row into `classification_override` via `webapp/services/classification_resolver.py::set_override`; audit-logged via `capm_audit_log`. DELETE removes the override. GET lists all overrides for a canonical_id. |
 | `/api/v1/db/upload`, `/api/v1/db/upload-notes`, `/api/v1/db/upload-holdings` | `webapp/routers/api.py` | Inbound from VPS daily |
 
 ### secrets-inventory
@@ -122,6 +123,27 @@ All times Eastern. Mon-Fri unless noted.
 | `RENDER_UPLOAD_TOKEN` | .env (VPS only) | Possibly unused | MEDIUM if used | Investigate |
 
 Secret values never appear in this doc — only locations + rotation status. See `DECISIONS/0003-rotate-exposed-secrets.md` (proposed).
+
+### scheduled-units
+
+| Unit | Cadence | What it runs |
+|---|---|---|
+| `rexfinhub-atom-watcher.service` | continuous daemon | SEC atom feed polling (60s cycles) |
+| `rexfinhub-fresh-poller.timer` | every 15 min Mon-Fri 08:00-20:45 ET | Per-CIK SEC submissions JSON pull with daily-index pre-flight |
+| `rexfinhub-bloomberg.timer` | 17:15 + 21:00 ET Mon-Fri | Graph-API pull from SharePoint + sync_market_data + post-steps wrapper (apply_fund_master, apply_underlier_overrides, apply_issuer_brands, apply_classification_sweep, apply_classification_overrides, status_reconciler dry-run) |
+| `rexfinhub-preflight.timer` | 18:30 ET Mon-Fri | Preflight check; writes auto-GO decision if pass/warn |
+| `rexfinhub-gate-open.timer` | 19:00 ET Mon-Fri | Opens the send gate |
+| `rexfinhub-daily.timer` | 19:30 ET Mon-Fri | Send daily report via `send_all.py --bundle daily --use-decision` |
+| `rexfinhub-gate-close.timer` | 20:00 ET Mon-Fri | Closes the send gate |
+| `rexfinhub-intraday-refresh.timer` | 4×/day Mon-Fri 08/12/16/20 ET | classification + screener + parquets + DB compact + Render upload |
+| `rexfinhub-morning-triage.timer` | 08:00 ET Mon-Fri | Phase 6 Stage 6: assertion runner + morning triage email |
+| `rexfinhub-cboe.timer` | 03:00 ET daily | CBOE symbol reservation scanner (full sweep) |
+| `rexfinhub-13f-quarterly.timer` | Feb/May/Aug/Nov 19th 06:00 ET | 13F holdings pipeline |
+| `rexfinhub-db-backup.timer` | 23:00 ET daily | DB backup to `data/backups/` |
+| `rexfinhub-reconciler.timer` | 08:00 ET weekdays | rex_products + market reconciliation |
+| Cron: pipeline_summary | 20:15 ET Mon-Fri | Legacy 20:15 summary email (kept during morning-triage dual-period) |
+| Cron: canonicalize_crypto_underliers | 02:30 ET daily | BUG-01 mitigation |
+| Cron: audit_duplicate_tickers | 02:35 ET daily | BUG-02 mitigation |
 
 ### scraper-pathways
 
