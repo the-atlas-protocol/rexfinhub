@@ -34,6 +34,11 @@ STEPS = [
     ("apply_issuer_brands",      [PY, str(PROJECT_ROOT / "scripts" / "apply_issuer_brands.py")]),
     ("apply_classification_sweep", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_sweep.py"),
                                      "--apply", "--apply-medium"]),
+    # Phase 6 Stage 7 prerequisite (ADR 0009): apply override rows from
+    # classification_override AFTER the legacy classify_sweep so the
+    # canonical override-first resolution actually takes effect on the
+    # mkt_master_data columns the reports read.
+    ("apply_classification_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_overrides.py")]),
 ]
 
 
