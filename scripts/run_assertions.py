@@ -85,7 +85,13 @@ def check_mkt_data_volatility(conn: sqlite3.Connection) -> tuple:
 
 @_make_assertion("atom_watcher_alive", "freshness")
 def check_atom_watcher(conn: sqlite3.Connection) -> tuple:
-    """An atom-watcher cycle should have detected something within the last 2 hours."""
+    """An atom-watcher emission should have landed within the last 12 hours.
+
+    NOTE: atom-watcher writes filing_alerts ONLY when SEC publishes a new
+    filing — quiet after-hours/weekend windows can stretch >2h. The 12h
+    threshold catches a dead daemon (typical day has multiple emissions)
+    without false-positiving on weekend quiet.
+    """
     row = conn.execute("""
         SELECT MAX(detected_at) FROM filing_alerts WHERE source = 'atom'
     """).fetchone()
@@ -94,16 +100,13 @@ def check_atom_watcher(conn: sqlite3.Connection) -> tuple:
     latest_str = str(row[0])
     try:
         latest = datetime.fromisoformat(latest_str.replace("Z", "+00:00"))
-        # Strip tz for comparison with naive utcnow
         if latest.tzinfo:
             latest = latest.replace(tzinfo=None)
         age_min = (datetime.utcnow() - latest).total_seconds() / 60.0
-        # Atom-watcher inserts only when something new arrives; allow up to
-        # 2 hours of quiet (real-world: many quiet windows during market hours)
-        passed = age_min < 120
+        passed = age_min < 720  # 12 hours
         return (passed, 0 if passed else 1,
                 [{"latest_atom_alert": latest_str, "age_min": round(age_min, 1)}],
-                f"latest atom alert {age_min:.1f} min ago")
+                f"latest atom alert {age_min:.1f} min ago (threshold 720)")
     except (ValueError, TypeError) as e:
         return (False, 1, [], f"failed to parse: {e}")
 
