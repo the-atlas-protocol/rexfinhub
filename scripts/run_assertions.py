@@ -433,26 +433,27 @@ def check_preflight_token(conn: sqlite3.Connection) -> tuple:
             f"preflight_token vs decision_token match: {passed}")
 
 
-@_make_assertion("legacy_capm_dual_write_active", "integrity")
-def check_capm_dual_write(conn: sqlite3.Connection) -> tuple:
-    """Stage 4 grace period: capm_products row count should still match rex_products
-    rows with CapM fields populated (i.e. CapM-overlay rows in rex).
-
-    During the Stage 4 grace period (until ≥2026-05-26) capm_products is the
-    revert anchor; this catches accidental writes that would break revert.
+@_make_assertion("legacy_capm_retired", "integrity")
+def check_capm_retired(conn: sqlite3.Connection) -> tuple:
+    """capm_products was retired in Track 4a. Confirm the table is gone; or, if
+    it still exists mid-transition, that it has not drifted from the
+    rex_products CapM overlay (the revert anchor).
     """
+    exists = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='capm_products'"
+    ).fetchone()
+    if not exists:
+        return (True, 0, [], "capm_products retired — table dropped (Track 4a)")
     capm_n = conn.execute("SELECT COUNT(*) FROM capm_products").fetchone()[0] or 0
     overlay_n = conn.execute(
         "SELECT COUNT(*) FROM rex_products WHERE inception_date IS NOT NULL"
     ).fetchone()[0] or 0
-    # Allow ±5 row drift (legit: a new fund may be added to rex_products before
-    # the next CapM import runs).
     drift = abs(capm_n - overlay_n)
     passed = drift <= 5
     return (passed, 0 if passed else 1,
             [{"capm_products_rows": capm_n, "rex_overlay_rows": overlay_n,
               "drift": drift}],
-            f"capm_products vs rex CapM-overlay drift: {drift} (threshold 5)")
+            f"capm_products still present — drift vs rex overlay: {drift} (threshold 5)")
 
 
 # ============================================================================
@@ -561,7 +562,7 @@ ASSERTIONS = [
         # Added in second batch
         check_audit_log_freshness, check_fund_underlier_weight,
         check_override_categories, check_backup, check_preflight_token,
-        check_capm_dual_write,
+        check_capm_retired,
         # Phase 4/5/6 integrity (added 2026-05-19 evening)
         check_canonical_id, check_xref_consistency, check_override_canonical_id,
         check_status_history_current, check_status_cached,
