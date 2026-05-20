@@ -187,9 +187,14 @@ def append_transition(
         canonical_id, new_status, now, now,
         "reconciler_v1", json.dumps(evidence), set_by, now,
     ))
-    # Refresh the denormalized cache on rex_products (status_cached column —
-    # not yet added; rex_products.status remains the live read until Stage 4)
-    # No-op for now; Stage 4 wires the cache.
+    # Phase 5 Stage 4: refresh the denormalized cache on rex_products.
+    # The original rex_products.status column (CapM-case "Listed" etc.)
+    # is retained for backward compat with templates + flow report;
+    # status_cached carries the lowercase canonical form ("listed").
+    conn.execute(
+        "UPDATE rex_products SET status_cached = ? WHERE canonical_id = ?",
+        (new_status, canonical_id),
+    )
 
 
 def main() -> int:
