@@ -232,6 +232,89 @@ def check_recipient_lists(conn: sqlite3.Connection) -> tuple:
             f"{len(rows)} recipient lists with 0 active recipients")
 
 
+@_make_assertion("send_log_yesterday", "send_pipeline")
+def check_send_log_yesterday(conn: sqlite3.Connection) -> tuple:
+    """Yesterday should have at least 1 successful send (Mon-Fri).
+
+    Reads .send_audit.json file if present; warns if absent.
+    """
+    audit_path = PROJECT_ROOT / "data" / ".send_audit.json"
+    if not audit_path.exists():
+        return (True, 0, [], "no .send_audit.json (likely local-dev DB)")
+    try:
+        import json as _j
+        entries = _j.loads(audit_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        return (False, 1, [], f"failed to read send_audit: {e}")
+    yesterday = (datetime.utcnow().date() - timedelta(days=1)).isoformat()
+    wkday = (datetime.utcnow().date() - timedelta(days=1)).weekday()
+    if wkday >= 5:
+        return (True, 0, [], f"yesterday {yesterday} was weekend")
+    successes = [e for e in entries
+                 if e.get("phase") == "result" and e.get("allowed")
+                 and str(e.get("timestamp", "")).startswith(yesterday)]
+    return (len(successes) >= 1, 0 if successes else 1,
+            [{"yesterday": yesterday, "successful_sends": len(successes)}],
+            f"{len(successes)} successful sends on {yesterday}")
+
+
+@_make_assertion("autogo_decision_recent", "send_pipeline")
+def check_autogo_decision_recent(conn: sqlite3.Connection) -> tuple:
+    """Today's auto-GO decision file should exist + be < 24h old (on weekdays)."""
+    decision_path = PROJECT_ROOT / "data" / ".preflight_decision.json"
+    if datetime.utcnow().date().weekday() >= 5:
+        return (True, 0, [], "weekend; no decision file expected")
+    if not decision_path.exists():
+        return (True, 0, [], "no .preflight_decision.json (local-dev DB or pre-preflight)")
+    try:
+        age_h = (datetime.utcnow().timestamp() - decision_path.stat().st_mtime) / 3600
+    except OSError as e:
+        return (False, 1, [], f"stat failed: {e}")
+    passed = age_h < 24
+    return (passed, 0 if passed else 1,
+            [{"age_h": round(age_h, 1)}],
+            f"preflight_decision.json age {age_h:.1f}h")
+
+
+# ============================================================================
+# REPORTS KPI CONSISTENCY
+# ============================================================================
+
+@_make_assertion("rex_kpi_aum_consistency", "reports_kpi")
+def check_rex_aum_consistency(conn: sqlite3.Connection) -> tuple:
+    """BUG-05 class: any fund with issuer_display='REX' should also have
+    is_rex=1 (the asymmetric direction). The opposite — is_rex=1 with
+    issuer_display='MicroSectors' or other REX-licensed brands — is
+    correct data, not a bug.
+    """
+    rows = conn.execute("""
+        SELECT ticker, fund_name, COALESCE(aum, 0) AS aum
+        FROM mkt_master_data
+        WHERE market_status = 'ACTV'
+          AND UPPER(TRIM(issuer_display)) = 'REX'
+          AND COALESCE(is_rex, 0) != 1
+        ORDER BY aum DESC
+        LIMIT 20
+    """).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"ticker": r[0], "fund_name": (r[1] or "")[:40],
+              "aum_M": round(r[2]/1e6, 2)} for r in rows[:5]],
+            f"{len(rows)} ACTV funds with issuer_display='REX' but is_rex=0 (AXTU class)")
+
+
+@_make_assertion("active_etp_count_sanity", "reports_kpi")
+def check_active_count(conn: sqlite3.Connection) -> tuple:
+    """Active ETP count should be in [1000, 10000] — anything outside is suspect."""
+    n = conn.execute("""
+        SELECT COUNT(DISTINCT ticker_clean) FROM mkt_master_data
+        WHERE market_status = 'ACTV' AND fund_type IN ('ETF', 'ETN')
+    """).fetchone()[0] or 0
+    passed = 1000 <= n <= 10000
+    return (passed, 0 if passed else 1,
+            [{"active_etp_count": n}],
+            f"active ETP count: {n} (expected [1000, 10000])")
+
+
 # ============================================================================
 # PHASE 4 / 5 / 6 INTEGRITY (added 2026-05-19 evening)
 # ============================================================================
@@ -333,7 +416,8 @@ ASSERTIONS = [
         check_bloomberg_freshness, check_mkt_data_volatility, check_atom_watcher,
         check_primary_strategy, check_underlier_id, check_etp_category,
         check_date_inversion, check_duplicate_active_tickers, check_listed_has_actv,
-        check_recipient_lists,
+        check_recipient_lists, check_send_log_yesterday, check_autogo_decision_recent,
+        check_rex_aum_consistency, check_active_count,
         # Phase 4/5/6 integrity (added 2026-05-19 evening)
         check_canonical_id, check_xref_consistency, check_override_canonical_id,
         check_status_history_current, check_status_cached,
