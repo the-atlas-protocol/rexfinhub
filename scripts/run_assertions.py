@@ -233,6 +233,97 @@ def check_recipient_lists(conn: sqlite3.Connection) -> tuple:
 
 
 # ============================================================================
+# PHASE 4 / 5 / 6 INTEGRITY (added 2026-05-19 evening)
+# ============================================================================
+
+@_make_assertion("canonical_id_coverage", "integrity")
+def check_canonical_id(conn: sqlite3.Connection) -> tuple:
+    """Every rex_products row should have a canonical_id (Phase 4 Stage 2)."""
+    rows = conn.execute("""
+        SELECT id, ticker, name FROM rex_products
+        WHERE canonical_id IS NULL OR canonical_id = ''
+        LIMIT 20
+    """).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"id": r[0], "ticker": r[1], "name": (r[2] or "")[:40]} for r in rows[:5]],
+            f"{len(rows)} rex_products without canonical_id")
+
+
+@_make_assertion("identifier_xref_consistency", "integrity")
+def check_xref_consistency(conn: sqlite3.Connection) -> tuple:
+    """No fund-level identifier should map to >1 canonical_id with valid_to=NULL.
+
+    Catches ticker recycling errors at the data layer. Only checks id_types
+    that are fund-unique. CIK is excluded (one CIK = one trust = many funds).
+    """
+    # id_types that should be 1:1 with canonical_id
+    UNIQUE_TYPES = ("ticker", "series_id", "class_contract_id",
+                    "bloomberg", "figi", "cusip", "isin")
+    placeholders = ",".join("?" for _ in UNIQUE_TYPES)
+    rows = conn.execute(f"""
+        SELECT id_type, id_value, COUNT(DISTINCT canonical_id) AS n
+        FROM identifier_xref
+        WHERE valid_to IS NULL
+          AND id_type IN ({placeholders})
+        GROUP BY id_type, id_value
+        HAVING n > 1
+        LIMIT 20
+    """, UNIQUE_TYPES).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"id_type": r[0], "id_value": r[1], "canonical_id_count": r[2]} for r in rows[:5]],
+            f"{len(rows)} (id_type, id_value) pairs with >1 canonical_id (excl. cik)")
+
+
+@_make_assertion("override_canonical_id_valid", "integrity")
+def check_override_canonical_id(conn: sqlite3.Connection) -> tuple:
+    """Every classification_override row should reference a real canonical_id."""
+    rows = conn.execute("""
+        SELECT co.canonical_id, co.field_name
+        FROM classification_override co
+        LEFT JOIN product_master pm ON pm.canonical_id = co.canonical_id
+        WHERE pm.canonical_id IS NULL
+        LIMIT 20
+    """).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"canonical_id": r[0][:8] + "...", "field_name": r[1]} for r in rows[:5]],
+            f"{len(rows)} classification_override rows reference unknown canonical_id")
+
+
+@_make_assertion("status_history_current_exists", "integrity")
+def check_status_history_current(conn: sqlite3.Connection) -> tuple:
+    """Every product_master should have exactly one open status_history row (valid_to=NULL)."""
+    rows = conn.execute("""
+        SELECT pm.canonical_id, COUNT(sh.id) AS n_open
+        FROM product_master pm
+        LEFT JOIN status_history sh
+          ON sh.canonical_id = pm.canonical_id AND sh.valid_to IS NULL
+        GROUP BY pm.canonical_id
+        HAVING n_open != 1
+        LIMIT 20
+    """).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"canonical_id": r[0][:8] + "...", "open_rows": r[1]} for r in rows[:5]],
+            f"{len(rows)} product_master rows without exactly 1 open status_history row")
+
+
+@_make_assertion("status_cached_matches_history", "integrity")
+def check_status_cached(conn: sqlite3.Connection) -> tuple:
+    """rex_products.status_cached should match the current open status_history.status."""
+    rows = conn.execute("""
+        SELECT rp.ticker, rp.status_cached, sh.status AS history_status
+        FROM rex_products rp
+        JOIN status_history sh
+          ON sh.canonical_id = rp.canonical_id AND sh.valid_to IS NULL
+        WHERE rp.canonical_id IS NOT NULL
+          AND COALESCE(rp.status_cached, '') != COALESCE(sh.status, '')
+        LIMIT 20
+    """).fetchall()
+    return (len(rows) == 0, len(rows),
+            [{"ticker": r[0], "cached": r[1], "history": r[2]} for r in rows[:5]],
+            f"{len(rows)} rex_products where status_cached drifted from status_history")
+
+
+# ============================================================================
 # RUNNER
 # ============================================================================
 
@@ -243,6 +334,9 @@ ASSERTIONS = [
         check_primary_strategy, check_underlier_id, check_etp_category,
         check_date_inversion, check_duplicate_active_tickers, check_listed_has_actv,
         check_recipient_lists,
+        # Phase 4/5/6 integrity (added 2026-05-19 evening)
+        check_canonical_id, check_xref_consistency, check_override_canonical_id,
+        check_status_history_current, check_status_cached,
     ]
 ]
 
