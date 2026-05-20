@@ -2068,8 +2068,15 @@ def _send_html_digest(html_body: str, recipients: list[str],
     # L1 — Send gate. config/.send_enabled must contain "true". bypass_gate=True
     # for test sends (admin test paths). The L7 check ran first so a self-loop
     # test still fails fast even with bypass_gate=True.
-    _gate_file = Path(__file__).parent.parent / "config" / ".send_enabled"
-    _gate_open = bypass_gate or (_gate_file.exists() and _gate_file.read_text().strip().lower() == "true")
+    #
+    # Phase 7 Part B Stage 2 (ADR 0010): prefer DB-backed system_flags.get_flag
+    # ("send_enabled"); fall back to file-exists check when helper unavailable.
+    try:
+        from webapp.services.system_flags import get_flag as _flag
+        _gate_open = bypass_gate or _flag("send_enabled")
+    except ImportError:
+        _gate_file = Path(__file__).parent.parent / "config" / ".send_enabled"
+        _gate_open = bypass_gate or (_gate_file.exists() and _gate_file.read_text().strip().lower() == "true")
     if not _gate_open:
         _note = "L1 gate closed: config/.send_enabled is not 'true'"
         _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)

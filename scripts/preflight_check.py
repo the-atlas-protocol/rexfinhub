@@ -48,15 +48,21 @@ PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
 def _maintenance_window_active() -> bool:
     """Return True if the operator-flagged maintenance window is active.
 
-    During an active maintenance window (touch data/.preflight_maintenance),
-    audit_attribution_completeness downgrades threshold-failures from 'fail'
-    to 'warn'. Use only while upstream classification fixes propagate; remove
-    the flag once primary_strategy / issuer_display populate normally.
+    During an active maintenance window, audit_attribution_completeness
+    downgrades threshold-failures from 'fail' to 'warn'. Use only while
+    upstream classification fixes propagate; remove the flag once
+    primary_strategy / issuer_display populate normally.
+
+    Phase 7 Part B Stage 2 (ADR 0010): DB-first read; legacy file fallback.
     """
     try:
-        return MAINTENANCE_FLAG.exists()
-    except Exception:
-        return False
+        from webapp.services.system_flags import get_flag
+        return get_flag("preflight_maintenance")
+    except ImportError:
+        try:
+            return MAINTENANCE_FLAG.exists()
+        except Exception:
+            return False
 
 # Thresholds — alert if exceeded
 BBG_MAX_AGE_HOURS = 12
