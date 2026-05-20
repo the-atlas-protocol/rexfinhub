@@ -4,12 +4,16 @@ Description=REX FinHub Intraday Refresh Timer (4x/day, weekdays)
 
 [Timer]
 # VPS timezone set to America/New_York — DST handled automatically.
-# Same 4x/day rhythm as the old sec-scrape timer; intraday_refresh.py decides
-# inside whether to run the full pipeline or the --skip-sec fast path.
-OnCalendar=Mon..Fri 08:00:00
-OnCalendar=Mon..Fri 12:00:00
-OnCalendar=Mon..Fri 16:00:00
-OnCalendar=Mon..Fri 20:00:00
+# 4x/day, OFFSET 5 min past the hour. The fresh-poller fires at :00/:15/
+# :30/:45; running intraday-refresh at :05 guarantees the two never start
+# in the same second (BUG: 2026-05-19 20:00 — both fired together and
+# fresh-poller's Conflicts= directive SIGTERM-killed intraday-refresh).
+# fresh-poller's own _heavy_scrape_active() runtime check handles the
+# subsequent :15 overlap by skipping itself while intraday-refresh runs.
+OnCalendar=Mon..Fri 08:05:00
+OnCalendar=Mon..Fri 12:05:00
+OnCalendar=Mon..Fri 16:05:00
+OnCalendar=Mon..Fri 20:05:00
 Persistent=true
 
 [Install]

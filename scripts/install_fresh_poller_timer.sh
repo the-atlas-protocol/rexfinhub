@@ -15,9 +15,12 @@ sudo tee "${UNIT_DIR}/rexfinhub-fresh-poller.service" > /dev/null <<'EOF'
 [Unit]
 Description=REX FinHub fresh-filings poller (lightweight 15-min cadence)
 After=network-online.target
-# Refuse to start if the 4x/day intraday-refresh is already running.
-# (Was rexfinhub-sec-scrape.service before ADR 0005 rename.)
-Conflicts=rexfinhub-intraday-refresh.service
+# NOTE: No Conflicts= directive. A Conflicts= would let this LIGHT job
+# SIGTERM-kill the HEAVY intraday-refresh job (observed 2026-05-19 20:00).
+# Mutual exclusion is handled correctly inside poll_fresh_filings.py via
+# _heavy_scrape_active() — the light job checks + SKIPS ITSELF when
+# intraday-refresh is active. intraday-refresh runs at :05 past the hour
+# so it never starts in the same second as this :00/:15/:30/:45 poller.
 
 [Service]
 Type=oneshot
