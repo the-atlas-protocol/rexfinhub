@@ -40,3 +40,8 @@ aiolimiter>=1.1.0
 gunicorn>=22.0.0
 yfinance>=0.2.50
 pyyaml>=6.0
+
+# Track 6 (ADR 0010) — edgartools, run in SHADOW alongside the in-house SEC
+# extractor (scripts/edgar_shadow_compare.py). Installs purely additively —
+# no conflicts / downgrades vs the existing deps (verified 2026-05-20).
+edgartools>=5.31.0
