@@ -12,6 +12,14 @@ updated: 2026-05-19
 
 ## 2026-05-19
 
+- **Autonomous evening push (PRs #45-#59)** —
+  - **25/25 assertions PASS** (PRs #50-#52). Expanded suite from 10 → 25 matching the ADR 0009 spec. New categories: `reports_kpi` (BUG-05 detection via asymmetric check), `infra` (audit_log_freshness + backup_recent). Fixed AXTU `is_rex=1` to align with `issuer_display='REX'` — the BUG-05 root cause.
+  - **SPOU demoted** Listed → Effective on local + VPS per operator confirmation that it's not actually listed (Bloomberg PEND was correct).
+  - **8 missing fund_underlier links closed** (PR #50): MicroSectors ETNs mapped to Solactive/NYSE indices via `bmo_suite`; TLDR mapped as Treasury Bill basket. All Listed REX products now have fund_underlier linkage.
+  - **HTMX inline classify-override UI** on `/operations/products` (PR #53). ⊞ button per admin row opens a modal listing current overrides + 19-field dropdown + value/reason inputs + blacklist checkbox + inline delete. Backend in PR #38; this completes Phase 6 Stage 4.
+  - **Render DB upload now retries 3× with exponential backoff** (PR #54). Tonight's 3 manual upload attempts hit transient Render API errors; retry logic uploaded successfully on attempt 1/3 after deployment.
+  - **Phase 7B Stage 2 COMPLETE** (PRs #55-#58): `system_flags` helper with DB-first/file-fallback reads + dual-writes. All 5 flag-read sites migrated (auto_demote_vanished, send_paused, autogo_on_warn, send_enabled, preflight_maintenance). DB rows are now authoritative; files retained for Stage 3 cutover.
+  - **`/admin/system-state` page** (PR #59) — read/write surface for the new Phase 7B tables. Flag toggle UI, preflight runs history, system_event summary.
 - **Production hygiene pass (PRs #41-#44)** —
   - **Phase 6 Stage 7 prerequisite**: `scripts/apply_classification_overrides.py` wired into bloomberg-chain ExecStartPost. Tomorrow's 17:15 ET chain run will apply the 106 applicable overrides automatically. First run: 3 issuer_display fixes applied to mkt_master_data.
   - **Phase 7 Part B**: `scripts/migrate_state_tables.py` created `system_flags` / `preflight_run` / `system_event` tables. VPS: 5 flags + 1 preflight run + 105 events backfilled. Dual-read window opens; files remain authoritative until Stage 2+ flips reads.
