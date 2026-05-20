@@ -21,7 +21,7 @@ import requests
 from webapp.database import SessionLocal
 from webapp.models import CboeStateChange, CboeSymbol
 from webapp.services.cboe.scanner import (
-    CBOE_ENDPOINT, USER_AGENT, _state_name,
+    CBOE_ENDPOINT, USER_AGENT, _is_cloudflare_block, _state_name,
 )
 
 log = logging.getLogger(__name__)
@@ -86,6 +86,13 @@ def live_check(ticker: str, *, db_factory=SessionLocal) -> dict:
         return {"ok": False, "error": str(e)}
 
     if r.status_code in (302, 401, 403):
+        if r.status_code == 403 and _is_cloudflare_block(r.text):
+            return {
+                "ok": False,
+                "blocked": True,
+                "error": "CBOE blocked at the Cloudflare edge — the VPS IP is "
+                         "WAF-blocked; rotating CBOE_SESSION_COOKIE will not help.",
+            }
         return {"ok": False, "error": f"auth (status {r.status_code}); refresh CBOE_SESSION_COOKIE"}
     if r.status_code != 200:
         return {"ok": False, "error": f"unexpected status {r.status_code}"}

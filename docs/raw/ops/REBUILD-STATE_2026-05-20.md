@@ -63,7 +63,7 @@ All merged to `main`, deployed to VPS + Render, 25/25 assertions maintained.
 
 - **The structural rebuild is complete and live.** Canonical identity, typed underliers, bi-temporal status (live authority), classification override, state consolidation — all in production and **self-maintaining** (new funds auto-onboard nightly).
 - **25/25 assertions pass.** Last run 08:00 ET.
-- **Two legacy artifacts physically retired:** `capm_products` table, `rex_products.underlier` column — both behind proven equivalence gates.
+- **One legacy artifact physically retired:** `capm_products` table (Gate-C proven, dropped on prod). `rex_products.underlier` is ORM-retired (now a `hybrid_property`) but the **physical column still exists on the production DB** — all 541 values NULL, inert, ignored by the ORM. `scripts/drop_rex_underlier_column.py` ran in dev (Gate C) but was never executed on the VPS. See §5.
 - **edgartools** runs in shadow alongside the legacy extractor — 100% filing-discovery parity proven; legacy stays authoritative.
 - **In progress right now:** VPS `data/backups` (~9.3 GB) being archived to the D drive via `sync_vps_to_d_drive.sh`; VPS regenerable caches already cleared (`/home` 90%→89%).
 
@@ -75,10 +75,11 @@ All merged to `main`, deployed to VPS + Render, 25/25 assertions maintained.
 | **Track 0 — `ADMIN_PASSWORD` rotation** | The GitHub-exposed password is still live. `load_admin_password()` reads `config/.env` on the VPS and the `ADMIN_PASSWORD` env var on Render. Needs Render dashboard access. Belongs with the deferred Phase 0a security hardening. |
 | **Calendar-gated retirements** | `capm_audit_log` retained; the 6 rule CSVs + 14 flag files were descoped from physical deletion (4c/4d) — the DB is already the authoritative path. |
 | **VPS backup retention** | After the D-drive archive completes, prune the VPS `data/backups` (14 daily + 5 stale one-off `.bak`/`pre-*` snapshots from May 12–13). Keep recent dailies locally. |
+| **`rex_products.underlier` column drop** | The physical column persists on the production DB (all-NULL, ORM-unmapped, inert). `scripts/drop_rex_underlier_column.py` is Gate-C-proven and idempotent but has not run on the VPS. Low priority — harmless as-is. Either run the drop (operator go-ahead required, per the no-autonomous-deletion rule) or accept the column as dead weight. |
 
 ## 6. Known operational issues
 
-- **CBOE cookie EXPIRED.** `rexfinhub-cboe.service` fails 403. The cookie `oaik6f…` Ryu provided does NOT authenticate (probed twice, 403 both times — likely the wrong devtools field or already stale). Needs a fresh `sessionid` from CBOE devtools → then the `/cboe-cookie` skill rotates it + dispatches the recovery sweep.
+- **CBOE scanner blocked by Cloudflare — NOT a cookie problem.** `rexfinhub-cboe.service` 403s because CBOE's Cloudflare WAF blocks the VPS's datacenter egress IP at the edge, before any session check. Proven 2026-05-20: the VPS receives `403 "Sorry, you have been blocked"` over IPv4 *and* IPv6, with or without a cookie; the identical request from a residential IP passes Cloudflare (`302`). Rotating `CBOE_SESSION_COOKIE` cannot fix this — the cookie is fine. Resolution requires routing CBOE traffic through a non-datacenter IP (egress proxy) or CBOE allowlisting the VPS IP — an operator decision. The 475k-ticker nightly sweep at concurrency 300 is the likely trigger and must be throttled regardless. The backend misdiagnosis (every 403 → "refresh CBOE_SESSION_COOKIE") was fixed in PR #81: `scanner.py`/`live.py` now detect a Cloudflare block, and `/filings/symbols` shows an accurate amber "blocked at the network edge" banner.
 - **VPS `/home` disk** was at 90%; caches cleared → 89%; backups being archived to D then pruned.
 - **First live nightly run:** tonight's 17:15 ET bloomberg-chain is the FIRST with the new post-steps (`ensure_canonical_identity` + `status_reconciler --apply`). Worth checking the next morning-triage email + assertions.
 - **Render** showed transient 502s during redeploys this session — they self-resolve in ~60s (cold-start / deploy).
