@@ -39,12 +39,15 @@ STEPS = [
     # canonical override-first resolution actually takes effect on the
     # mkt_master_data columns the reports read.
     ("apply_classification_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_overrides.py")]),
-    # Phase 5 Stage 3 (ADR 0008): status_reconciler in dry-run mode (default).
-    # Per-night transition diff logged to data/.status_reconciler.log for
-    # operator review. Operator runs --apply manually when the diff is
-    # validated. NOT applied automatically — 3-source rule needs human
-    # eyeballs on edge cases until we've watched a week of diffs.
-    ("status_reconciler_dryrun", [PY, "-m", "webapp.services.status_reconciler"]),
+    # Phase 5 Stage 5 (Track 5A): status_reconciler in --apply mode. The
+    # dry-run review (2026-05-20) validated the diff and fixed two bugs — the
+    # ETN blind spot and demote-on-absent-evidence. The reconciler now
+    # promotes on evidence and delists only on Bloomberg LIQU; it never
+    # demotes mid-lifecycle on absent evidence, so running it live each night
+    # is safe. status_history is the authority — it drives both
+    # rex_products.status and status_cached. Diff still logged to
+    # data/.status_reconciler.log.
+    ("status_reconciler_apply", [PY, "-m", "webapp.services.status_reconciler", "--apply"]),
 ]
 
 
