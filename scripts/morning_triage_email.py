@@ -22,6 +22,10 @@ from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Run as `python scripts/morning_triage_email.py` puts scripts/ on sys.path,
+# not the repo root — so `import webapp.*` fails. Add the repo root explicitly.
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 DEFAULT_DB = PROJECT_ROOT / "data" / "etp_tracker.db"
 DEFAULT_RECIPIENT = "relasmar@rexfin.com"
 
