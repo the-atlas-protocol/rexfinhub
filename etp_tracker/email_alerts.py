@@ -2025,12 +2025,13 @@ def _send_html_digest(html_body: str, recipients: list[str],
                       subject_override: str = "",
                       images: list[tuple[str, bytes, str]] | None = None,
                       bypass_gate: bool = False,
-                      allow_self_loop: bool = False) -> bool:
+                      allow_self_loop: bool = False,
+                      bypass_rate_limit: bool = False) -> bool:
     """Send pre-built HTML digest via Azure Graph API.
 
     Layered safeguards (must ALL pass):
         L1 gate file (skipped if bypass_gate=True)
-        L6 per-recipient daily rate limit
+        L6 per-recipient daily rate limit (skipped if bypass_rate_limit=True)
         L7 self-loop block (refuse production batch where any recipient
            equals the Azure sender address). Pass allow_self_loop=True
            ONLY for test paths intentionally targeting the sender's own
@@ -2039,6 +2040,10 @@ def _send_html_digest(html_body: str, recipients: list[str],
 
     Args:
         images: Optional list of (content_id, png_bytes, filename) for inline CID images.
+        bypass_rate_limit: skip the L6 cap. Use ONLY for operator-driven
+            re-send of a report that hit the cap because of an earlier
+            same-day freeze send (e.g. 2026-05-19 19:30 ET retry where
+            etfupdates@rexfin.com was at 6/6 from the morning bundle).
     """
     _subj_preview = subject_override or f"REX {edition}"
 
@@ -2073,13 +2078,19 @@ def _send_html_digest(html_body: str, recipients: list[str],
 
     # L6 — Per-recipient daily rate limit. Refuse if any recipient already
     # received >= _PER_RECIPIENT_DAILY_LIMIT messages today (loop-bug guard).
-    _over = _recipients_over_limit_today(recipients)
-    if _over:
-        _note = (f"L6 rate limit: {len(_over)} recipient(s) at/over daily cap "
-                 f"({_PER_RECIPIENT_DAILY_LIMIT}): "
-                 + ", ".join(f"{addr}({n})" for addr, n in _over[:5]))
-        _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)
-        log.warning("SEND BLOCKED (L6 rate limit): %s — %s", _subj_preview, _note)
+    # bypass_rate_limit=True is the operator-driven override for same-day
+    # re-sends after a freeze send. Still audit-logged with bypass=True.
+    if bypass_rate_limit:
+        _audit_send(_subj_preview, recipients, allowed=True, phase="bypass_rate_limit",
+                    note=f"L6 rate limit bypassed by operator flag")
+    else:
+        _over = _recipients_over_limit_today(recipients)
+        if _over:
+            _note = (f"L6 rate limit: {len(_over)} recipient(s) at/over daily cap "
+                     f"({_PER_RECIPIENT_DAILY_LIMIT}): "
+                     + ", ".join(f"{addr}({n})" for addr, n in _over[:5]))
+            _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)
+            log.warning("SEND BLOCKED (L6 rate limit): %s — %s", _subj_preview, _note)
         return False
 
     # All safeguards passed — proceed to Graph API.
