@@ -39,6 +39,11 @@ STEPS = [
     # canonical override-first resolution actually takes effect on the
     # mkt_master_data columns the reports read.
     ("apply_classification_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_overrides.py")]),
+    # Track 5: keep Phase 4/5 canonical identity live — assign canonical_id +
+    # product_master + identifier_xref + underlier links to any rex_products
+    # created since the last run (new SEC filings). MUST run before the
+    # reconciler, which iterates product_master.
+    ("ensure_canonical_identity", [PY, str(PROJECT_ROOT / "scripts" / "ensure_canonical_identity.py")]),
     # Phase 5 Stage 5 (Track 5A): status_reconciler in --apply mode. The
     # dry-run review (2026-05-20) validated the diff and fixed two bugs — the
     # ETN blind spot and demote-on-absent-evidence. The reconciler now
