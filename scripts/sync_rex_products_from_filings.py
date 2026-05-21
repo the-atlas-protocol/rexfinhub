@@ -221,6 +221,7 @@ class SyncStats:
     new_products_inserted: int = 0
     new_products_planned: int = 0  # dry-run only
     form_transitions: int = 0
+    effective_date_updates: int = 0
     status_promotions: int = 0
     listed_promotions: int = 0
     vanished_count: int = 0   # Phase 4: tickers absent from mkt_master_data
@@ -466,6 +467,28 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
         overrides = _parse_overrides(existing.manually_edited_fields)
         row_label = (existing.ticker or existing.name or f"#{existing.id}")[:60]
 
+        # Refresh estimated_effective_date from THIS filing's effective date.
+        # Runs for EVERY matched 485-series filing, not only on form
+        # transitions: a fund that files 485BXT after 485BXT (e.g. T-REX 2X
+        # Long BITF) keeps extending its effective date, and the old code —
+        # which updated the date only when a 485BPOS arrived — left those
+        # rows stale. Filings are processed oldest-first, so the most recent
+        # one wins. Admin overrides (manually_edited_fields) are respected.
+        _new_eff = None
+        if ext is not None and ext.effective_date:
+            _new_eff = ext.effective_date
+        elif f.form == "485BPOS" and f.filing_date:
+            _new_eff = f.filing_date
+        elif f.form == "485APOS" and f.filing_date:
+            _new_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
+        if (_new_eff and "estimated_effective_date" not in overrides
+                and str(existing.estimated_effective_date) != str(_new_eff)):
+            stats.effective_date_updates += 1
+            if not dry_run:
+                _audit(db, "UPDATE", existing.id, "estimated_effective_date",
+                       existing.estimated_effective_date, _new_eff, row_label)
+                existing.estimated_effective_date = _new_eff
+
         if _later_form(existing.latest_form, f.form):
             stats.form_transitions += 1
 
@@ -491,12 +514,6 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
                                existing.status, "Effective", row_label)
                         existing.status = "Effective"
                     stats.status_promotions += 1
-                # When 485BPOS arrives, est_effective should reflect actual filing
-                if "estimated_effective_date" not in overrides and f.filing_date:
-                    if not dry_run:
-                        _audit(db, "UPDATE", existing.id, "estimated_effective_date",
-                               existing.estimated_effective_date, f.filing_date, row_label)
-                        existing.estimated_effective_date = f.filing_date
 
     if not dry_run:
         db.commit()
@@ -763,6 +780,7 @@ def _print_report(stats1: SyncStats, stats3: SyncStats, since: date,
     print(f"Filings scanned  : {stats1.filings_scanned}")
     print(f"New rex_products : {stats1.new_products_planned}")
     print(f"Form transitions : {stats1.form_transitions}")
+    print(f"Eff-date updates : {stats1.effective_date_updates}")
     print(f"Status promotions: {stats1.status_promotions}")
     print(f"Skipped (already): {stats1.skipped_already_matched}")
     print(f"Skipped (admin)  : {stats1.skipped_admin_override}")

@@ -491,15 +491,18 @@ def fund_detail(key: str, request: Request, db: Session = Depends(get_db)):
     ticker = raw.upper()
 
     # SEC bridge: ticker is bare (e.g., "AAPB"); fund_status.ticker stores it bare.
-    # A ticker can appear in multiple fund_status rows (e.g., a series has been
-    # reissued under a new trust). Prefer the EFFECTIVE row, then the most
-    # recently filed.
+    # A ticker can appear in multiple fund_status rows because the SEC RECYCLES
+    # tickers — one fund reserves a ticker, abandons it, and a later, unrelated
+    # fund files under the same ticker (e.g. AIMG: "Alpha Intelligent Mid Cap
+    # Growth ETF" 2023, then "Defiance AI Magnificent 10 ETF" 2026). The active
+    # claimant is the one with the NEWEST filing — order by latest_filing_date
+    # first; EFFECTIVE only breaks ties between same-date rows.
     sec_fund = db.execute(
         select(FundStatus)
         .where(FundStatus.ticker.ilike(ticker))
         .order_by(
-            (FundStatus.status != "EFFECTIVE").asc(),
             FundStatus.latest_filing_date.desc().nulls_last(),
+            (FundStatus.status != "EFFECTIVE").asc(),
         )
         .limit(1)
     ).scalar_one_or_none()
