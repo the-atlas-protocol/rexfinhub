@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 log = logging.getLogger(__name__)
 
@@ -106,3 +106,56 @@ def fetch_recent_filings(forms: list[str], since: str, until: str | None = None
             except Exception as e:  # pragma: no cover - defensive
                 out.append(EdgarFilingView(ok=False, error=str(e)))
     return out
+
+
+@dataclass
+class EdgarFundRow:
+    """One series/class row from edgartools' header parse."""
+    series_id: str = ""
+    series_name: str = ""
+    class_contract_id: str = ""
+    class_contract_name: str = ""
+    class_symbol: str = ""
+
+
+@dataclass
+class EdgarFilingContent:
+    """edgartools' series/class view of one filing — for content parity."""
+    accession: str
+    ok: bool = False
+    error: str | None = None
+    rows: list = field(default_factory=list)
+
+
+def fetch_filing_header_content(accession: str) -> EdgarFilingContent:
+    """edgartools' view of the series/class data inside one filing's SGML header.
+
+    edgartools handles the fetch / discovery / caching; the series/class parse
+    reuses the in-house SGML parser (etp_tracker.sgml), so this isolates the
+    FETCH layer — the bulk of the ~3,500 lines the migration replaces. The
+    small SGML parser can migrate later or stay.
+
+    Read-only and defensive: returns ok=False on any failure, never raises.
+    """
+    try:
+        _ensure_identity()
+        from edgar import find
+    except Exception as e:
+        return EdgarFilingContent(accession=accession, ok=False, error=str(e))
+    try:
+        f = find(accession)
+        header_text = str(getattr(getattr(f, "header", None), "text", "") or "")
+        from etp_tracker.sgml import parse_sgml_series_classes
+        rows = [
+            EdgarFundRow(
+                series_id=p.get("Series ID", "") or "",
+                series_name=p.get("Series Name", "") or "",
+                class_contract_id=p.get("Class-Contract ID", "") or "",
+                class_contract_name=p.get("Class Contract Name", "") or "",
+                class_symbol=p.get("Class Symbol", "") or "",
+            )
+            for p in parse_sgml_series_classes(header_text)
+        ]
+        return EdgarFilingContent(accession=accession, ok=True, rows=rows)
+    except Exception as e:  # pragma: no cover - defensive
+        return EdgarFilingContent(accession=accession, ok=False, error=str(e))
