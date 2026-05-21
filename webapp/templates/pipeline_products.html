@@ -517,9 +517,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
         {% set suite_color = suite_colors.get(p.product_suite or '', '#64748b') %}
         {% set s_color = status_colors.get(p.status, '#64748b') %}
         {# Inception/Target date is the "target_listing_date" if not yet
-           Listed, otherwise the actual "official_listed_date". When the
-           product has NOT gone Listed, render in yellow to flag that the
-           date is still a projection, not an actual inception. #}
+           Listed, otherwise the actual "official_listed_date". #}
         {% set is_listed = (p.status == 'Listed') %}
         {% set inception_date = p.official_listed_date if is_listed else p.target_listing_date %}
         {# Latest Prospectus column: prefer the row's own latest_form when
@@ -615,6 +613,12 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
              filing has [an effective date]" — we should never show --- when
              a 485A* / 485BPOS exists. #}
           {% set _est_eff = p.estimated_effective_date %}
+          {# A Listed fund is effective before it lists — a stored estimate
+             later than the launch date is stale data (e.g. COII). Clamp to
+             the launch date so live products never show a future eff date. #}
+          {% if _est_eff and is_listed and p.official_listed_date and _est_eff > p.official_listed_date %}
+            {% set _est_eff = p.official_listed_date %}
+          {% endif %}
           {% if not _est_eff and lp_form in ('485APOS','485BPOS','485BXT') and p.initial_filing_date %}
             {% set _est_eff = p.initial_filing_date + timedelta(days=75) %}
             {% set _est_eff_auto = true %}
@@ -637,17 +641,15 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
               <span style="color:#cbd5e1;">---</span>
             {% endif %}
           </td>
-          {# Col 12: Target Inception — Ryu's planned launch date. Yellow when
-             still projected (status != Listed). For Listed rows, displays the
-             official inception date instead (read-only field). Admin can
-             click to edit when not Listed. Phase 2 (ADR 0004): this IS the
-             "target_inception_date" the runbook refers to — same field,
-             clearer label. #}
+          {# Col 12: Target Inception — Ryu's planned launch date. For Listed
+             rows, displays the official inception date instead (read-only).
+             Admin can click to edit when not Listed. Phase 2 (ADR 0004): this
+             IS the "target_inception_date" the runbook refers to. #}
           {% set _edit_hint = 'Click to set target inception date' if is_admin and not is_listed else ('Actual inception (Listed)' if is_listed else 'Projected target inception') %}
           <td data-sort="{{ inception_date.isoformat() if inception_date else '' }}"
               data-field="target_listing_date" data-field-type="date"
               title="{{ _edit_hint }}"
-              {% if not is_listed %}style="background:#fef9c3; color:#854d0e; font-weight:600; {% if is_admin %}cursor:pointer;{% endif %}"{% endif %}>
+              {% if not is_listed and is_admin %}style="cursor:pointer;"{% endif %}>
             {{ inception_date.strftime('%Y-%m-%d') if inception_date else (is_admin and not is_listed and '＋ set' or '---') }}
           </td>
           {# Col 13: Competitors — pipe-separated tickers, admin-editable inline. #}

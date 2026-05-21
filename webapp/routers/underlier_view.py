@@ -187,8 +187,62 @@ def _bucket_rex(rex_rows: list[RexProduct]) -> dict[str, list[RexProduct]]:
     return buckets
 
 
+def _competitor_filing_events(db: Session, comp_rows: list[dict]) -> list[dict]:
+    """``filed`` events for competitor products on this underlier.
+
+    Bloomberg (mkt_master_data) only knows LIVE products, so competitors
+    otherwise appear in the timeline only at their listing — the timeline
+    "skips straight to Listed". The in-house SEC pipeline indexes 485-series
+    filings for the whole trust universe, so each competitor's earliest
+    filing is recoverable by matching fund_extractions.class_symbol to the
+    competitor ticker.
+    """
+    tickers = sorted({
+        (c.get("ticker") or "").strip().upper()
+        for c in comp_rows
+        if not c.get("is_rex") and (c.get("ticker") or "").strip()
+    })
+    if not tickers:
+        return []
+    issuer_by_ticker = {
+        (c.get("ticker") or "").strip().upper(): (c.get("issuer") or "Competitor")
+        for c in comp_rows if not c.get("is_rex")
+    }
+    placeholders = ",".join(f":t{i}" for i in range(len(tickers)))
+    params = {f"t{i}": t for i, t in enumerate(tickers)}
+    try:
+        rows = db.execute(sa_text(
+            f"""
+            SELECT UPPER(TRIM(fe.class_symbol)) AS sym,
+                   MIN(f.filing_date)           AS first_filed
+            FROM fund_extractions fe
+            JOIN filings f ON f.id = fe.filing_id
+            WHERE UPPER(TRIM(fe.class_symbol)) IN ({placeholders})
+              AND f.form LIKE '485%'
+              AND f.filing_date IS NOT NULL
+            GROUP BY UPPER(TRIM(fe.class_symbol))
+            """
+        ), params).fetchall()
+    except Exception:  # pragma: no cover - defensive; never break the panel
+        return []
+    events: list[dict] = []
+    for sym, first_filed in rows:
+        if not first_filed:
+            continue
+        try:
+            dt = date.fromisoformat(str(first_filed)[:10])
+        except (ValueError, TypeError):
+            continue
+        issuer = issuer_by_ticker.get(sym) or "Competitor"
+        events.append({
+            "date": dt, "kind": "filed", "actor": issuer, "ticker": sym,
+            "label": f"{issuer} filed {sym}",
+        })
+    return events
+
+
 def _race_timeline(
-    rex_rows: list[RexProduct], comp_rows: list[dict]
+    db: Session, rex_rows: list[RexProduct], comp_rows: list[dict]
 ) -> list[dict]:
     """Build a chronological filed-/listed-first event log."""
     events: list[dict] = []
@@ -250,6 +304,9 @@ def _race_timeline(
             "ticker": c["ticker"],
             "label": f"{c['issuer'] or 'Competitor'} listed {c['ticker']}",
         })
+    # Competitor FILING events — recovered from the SEC filing index so the
+    # timeline shows when an issuer FILED, not only when they listed.
+    events.extend(_competitor_filing_events(db, comp_rows))
     events.sort(key=lambda e: e["date"])
     return events
 
@@ -290,7 +347,7 @@ def underlier_race(
     # Headline: who filed/launched first.
     first_filed = None
     first_listed = None
-    timeline = _race_timeline(rex_rows, comp_rows)
+    timeline = _race_timeline(db, rex_rows, comp_rows)
     for e in timeline:
         if first_filed is None and e["kind"] == "filed":
             first_filed = e
