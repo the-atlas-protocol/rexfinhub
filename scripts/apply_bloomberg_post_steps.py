@@ -44,6 +44,11 @@ STEPS = [
     # created since the last run (new SEC filings). MUST run before the
     # reconciler, which iterates product_master.
     ("ensure_canonical_identity", [PY, str(PROJECT_ROOT / "scripts" / "ensure_canonical_identity.py")]),
+    # Refresh estimated_effective_date from the latest 485-series filing for
+    # every product (by series_id) — the sync collapses multi-series filings
+    # to one extraction, so funds filing repeated 485BXT extensions drift
+    # stale otherwise.
+    ("refresh_effective_dates", [PY, str(PROJECT_ROOT / "scripts" / "refresh_effective_dates.py"), "--apply"]),
     # Phase 5 Stage 5 (Track 5A): status_reconciler in --apply mode. The
     # dry-run review (2026-05-20) validated the diff and fixed two bugs — the
     # ETN blind spot and demote-on-absent-evidence. The reconciler now
