@@ -40,7 +40,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy import and_, case, func, not_, or_, select
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
@@ -648,10 +648,46 @@ def _pipeline_products_render(
     # in the template (initial_filing_date, estimated_effective_date,
     # official_listed_date, latest_form). This keeps Phase-1 URLs working
     # while enabling Phase-2 sortable headers.
+    # Effective Date sort must match what the table DISPLAYS. The template
+    # shows estimated_effective_date when set, otherwise the SEC Rule 485(a)
+    # default (initial_filing_date + 75 days) for prospectus forms, badged
+    # "est". Ordering by the raw column alone dumped every est row at the
+    # bottom (NULLs last) even though their shown dates interleave with the
+    # real ones — so the column looked unsorted. Coalesce so the sort key is
+    # identical to the displayed value (must mirror the template's _est_eff).
+    # A Listed fund is effective BEFORE it lists; a stored estimate later
+    # than the listing date is stale data (e.g. COII: est 2026-04-29 on a
+    # product live since 2025-06-03). Clamp it to the listing date so live
+    # products never sort/show a future effective date.
+    _clamped_eff = case(
+        (
+            and_(
+                RexProduct.status == "Listed",
+                RexProduct.official_listed_date.isnot(None),
+                RexProduct.estimated_effective_date > RexProduct.official_listed_date,
+            ),
+            RexProduct.official_listed_date,
+        ),
+        else_=RexProduct.estimated_effective_date,
+    )
+    _effective_sort = func.coalesce(
+        _clamped_eff,
+        case(
+            (
+                and_(
+                    RexProduct.latest_form.in_(("485APOS", "485BPOS", "485BXT")),
+                    RexProduct.initial_filing_date.isnot(None),
+                ),
+                func.date(RexProduct.initial_filing_date, "+75 days"),
+            ),
+            else_=None,
+        ),
+    )
+
     sort_map = {
         "status": RexProduct.status,
-        "effective": RexProduct.estimated_effective_date,
-        "estimated_effective_date": RexProduct.estimated_effective_date,
+        "effective": _effective_sort,
+        "estimated_effective_date": _effective_sort,
         "name": RexProduct.name,
         "ticker": RexProduct.ticker,
         "suite": RexProduct.product_suite,
@@ -685,7 +721,7 @@ def _pipeline_products_render(
         else:
             query = query.order_by(
                 RexProduct.status.asc(),
-                RexProduct.estimated_effective_date.asc().nulls_last(),
+                _effective_sort.asc().nulls_last(),
                 RexProduct.name.asc(),
             )
 
