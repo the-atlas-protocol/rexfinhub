@@ -2098,7 +2098,7 @@ def _send_html_digest(html_body: str, recipients: list[str],
                      + ", ".join(f"{addr}({n})" for addr, n in _over[:5]))
             _audit_send(_subj_preview, recipients, allowed=False, phase="blocked", note=_note)
             log.warning("SEND BLOCKED (L6 rate limit): %s — %s", _subj_preview, _note)
-        return False
+            return False
 
     # All safeguards passed — proceed to Graph API.
     if subject_override:

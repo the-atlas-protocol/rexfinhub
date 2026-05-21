@@ -3,7 +3,13 @@ Description=REX FinHub Send Gate Auto-Open (for the 5:45 PM scheduled send)
 
 [Service]
 Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
 # Pin process timezone to ET (audit fix R7).
 Environment=TZ=America/New_York
-ExecStart=/bin/bash -c 'echo true > /home/jarvis/rexfinhub/config/.send_enabled && logger -t rexfinhub-gate "gate opened by timer"'
-User=jarvis
+# Open the gate via set_flag so BOTH the system_flags DB row and the
+# config/.send_enabled file are updated. The L1 send-gate check reads the
+# DB-backed flag — a file-only write (the old `echo true`) left the gate
+# shut as far as the sender was concerned, blocking every scheduled send.
+ExecStart=/home/jarvis/venv/bin/python -c "from webapp.services.system_flags import set_flag; set_flag('send_enabled', True, set_by='gate-open.timer')"
+ExecStartPost=-/usr/bin/logger -t rexfinhub-gate "send gate opened (DB+file) by timer"

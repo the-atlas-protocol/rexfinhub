@@ -3,7 +3,11 @@ Description=REX FinHub Send Gate Auto-Close (lockdown after scheduled send)
 
 [Service]
 Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
 # Pin process timezone to ET (audit fix R7).
 Environment=TZ=America/New_York
-ExecStart=/bin/bash -c 'echo false > /home/jarvis/rexfinhub/config/.send_enabled && logger -t rexfinhub-gate "gate closed by timer"'
-User=jarvis
+# Close the gate via set_flag so the system_flags DB row and the
+# config/.send_enabled file stay in agreement (see gate-open.service).
+ExecStart=/home/jarvis/venv/bin/python -c "from webapp.services.system_flags import set_flag; set_flag('send_enabled', False, set_by='gate-close.timer')"
+ExecStartPost=-/usr/bin/logger -t rexfinhub-gate "send gate closed (DB+file) by timer"
