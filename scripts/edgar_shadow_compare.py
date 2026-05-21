@@ -49,6 +49,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--db", default=str(DEFAULT_DB))
     ap.add_argument("--days", type=int, default=30)
+    ap.add_argument("--content-sample", type=int, default=40,
+                    help="Compare series/class content for N filings present in "
+                         "both sets (0 to skip the content pass)")
     args = ap.parse_args()
 
     db_path = Path(args.db)
@@ -113,6 +116,64 @@ def main() -> int:
 
     _log(len(edgar), len(inhouse), len(both), len(inhouse_only), len(edgar_only),
          coverage, since)
+
+    # --- Content-extraction parity (ADR 0010 Stage 3/4) ---
+    # For a sample of filings BOTH sources agree exist, check that edgartools'
+    # series/class extraction matches the in-house fund_extractions rows. This
+    # is the evidence the cutover (Stage 4) needs beyond mere filing discovery.
+    if args.content_sample > 0 and both:
+        import random
+        try:
+            from etp_tracker.edgar_client import fetch_filing_header_content
+        except Exception as e:
+            print(f"\nContent pass skipped — edgar_client import failed: {e}")
+            fetch_filing_header_content = None
+        if fetch_filing_header_content is not None:
+            sample = sorted(both)
+            random.Random(42).shuffle(sample)
+            sample = sample[: args.content_sample]
+            conn = sqlite3.connect(str(db_path))
+            match_n = 0
+            mismatches: list[tuple[str, str]] = []
+            for acc_norm in sample:
+                acc_raw = inhouse[acc_norm][0]
+                fid = conn.execute(
+                    "SELECT id FROM filings WHERE accession_number = ?", (acc_raw,)
+                ).fetchone()
+                if not fid:
+                    continue
+                inh_rows = conn.execute(
+                    "SELECT series_id, class_contract_id FROM fund_extractions "
+                    "WHERE filing_id = ?", (fid[0],)
+                ).fetchall()
+                inh_series = {(s or "").strip() for s, _ in inh_rows if s and s.strip()}
+                inh_class = {(c or "").strip() for _, c in inh_rows if c and c.strip()}
+                ec = fetch_filing_header_content(acc_raw)
+                if not ec.ok:
+                    mismatches.append((acc_raw, f"edgar fetch failed: {ec.error}"))
+                    continue
+                ed_series = {r.series_id.strip() for r in ec.rows if r.series_id.strip()}
+                ed_class = {r.class_contract_id.strip() for r in ec.rows
+                            if r.class_contract_id.strip()}
+                if inh_series == ed_series and inh_class == ed_class:
+                    match_n += 1
+                else:
+                    mismatches.append((acc_raw,
+                        f"series in-house={sorted(inh_series)} edgar={sorted(ed_series)}; "
+                        f"class in-house={sorted(inh_class)} edgar={sorted(ed_class)}"))
+            conn.close()
+            total = match_n + len(mismatches)
+            cparity = (match_n / total * 100.0) if total else 100.0
+            print(f"\n=== CONTENT PARITY (series + class IDs, sample of {total}) ===")
+            print(f"  exact match:  {match_n}/{total}  ({cparity:.1f}%)")
+            if mismatches:
+                print(f"  mismatches:   {len(mismatches)}")
+                for acc, why in mismatches[:12]:
+                    print(f"    {acc}: {why}")
+            if cparity >= 100.0 and total:
+                print("  edgartools content extraction matches the in-house pipeline "
+                      "for this sample.")
+
     print(f"\nLogged to {LOG_PATH}")
     return 0
 
