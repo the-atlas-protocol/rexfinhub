@@ -648,18 +648,13 @@ def _pipeline_products_render(
     # in the template (initial_filing_date, estimated_effective_date,
     # official_listed_date, latest_form). This keeps Phase-1 URLs working
     # while enabling Phase-2 sortable headers.
-    # Effective Date sort must match what the table DISPLAYS. The template
-    # shows estimated_effective_date when set, otherwise the SEC Rule 485(a)
-    # default (initial_filing_date + 75 days) for prospectus forms, badged
-    # "est". Ordering by the raw column alone dumped every est row at the
-    # bottom (NULLs last) even though their shown dates interleave with the
-    # real ones — so the column looked unsorted. Coalesce so the sort key is
-    # identical to the displayed value (must mirror the template's _est_eff).
-    # A Listed fund is effective BEFORE it lists; a stored estimate later
-    # than the listing date is stale data (e.g. COII: est 2026-04-29 on a
-    # product live since 2025-06-03). Clamp it to the listing date so live
-    # products never sort/show a future effective date.
-    _clamped_eff = case(
+    # Effective Date sort must match what the table DISPLAYS — the real stored
+    # estimated_effective_date. A Listed fund is effective BEFORE it lists; a
+    # stored estimate later than the listing date is stale data (e.g. COII:
+    # est 2026-04-29 on a product live since 2025-06-03), so it is clamped to
+    # the listing date. Rows with no effective date sort to the bottom (NULLs
+    # last) — which is correct, and matches the "---" the template shows.
+    _effective_sort = case(
         (
             and_(
                 RexProduct.status == "Listed",
@@ -669,19 +664,6 @@ def _pipeline_products_render(
             RexProduct.official_listed_date,
         ),
         else_=RexProduct.estimated_effective_date,
-    )
-    _effective_sort = func.coalesce(
-        _clamped_eff,
-        case(
-            (
-                and_(
-                    RexProduct.latest_form.in_(("485APOS", "485BPOS", "485BXT")),
-                    RexProduct.initial_filing_date.isnot(None),
-                ),
-                func.date(RexProduct.initial_filing_date, "+75 days"),
-            ),
-            else_=None,
-        ),
     )
 
     sort_map = {
