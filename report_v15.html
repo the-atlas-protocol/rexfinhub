@@ -849,14 +849,8 @@ svg { display: block; }
   <div style="font-size: 9px; line-height: 1.7; color: #1a1a1a;">
 
     <div style="font-weight: 700; font-size: 10px; margin-bottom: 8px;">Asia AUM</div>
-    <ul style="margin: 0 0 12px 14px; padding: 0; list-style-type: disc;">
-      <li>Collected monthly from brokerage firms and custodians across Asian markets</li>
-      <li>Vendors report in various formats: USD totals, local currency (converted at month-end FX), share counts (priced via Bloomberg month-end closes), or aggregate amounts</li>
-      <li><strong>Monthly reporters</strong>: values used as delivered</li>
-      <li><strong>Quarterly reporters</strong>: between reports, positions are held at last-known shares and repriced at current-month Bloomberg closes. Flows for these positions are mechanically zero; all MoM change reflects market performance. Values are replaced with actuals when the next report arrives</li>
-      <li><strong>Aggregate-only reporters</strong>: where a vendor provides a total but not a per-fund breakdown, last-known per-fund shares are scaled proportionally to match the vendor's reported aggregate</li>
-      <li><strong>Closed positions</strong>: when a vendor has fully liquidated its REX holdings, no positions are reported</li>
-    </ul>
+    <p style="margin: 0 0 8px 0;">Korean retail holdings are sourced directly from the Korea Securities Depository (KSD), while Korean institutional holdings come from publicly available sources. Both are updated monthly. The majority of Japanese brokerage data is received monthly from individual brokers. Other Asian brokerage, intermediary, and market data are received monthly, quarterly, or on an ad-hoc basis. Asia-related investor positions reported in 13F filings are reviewed and updated on a quarterly basis.</p>
+    <p style="margin: 0 0 12px 0;">In the event of delayed data, share counts are held constant and AUM is marked-to-market based on the latest month-end NAV. Share counts are updated and back-adjusted once the new data is received.</p>
 
     <div style="font-weight: 700; font-size: 10px; margin-bottom: 8px;">Global AUM</div>
     <ul style="margin: 0 0 12px 14px; padding: 0; list-style-type: disc;">
@@ -1234,7 +1228,7 @@ function fmtDollar(v) {
 }
 function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
 function momClass(v) { return v >= 0 ? 'pos-val' : 'neg-val'; }
-function momSign(v) { return v >= 0 ? '+' : ''; }
+function momSign(v) { return v >= 0 ? '+' : '-'; }
 
 
 // ══════════════════════════════════════════════════════════════
@@ -2335,15 +2329,15 @@ window.addEventListener('DOMContentLoaded', () => {
     ].filter(Boolean).join('\n');
 
     // --- Page 2 ---
-    el('p2-decline-title').textContent = `What Drove the ${$m(dc)} Decline?`;
+    el('p2-decline-title').textContent = `What Drove the ${$m(dc)} ${dc >= 0 ? 'Increase' : 'Decline'}?`;
     el('p2-mm-val').textContent = signed$m(mm);
     el('p2-fl-val').textContent = signed$m(fl);
-    el('p2-mm-insight').innerHTML = `Broad equity selloff hit leveraged products hardest. T-REX declined <strong>${$m(trexMM)}</strong> from market moves alone; MicroSectors absorbed <strong>${$m(microMM)}</strong>.`;
-    el('p2-fl-insight').innerHTML = `Strong investor conviction with est. <strong>${$m(trexFL)}</strong> flowing into T-REX and <strong>${$m(microFL)}</strong> into MicroSectors. ${topInflow ? topInflow.fund + ' alone attracted <strong>' + $m(topInflow.flows) + '</strong>.' : ''}`;
+    el('p2-mm-insight').innerHTML = `${mm >= 0 ? 'Broad equity rebound lifted leveraged products most' : 'Broad equity selloff hit leveraged products hardest'}. T-REX ${trexMM >= 0 ? 'gained' : 'declined'} <strong>${$m(trexMM)}</strong> from market moves alone; MicroSectors ${microMM >= 0 ? 'added' : 'absorbed'} <strong>${$m(microMM)}</strong>.`;
+    el('p2-fl-insight').innerHTML = `${fl >= 0 ? 'Net investor inflows' : 'Net investor outflows'} with est. <strong>${$m(trexFL)}</strong> ${trexFL >= 0 ? 'into' : 'out of'} T-REX and <strong>${$m(microFL)}</strong> ${microFL >= 0 ? 'into' : 'out of'} MicroSectors. ${topInflow && topInflow.flows > 0 ? topInflow.fund + ' attracted the most, <strong>' + $m(topInflow.flows) + '</strong>.' : ''}`;
 
     const trexMicroFlows = trexFL + microFL;
     el('p2-exchange-subtitle').textContent = `${h.exchange_count} exchanges across ${h.country_count} markets \u2014 KSD Korea accounts for ${ksdPct}% of total Asia AUM`;
-    el('p2-flows-subtitle').textContent = `T-REX and MicroSectors drove ${$m(trexMicroFlows)} of the ${$m(fl)} total est. net inflows`;
+    el('p2-flows-subtitle').textContent = `T-REX (${signed$m(trexFL)}) and MicroSectors (${signed$m(microFL)}) were the largest flow drivers; total est. net ${fl >= 0 ? 'inflows' : 'outflows'} ${signed$m(fl)}`;
 
     // --- Country summaries on suite pages ---
     function countrySummaryText(data, maxShow) {
