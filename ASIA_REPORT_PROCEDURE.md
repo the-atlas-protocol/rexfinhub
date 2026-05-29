@@ -25,7 +25,7 @@ the month-over-month change into **market movement** vs **estimated investor flo
 
 **Deliverables (per month):**
 - 3 PDFs in `reports/YYYY-MM/`: the full report + a T-REX-only cut + a MicroSectors-only cut.
-- The Excel ledger `REX_Asia_Monthly_Log_v2.xlsx` — the full shares/AUM/NAV breakdown (see §9).
+- The Excel ledger `REX_Asia_Monthly_Log.xlsx` — the full shares/AUM/NAV breakdown (see §9).
 
 **Audience:** internal (COO, leadership) and a cleaned-up version for external communications.
 
@@ -208,9 +208,10 @@ The single source of truth for per-vendor behaviour. Update it when Grace report
 
 ---
 
-## 9. The Excel ledger — `REX_Asia_Monthly_Log_v2.xlsx`
+## 9. The Excel ledger — `REX_Asia_Monthly_Log.xlsx`
 
 The accessible, at-a-glance breakdown of everything the report is built on. Sheets:
+- `Summary` — at-a-glance dashboard for the latest month (matches the PDFs).
 - `README` — legend.
 - `Funds` — the fund universe (ticker, family, lifecycle, latest AUM).
 - `Vendors`, `FX` — reference.
