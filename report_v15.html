@@ -1136,24 +1136,8 @@ function _buildDisplayFamily6M(familyFilter, countries) {
 }
 // EPI and G&I: use Income family 6-month data (EPI dominates Income, G&I is small)
 // Current month uses exact per-fund split; historical months use Income family total
-const EPI_COUNTRY_6M = (() => {
-  const income6m = _buildCountry6M('Income', ['Japan', 'Korea', 'Hong Kong', 'Other']);
-  // Replace last month with exact EPI-only data
-  if (income6m.length > 0) {
-    const exact = _buildDisplayFamily6M((f) => f === 'EPI + Autocallable', ['Japan', 'Korea', 'Hong Kong', 'Other']);
-    if (exact.length > 0) income6m[income6m.length - 1] = exact[0];
-  }
-  return income6m;
-})();
-const GI_COUNTRY_6M = (() => {
-  const income6m = _buildCountry6M('Income', ['Korea', 'Japan', 'Singapore', 'Other']);
-  // Replace last month with exact G&I-only data
-  if (income6m.length > 0) {
-    const exact = _buildDisplayFamily6M((f, t) => f === 'G&I + IncomeMax', ['Korea', 'Japan', 'Singapore', 'Other']);
-    if (exact.length > 0) income6m[income6m.length - 1] = exact[0];
-  }
-  return income6m;
-})();
+const EPI_COUNTRY_6M = _buildCountry6M('EPI + Autocallable', ['Japan', 'Korea', 'Hong Kong', 'Other']);
+const GI_COUNTRY_6M = _buildCountry6M('G&I + IncomeMax', ['Korea', 'Japan', 'Singapore', 'Other']);
 
 // --- % of global AUM in Asia per suite (dashed line in family timelines) ---
 // Uses per-suite per-month global AUM from DB (each month's actual denominator)
@@ -1990,7 +1974,7 @@ function buildFundTable(bodyId, funds, suiteName) {
   funds.forEach(f => {
     const momStr = Math.abs(f.mom) > 9.99
       ? (f.mom > 0 ? '>999%' : '<-999%')
-      : momSign(f.mom) + (f.mom*100).toFixed(1) + '%';
+      : (f.mom >= 0 ? '+' : '') + (f.mom*100).toFixed(1) + '%';
     const gMomStr = f.globalMom !== undefined
       ? (Math.abs(f.globalMom) > 9.99
         ? (f.globalMom > 0 ? '>999%' : '<-999%')
@@ -2067,7 +2051,7 @@ function buildAppendix(colors) {
       const marketMove = dollarChange - f.flows;
       const momPctStr = Math.abs(f.mom) > 9.99
         ? (f.mom > 0 ? '>999%' : '<-999%')
-        : momSign(f.mom) + (f.mom * 100).toFixed(1) + '%';
+        : (f.mom >= 0 ? '+' : '') + (f.mom * 100).toFixed(1) + '%';
       tr.innerHTML = `<td class="bold">${f.fund}</td>` +
         `<td><span style="color:${fc};font-weight:600;font-size:8.5px;">${label}</span></td>` +
         `<td class="r">${fmtDollar(f.aum)}</td><td class="r">${fmtDollar(f.total)}</td>` +

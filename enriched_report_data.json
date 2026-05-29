@@ -5,7 +5,7 @@
     "month_end": "2026-04-30",
     "prior_month_id": 14,
     "prior_month_end": "2026-03-31",
-    "generated_at": "2026-05-28T07:08:37.676495",
+    "generated_at": "2026-05-29T12:44:45.519858",
     "fund_count": 79,
     "bloomberg_total_rex_aum": 7148733130.093559,
     "bbg_tickers_counted": 91,
@@ -21,7 +21,7 @@
     {
       "etp_id": 20,
       "ticker": "AIPI",
-      "fund_name": null,
+      "fund_name": "REX AI EQUITY PREMIUM INCOME ETF",
       "family_name": "Income",
       "asia_aum": 42705037.7961,
       "asia_aum_prior": 38042871.9972,
@@ -37,7 +37,7 @@
     {
       "etp_id": 93,
       "ticker": "ATCL",
-      "fund_name": null,
+      "fund_name": "REX AUTOCALLABLE INCOME ETF",
       "family_name": "Income",
       "asia_aum": 7668.0,
       "asia_aum_prior": 7145.0,
@@ -53,7 +53,7 @@
     {
       "etp_id": 22,
       "ticker": "CEPI",
-      "fund_name": null,
+      "fund_name": "REX CRYPTO EQUITY PREMIUM INCOME ETF",
       "family_name": "Income",
       "asia_aum": 39549268.5944,
       "asia_aum_prior": 33721257.7046,
@@ -69,7 +69,7 @@
     {
       "etp_id": 43,
       "ticker": "COII",
-      "fund_name": null,
+      "fund_name": "REX COIN GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 348237.954,
       "asia_aum_prior": 349907.133,
@@ -85,7 +85,7 @@
     {
       "etp_id": 82,
       "ticker": "CWII",
-      "fund_name": null,
+      "fund_name": "REX CRWV GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 25066.6176,
       "asia_aum_prior": 16877.3814,
@@ -101,7 +101,7 @@
     {
       "etp_id": 1,
       "ticker": "FEPI",
-      "fund_name": "REX FANG & Innovation Equity Premium Income ETF",
+      "fund_name": "REX FANG & INNOVATION EQUITY PREMIUM INCOME ETF",
       "family_name": "Income",
       "asia_aum": 37685595.1231,
       "asia_aum_prior": 34223415.1126,
@@ -117,7 +117,7 @@
     {
       "etp_id": 94,
       "ticker": "GIF",
-      "fund_name": null,
+      "fund_name": "REX GROWTH & INCOME UNIVERSE ETF",
       "family_name": "Income",
       "asia_aum": 19109.0,
       "asia_aum_prior": 11777.0,
@@ -133,7 +133,7 @@
     {
       "etp_id": 83,
       "ticker": "HOII",
-      "fund_name": null,
+      "fund_name": "REX HOOD GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 39769.0248,
       "asia_aum_prior": 41098.7361,
@@ -149,7 +149,7 @@
     {
       "etp_id": 84,
       "ticker": "LLII",
-      "fund_name": null,
+      "fund_name": "REX LLY GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 188467.9617,
       "asia_aum_prior": 179885.4938,
@@ -165,7 +165,7 @@
     {
       "etp_id": 40,
       "ticker": "MSII",
-      "fund_name": null,
+      "fund_name": "REX MSTR GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 549812.7384,
       "asia_aum_prior": 497047.3841,
@@ -181,7 +181,7 @@
     {
       "etp_id": 34,
       "ticker": "NVII",
-      "fund_name": null,
+      "fund_name": "REX NVDA GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 8360571.5332,
       "asia_aum_prior": 7462813.4038,
@@ -197,7 +197,7 @@
     {
       "etp_id": 85,
       "ticker": "PLTI",
-      "fund_name": null,
+      "fund_name": "REX PLTR GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 59501.7502,
       "asia_aum_prior": 60259.1859,
@@ -213,7 +213,7 @@
     {
       "etp_id": 37,
       "ticker": "TSII",
-      "fund_name": null,
+      "fund_name": "REX TSLA GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 8778318.2872,
       "asia_aum_prior": 8388168.1627,
@@ -229,7 +229,7 @@
     {
       "etp_id": 86,
       "ticker": "ULTI",
-      "fund_name": null,
+      "fund_name": "REX INCOMEMAX OPTION STRATEGY ETF",
       "family_name": "Income",
       "asia_aum": 598006.75,
       "asia_aum_prior": 245736.225,
@@ -245,7 +245,7 @@
     {
       "etp_id": 87,
       "ticker": "WMTI",
-      "fund_name": null,
+      "fund_name": "REX WMT GROWTH & INCOME ETF",
       "family_name": "Income",
       "asia_aum": 308027.8118,
       "asia_aum_prior": 240480.9436,
@@ -261,7 +261,7 @@
     {
       "etp_id": 52,
       "ticker": "BERZ",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS FANG & INNOVATION -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 393825.2828,
       "asia_aum_prior": 387281.9159,
@@ -277,7 +277,7 @@
     {
       "etp_id": 74,
       "ticker": "BNKD",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS US BIG BANKS INDEX -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 8789.0,
       "asia_aum_prior": 9865.0,
@@ -293,7 +293,7 @@
     {
       "etp_id": 38,
       "ticker": "BNKU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS US BIG BANKS 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 846670.1424,
       "asia_aum_prior": 956908.1272,
@@ -309,7 +309,7 @@
     {
       "etp_id": 15,
       "ticker": "BULZ",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS FANG & INNOVATION 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 165958730.2233,
       "asia_aum_prior": 98851620.523,
@@ -325,7 +325,7 @@
     {
       "etp_id": 64,
       "ticker": "DULL",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS GOLD -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 127026.4088,
       "asia_aum_prior": 252779.67,
@@ -341,7 +341,7 @@
     {
       "etp_id": 70,
       "ticker": "FLYD",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS TRAVEL 3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 52303.8702,
       "asia_aum_prior": 79688.7752,
@@ -357,7 +357,7 @@
     {
       "etp_id": 69,
       "ticker": "FLYU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS TRAVEL 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 88316.0,
       "asia_aum_prior": 68582.0,
@@ -373,7 +373,7 @@
     {
       "etp_id": 32,
       "ticker": "FNGD",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS FANG+ INDEX -3X INVERSE LEVERAGED ETNS DUE JANUARY 8 2038",
       "family_name": "MicroSectors",
       "asia_aum": 2602268.2778,
       "asia_aum_prior": 3607563.7921,
@@ -389,7 +389,7 @@
     {
       "etp_id": 29,
       "ticker": "FNGO",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS FANG INDEX 2X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 4392862.5622,
       "asia_aum_prior": 3652103.9092,
@@ -405,7 +405,7 @@
     {
       "etp_id": 27,
       "ticker": "FNGS",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS FANG+ ETNS",
       "family_name": "MicroSectors",
       "asia_aum": 10573624.2104,
       "asia_aum_prior": 9560207.1669,
@@ -421,7 +421,7 @@
     {
       "etp_id": 16,
       "ticker": "FNGU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS FANG+ 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 134401825.4837,
       "asia_aum_prior": 97693589.2855,
@@ -437,7 +437,7 @@
     {
       "etp_id": 31,
       "ticker": "GDXD",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS GOLD MINERS -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 1110424.5444,
       "asia_aum_prior": 1016177.9153,
@@ -453,7 +453,7 @@
     {
       "etp_id": 18,
       "ticker": "GDXU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS GOLD MINERS 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 100583040.0156,
       "asia_aum_prior": 159553226.1578,
@@ -469,7 +469,7 @@
     {
       "etp_id": 66,
       "ticker": "NRGD",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS US BIG OIL -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 321981.2711,
       "asia_aum_prior": 212711.3491,
@@ -485,7 +485,7 @@
     {
       "etp_id": 55,
       "ticker": "NRGU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS US BIG OIL INDEX 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 7819161.0755,
       "asia_aum_prior": 8079912.7584,
@@ -501,7 +501,7 @@
     {
       "etp_id": 51,
       "ticker": "OILD",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS OIL & GAS EXPLORATION & PRODUCTION -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 600595.3984,
       "asia_aum_prior": 379554.8052,
@@ -517,7 +517,7 @@
     {
       "etp_id": 45,
       "ticker": "OILU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS OIL & GAS EXPLORATION & PRODUCTION 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 1788116.3021,
       "asia_aum_prior": 2556199.3029,
@@ -533,7 +533,7 @@
     {
       "etp_id": 26,
       "ticker": "SHNY",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS GOLD 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 21324373.4468,
       "asia_aum_prior": 24447383.8617,
@@ -549,7 +549,7 @@
     {
       "etp_id": 71,
       "ticker": "WTID",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS ENERGY -3X INVERSE LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 359335.0,
       "asia_aum_prior": 139383.0,
@@ -565,7 +565,7 @@
     {
       "etp_id": 61,
       "ticker": "WTIU",
-      "fund_name": null,
+      "fund_name": "MICROSECTORS ENERGY 3X LEVERAGED ETN",
       "family_name": "MicroSectors",
       "asia_aum": 584755.0522,
       "asia_aum_prior": 642066.724,
@@ -581,7 +581,7 @@
     {
       "etp_id": 60,
       "ticker": "BMAX",
-      "fund_name": null,
+      "fund_name": "REX BITCOIN CORPORATE TREASURY CONVERTIBLE BOND ETF",
       "family_name": "Other",
       "asia_aum": 0.0,
       "asia_aum_prior": 345466.9929,
@@ -597,7 +597,7 @@
     {
       "etp_id": 88,
       "ticker": "DRNZ",
-      "fund_name": null,
+      "fund_name": "REX DRONE ETF",
       "family_name": "Other",
       "asia_aum": 306533.9229,
       "asia_aum_prior": 227335.7337,
@@ -613,7 +613,7 @@
     {
       "etp_id": 67,
       "ticker": "DOJE",
-      "fund_name": null,
+      "fund_name": "REX-OSPREY DOGE ETF",
       "family_name": "REX Osprey",
       "asia_aum": 69964.1451,
       "asia_aum_prior": 60421.0599,
@@ -629,7 +629,7 @@
     {
       "etp_id": 72,
       "ticker": "ESK",
-      "fund_name": null,
+      "fund_name": "REX-OSPREY ETH + STAKING ETF",
       "family_name": "REX Osprey",
       "asia_aum": 47090.2159,
       "asia_aum_prior": 42493.8537,
@@ -645,7 +645,7 @@
     {
       "etp_id": 48,
       "ticker": "SSK",
-      "fund_name": null,
+      "fund_name": "REX-OSPREY SOL + STAKING ETF",
       "family_name": "REX Osprey",
       "asia_aum": 292323.6945,
       "asia_aum_prior": 313846.0009,
@@ -661,7 +661,7 @@
     {
       "etp_id": 65,
       "ticker": "XRPR",
-      "fund_name": null,
+      "fund_name": "REX-OSPREY XRP ETF",
       "family_name": "REX Osprey",
       "asia_aum": 84956.3021,
       "asia_aum_prior": 88519.6177,
@@ -677,7 +677,7 @@
     {
       "etp_id": 54,
       "ticker": "AAPX",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG APPLE DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 525725.2675,
       "asia_aum_prior": 474207.8073,
@@ -693,7 +693,7 @@
     {
       "etp_id": 79,
       "ticker": "AFRU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG AFRM DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 47606.2066,
       "asia_aum_prior": 25511.4157,
@@ -709,7 +709,7 @@
     {
       "etp_id": 92,
       "ticker": "APHU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG APH DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 35145.0,
       "asia_aum_prior": 0.0,
@@ -725,7 +725,7 @@
     {
       "etp_id": 23,
       "ticker": "BMNU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG BMNR DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 165814501.2512,
       "asia_aum_prior": 148012781.5506,
@@ -741,7 +741,7 @@
     {
       "etp_id": 39,
       "ticker": "BTCL",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG BITCOIN DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 3542152.6782,
       "asia_aum_prior": 2201169.7381,
@@ -757,7 +757,7 @@
     {
       "etp_id": 53,
       "ticker": "BTCZ",
-      "fund_name": null,
+      "fund_name": "T-REX 2X INVERSE BITCOIN DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1651458.9889,
       "asia_aum_prior": 1757382.5459,
@@ -773,7 +773,7 @@
     {
       "etp_id": 28,
       "ticker": "CCUP",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG CRCL DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 17968846.6376,
       "asia_aum_prior": 15540014.3003,
@@ -789,7 +789,7 @@
     {
       "etp_id": 81,
       "ticker": "CIFU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG CIFR DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 231600.2611,
       "asia_aum_prior": 102849.192,
@@ -805,7 +805,7 @@
     {
       "etp_id": 75,
       "ticker": "CORD",
-      "fund_name": null,
+      "fund_name": "T-REX 2X INVERSE CRWV DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1482498.9898,
       "asia_aum_prior": 1359966.0761,
@@ -821,7 +821,7 @@
     {
       "etp_id": 76,
       "ticker": "CRCD",
-      "fund_name": null,
+      "fund_name": "T-REX 2X INVERSE CRCL DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 4786553.3428,
       "asia_aum_prior": 4632167.0116,
@@ -837,7 +837,7 @@
     {
       "etp_id": 35,
       "ticker": "CRWU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG CRWV DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 2937371.7686,
       "asia_aum_prior": 2144365.9122,
@@ -853,7 +853,7 @@
     {
       "etp_id": 30,
       "ticker": "DJTU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG DJT DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 2398310.0449,
       "asia_aum_prior": 1988021.2774,
@@ -869,7 +869,7 @@
     {
       "etp_id": 91,
       "ticker": "EOSU",
-      "fund_name": "T-REX 2X Long EOSE Daily Target ETF",
+      "fund_name": "T-REX 2X LONG EOSE DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1705749.92,
       "asia_aum_prior": 311601.2832,
@@ -885,7 +885,7 @@
     {
       "etp_id": 42,
       "ticker": "ETU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG ETHER DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 121988.9801,
       "asia_aum_prior": 1661914.5885,
@@ -901,7 +901,7 @@
     {
       "etp_id": 96,
       "ticker": "FGRU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG FIGR DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 170224.92,
       "asia_aum_prior": 36469.0,
@@ -917,7 +917,7 @@
     {
       "etp_id": 58,
       "ticker": "GLXU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG GLXY DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1183195.2109,
       "asia_aum_prior": 447709.3824,
@@ -933,7 +933,7 @@
     {
       "etp_id": 33,
       "ticker": "GMEU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG GME DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 3706727.5792,
       "asia_aum_prior": 3651877.6493,
@@ -949,7 +949,7 @@
     {
       "etp_id": 41,
       "ticker": "GOOX",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG ALPHABET DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 18794225.5539,
       "asia_aum_prior": 15601531.8317,
@@ -965,7 +965,7 @@
     {
       "etp_id": 62,
       "ticker": "KTUP",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG KTOS DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1018611.7809,
       "asia_aum_prior": 737077.1549,
@@ -981,7 +981,7 @@
     {
       "etp_id": 46,
       "ticker": "MSFX",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG MICROSOFT DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 3117106.1016,
       "asia_aum_prior": 2222463.4939,
@@ -997,7 +997,7 @@
     {
       "etp_id": 13,
       "ticker": "MSTU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG MSTR DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 253760454.2374,
       "asia_aum_prior": 136120153.1071,
@@ -1013,7 +1013,7 @@
     {
       "etp_id": 24,
       "ticker": "MSTZ",
-      "fund_name": null,
+      "fund_name": "T-REX 2X INVERSE MSTR DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 22164680.3197,
       "asia_aum_prior": 26600872.0199,
@@ -1029,7 +1029,7 @@
     {
       "etp_id": 56,
       "ticker": "NFLU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG NFLX DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 3169444.1374,
       "asia_aum_prior": 3212978.9562,
@@ -1045,7 +1045,7 @@
     {
       "etp_id": 25,
       "ticker": "NVDQ",
-      "fund_name": null,
+      "fund_name": "T-REX 2X INVERSE NVIDIA DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 14283983.5064,
       "asia_aum_prior": 12659429.591,
@@ -1061,7 +1061,7 @@
     {
       "etp_id": 17,
       "ticker": "NVDX",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG NVIDIA DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 68800070.3075,
       "asia_aum_prior": 70197285.7194,
@@ -1077,7 +1077,7 @@
     {
       "etp_id": 103,
       "ticker": "PAAU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG PAAS DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1153.0,
       "asia_aum_prior": 595.0,
@@ -1093,7 +1093,7 @@
     {
       "etp_id": 44,
       "ticker": "RBLU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG RBLX DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 2469372.3387,
       "asia_aum_prior": 2054217.1392,
@@ -1109,7 +1109,7 @@
     {
       "etp_id": 95,
       "ticker": "RDWU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG RDW DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 7389472.01,
       "asia_aum_prior": 1562455.8862,
@@ -1125,7 +1125,7 @@
     {
       "etp_id": 19,
       "ticker": "ROBN",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG HOOD DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 25220682.9638,
       "asia_aum_prior": 19652403.2903,
@@ -1141,7 +1141,7 @@
     {
       "etp_id": 78,
       "ticker": "SBTU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG SBET DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 187752.3567,
       "asia_aum_prior": 67126.2936,
@@ -1157,7 +1157,7 @@
     {
       "etp_id": 36,
       "ticker": "SMUP",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG SMR DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 11669314.3824,
       "asia_aum_prior": 4043852.2019,
@@ -1173,7 +1173,7 @@
     {
       "etp_id": 102,
       "ticker": "SNDU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG SNDK DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 5048387.89,
       "asia_aum_prior": 0.0,
@@ -1189,7 +1189,7 @@
     {
       "etp_id": 49,
       "ticker": "SNOU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG SNOW DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 1422228.9601,
       "asia_aum_prior": 1434358.1641,
@@ -1205,7 +1205,7 @@
     {
       "etp_id": 89,
       "ticker": "SOLX",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG SOL DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 19063.3,
       "asia_aum_prior": 13057.0,
@@ -1221,7 +1221,7 @@
     {
       "etp_id": 14,
       "ticker": "TSLT",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG TESLA DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 144778574.2074,
       "asia_aum_prior": 135241924.3676,
@@ -1237,7 +1237,7 @@
     {
       "etp_id": 21,
       "ticker": "TSLZ",
-      "fund_name": null,
+      "fund_name": "T-REX 2X INVERSE TESLA DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 11519950.7737,
       "asia_aum_prior": 16085743.5151,
@@ -1253,7 +1253,7 @@
     {
       "etp_id": 47,
       "ticker": "TTDU",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG TTD DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 810311.2251,
       "asia_aum_prior": 1250137.1513,
@@ -1269,7 +1269,7 @@
     {
       "etp_id": 90,
       "ticker": "XRPK",
-      "fund_name": null,
+      "fund_name": "T-REX 2X LONG XRP DAILY TARGET ETF",
       "family_name": "T-REX",
       "asia_aum": 4497.0,
       "asia_aum_prior": 5493.0,
@@ -2397,9 +2397,9 @@
         "month_id": 10,
         "month": "Nov '25",
         "countries": {
+          "Hong Kong": 599026.3644,
           "Japan": 71559052.9359,
           "Korea": 42902940.0,
-          "Hong Kong": 599026.3644,
           "Malaysia": 252235.6765
         }
       },
@@ -2407,58 +2407,198 @@
         "month_id": 11,
         "month": "Dec '25",
         "countries": {
-          "Japan": 76192307.9923,
-          "Korea": 49739094.0,
           "Hong Kong": 893698.0,
-          "Singapore": 381184.3751,
-          "Malaysia": 319741.8719
+          "Japan": 76192307.99229999,
+          "Korea": 49739094.0,
+          "Malaysia": 319741.8719,
+          "Singapore": 381184.37510000006
         }
       },
       {
         "month_id": 12,
         "month": "Jan '26",
         "countries": {
-          "Japan": 81954027.2923,
-          "Korea": 52559869.0,
           "Hong Kong": 893698.0,
-          "Singapore": 381184.3751,
-          "Malaysia": 319741.8719
+          "Japan": 81954027.29229999,
+          "Korea": 52559869.0,
+          "Malaysia": 319741.8719,
+          "Singapore": 381184.37510000006
         }
       },
       {
         "month_id": 13,
         "month": "Feb '26",
         "countries": {
+          "Hong Kong": 1850427.8301000001,
           "Japan": 78700169.8102,
           "Korea": 48072606.0,
-          "Hong Kong": 1850427.8301,
+          "Malaysia": 308391.12820000004,
           "Singapore": 988832.0216,
-          "Taiwan": 947562.43,
-          "Malaysia": 308391.1282
+          "Taiwan": 947562.43
         }
       },
       {
         "month_id": 14,
         "month": "Mar '26",
         "countries": {
+          "Hong Kong": 2058608.3722,
           "Japan": 72442407.0644,
           "Korea": 46186132.0,
-          "Hong Kong": 2058608.3722,
-          "Singapore": 1440596.8353,
-          "Taiwan": 903039.8811,
-          "Malaysia": 457956.7108
+          "Malaysia": 457956.71080000006,
+          "Singapore": 1440596.8353000002,
+          "Taiwan": 903039.8811000002
         }
       },
       {
         "month_id": 15,
         "month": "Apr '26",
         "countries": {
-          "Japan": 83324875.33,
+          "Hong Kong": 2277839.8808000004,
+          "Japan": 83324875.32999997,
           "Korea": 50723836.0,
-          "Hong Kong": 2277839.8808,
-          "Singapore": 1543942.5856,
-          "Taiwan": 845893.21,
-          "Malaysia": 506071.9361
+          "Malaysia": 506071.93609999993,
+          "Singapore": 1543942.5855999999,
+          "Taiwan": 845893.2100000001
+        }
+      }
+    ],
+    "EPI + Autocallable": [
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Hong Kong": 565012.7444,
+          "Japan": 71108031.218,
+          "Korea": 28461643.0,
+          "Malaysia": 209098.745
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Hong Kong": 774158.0,
+          "Japan": 75528266.4963,
+          "Korea": 31973499.0,
+          "Malaysia": 272383.4975,
+          "Singapore": 312255.46880000003
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Hong Kong": 774158.0,
+          "Japan": 81089143.7963,
+          "Korea": 33954390.0,
+          "Malaysia": 272383.4975,
+          "Singapore": 312255.46880000003
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Hong Kong": 1739694.1634,
+          "Japan": 77796342.3232,
+          "Korea": 31998686.0,
+          "Malaysia": 262124.4297,
+          "Singapore": 704768.8537999999,
+          "Taiwan": 940513.2300000001
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Hong Kong": 1955347.7607,
+          "Japan": 71088502.1982,
+          "Korea": 30581615.0,
+          "Malaysia": 391111.1871,
+          "Singapore": 1081711.1133,
+          "Taiwan": 896402.5551
+        }
+      },
+      {
+        "month_id": 15,
+        "month": "Apr '26",
+        "countries": {
+          "Hong Kong": 2166507.619,
+          "Japan": 81759169.82339999,
+          "Korea": 33591528.0,
+          "Malaysia": 433455.8776,
+          "Singapore": 1158197.4236,
+          "Taiwan": 838710.77
+        }
+      }
+    ],
+    "G&I + IncomeMax": [
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Japan": 451021.7179,
+          "Korea": 14441297.0,
+          "Malaysia": 43136.9315,
+          "Hong Kong": 34013.62
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Hong Kong": 119540.0,
+          "Japan": 664041.496,
+          "Korea": 17765595.0,
+          "Malaysia": 47358.37440000001,
+          "Singapore": 68928.9063
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Hong Kong": 119540.0,
+          "Japan": 864883.496,
+          "Korea": 18605479.0,
+          "Malaysia": 47358.37440000001,
+          "Singapore": 68928.9063
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Hong Kong": 110733.6667,
+          "Japan": 903827.4870000001,
+          "Korea": 16073920.0,
+          "Malaysia": 46266.6985,
+          "Singapore": 284063.1678,
+          "Taiwan": 7049.2
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Hong Kong": 103260.6115,
+          "Japan": 1353904.8662,
+          "Korea": 15604517.0,
+          "Malaysia": 66845.52369999999,
+          "Singapore": 358885.722,
+          "Taiwan": 6637.326000000001
+        }
+      },
+      {
+        "month_id": 15,
+        "month": "Apr '26",
+        "countries": {
+          "Hong Kong": 111332.2618,
+          "Japan": 1565705.5066,
+          "Korea": 17132308.0,
+          "Malaysia": 72616.05850000001,
+          "Singapore": 385745.162,
+          "Taiwan": 7182.4400000000005
         }
       }
     ],
@@ -2467,65 +2607,65 @@
         "month_id": 10,
         "month": "Nov '25",
         "countries": {
+          "Japan": 2714221.0,
           "Korea": 341108601.0,
-          "Hong Kong": 200373200.8886,
           "Singapore": 5929402.308,
-          "Japan": 2714221.0
+          "Hong Kong": 200373200.8886
         }
       },
       {
         "month_id": 11,
         "month": "Dec '25",
         "countries": {
-          "Korea": 323318834.0,
           "Hong Kong": 168567963.6,
-          "Japan": 2415731.0005,
-          "Singapore": 1400522.6566,
-          "Malaysia": 575735.7143
+          "Japan": 2415731.0005000005,
+          "Korea": 323318834.0,
+          "Malaysia": 575735.7143,
+          "Singapore": 1400522.6565999999
         }
       },
       {
         "month_id": 12,
         "month": "Jan '26",
         "countries": {
-          "Korea": 319113034.0,
           "Hong Kong": 148806852.0,
-          "Japan": 2415731.0005,
-          "Singapore": 1400522.6566,
-          "Malaysia": 575735.7143
+          "Japan": 2415731.0005000005,
+          "Korea": 319113034.0,
+          "Malaysia": 575735.7143,
+          "Singapore": 1400522.6565999999
         }
       },
       {
         "month_id": 13,
         "month": "Feb '26",
         "countries": {
-          "Korea": 354185063.0,
           "Hong Kong": 128956771.4277,
           "Japan": 3712902.508,
-          "Singapore": 1138268.8437,
-          "Malaysia": 784329.2211
+          "Korea": 354185063.0,
+          "Malaysia": 784329.2211,
+          "Singapore": 1138268.8437
         }
       },
       {
         "month_id": 14,
         "month": "Mar '26",
         "countries": {
-          "Korea": 374537337.0,
           "Hong Kong": 29457094.6644,
           "Japan": 4902137.2934,
-          "Singapore": 2560187.0062,
-          "Malaysia": 690050.0754
+          "Korea": 374537337.0,
+          "Malaysia": 690050.0754,
+          "Singapore": 2560187.0061999997
         }
       },
       {
         "month_id": 15,
         "month": "Apr '26",
         "countries": {
-          "Korea": 415353501.0,
-          "Hong Kong": 29897285.5691,
+          "Hong Kong": 29897285.569099996,
           "Japan": 4232635.2387,
-          "Singapore": 3807325.7692,
-          "Malaysia": 647275.9907
+          "Korea": 415353501.0,
+          "Malaysia": 647275.9907,
+          "Singapore": 3807325.7692
         }
       }
     ],
@@ -2542,9 +2682,9 @@
         "month_id": 11,
         "month": "Dec '25",
         "countries": {
+          "Hong Kong": 7581.0,
           "Japan": 276809.3615,
           "Korea": 56896.0,
-          "Hong Kong": 7581.0,
           "Singapore": 228.125
         }
       },
@@ -2552,9 +2692,9 @@
         "month_id": 12,
         "month": "Jan '26",
         "countries": {
+          "Hong Kong": 7581.0,
           "Japan": 301579.4015,
           "Korea": 247922.0,
-          "Hong Kong": 7581.0,
           "Singapore": 228.125
         }
       },
@@ -2562,32 +2702,32 @@
         "month_id": 13,
         "month": "Feb '26",
         "countries": {
-          "Thailand": 413760.0,
+          "Hong Kong": 7657.8656,
           "Japan": 305713.1344,
           "Korea": 168833.0,
-          "Hong Kong": 7657.8656,
+          "Singapore": 684.47,
           "Taiwan": 6490.53,
-          "Singapore": 684.47
+          "Thailand": 413760.0
         }
       },
       {
         "month_id": 14,
         "month": "Mar '26",
         "countries": {
+          "Hong Kong": 7629.4467,
           "Japan": 306086.5462,
           "Korea": 251579.0,
-          "Hong Kong": 7629.4467,
-          "Taiwan": 5962.7586,
-          "Singapore": 1544.9751
+          "Singapore": 1544.9751,
+          "Taiwan": 5962.7586
         }
       },
       {
         "month_id": 15,
         "month": "Apr '26",
         "countries": {
-          "Korea": 249255.0,
-          "Japan": 22781.9,
           "Hong Kong": 13702.5,
+          "Japan": 22781.9,
+          "Korea": 249255.0,
           "Singapore": 13643.1229,
           "Taiwan": 7151.4
         }
@@ -2598,10 +2738,10 @@
         "month_id": 10,
         "month": "Nov '25",
         "countries": {
+          "Hong Kong": 170772.15000000002,
           "Korea": 586797.0,
-          "Singapore": 219413.0769,
           "Malaysia": 185842.8895,
-          "Hong Kong": 170772.15
+          "Singapore": 219413.0769
         }
       },
       {
@@ -2609,8 +2749,8 @@
         "month": "Dec '25",
         "countries": {
           "Korea": 386232.0,
-          "Singapore": 165512.5001,
           "Malaysia": 42702.7094,
+          "Singapore": 165512.5001,
           "Hong Kong": 34413.0
         }
       },
@@ -2619,8 +2759,8 @@
         "month": "Jan '26",
         "countries": {
           "Korea": 338177.0,
-          "Singapore": 165512.5001,
           "Malaysia": 42702.7094,
+          "Singapore": 165512.5001,
           "Hong Kong": 34413.0
         }
       },
@@ -2628,10 +2768,10 @@
         "month_id": 13,
         "month": "Feb '26",
         "countries": {
+          "Hong Kong": 20994.524599999997,
           "Korea": 200211.0,
-          "Singapore": 113611.6858,
           "Malaysia": 27337.7895,
-          "Hong Kong": 20994.5246,
+          "Singapore": 113611.6858,
           "Taiwan": 5850.0
         }
       },
@@ -2639,10 +2779,10 @@
         "month_id": 14,
         "month": "Mar '26",
         "countries": {
-          "Singapore": 258966.2265,
-          "Korea": 177272.0,
-          "Malaysia": 42243.9975,
           "Hong Kong": 20931.1609,
+          "Korea": 177272.0,
+          "Malaysia": 42243.997500000005,
+          "Singapore": 258966.2265,
           "Taiwan": 5867.1473
         }
       },
@@ -2650,10 +2790,10 @@
         "month_id": 15,
         "month": "Apr '26",
         "countries": {
-          "Singapore": 262189.8386,
+          "Hong Kong": 20650.9922,
           "Korea": 162156.0,
           "Malaysia": 43707.5268,
-          "Hong Kong": 20650.9922,
+          "Singapore": 262189.8386,
           "Taiwan": 5630.0
         }
       }
@@ -2664,68 +2804,68 @@
         "month": "Nov '25",
         "countries": {
           "Korea": 718893107.15,
-          "Hong Kong": 110811805.327,
+          "Malaysia": 10062713.3923,
+          "Singapore": 17682098.463199995,
           "Japan": 26140808.2693,
-          "Singapore": 17682098.4632,
-          "Malaysia": 10062713.3923
+          "Hong Kong": 110811805.32699999
         }
       },
       {
         "month_id": 11,
         "month": "Dec '25",
         "countries": {
-          "Korea": 678370378.72,
           "Hong Kong": 107979718.0,
-          "Japan": 31082416.9405,
-          "Singapore": 14670564.8455,
-          "Malaysia": 5416840.6407
+          "Korea": 678370378.72,
+          "Malaysia": 5416840.640699999,
+          "Singapore": 14670564.845500004,
+          "Japan": 31082416.940499995
         }
       },
       {
         "month_id": 12,
         "month": "Jan '26",
         "countries": {
-          "Korea": 610389092.0,
           "Hong Kong": 107979718.0,
-          "Japan": 31836751.6105,
-          "Singapore": 14670564.8455,
-          "Malaysia": 5416840.6407
+          "Korea": 610389092.0,
+          "Malaysia": 5416840.640699999,
+          "Singapore": 14670564.845500004,
+          "Japan": 31836751.6105
         }
       },
       {
         "month_id": 13,
         "month": "Feb '26",
         "countries": {
+          "Hong Kong": 88299325.93300003,
           "Korea": 548962304.069,
-          "Hong Kong": 88299325.933,
-          "Japan": 29768351.2508,
+          "Malaysia": 4173876.829300001,
           "Singapore": 14155800.8264,
-          "Taiwan": 13577127.784,
-          "Malaysia": 4173876.8293
+          "Taiwan": 13577127.784000002,
+          "Japan": 29768351.2508
         }
       },
       {
         "month_id": 14,
         "month": "Mar '26",
         "countries": {
+          "Hong Kong": 78593118.38890001,
           "Korea": 478414333.6667,
-          "Hong Kong": 78593118.3889,
-          "Japan": 30636111.4037,
-          "Singapore": 27164218.6558,
+          "Malaysia": 5809749.216399999,
+          "Singapore": 27164218.655800004,
           "Taiwan": 12493632.2825,
-          "Malaysia": 5809749.2164
+          "Japan": 30636111.4037
         }
       },
       {
         "month_id": 15,
         "month": "Apr '26",
         "countries": {
-          "Korea": 594857696.8276,
           "Hong Kong": 99743691.8599,
-          "Japan": 50862743.7588,
+          "Korea": 594857696.8276,
+          "Malaysia": 7021171.038500001,
           "Singapore": 37606665.4253,
-          "Taiwan": 13867024.49,
-          "Malaysia": 7021171.0385
+          "Taiwan": 13867024.490000002,
+          "Japan": 50862743.7588
         }
       }
     ]
@@ -4502,8 +4642,8 @@
       "EPI suite total: $119.9M across 4 funds"
     ],
     "gi_bullets": [
-      "Korea dominates G&I at 81.7% ($17.1M) \u2014 most geographically concentrated suite",
-      "G&I + IncomeMax suite: $21.0M across 12 funds"
+      "Korea dominates G&I at 88.9% ($17.1M) \u2014 most geographically concentrated suite",
+      "G&I + IncomeMax suite: $19.3M across 11 funds"
     ]
   }
 }

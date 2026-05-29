@@ -425,41 +425,55 @@ def fetch_suite_global_timeline(cur, timeline_months):
 
 
 def fetch_suite_country_6m(cur, current_month_id):
-    """Per-suite per-country AUM for the last 6 months."""
+    """Per-suite per-country AUM for the last 6 months. The DB 'Income' family is
+    additionally split into 'EPI + Autocallable' and 'G&I + IncomeMax' pseudo-suites
+    (by ticker) so the EPI/G&I report pages get the correct historical country mix,
+    not the combined Income mix."""
     start_id = current_month_id - 5
     cur.execute(
         """
         SELECT cm.month_id, TO_CHAR(cm.month_end, 'Mon ''YY') as month_label,
-               pf.name as suite, c.name as country,
-               COALESCE(SUM(ea.exchange_aum_usd), 0) as aum
-        FROM calendar_month cm
-        CROSS JOIN product_family pf
-        CROSS JOIN country c
-        LEFT JOIN etp e ON e.family_id = pf.family_id
-        LEFT JOIN exchange ex ON ex.country_id = c.country_id
-        LEFT JOIN etp_exchange_monthly_aum ea
-            ON ea.etp_id = e.etp_id AND ea.exchange_id = ex.exchange_id AND ea.month_id = cm.month_id
-        WHERE cm.month_id BETWEEN %s AND %s
-        GROUP BY cm.month_id, cm.month_end, pf.name, c.name
-        HAVING COALESCE(SUM(ea.exchange_aum_usd), 0) > 0
-        ORDER BY cm.month_id, pf.name, aum DESC
+               pf.name as suite, e.ticker as ticker, c.name as country,
+               SUM(ea.exchange_aum_usd) as aum
+        FROM etp_exchange_monthly_aum ea
+        JOIN etp e ON e.etp_id = ea.etp_id
+        JOIN product_family pf ON pf.family_id = e.family_id
+        JOIN exchange ex ON ex.exchange_id = ea.exchange_id
+        JOIN country c ON c.country_id = ex.country_id
+        JOIN calendar_month cm ON cm.month_id = ea.month_id
+        WHERE cm.month_id BETWEEN %s AND %s AND ea.exchange_aum_usd > 0
+        GROUP BY cm.month_id, cm.month_end, pf.name, e.ticker, c.name
+        ORDER BY cm.month_id, pf.name
         """,
         (start_id, current_month_id),
     )
-    rows = cur.fetchall()
+    EPI_T = {"FEPI", "AIPI", "CEPI", "ATCL"}
+
+    def display_suite(family, ticker):
+        if ticker == "ULTI":
+            return "G&I + IncomeMax"
+        if ticker == "ATCL":
+            return "EPI + Autocallable"
+        if family == "Income":
+            return "EPI + Autocallable" if ticker in EPI_T else "G&I + IncomeMax"
+        return None
 
     result = {}
-    for r in rows:
-        suite = r["suite"]
+
+    def add(suite, mid, label, country, aum):
         if suite not in result:
             result[suite] = []
-        mid = r["month_id"]
-        # Find or create month entry
         month_entry = next((m for m in result[suite] if m["month_id"] == mid), None)
         if not month_entry:
-            month_entry = {"month_id": mid, "month": r["month_label"], "countries": {}}
+            month_entry = {"month_id": mid, "month": label, "countries": {}}
             result[suite].append(month_entry)
-        month_entry["countries"][r["country"]] = float(r["aum"])
+        month_entry["countries"][country] = month_entry["countries"].get(country, 0.0) + float(aum)
+
+    for r in cur.fetchall():
+        add(r["suite"], r["month_id"], r["month_label"], r["country"], r["aum"])
+        disp = display_suite(r["suite"], r["ticker"])
+        if disp:
+            add(disp, r["month_id"], r["month_label"], r["country"], r["aum"])
 
     return result
 
