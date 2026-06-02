@@ -50,12 +50,15 @@
 })();
 
 // ---------------------------------------------------------------------------
-// Mega-menu controller (hover-triggered, 300ms grace close, click fallback)
+// Mega-menu controller (hover on desktop, click accordion on mobile)
 // ---------------------------------------------------------------------------
 (function() {
   var wraps = document.querySelectorAll('.mega-trigger-wrap');
   if (!wraps.length) return;
   var closeTimer = null;
+  var MOBILE_BP = 768;
+
+  function isMobile() { return window.innerWidth <= MOBILE_BP; }
 
   function closeAll() {
     document.querySelectorAll('.mega-panel').forEach(function(p) {
@@ -77,11 +80,16 @@
   }
 
   function positionPanel(panel) {
-    // Start with left-aligned (default)
+    // On mobile, defer to CSS (@media max-width:768px makes panel static/accordion).
+    // Never apply fixed/absolute positioning — that's what traps the panel on small screens.
+    if (isMobile()) {
+      resetPanelPosition(panel);
+      return;
+    }
+    // Desktop: position so right edge doesn't exceed viewport.
     panel.style.position = 'absolute';
     panel.style.left = '0';
     panel.style.right = 'auto';
-    // Check if the panel's right edge exceeds viewport
     var rect = panel.getBoundingClientRect();
     if (rect.right > window.innerWidth - 16) {
       panel.style.right = '16px';
@@ -97,7 +105,10 @@
     var panel = wrap.querySelector('.mega-panel');
     if (!trigger || !panel) return;
 
+    // Hover only applies on desktop (real pointer device). Skip on mobile/touch
+    // to avoid sticky panels triggered by a tap that never gets a mouseleave.
     wrap.addEventListener('mouseenter', function() {
+      if (isMobile()) return;
       clearTimeout(closeTimer);
       closeAll();
       resetPanelPosition(panel);
@@ -106,10 +117,12 @@
       positionPanel(panel);
     });
     wrap.addEventListener('mouseleave', function() {
+      if (isMobile()) return;
       closeTimer = setTimeout(closeAll, 300);
     });
     trigger.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       var isOpen = panel.classList.contains('open');
       closeAll();
       if (!isOpen) {
@@ -119,6 +132,32 @@
         positionPanel(panel);
       }
     });
+  });
+
+  // Click outside any mega-trigger-wrap closes all panels (backdrop dismiss).
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.mega-trigger-wrap')) return;
+    if (e.target.closest('.kebab-menu')) return;
+    closeAll();
+  });
+
+  // Touch on the page body outside a panel closes it (mobile safety net).
+  document.addEventListener('touchstart', function(e) {
+    if (e.target.closest('.mega-trigger-wrap')) return;
+    if (e.target.closest('.hamburger')) return;
+    if (e.target.closest('.kebab-menu')) return;
+    closeAll();
+  }, { passive: true });
+
+  // Close panels on viewport resize across the mobile breakpoint so stale
+  // positioning from the previous mode is cleared.
+  var lastMode = isMobile();
+  window.addEventListener('resize', function() {
+    var nowMode = isMobile();
+    if (nowMode !== lastMode) {
+      closeAll();
+      lastMode = nowMode;
+    }
   });
 
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAll(); });
@@ -198,10 +237,11 @@
     document.querySelectorAll('.mega-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
   });
 
-  // Close mobile nav when a non-mega link is clicked
+  // Close mobile nav when any link is clicked (including mega-links inside
+  // the accordion — otherwise the drawer stays open over the destination page).
   var navLinks = document.getElementById('navLinks');
   if (navLinks) {
-    navLinks.querySelectorAll('a:not(.mega-link)').forEach(function(link) {
+    navLinks.querySelectorAll('a').forEach(function(link) {
       link.addEventListener('click', function() {
         nav.classList.remove('nav-open');
       });
