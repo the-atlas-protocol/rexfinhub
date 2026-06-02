@@ -366,8 +366,14 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
         return stats
 
     # Pre-load FundExtraction rows for these filings keyed by filing_id.
+    # Bug A fix (2026-06-02): a single 485APOS can carry multiple distinct
+    # series (e.g. 3 sister funds in one prospectus). The old code kept ONE
+    # extraction per filing, which collapsed those into a single rex_products
+    # row. Now we collect ALL extractions per filing and create one
+    # rex_products row per DISTINCT series_id. Extractions with no series_id
+    # (~7,588 mostly old 497s) fall back to name-based matching.
     filing_ids = [f.id for f in filings]
-    extractions_by_filing: dict[int, object] = {}
+    extractions_by_filing: dict[int, list[object]] = {}
     if filing_ids:
         CHUNK = 500
         for i in range(0, len(filing_ids), CHUNK):
@@ -376,10 +382,7 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
                 select(FundExtraction).where(FundExtraction.filing_id.in_(chunk))
             ).scalars().all()
             for ext in rows:
-                # If multiple extractions per filing, keep the first non-null series.
-                cur = extractions_by_filing.get(ext.filing_id)
-                if cur is None or (ext.series_id and not cur.series_id):
-                    extractions_by_filing[ext.filing_id] = ext
+                extractions_by_filing.setdefault(ext.filing_id, []).append(ext)
 
     by_cik_series, by_cik_name, by_trust_name = _build_indexes(db)
 
@@ -388,132 +391,181 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
     for f in filings:
         cik_norm = (f.cik or "").lstrip("0") or None
         in_curated_trust = bool(cik_norm and cik_norm in trust_ciks)
-        ext = extractions_by_filing.get(f.id)
-        fund_name = _fund_name_from_filing(f, ext)
-
-        rex_name = _is_rex_name(fund_name) or _is_rex_name(f.registrant)
-        # Name-based filter ONLY. Curated-trust is for filing-race monitoring,
-        # NOT for "this is a REX product." Without this check we leaked
-        # Direxion / ProShares / Defiance funds into rex_products.
-        if not rex_name:
-            continue
         _ = in_curated_trust  # retained for future audit/log use
 
-        existing = _find_existing(f, fund_name, ext,
-                                   by_cik_series, by_cik_name, by_trust_name)
+        # Group this filing's extractions by distinct series_id. Each distinct
+        # series becomes one (filing, representative-extraction) work unit.
+        # Multiple classes (C-IDs) under the same series collapse to the first;
+        # extractions with no series_id are handled separately via name-match.
+        exts_all = extractions_by_filing.get(f.id, [])
+        ext_by_series: dict[str, object] = {}
+        ext_no_series: list[object] = []
+        class_ids_by_series: dict[str, list[str]] = {}
+        for ext in exts_all:
+            if ext.series_id:
+                if ext.series_id not in ext_by_series:
+                    ext_by_series[ext.series_id] = ext
+                if ext.class_contract_id:
+                    class_ids_by_series.setdefault(ext.series_id, []).append(
+                        ext.class_contract_id)
+            else:
+                ext_no_series.append(ext)
 
-        if existing is None:
-            # ----- Phase 1: INSERT new row -----
-            new_status = "Effective" if f.form == "485BPOS" else "Filed"
-            est_eff: date | None = None
-            if ext is not None and ext.effective_date:
-                est_eff = ext.effective_date
-            elif f.form == "485APOS" and f.filing_date:
-                est_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
-            elif f.form == "485BPOS" and f.filing_date:
-                est_eff = f.filing_date
+        # Build the ordered work-units: distinct series first (sorted for
+        # deterministic order — series #1 keeps prospectus_name, series>=2
+        # get it nulled), then no-series extractions, then (if nothing at
+        # all) a single None placeholder so registrant-only filings still
+        # get processed.
+        work_units: list[tuple[object | None, int]] = []
+        for idx, sid in enumerate(sorted(ext_by_series.keys())):
+            work_units.append((ext_by_series[sid], idx))
+        for ext in ext_no_series:
+            work_units.append((ext, -1))  # -1 = no-series, name-match path
+        if not work_units:
+            work_units.append((None, 0))
 
-            payload = dict(
-                name=(fund_name or "Unknown Fund")[:200],
-                trust=(f.registrant or "")[:200] or None,
-                product_suite=_infer_suite(fund_name or ""),
-                status=new_status,
-                cik=cik_norm,
-                series_id=(ext.series_id if ext is not None else None),
-                class_contract_id=(ext.class_contract_id if ext is not None else None),
-                latest_form=f.form,
-                latest_prospectus_link=f.primary_link,
-                initial_filing_date=f.filing_date,
-                estimated_effective_date=est_eff,
-                notes=f"auto-created by sync_rex_products_from_filings on {today.isoformat()}",
-            )
+        for ext, series_index in work_units:
+            fund_name = _fund_name_from_filing(f, ext)
 
-            if dry_run:
-                stats.new_products_planned += 1
+            rex_name = _is_rex_name(fund_name) or _is_rex_name(f.registrant)
+            # Name-based filter ONLY. Curated-trust is for filing-race monitoring,
+            # NOT for "this is a REX product." Without this check we leaked
+            # Direxion / ProShares / Defiance funds into rex_products.
+            if not rex_name:
+                continue
+
+            # Null prospectus_name on the 2nd+ distinct series within this
+            # filing — the prospectus is filing-level, attributing it to
+            # every series duplicates the same document across rows.
+            if ext is not None and series_index >= 1 and ext.prospectus_name:
+                ext.prospectus_name = None
+
+            existing = _find_existing(f, fund_name, ext,
+                                       by_cik_series, by_cik_name, by_trust_name)
+
+            if existing is None:
+                # ----- Phase 1: INSERT new row -----
+                new_status = "Effective" if f.form == "485BPOS" else "Filed"
+                est_eff: date | None = None
+                if ext is not None and ext.effective_date:
+                    est_eff = ext.effective_date
+                elif f.form == "485APOS" and f.filing_date:
+                    est_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
+                elif f.form == "485BPOS" and f.filing_date:
+                    est_eff = f.filing_date
+
+                # When a series has multiple classes (C-IDs), join with "|" so
+                # the row records every class under this series. Single-class
+                # series just store the lone C-ID.
+                cc_ids = None
+                if ext is not None and ext.series_id:
+                    cc_list = class_ids_by_series.get(ext.series_id) or []
+                    if cc_list:
+                        cc_ids = "|".join(cc_list) if len(cc_list) > 1 else cc_list[0]
+                if cc_ids is None and ext is not None:
+                    cc_ids = ext.class_contract_id
+
+                payload = dict(
+                    name=(fund_name or "Unknown Fund")[:200],
+                    trust=(f.registrant or "")[:200] or None,
+                    product_suite=_infer_suite(fund_name or ""),
+                    status=new_status,
+                    cik=cik_norm,
+                    series_id=(ext.series_id if ext is not None else None),
+                    class_contract_id=cc_ids,
+                    latest_form=f.form,
+                    latest_prospectus_link=f.primary_link,
+                    initial_filing_date=f.filing_date,
+                    estimated_effective_date=est_eff,
+                    notes=f"auto-created by sync_rex_products_from_filings on {today.isoformat()}",
+                )
+
+                if dry_run:
+                    stats.new_products_planned += 1
+                    d_key = (f.filing_date.isoformat() if f.filing_date else "unknown")
+                    stats.by_date[d_key] = stats.by_date.get(d_key, 0) + 1
+                    tk = (f.registrant or "Unknown")[:60]
+                    stats.by_trust[tk] = stats.by_trust.get(tk, 0) + 1
+                    continue
+
+                new_product = RexProduct(**payload)
+                db.add(new_product)
+                db.flush()  # populate id for audit logging
+                stats.new_products_inserted += 1
                 d_key = (f.filing_date.isoformat() if f.filing_date else "unknown")
                 stats.by_date[d_key] = stats.by_date.get(d_key, 0) + 1
                 tk = (f.registrant or "Unknown")[:60]
                 stats.by_trust[tk] = stats.by_trust.get(tk, 0) + 1
+
+                _audit(db, action="INSERT", row_id=new_product.id,
+                       field_name="(row)", old_value=None,
+                       new_value=fund_name,
+                       row_label=fund_name[:60])
+
+                # Register the new row in indexes so subsequent filings in the
+                # same run don't double-insert it.
+                name_n = _normalize_name(fund_name)
+                trust_n = (f.registrant or "").strip().lower()
+                if cik_norm and ext is not None and ext.series_id:
+                    by_cik_series[(cik_norm, ext.series_id)] = new_product
+                if cik_norm and name_n:
+                    by_cik_name[(cik_norm, name_n)] = new_product
+                if trust_n and name_n:
+                    by_trust_name[(trust_n, name_n)] = new_product
                 continue
 
-            new_product = RexProduct(**payload)
-            db.add(new_product)
-            db.flush()  # populate id for audit logging
-            stats.new_products_inserted += 1
-            d_key = (f.filing_date.isoformat() if f.filing_date else "unknown")
-            stats.by_date[d_key] = stats.by_date.get(d_key, 0) + 1
-            tk = (f.registrant or "Unknown")[:60]
-            stats.by_trust[tk] = stats.by_trust.get(tk, 0) + 1
+            # ----- Phase 2: UPDATE existing -----
+            stats.skipped_already_matched += 1
+            overrides = _parse_overrides(existing.manually_edited_fields)
+            row_label = (existing.ticker or existing.name or f"#{existing.id}")[:60]
 
-            _audit(db, action="INSERT", row_id=new_product.id,
-                   field_name="(row)", old_value=None,
-                   new_value=fund_name,
-                   row_label=fund_name[:60])
-
-            # Register the new row in indexes so subsequent filings in the
-            # same run don't double-insert it.
-            name_n = _normalize_name(fund_name)
-            trust_n = (f.registrant or "").strip().lower()
-            if cik_norm and ext is not None and ext.series_id:
-                by_cik_series[(cik_norm, ext.series_id)] = new_product
-            if cik_norm and name_n:
-                by_cik_name[(cik_norm, name_n)] = new_product
-            if trust_n and name_n:
-                by_trust_name[(trust_n, name_n)] = new_product
-            continue
-
-        # ----- Phase 2: UPDATE existing -----
-        stats.skipped_already_matched += 1
-        overrides = _parse_overrides(existing.manually_edited_fields)
-        row_label = (existing.ticker or existing.name or f"#{existing.id}")[:60]
-
-        # Refresh estimated_effective_date from THIS filing's effective date.
-        # Runs for EVERY matched 485-series filing, not only on form
-        # transitions: a fund that files 485BXT after 485BXT (e.g. T-REX 2X
-        # Long BITF) keeps extending its effective date, and the old code —
-        # which updated the date only when a 485BPOS arrived — left those
-        # rows stale. Filings are processed oldest-first, so the most recent
-        # one wins. Admin overrides (manually_edited_fields) are respected.
-        _new_eff = None
-        if ext is not None and ext.effective_date:
-            _new_eff = ext.effective_date
-        elif f.form == "485BPOS" and f.filing_date:
-            _new_eff = f.filing_date
-        elif f.form == "485APOS" and f.filing_date:
-            _new_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
-        if (_new_eff and "estimated_effective_date" not in overrides
-                and str(existing.estimated_effective_date) != str(_new_eff)):
-            stats.effective_date_updates += 1
-            if not dry_run:
-                _audit(db, "UPDATE", existing.id, "estimated_effective_date",
-                       existing.estimated_effective_date, _new_eff, row_label)
-                existing.estimated_effective_date = _new_eff
-
-        if _later_form(existing.latest_form, f.form):
-            stats.form_transitions += 1
-
-            if "latest_form" not in overrides:
+            # Refresh estimated_effective_date from THIS filing's effective date.
+            # Runs for EVERY matched 485-series filing, not only on form
+            # transitions: a fund that files 485BXT after 485BXT (e.g. T-REX 2X
+            # Long BITF) keeps extending its effective date, and the old code —
+            # which updated the date only when a 485BPOS arrived — left those
+            # rows stale. Filings are processed oldest-first, so the most recent
+            # one wins. Admin overrides (manually_edited_fields) are respected.
+            _new_eff = None
+            if ext is not None and ext.effective_date:
+                _new_eff = ext.effective_date
+            elif f.form == "485BPOS" and f.filing_date:
+                _new_eff = f.filing_date
+            elif f.form == "485APOS" and f.filing_date:
+                _new_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
+            if (_new_eff and "estimated_effective_date" not in overrides
+                    and str(existing.estimated_effective_date) != str(_new_eff)):
+                stats.effective_date_updates += 1
                 if not dry_run:
-                    _audit(db, "UPDATE", existing.id, "latest_form",
-                           existing.latest_form, f.form, row_label)
-                    existing.latest_form = f.form
-            else:
-                stats.skipped_admin_override += 1
+                    _audit(db, "UPDATE", existing.id, "estimated_effective_date",
+                           existing.estimated_effective_date, _new_eff, row_label)
+                    existing.estimated_effective_date = _new_eff
 
-            if "latest_prospectus_link" not in overrides and f.primary_link:
-                if not dry_run:
-                    _audit(db, "UPDATE", existing.id, "latest_prospectus_link",
-                           existing.latest_prospectus_link, f.primary_link, row_label)
-                    existing.latest_prospectus_link = f.primary_link
+            if _later_form(existing.latest_form, f.form):
+                stats.form_transitions += 1
 
-            # 485BPOS arriving on a 'Filed' row -> Effective
-            if f.form == "485BPOS":
-                if existing.status == "Filed" and "status" not in overrides:
+                if "latest_form" not in overrides:
                     if not dry_run:
-                        _audit(db, "UPDATE", existing.id, "status",
-                               existing.status, "Effective", row_label)
-                        existing.status = "Effective"
-                    stats.status_promotions += 1
+                        _audit(db, "UPDATE", existing.id, "latest_form",
+                               existing.latest_form, f.form, row_label)
+                        existing.latest_form = f.form
+                else:
+                    stats.skipped_admin_override += 1
+
+                if "latest_prospectus_link" not in overrides and f.primary_link:
+                    if not dry_run:
+                        _audit(db, "UPDATE", existing.id, "latest_prospectus_link",
+                               existing.latest_prospectus_link, f.primary_link, row_label)
+                        existing.latest_prospectus_link = f.primary_link
+
+                # 485BPOS arriving on a 'Filed' row -> Effective
+                if f.form == "485BPOS":
+                    if existing.status == "Filed" and "status" not in overrides:
+                        if not dry_run:
+                            _audit(db, "UPDATE", existing.id, "status",
+                                   existing.status, "Effective", row_label)
+                            existing.status = "Effective"
+                        stats.status_promotions += 1
 
     if not dry_run:
         db.commit()
