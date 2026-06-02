@@ -1220,23 +1220,46 @@ tr.risk-high-row:hover { background: #ffe0b2; }
 [data-theme="dark"] .mega-link.active .mega-link-icon { color: #93c5fd; }
 [data-theme="dark"] .coming-soon-badge { background: rgba(124,58,237,0.2); color: #a78bfa; }
 
-/* Mobile mega-menu fallback */
+/* Mobile mega-menu — accordion inside the mobile nav drawer.
+   Uses !important to defeat any inline positioning JS may have applied on
+   desktop before a viewport resize, and to keep the panel from ever escaping
+   the nav drawer (which was the "dropdown blocks the screen" bug). */
 @media (max-width: 768px) {
-  .mega-trigger-wrap { height: auto; display: block; }
-  .mega-panel {
-    position: static;
+  .mega-trigger-wrap { height: auto; display: block; width: 100%; }
+  .mega-trigger {
     width: 100%;
-    max-width: 100%;
-    box-shadow: none;
+    height: auto;
+    min-height: 44px;
+    padding: var(--sp-3) var(--sp-6);
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .mega-panel {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
     border: none;
     border-radius: 0;
     padding: 0;
-    transform: none;
+    transform: none !important;
     background: transparent;
     visibility: hidden;
     opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 160ms ease, max-height 200ms ease;
   }
-  .mega-panel.open { visibility: visible; opacity: 1; }
+  .mega-panel.open {
+    visibility: visible;
+    opacity: 1;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: var(--sp-2) 0;
+  }
   .mega-columns {
     grid-template-columns: 1fr;
     gap: 0;
