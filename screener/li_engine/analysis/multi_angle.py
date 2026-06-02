@@ -46,6 +46,8 @@ try:
 except ImportError as e:
     raise RuntimeError(f"sklearn required: {e}")
 
+from webapp.services.ticker_normalize import normalize_underlier as _clean
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -57,11 +59,6 @@ _DB = Path(__file__).resolve().parent.parent.parent.parent / "data" / "etp_track
 # ---------------------------------------------------------------------------
 # Data prep
 # ---------------------------------------------------------------------------
-
-def _clean(t: str) -> str:
-    if not isinstance(t, str):
-        return ""
-    return t.split()[0].upper().strip()
 
 
 def _coerce(v):

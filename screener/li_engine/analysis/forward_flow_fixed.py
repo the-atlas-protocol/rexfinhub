@@ -12,17 +12,13 @@ from pathlib import Path
 
 import pandas as pd
 
+from webapp.services.ticker_normalize import normalize_underlier as _clean
+
 log = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parent.parent.parent.parent
 TS = _ROOT / "data" / "analysis" / "bbg_timeseries_panel.parquet"
 DB = _ROOT / "data" / "etp_tracker.db"
-
-
-def _clean(t: str) -> str:
-    if not isinstance(t, str):
-        return ""
-    return t.split()[0].upper().strip()
 
 
 def build_lookback_target(as_of_days_ago: int = 60, window: int = 30) -> pd.Series:

@@ -49,6 +49,7 @@ from screener.li_engine.signals import (
     competitor_filing_recency_weight,
     rex_filing_decay_factor,
 )
+from webapp.services.ticker_normalize import normalize_underlier as _clean
 
 log = logging.getLogger(__name__)
 
@@ -58,10 +59,6 @@ OUT = _ROOT / "data" / "analysis" / "launch_candidates.parquet"
 
 # Manual exclusion list — REX filings Ryu flagged as paused / not actually pursuing
 PAUSED_TICKERS = {"BBUP", "FIGO", "SPOU"}
-
-
-def _clean(t):
-    return t.split()[0].upper().strip() if isinstance(t, str) else ""
 
 
 def _coerce(v):

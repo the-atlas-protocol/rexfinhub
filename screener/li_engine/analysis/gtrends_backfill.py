@@ -38,6 +38,8 @@ from typing import Iterable
 
 import pandas as pd
 
+from webapp.services.ticker_normalize import normalize_underlier as _clean
+
 try:
     from pytrends.request import TrendReq
 except ImportError:  # pragma: no cover
@@ -80,12 +82,6 @@ _SKIP_EXACT = {
     # Single-letter / ambiguous
     "B", "U", "FLY", "KEY", "BULL", "CLA", "SOL",
 }
-
-
-def _clean(t: str) -> str:
-    if not isinstance(t, str):
-        return ""
-    return t.split()[0].upper().strip()
 
 
 def get_universe(db_path: Path = DB) -> list[str]:

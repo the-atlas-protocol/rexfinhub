@@ -21,15 +21,13 @@ from pathlib import Path
 
 import pandas as pd
 
+from webapp.services.ticker_normalize import normalize_underlier as _clean
+
 log = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parent.parent.parent.parent
 DB = _ROOT / "data" / "etp_tracker.db"
 OUT = _ROOT / "data" / "analysis" / "competitor_counts.parquet"
-
-
-def _clean(t):
-    return t.split()[0].upper().strip() if isinstance(t, str) else ""
 
 
 # Reuse the patterns and infer direction

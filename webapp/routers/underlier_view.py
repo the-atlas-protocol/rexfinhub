@@ -47,6 +47,7 @@ from sqlalchemy.orm import Session
 
 from webapp.dependencies import get_db
 from webapp.models import RexProduct
+from webapp.services.ticker_normalize import normalize_underlier as _normalize
 
 log = logging.getLogger(__name__)
 
@@ -77,18 +78,6 @@ LISTED_STATUSES = ["Listed", "Delisted"]
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _normalize(token: str | None) -> str:
-    """URL token -> canonical comparison key (uppercase, no `` US``)."""
-    if not token:
-        return ""
-    t = str(token).strip().upper()
-    # Strip Bloomberg suffixes.
-    for suffix in (" US", " CURNCY", " EQUITY", " INDEX"):
-        if t.endswith(suffix):
-            t = t[: -len(suffix)].strip()
-    return t
-
 
 def _bare_sql(col_expr: str) -> str:
     """SQL expression that strips Bloomberg suffixes from a column.

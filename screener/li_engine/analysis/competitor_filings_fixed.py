@@ -15,18 +15,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from webapp.services.ticker_normalize import normalize_underlier as _clean
+
 log = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parent.parent.parent.parent
 DB = _ROOT / "data" / "etp_tracker.db"
 OUT_LONG = _ROOT / "data" / "analysis" / "filings_by_underlier.parquet"
 OUT_CS = _ROOT / "data" / "analysis" / "competitor_filing_cross_section.parquet"
-
-
-def _clean(t: str) -> str:
-    if not isinstance(t, str):
-        return ""
-    return t.split()[0].upper().strip()
 
 
 def build_filings_long() -> pd.DataFrame:
