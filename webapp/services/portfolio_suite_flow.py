@@ -159,7 +159,7 @@ def _load_master(db_path):
 
 
 def _load_flow_history(xlsm_path):
-    cols = ["Dates"] + [f"{t} Equity" for t in TICKER_SUITE]
+    cols = ["Dates"] + list(TICKER_SUITE)
     df = pd.read_excel(xlsm_path, sheet_name="data_flow", usecols=cols)
     df["Dates"] = pd.to_datetime(df["Dates"])
     df = df.set_index("Dates").sort_index()
@@ -487,19 +487,23 @@ def build_html(db_path: str, xlsm_path: str) -> tuple[str, str]:
 
     def hero_tile(value, label, color=NAVY):
         return f"""
-    <div style="flex:1 1 0;min-width:0;padding:18px 16px;background:{WHITE};border:1px solid {BORDER};border-radius:6px;text-align:left;">
-      <div style="font-size:10px;color:{GRAY};text-transform:uppercase;letter-spacing:1.2px;font-weight:700;">{escape(label)}</div>
-      <div style="font-size:22px;font-weight:700;color:{color};line-height:1.15;letter-spacing:-0.5px;margin-top:8px;font-variant-numeric:tabular-nums;">{value}</div>
-    </div>"""
+    <td width="25%" valign="top" style="padding:0 6px;">
+      <div style="padding:18px 16px;background:{WHITE};border:1px solid {BORDER};border-radius:6px;text-align:left;">
+        <div style="font-size:10px;color:{GRAY};text-transform:uppercase;letter-spacing:1.2px;font-weight:700;">{escape(label)}</div>
+        <div style="font-size:22px;font-weight:700;color:{color};line-height:1.15;letter-spacing:-0.5px;margin-top:8px;font-variant-numeric:tabular-nums;">{value}</div>
+      </div>
+    </td>"""
 
     parts.append(f"""
-<tr><td style="padding:24px 28px 4px;background:{LIGHT};">
-  <div style="display:flex;gap:12px;">
+<tr><td style="padding:24px 22px 4px;background:{LIGHT};">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+    <tr>
     {hero_tile(_fmt_aum(total['aum']), 'Total AUM')}
     {hero_tile(_fmt_flow_M(total['f1w']), '1-Week Net Flow', _flow_color(total['f1w']))}
     {hero_tile(_fmt_flow_M(total['f1m']), '1-Month Net Flow', _flow_color(total['f1m']))}
     {hero_tile(_fmt_flow_M(total['fytd']), 'Year-to-Date Net Flow', _flow_color(total['fytd']))}
-  </div>
+    </tr>
+  </table>
 </td></tr>""")
 
     cards = []
@@ -513,14 +517,14 @@ def build_html(db_path: str, xlsm_path: str) -> tuple[str, str]:
         cards.append(f"""
     <div style="border:1px solid {BORDER};border-radius:6px;background:{WHITE};overflow:hidden;">
       <div style="padding:12px 14px 8px;border-left:3px solid {color};">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <div style="font-size:10.5px;color:{GRAY};text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">{escape(label)}</div>
-          <div style="font-size:10px;color:{MUTED};font-weight:500;">{r['count']} fund{'s' if r['count'] != 1 else ''}</div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;">
-          <div style="font-size:18px;font-weight:700;color:{NAVY};letter-spacing:-0.3px;font-variant-numeric:tabular-nums;">{_fmt_aum(r['aum'])}</div>
-          <div style="font-size:13px;font-weight:700;color:{_flow_color(r['f1w'])};font-variant-numeric:tabular-nums;">{_fmt_flow_M(r['f1w'])} <span style="font-size:9.5px;color:{GRAY};font-weight:500;">1W</span></div>
-        </div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+          <td align="left" valign="bottom" style="padding:0;font-size:10.5px;color:{GRAY};text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">{escape(label)}</td>
+          <td align="right" valign="bottom" style="padding:0;font-size:10px;color:{MUTED};font-weight:500;">{r['count']} fund{'s' if r['count'] != 1 else ''}</td>
+        </tr></table>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:8px;"><tr>
+          <td align="left" valign="bottom" style="padding:8px 0 0 0;font-size:18px;font-weight:700;color:{NAVY};letter-spacing:-0.3px;font-variant-numeric:tabular-nums;">{_fmt_aum(r['aum'])}</td>
+          <td align="right" valign="bottom" style="padding:8px 0 0 0;font-size:13px;font-weight:700;color:{_flow_color(r['f1w'])};font-variant-numeric:tabular-nums;">{_fmt_flow_M(r['f1w'])} <span style="font-size:9.5px;color:{GRAY};font-weight:500;">1W</span></td>
+        </tr></table>
       </div>
       <div style="padding:6px 12px 4px;border-top:1px solid {LIGHT};">
         <div style="font-size:9.5px;color:{GRAY};letter-spacing:0.6px;font-weight:700;text-transform:uppercase;">90-Day Cumulative Flow</div>
@@ -530,13 +534,26 @@ def build_html(db_path: str, xlsm_path: str) -> tuple[str, str]:
       </div>
     </div>""")
 
+    # Outlook-safe 3-col layout: render cards in table rows of 3
+    SUITE_COLS = 3
+    suite_row_chunks = []
+    for i in range(0, len(cards), SUITE_COLS):
+        chunk = cards[i:i+SUITE_COLS]
+        while len(chunk) < SUITE_COLS:
+            chunk.append('')
+        cells = ''.join(
+            f'<td width="33.33%" valign="top" style="padding:5px;">{c}</td>'
+            for c in chunk
+        )
+        suite_row_chunks.append(f'<tr>{cells}</tr>')
+
     parts.append(f"""
-<tr><td style="padding:32px 28px 8px;">
+<tr><td style="padding:32px 23px 8px;">
   <div style="{SECTION_EYEBROW}">By Suite</div>
   <div style="{SECTION_TITLE}">Suite Snapshot</div>
-  <div class="suite-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-    {''.join(cards)}
-  </div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+    {''.join(suite_row_chunks)}
+  </table>
 </td></tr>""")
 
     parts.append(chart_block("This Week's Top Movers", png_movers,
