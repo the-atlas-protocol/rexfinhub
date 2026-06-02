@@ -16,6 +16,13 @@ Description=REX FinHub Bloomberg Pull Timer (2x weekdays: 17:15 + 21:00 ET)
 OnCalendar=Mon..Fri 17:15:00
 OnCalendar=Mon..Fri 21:00:00
 Persistent=true
+# Activate the CHAIN service, which runs Bloomberg pull + sync AND the
+# apply_bloomberg_post_steps.py wrapper (incl. apply_issuer_brands.py).
+# Without this explicit Unit= the timer falls back to the unit with the
+# matching basename (rexfinhub-bloomberg.service) which skips the post
+# steps and leaves ~64.5% of issuer_display NULL after every run
+# (audit O5, 2026-06-02). The bare service is retained for ad-hoc runs.
+Unit=rexfinhub-bloomberg-chain.service
 
 [Install]
 WantedBy=timers.target
