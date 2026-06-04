@@ -363,15 +363,43 @@ def stock_coverage_redirect(request: Request, type: str = Query(default="income"
     return RedirectResponse(f"/market/underlier{qs}", status_code=302)
 
 
+def _resolve_underlier_for_join(raw: str | None) -> str | None:
+    """Resolve a URL underlier param to the form stored in mkt_master_data.
+
+    The Sprint 1 canonical ``normalize_underlier`` keeps the exchange code
+    (``SNDK US`` stays ``SNDK US``), which would break the downstream JOIN
+    in ``get_underlier_summary`` because that function does a strict
+    equality compare ``df[field] == underlier`` against still-mixed DB
+    values. This shim restores the pre-Sprint-1 behavior for THIS route
+    only: strip to the bare root, then bridge crypto shorthand
+    (``BTC`` -> ``XBTUSD``) so ``?underlier=BTC`` matches the
+    ``XBTUSD Curncy`` rows. The canonical normalizer is unchanged for
+    the 8 other consumers that want ROOT + EXCHANGE.
+
+    TODO (Sprint 3): backfill ``map_li_underlier`` / ``map_cc_underlier``
+    to a single canonical form, then collapse this back to
+    ``normalize_underlier``.
+    """
+    if not raw:
+        return None
+    from webapp.services.ticker_normalize import (
+        normalize_ticker,
+        resolve_crypto_shorthand,
+    )
+    root = normalize_ticker(raw)
+    if not root:
+        return None
+    return resolve_crypto_shorthand(root) or root
+
+
 @router.get("/underlier")
 def underlier_view(request: Request, db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     svc = _svc()
     available = svc.data_available(db)
-    # Normalize the underlier param so ?underlier=SNDK and ?underlier=SNDK+US
-    # both resolve to the same canonical key. Crypto shorthand (BTC, ETH)
-    # also maps to BBG canonical (XBTUSD, XETUSD).
-    from webapp.services.ticker_normalize import normalize_underlier
-    underlier_norm = normalize_underlier(underlier) if underlier else None
+    # Compat shim: restore pre-Sprint-1 bare-root form so the downstream
+    # JOIN in get_underlier_summary keeps matching the DB. See
+    # _resolve_underlier_for_join() for the why.
+    underlier_norm = _resolve_underlier_for_join(underlier)
     if not available:
         return templates.TemplateResponse("market/underlier.html", {"request": request, "available": False, "active_tab": "underlier", "data_as_of": svc.get_data_as_of(db)})
     try:
@@ -488,7 +516,8 @@ def api_share(db: Session = Depends(get_db)):
 @router.get("/api/underlier")
 def api_underlier(db: Session = Depends(get_db), type: str = Query(default="income"), underlier: str = Query(default=None)):
     try:
-        return JSONResponse(_svc().get_underlier_summary(db, type, underlier))
+        underlier_norm = _resolve_underlier_for_join(underlier)
+        return JSONResponse(_svc().get_underlier_summary(db, type, underlier_norm))
     except Exception as e:
         log.error("Request failed: %s", e, exc_info=True)
         return JSONResponse({"error": "Internal server error"}, status_code=500)

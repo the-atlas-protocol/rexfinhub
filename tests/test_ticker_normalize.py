@@ -93,3 +93,75 @@ class TestNormalizeTicker:
     def test_empty(self):
         assert normalize_ticker(None) == ""
         assert normalize_ticker("") == ""
+
+
+
+class TestResolveCryptoShorthand:
+    """``resolve_crypto_shorthand`` bridges BTC/ETH/... to BBG roots."""
+
+    def test_btc_resolves_to_xbtusd(self):
+        from webapp.services.ticker_normalize import resolve_crypto_shorthand
+        assert resolve_crypto_shorthand("BTC") == "XBTUSD"
+
+    def test_eth_resolves_to_xetusd(self):
+        from webapp.services.ticker_normalize import resolve_crypto_shorthand
+        assert resolve_crypto_shorthand("ETH") == "XETUSD"
+
+    def test_long_form_name_resolves(self):
+        from webapp.services.ticker_normalize import resolve_crypto_shorthand
+        assert resolve_crypto_shorthand("Bitcoin") == "XBTUSD"
+        assert resolve_crypto_shorthand("ETHEREUM") == "XETUSD"
+
+    def test_lowercase_input_resolves(self):
+        from webapp.services.ticker_normalize import resolve_crypto_shorthand
+        assert resolve_crypto_shorthand("btc") == "XBTUSD"
+
+    def test_unknown_returns_none(self):
+        from webapp.services.ticker_normalize import resolve_crypto_shorthand
+        assert resolve_crypto_shorthand("NVDA") is None
+
+    def test_none_returns_none(self):
+        from webapp.services.ticker_normalize import resolve_crypto_shorthand
+        assert resolve_crypto_shorthand(None) is None
+        assert resolve_crypto_shorthand("") is None
+
+
+class TestMarketRouteCompatShim:
+    """Cover the contract market.py expects from the helpers it composes.
+
+    market.py builds its JOIN key by composing ``normalize_ticker`` +
+    ``resolve_crypto_shorthand``. The canonical ``normalize_underlier``
+    intentionally returns ROOT + EXCHANGE; market.py needs the bare root
+    so the strict equality ``df[field] == underlier`` keeps matching the
+    pre-Sprint-1 DB shape.
+    """
+
+    def test_sndk_us_resolves_to_bare_root(self):
+        # The exact scenario in the reviewer flag: ?underlier=SNDK%20US
+        from webapp.services.ticker_normalize import (
+            normalize_ticker,
+            resolve_crypto_shorthand,
+        )
+        root = normalize_ticker("SNDK US")
+        key = resolve_crypto_shorthand(root) or root
+        assert key == "SNDK"
+
+    def test_btc_resolves_via_crypto_shim(self):
+        # The other reviewer flag: BTC -> XBTUSD bridge for crypto rows
+        # whose DB underlier is "XBTUSD Curncy".
+        from webapp.services.ticker_normalize import (
+            normalize_ticker,
+            resolve_crypto_shorthand,
+        )
+        root = normalize_ticker("BTC")
+        key = resolve_crypto_shorthand(root) or root
+        assert key == "XBTUSD"
+
+    def test_nvda_us_equity_resolves_to_bare_root(self):
+        from webapp.services.ticker_normalize import (
+            normalize_ticker,
+            resolve_crypto_shorthand,
+        )
+        root = normalize_ticker("NVDA US Equity")
+        key = resolve_crypto_shorthand(root) or root
+        assert key == "NVDA"

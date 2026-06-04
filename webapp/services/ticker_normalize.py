@@ -86,3 +86,52 @@ def normalize_ticker(raw: str | None) -> str:
     if not s:
         return ""
     return s.split()[0].upper()
+
+
+# Crypto shorthand -> Bloomberg canonical ticker.
+# Source of truth: mkt_master_data.map_cc_underlier / map_li_underlier for
+# REX crypto products, which are stored in BBG Curncy form (XBTUSD Curncy,
+# XETUSD Curncy). User input often uses the 3-letter shorthand (BTC, ETH).
+# Resolving the shorthand to the BBG root lets the underlier-drilldown JOIN
+# succeed against the still-mixed DB. Update when a new crypto product
+# surfaces with an unmapped shorthand symbol.
+_CRYPTO_SHORTHAND_TO_BBG = {
+    "BTC": "XBTUSD",
+    "BITCOIN": "XBTUSD",
+    "ETH": "XETUSD",
+    "ETHER": "XETUSD",
+    "ETHEREUM": "XETUSD",
+    "SOL": "XSOUSD",
+    "SOLANA": "XSOUSD",
+    "DOGE": "XDGUSD",
+    "DOGECOIN": "XDGUSD",
+    "XRP": "XRPUSD",
+    "BNB": "XBNUSD",
+    "ADA": "XADUSD",
+    "CARDANO": "XADUSD",
+    "AVAX": "XAVUSD",
+    "ATOM": "XATUSD",
+    "MATIC": "XMTUSD",
+    "DOT": "XDTUSD",
+    "LINK": "XLKUSD",
+    "BCH": "XBCUSD",
+    "LTC": "XLTUSD",
+}
+
+
+def resolve_crypto_shorthand(token: str | None) -> str | None:
+    """Map a crypto shorthand (``BTC``, ``ETH``, ...) to its BBG root.
+
+    Returns the BBG canonical root (e.g. ``XBTUSD``) when ``token`` is a
+    known crypto shorthand. Returns ``None`` otherwise so callers can
+    distinguish "not a crypto shorthand" from a legitimate empty result.
+
+    Kept separate from :func:`normalize_underlier` so the canonical
+    normalizer never silently merges distinct securities. Callers that
+    need the shorthand bridge (e.g. ``/market/underlier?underlier=BTC``
+    against a DB that stores ``XBTUSD Curncy``) opt in explicitly.
+    """
+    if not token:
+        return None
+    key = str(token).strip().upper()
+    return _CRYPTO_SHORTHAND_TO_BBG.get(key)
