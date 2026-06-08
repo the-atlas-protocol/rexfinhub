@@ -236,19 +236,33 @@ class SyncStats:
 # ---------------------------------------------------------------------------
 
 def read_watermark() -> date:
-    """Read last-synced filing_date watermark; default to 2026-04-01 if absent.
+    """Read last-synced filing_date watermark.
 
-    The default is intentionally a few weeks back — we want the first
-    --apply run to surface ALL the missed May filings, not just today's.
+    ORCH-03/08 fix (2026-06-08): if the watermark file is missing, write
+    today's date and use it — fresh installs no longer default to
+    2026-04-01 and re-process ~2 months of filings on first run. Use
+    ``--init-watermark`` to set the watermark explicitly without scanning,
+    and ``--since YYYY-MM-DD`` to override on a single run.
     """
     if not WATERMARK_FILE.exists():
-        return date(2026, 4, 1)
+        today = date.today()
+        log.warning(
+            "watermark missing; initialising to today (%s) — use --since to "
+            "backfill explicitly", today.isoformat(),
+        )
+        write_watermark(today)
+        return today
     try:
         raw = WATERMARK_FILE.read_text(encoding="utf-8").strip()
         return date.fromisoformat(raw[:10])
     except (OSError, ValueError) as e:
-        log.warning("watermark unreadable (%s); defaulting to 2026-04-01", e)
-        return date(2026, 4, 1)
+        today = date.today()
+        log.warning(
+            "watermark unreadable (%s); resetting to today (%s)",
+            e, today.isoformat(),
+        )
+        write_watermark(today)
+        return today
 
 
 def write_watermark(d: date) -> None:
@@ -860,7 +874,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-prompt", action="store_true", default=False,
                         help="With --apply, skip the 'I AGREE' prompt "
                              "(for daily-cron use after preflight checks).")
+    parser.add_argument("--init-watermark", action="store_true", default=False,
+                        help="Write today's date to the watermark file and "
+                             "exit without scanning. Use on fresh installs "
+                             "to avoid re-processing historical filings.")
     args = parser.parse_args(argv)
+
+    # --init-watermark: short-circuit before any DB work.
+    if args.init_watermark:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
+        today = date.today()
+        write_watermark(today)
+        print(f"Watermark initialised -> {today.isoformat()}")
+        print(f"File: {WATERMARK_FILE}")
+        return 0
 
     logging.basicConfig(
         level=logging.INFO,

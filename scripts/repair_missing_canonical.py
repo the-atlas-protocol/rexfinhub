@@ -177,6 +177,45 @@ def _find_rex_product_by_series(conn: sqlite3.Connection, cik: str | None,
     ).fetchone()
 
 
+def _audit_repair(conn: sqlite3.Connection, *, rex_id: int, canonical_id: str,
+                  fund_name: str, action: str = "INSERT") -> None:
+    """NEW-01 fix (2026-06-08): write an entry to capm_audit_log so the
+    repair has a paper trail. Source = 'repair_missing_canonical'.
+
+    Silently skips when capm_audit_log is absent (e.g. on minimal test
+    fixtures) so the repair flow itself never fails on audit issues.
+    """
+    try:
+        has_tbl = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='capm_audit_log'"
+        ).fetchone()
+        if not has_tbl:
+            return
+        conn.execute(
+            """
+            INSERT INTO capm_audit_log
+            (action, table_name, row_id, field_name, old_value, new_value,
+             row_label, changed_by, changed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                action,
+                "rex_products",
+                rex_id,
+                "canonical_id",
+                None,
+                canonical_id,
+                (fund_name or "")[:200],
+                "repair_missing_canonical",
+                datetime.utcnow().isoformat(),
+            ),
+        )
+    except sqlite3.Error:
+        # Audit failures must never block the repair flow itself.
+        pass
+
+
 def _insert_rex_product(conn: sqlite3.Connection, orphan: sqlite3.Row) -> int:
     """Synthesize a rex_products row from an orphan extraction. Returns row id."""
     name = (orphan["series_name"] or orphan["registrant"] or "Unknown Fund").strip()[:200]
@@ -351,9 +390,11 @@ def repair_orphans(conn: sqlite3.Connection, orphans: list[sqlite3.Row],
         if existing is None:
             rex_id = _insert_rex_product(conn, orphan)
             stats["rex_products_created"] += 1
+            audit_action = "INSERT"
         else:
             rex_id = existing["id"]
             stats["rex_products_reused"] += 1
+            audit_action = "RESCUE"
 
         canonical_id = _mint_canonical(conn, rex_id)
         # _mint_canonical returns the existing id if rex already had one.
@@ -369,6 +410,11 @@ def repair_orphans(conn: sqlite3.Connection, orphans: list[sqlite3.Row],
         )
         if _maybe_link_underlier(conn, rex_id, canonical_id):
             stats["fund_underlier_linked"] += 1
+
+        # NEW-01 (2026-06-08): per-row paper trail in capm_audit_log.
+        fund_name = (orphan["series_name"] or orphan["registrant"] or "")[:200]
+        _audit_repair(conn, rex_id=rex_id, canonical_id=canonical_id,
+                       fund_name=fund_name, action=audit_action)
 
     conn.commit()
     return stats

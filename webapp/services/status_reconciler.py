@@ -94,20 +94,25 @@ def gather_evidence(conn: sqlite3.Connection, canonical_id: str) -> dict:
                     (eff_date is not None and eff_date <= datetime.utcnow().date().isoformat())
     sec_filed = latest_form is not None and latest_form.startswith("485")
 
-    # Bloomberg evidence: any mkt_master_data row matching any ticker mapped
-    # to this canonical_id has market_status='ACTV'.
+    # Bloomberg evidence: mkt_master_data row matching the fund's OWN
+    # canonical ticker (rex_products.ticker). BUG-14 fix (2026-06-08): the
+    # prior query joined identifier_xref.id_value -> mkt_master_data.ticker,
+    # which picked up ANY mapped ticker — sibling fund, underlying stock,
+    # recycled ticker — and false-promoted funds to Listed on unrelated
+    # ACTV signals. Joining through rex_products.ticker gates on the fund's
+    # own ticker only.
     bbg_actv = False
     bbg_liqu = False
     bbg_first_trade = False
     rows = conn.execute("""
         SELECT m.market_status, m.inception_date AS first_trade
-        FROM identifier_xref ix
+        FROM rex_products rp
         JOIN mkt_master_data m
-          ON (UPPER(m.ticker) = UPPER(ix.id_value)
-              OR UPPER(m.ticker_clean) = UPPER(ix.id_value))
-        WHERE ix.canonical_id = ?
-          AND ix.id_type IN ('ticker', 'bloomberg')
-          AND ix.valid_to IS NULL
+          ON (UPPER(TRIM(m.ticker)) = UPPER(TRIM(rp.ticker))
+              OR UPPER(TRIM(m.ticker_clean)) = UPPER(TRIM(rp.ticker)))
+        WHERE rp.canonical_id = ?
+          AND rp.ticker IS NOT NULL
+          AND TRIM(rp.ticker) != ''
     """, (canonical_id,)).fetchall()
     for status, first_trade in rows:
         if status == "ACTV":

@@ -1,0 +1,17 @@
+[Unit]
+Description=Run REX FinHub fresh-filings poller every 15 min during US business hours
+After=network-online.target
+
+[Timer]
+# Mon-Fri, 08:00-20:45 ET, every 15 minutes. The 4x/day heavy sweep fires at
+# the top of 08/12/16/20 -- those slots are skipped here via Conflicts= in the
+# service unit, so no overlap and no wasted run.
+OnCalendar=Mon..Fri *-*-* 08..20:00/15:00 America/New_York
+# Catch missed runs if the VPS was rebooted
+Persistent=true
+# Randomize by 30s so it doesn't always start exactly on the minute
+RandomizedDelaySec=30s
+Unit=rexfinhub-fresh-poller.service
+
+[Install]
+WantedBy=timers.target
