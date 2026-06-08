@@ -213,15 +213,19 @@ def _gather_filing_data(db_session, days: int = 7) -> dict:
         .where(Filing.form.ilike("485%"))
     ).scalar() or 0
 
+    # Audit 2026-06-08 BUG-4: FundStatus has one row per share class. The
+    # weekly digest's "Newly Effective" / "Pending" KPIs are semantically
+    # fund-level counts, so count DISTINCT series_id rather than row IDs.
+    # Rows with NULL series_id are still counted once via fallback id grouping.
     newly_effective = db_session.execute(
-        select(func.count(FundStatus.id))
+        select(func.count(func.distinct(func.coalesce(FundStatus.series_id, FundStatus.id))))
         .where(FundStatus.status == "EFFECTIVE")
         .where(FundStatus.effective_date >= cutoff)
     ).scalar() or 0
 
-    # Pending funds: total count of PENDING status
+    # Pending funds: distinct funds (series) in PENDING status
     pending_funds = db_session.execute(
-        select(func.count(FundStatus.id))
+        select(func.count(func.distinct(func.coalesce(FundStatus.series_id, FundStatus.id))))
         .where(FundStatus.status == "PENDING")
     ).scalar() or 0
 
