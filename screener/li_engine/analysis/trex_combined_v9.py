@@ -1,7 +1,8 @@
 """T-REX Stock Recommendation System v6 — Ryu 2026-06-02 feedback applied.
 
 Changes vs v5:
-  1. Pipeline section: filter to T-REX 2X Long products only. Top 20. (was: all REX products, top 50)
+  1. Pipeline section: filter to T-REX 2X Long AND Inverse products. Top 20. (was: all REX products, top 50)
+     [2026-06-08 semantic audit BUG-19: Inverse was previously excluded — restored.]
   2. Recent filings: tightened to 60d, drop 3X+ products, title renamed to "Competitor L&I Filings — New Activity (<=2X only)"
   3. Delisting Watch: REX-only (is_rex=1). Drops competitor rows entirely.
   4. Launch Anyway: top 20 + first-launch date + age columns for more intel.
@@ -292,25 +293,30 @@ def load_imminent_launches():
 
 
 def load_trex_2x_long_pipeline():
-    """T-REX 2X Long FILED-NOT-YET-LAUNCHED products only. Status in
+    """T-REX 2X (Long & Inverse) FILED-NOT-YET-LAUNCHED products. Status in
     {Filed, Under Consideration, Target List} — drops Effective/Listed.
     The point: which to launch from those we have filed that are new to the market.
+
+    [2026-06-08 semantic audit BUG-19] Inverse products were previously excluded;
+    they belong here because the section precedes Inverse Gap and the user
+    expectation is "what T-REX 2X have we filed but not yet launched".
     """
     df = _df("""SELECT ticker, name AS fund_name, direction, status,
                   initial_filing_date, estimated_effective_date,
                   underlier, underlying_ticker
                 FROM rex_products
-                WHERE (name LIKE 'T-REX 2X Long%' OR name LIKE 'T-REX 2X LONG%')
+                WHERE (name LIKE 'T-REX 2X Long%' OR name LIKE 'T-REX 2X LONG%'
+                       OR name LIKE 'T-REX 2X Inverse%' OR name LIKE 'T-REX 2X INVERSE%')
                   AND status IN ('Filed','Under Consideration','Target List')
                 ORDER BY initial_filing_date DESC""")
     if df.empty: return df
 
-    # Extract underlier code from T-REX 2X LONG <CODE> DAILY TARGET ETF
+    # Extract underlier code from T-REX 2X (LONG|INVERSE) <CODE> DAILY TARGET ETF
     def extract_from_trex(name):
         if not isinstance(name, str): return ""
         n = name.upper()
-        # T-REX 2X LONG <CODE> DAILY (code can be 2-12 chars, alphanumeric, may include company names)
-        m = re.search(r"\bT-REX\s+2X\s+LONG\s+([A-Z0-9\.\-]{2,12})\s+DAILY", n)
+        # T-REX 2X (LONG|INVERSE) <CODE> DAILY (code can be 2-12 chars, alphanumeric)
+        m = re.search(r"\bT-REX\s+2X\s+(?:LONG|INVERSE)\s+([A-Z0-9\.\-]{2,12})\s+DAILY", n)
         if m: return m.group(1)
         # Fallback for company-name pipeline entries (Anthropic, SpaceX, Viva Republica)
         # No clean ticker; return ""
@@ -692,9 +698,9 @@ def build():
 {_table_header(['Underlier','Registrant','Series','Filed','Days Since','REX Position'])}
 {rows}</table>"""
 
-    # ---------------- PIPELINE (T-REX 2X Long only, top 20) ----------------
+    # ---------------- PIPELINE (T-REX 2X Long & Inverse, top 20) ----------------
     if pipeline.empty:
-        pipeline_html = f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">No T-REX 2X Long products in pipeline.</div>'
+        pipeline_html = f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">No T-REX 2X Long or Inverse products in pipeline.</div>'
     else:
         pipe_top = pipeline.sort_values("underlier_score", ascending=False).head(20)
         rows=""
@@ -1000,7 +1006,7 @@ def build():
   <ul style="margin:4px 0 10px;padding-left:20px;color:{GRAY};">
     <li>Universe gate: mkt cap ≥ $500M (sanity floor, applied at report layer).</li>
     <li>L&amp;I product detection: explicit leverage multiplier (NX/N.NX) <em>or</em> "Leveraged" / "Inverse" <em>or</em> "Daily Target" <em>or</em> "Bull/Bear NX" — rejects non-L&amp;I funds (Aristotle Short Duration, Nuveen Short Term Bond, etc.).</li>
-    <li>Pipeline section is restricted to <strong>T-REX 2X Long</strong> products only (long-leveraged single-stock T-REX series) — REX IncomeMax / REX Equity Premium Income / sector-basket products are excluded.</li>
+    <li>Pipeline section is restricted to <strong>T-REX 2X Long &amp; Inverse</strong> products (leveraged + inverse single-stock T-REX series) — REX IncomeMax / REX Equity Premium Income / sector-basket products are excluded.</li>
     <li>Recent Competitor Filings panel is <strong>last 60 days, ≤2X only</strong> (3X+ products explicitly excluded).</li>
     <li>Delisting Watch is <strong>REX-only</strong> (competitor products dropped).</li>
     <li>Single-stock filter for whitespace tables: tickers must appear in mkt_stock_data (~6,594 names).</li>
@@ -1015,7 +1021,7 @@ def build():
 
   <p><strong>IPO valuations:</strong> <code>config/ipo_watchlist.yaml</code> (verified web sources, last refresh 2026-06-02). Rows older than 60 days are flagged in the Data Age column. To refresh: edit YAML's <code>valuation_usd</code>, <code>as_of_date</code>, <code>s1_filed</code> fields — no code change required.</p>
 
-  <p style="margin-top:10px;font-size:11px;color:{GRAY};"><strong>Recent updates:</strong> race timing removed from scoring buckets (now its own section); tier bands (LAUNCH/FILE/WATCH) removed; methodology embedded; track record (flow backtest + forward hit-rate) added; T-REX delisting watch added; pipeline restricted to T-REX 2X Long filed-not-launched; recent filings tightened to 60d ≤2X; report scoped to single-stock L&amp;I — basket indices and sector ETNs excluded throughout.</p>
+  <p style="margin-top:10px;font-size:11px;color:{GRAY};"><strong>Recent updates:</strong> race timing removed from scoring buckets (now its own section); tier bands (LAUNCH/FILE/WATCH) removed; methodology embedded; track record (flow backtest + forward hit-rate) added; T-REX delisting watch added; pipeline restricted to T-REX 2X (Long &amp; Inverse) filed-not-launched; recent filings tightened to 60d ≤2X; report scoped to single-stock L&amp;I — basket indices and sector ETNs excluded throughout.</p>
 </div>
 """
 
@@ -1044,7 +1050,7 @@ def build():
   <div style="font-size:12px;color:{GRAY};line-height:1.7;">
     <strong style="color:{NAVY};">Whitespace pool (curated):</strong> <span style="color:{NAVY};font-weight:700;">{n_scored:,}</span> ·
     <strong style="color:{NAVY};">Full universe scored daily:</strong> <span style="color:{NAVY};font-weight:700;">6,594</span> ·
-    <strong style="color:{NAVY};">T-REX 2X Long filed-not-launched:</strong> <span style="color:{TEAL};font-weight:700;">{n_pipeline} products</span> ·
+    <strong style="color:{NAVY};">T-REX 2X (Long &amp; Inverse) filed-not-launched:</strong> <span style="color:{TEAL};font-weight:700;">{n_pipeline} products</span> ·
     <strong style="color:{NAVY};">Top 5 whitespace (no live product):</strong> <span style="font-family:Courier New,monospace;color:{BLUE};font-weight:700;">{escape(top5)}</span> ·
     <strong style="color:{NAVY};">Hot sector:</strong> <span style="color:{PURPLE};font-weight:700;">{escape(hot_sector)}</span> ·
     <strong style="color:{NAVY};">Top buzz:</strong> {escape(top_buzz)}
@@ -1058,7 +1064,7 @@ def build():
 {_section_header('Recent Competitor L&I Filings — New Series, Last 60 Days (≤2X)', ORANGE, 'Non-REX 485APOS for new L&I series (deduped by series name — re-filings of the same series suppressed). 3X+ products excluded. Top 50 most recent.')}
 <tr><td style="padding:6px 30px 8px;">{recent_html}</td></tr>
 
-{_section_header('2 · Our Pipeline — T-REX 2X Long Filed, Not Yet Launched (Top 20)', BLUE, 'T-REX 2X Long products in Filed / Under Consideration / Target List status — what we have on file but have not yet shipped to market. Underlier score from the daily scoring run. Pre-IPO targets (Anthropic / SpaceX / etc.) appear with no score since their underlier is private.')}
+{_section_header('2 · Our Pipeline — T-REX 2X (Long &amp; Inverse) Filed, Not Yet Launched (Top 20)', BLUE, 'T-REX 2X Long and Inverse products in Filed / Under Consideration / Target List status — what we have on file but have not yet shipped to market. Underlier score from the daily scoring run. Pre-IPO targets (Anthropic / SpaceX / etc.) appear with no score since their underlier is private.')}
 <tr><td style="padding:6px 30px 8px;">{pipeline_html}</td></tr>
 
 {_section_header('3 · Whitespace Ranking — Top 100 Underliers With No Live L&I Product', NAVY, 'From the curated whitespace pool (1,417 tickers), ranked by composite score. Filter: no active L&I product on the underlier yet. REX/Comp filing flags show whether anyone has filed.')}
