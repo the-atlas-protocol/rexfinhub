@@ -161,12 +161,17 @@ def _load_from_db(db: Session) -> dict[str, Any]:
     if "id" in master.columns:
         master = master.drop(columns=["id"])
 
-    # Ensure ticker_clean exists
-    if "ticker_clean" not in master.columns:
-        if "ticker" in master.columns:
-            master["ticker_clean"] = master["ticker"].astype(str).str.replace(" US", "", regex=False).str.strip()
-        else:
-            master["ticker_clean"] = ""
+    # Always (re)derive ticker_clean from `ticker` via the canonical
+    # normalizer so multi-category rows for the same fund collapse on
+    # dedup. DB-stored ticker_clean values are inconsistent across
+    # historical pipeline runs (some are "FEPI", some "FEPI US",
+    # some still "FEPI US Equity") which inflated the deduped grand
+    # KPI in the flow report (BUG-P0-001, 2026-06-08).
+    from webapp.services.ticker_normalize import normalize_underlier
+    if "ticker" in master.columns:
+        master["ticker_clean"] = master["ticker"].map(normalize_underlier)
+    else:
+        master["ticker_clean"] = ""
 
     # Numeric coercions (same set as _load_all)
     _NUMERIC = [
@@ -382,9 +387,12 @@ def _load_all() -> dict[str, Any]:
         if col in master.columns:
             master[col] = pd.to_numeric(master[col], errors="coerce").fillna(0.0)
 
-    # Clean ticker: strip " US" suffix for matching
+    # Clean ticker via canonical normalizer (ROOT + EXCHANGE, drops
+    # Bloomberg asset-class suffix only). Matches the DB-load path so
+    # dedup semantics are consistent (BUG-P0-001, 2026-06-08).
+    from webapp.services.ticker_normalize import normalize_underlier
     if "ticker" in master.columns:
-        master["ticker_clean"] = master["ticker"].astype(str).str.strip()
+        master["ticker_clean"] = master["ticker"].map(normalize_underlier)
     else:
         master["ticker_clean"] = ""
 
@@ -2067,7 +2075,12 @@ def get_flow_report(db: Session | None = None) -> dict:
 
     active_df = master[active_etf_mask]
 
-    # Deduplicate by ticker for grand KPIs (multi-category tickers appear N times)
+    # Deduplicate by ticker for grand KPIs (multi-category tickers appear N times).
+    # Mirror SQL ``COUNT(DISTINCT ticker_clean)`` semantics: rows with empty
+    # ticker_clean are excluded (they are not "distinct tickers"). Otherwise
+    # they would collapse into a single phantom row that miscounts the
+    # universe (BUG-P0-001, 2026-06-08 — canonical truth is the SQL form).
+    active_df = active_df[active_df["ticker_clean"].astype(str).str.len() > 0]
     active_deduped = active_df.drop_duplicates(subset=["ticker_clean"], keep="first")
 
     # --- Grand KPIs (ALL active ETPs) ---
