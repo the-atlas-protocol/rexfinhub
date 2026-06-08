@@ -1442,8 +1442,22 @@ def get_cc_report(db: Session | None = None) -> dict:
     data_notional = cache["data_notional"]
     rex_tickers = cache["rex_tickers"]
 
-    # Filter to CC tickers
-    cc = master[master["etp_category"] == "CC"].copy()
+    # Filter to CC tickers (ETFs + ETNs, active only).
+    # INCOME-BUG-001/003/004/005 fix (2026-06-08): the previous filter
+    # `master[etp_category=='CC']` pulled in non-ACTV ETN siblings and rows
+    # with fund_type outside ETF/ETN, AND counted multi-category duplicates
+    # twice. That inflated the market KPIs (359 vs 337, $192B vs $188B),
+    # broke segment AUM (Index $110B vs $180B), and double-counted REX flow
+    # so AIPI's per-row flow appeared larger than NVII's true single-row flow.
+    # Mirror the canonical filter used in get_flow_report() + dedupe by ticker.
+    cc_mask = master["etp_category"] == "CC"
+    if "market_status" in master.columns:
+        cc_mask = cc_mask & (master["market_status"] == "ACTV")
+    if "fund_type" in master.columns:
+        cc_mask = cc_mask & (master["fund_type"].isin(["ETF", "ETN"]))
+    cc = master[cc_mask].copy()
+    if "ticker_clean" in cc.columns:
+        cc = cc.drop_duplicates(subset=["ticker_clean"], keep="first")
     if cc.empty:
         return {"available": True, "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
                 "kpis": {}, "rex_funds": [], "top_flow_segments": {},
