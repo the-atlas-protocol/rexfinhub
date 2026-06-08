@@ -1472,11 +1472,15 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
          - Top 10 / Bottom 10 flow bars
     """
     from webapp.services.report_data import get_flow_report
-    data = get_flow_report(db)
+    # BUG-03 FIX (2026-06-08): bypass mkt_report_cache for email builds.
+    # The cache row's grand_kpis can lag live master state when rows are
+    # mutated outside a pipeline run; emails must always reflect today's
+    # ACTV count, not a snapshot.
+    data = get_flow_report(db, use_cache=False)
 
     # If DB cache has old format (pre-v5), recompute locally
     if data.get("available") and "grand_kpis" not in data:
-        data = get_flow_report(None)
+        data = get_flow_report(None, use_cache=False)
 
     date_str = _data_date_str(data)
     title = "REX ETP Flow Report"
@@ -1649,10 +1653,11 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     dashboard_url = ""  # External report — never link to internal site
     title = "Autocallable ETF Weekly Update"
     from webapp.services.report_data import get_flow_report
-    data = get_flow_report(db)
+    # BUG-03 FIX (2026-06-08): bypass mkt_report_cache for email build.
+    data = get_flow_report(db, use_cache=False)
 
     if data.get("available") and "grand_kpis" not in data:
-        data = get_flow_report(None)
+        data = get_flow_report(None, use_cache=False)
 
     date_str = _data_date_str(data)
 

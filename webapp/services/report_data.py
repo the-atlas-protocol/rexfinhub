@@ -1095,6 +1095,44 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
     }
 
 
+def _rebuild_rex_kpis_from_segments(
+    ss_rex_funds: list[dict],
+    index_rex_funds: list[dict],
+    category_total_aum: float,
+) -> dict:
+    """Aggregate rex_kpis from segment-level rex_funds lists.
+
+    BUG-01 / BUG-02 FIX (2026-06-08): the L&I and Income highlight bullets
+    rendered REX count/AUM from a top-level dict computed off the full
+    category filter (`is_rex==1`). That total could disagree with what the
+    email body shows because the body uses segment-aggregated (SS + Index)
+    rex_funds lists. This helper reconciles them: it is the single source
+    of truth for the headline REX metric, computed from the same per-segment
+    rex_funds that the body renders. Deduplicates by ticker (defensive).
+    """
+    seen: set[str] = set()
+    combined: list[dict] = []
+    for f in (ss_rex_funds or []) + (index_rex_funds or []):
+        ticker = str(f.get("ticker", ""))
+        if ticker and ticker in seen:
+            continue
+        if ticker:
+            seen.add(ticker)
+        combined.append(f)
+
+    rex_aum = float(sum(_safe_float(f.get("aum", 0)) for f in combined))
+    rex_flow = float(sum(_safe_float(f.get("flow_1w", 0)) for f in combined))
+    share_pct = (rex_aum / category_total_aum * 100) if category_total_aum > 0 else 0.0
+
+    return {
+        "count": len(combined),
+        "total_aum": _fmt_currency(rex_aum),
+        "flow_1w": _fmt_flow(rex_flow),
+        "flow_1w_positive": rex_flow >= 0,
+        "share": f"{share_pct:.1f}%" if category_total_aum > 0 else "--",
+    }
+
+
 def _segment_fund_rows(df: pd.DataFrame, total_aum: float) -> list[dict]:
     """Build fund row dicts for segment display (email tables)."""
     rows = []
@@ -1286,6 +1324,13 @@ def get_li_report(db: Session | None = None) -> dict:
         "flow_1w_positive": _rex_flow >= 0,
         "share": f"{(_rex_aum / total_aum * 100):.1f}%" if total_aum > 0 else "--",
     }
+    # BUG-01 FIX (2026-06-08): rex_kpis above was computed from the category-wide
+    # `rex_li` filter (`is_rex==1`), which can disagree with the segment-aggregated
+    # REX metrics that the email body actually displays (SS + Index segment cards).
+    # The headline bullet rendered by `_li_highlights()` must match the body. We
+    # rebuild `rex_kpis` below by aggregating the per-segment rex_funds lists so
+    # the headline and the segment cards always reconcile.
+    # NB: this rebuild happens after `index_seg` and `ss_seg` are computed (below).
 
     # Top 10 / Bottom 10 by 1W flow (only actual inflows/outflows, no overlap)
     li_sorted = li.sort_values("fund_flow_1week", ascending=False)
@@ -1318,6 +1363,14 @@ def get_li_report(db: Session | None = None) -> dict:
         li_ss_df = pd.DataFrame()
     index_seg = _compute_email_segment(li_index_df, data_aum, rex_tickers=rex_tickers)
     ss_seg = _compute_email_segment(li_ss_df, data_aum, rex_tickers=rex_tickers)
+
+    # BUG-01 FIX (2026-06-08): rebuild rex_kpis from segment-aggregated rex_funds
+    # so headline bullet matches what the email body renders. Deduplicate by ticker
+    # in case a fund somehow appears in both segments (defensive — shouldn't happen
+    # since SS / Index are mutually exclusive on map_li_subcategory).
+    rex_kpis = _rebuild_rex_kpis_from_segments(
+        ss_seg.get("rex_funds", []), index_seg.get("rex_funds", []), total_aum,
+    )
 
     # Attribute breakdowns for v3 emails
     idx_total_aum = float(li_index_df["aum"].sum()) if not li_index_df.empty else 0
@@ -1610,6 +1663,12 @@ def get_cc_report(db: Session | None = None) -> dict:
         cc_ss_df = pd.DataFrame()
     cc_index_seg = _compute_email_segment(cc_index_df, data_aum, rex_tickers=rex_tickers, include_yield=True)
     cc_ss_seg = _compute_email_segment(cc_ss_df, data_aum, rex_tickers=rex_tickers, include_yield=True)
+
+    # BUG-02 FIX (2026-06-08): same as BUG-01 for L&I — rebuild rex_kpis from the
+    # segment-aggregated rex_funds so the headline matches what the email body shows.
+    rex_kpis = _rebuild_rex_kpis_from_segments(
+        cc_ss_seg.get("rex_funds", []), cc_index_seg.get("rex_funds", []), total_aum,
+    )
 
     # Attribute breakdowns for v3 emails
     idx_total_aum = float(cc_index_df["aum"].sum()) if not cc_index_df.empty else 0
@@ -2022,15 +2081,24 @@ _FLOW_SUITES = [
 ]
 
 
-def get_flow_report(db: Session | None = None) -> dict:
+def get_flow_report(db: Session | None = None, use_cache: bool = True) -> dict:
     """Data for REX Competitive Flow Report (suite-based, full market).
 
-    If db is provided, reads from mkt_report_cache (zero memory on Render).
-    Otherwise computes from MktMasterData.
+    If db is provided AND use_cache is True, reads from mkt_report_cache
+    (zero memory on Render). Otherwise computes from MktMasterData.
+
+    BUG-03 FIX (2026-06-08): the email builder must pass ``use_cache=False``
+    to force a fresh recompute from live master data. The cache row carries
+    a snapshot of grand_kpis from whenever the pipeline last completed; on
+    days where master rows changed without a new pipeline_run_id stamp, the
+    cached `Active ETPs` count drifts from the true ACTV count. Render-only
+    consumers can keep the default (use_cache=True) because they have no
+    other source of data.
     """
-    cached = _read_report_cache(db, "flow_report")
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = _read_report_cache(db, "flow_report")
+        if cached is not None:
+            return cached
 
     if _ON_RENDER:
         log.warning("Flow report: DB cache miss on Render, returning empty")
