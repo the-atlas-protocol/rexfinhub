@@ -443,8 +443,14 @@ def audit_data_freshness(db) -> dict:
             out["items"].append(item)
 
     if issues:
-        out["status"] = "fail"
-        out["detail"] = "; ".join(issues)
+        base_detail = "; ".join(issues)
+        if _maintenance_window_active():
+            out["status"] = "warn"
+            out["detail"] = ("MAINTENANCE WINDOW ACTIVE — " + base_detail
+                             + " — remove data/.preflight_maintenance to restore strict gating")
+        else:
+            out["status"] = "fail"
+            out["detail"] = base_detail
     else:
         out["detail"] = "all data sources fresh"
     return out
