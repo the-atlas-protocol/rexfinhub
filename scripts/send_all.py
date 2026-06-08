@@ -92,6 +92,15 @@ def _build_stock_recs(db) -> tuple[str, str]:
     return subject, html_path.read_text(encoding="utf-8")
 
 
+def _build_blue_ocean(db) -> tuple[str, str]:
+    html_path = PROJECT_ROOT / "reports" / f"blue_ocean_{date.today().isoformat()}.html"
+    if not html_path.exists():
+        from screener.li_engine.analysis.blue_ocean_report import main as build_main
+        build_main()
+    subject = f"Blue Ocean — L&I Overnight Trading · {date.today().strftime('%b %d, %Y')}"
+    return subject, html_path.read_text(encoding="utf-8")
+
+
 def _build_portfolio_suite(db) -> tuple[str, str]:
     from pathlib import Path
     from webapp.services.portfolio_suite_flow import build_html
@@ -111,15 +120,17 @@ REPORTS = {
     "flow":            (_build_flow,            "flow",            False),
     "autocall":        (_build_autocall,        "autocall",        False),
     "stock_recs":      (_build_stock_recs,      "stock_recs",      False),
+    "blue_ocean":      (_build_blue_ocean,      "blue_ocean",      False),
     "portfolio_suite": (_build_portfolio_suite, "portfolio_suite", False),
 }
 
 BUNDLES = {
-    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs"],
+    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs", "blue_ocean"],
     "daily":           ["daily"],
     "weekly":          ["weekly", "li", "income", "flow"],
     "autocall":        ["autocall"],
     "stock_recs":      ["stock_recs"],
+    "blue_ocean":      ["blue_ocean"],
     "portfolio_suite": ["portfolio_suite"],
 }
 

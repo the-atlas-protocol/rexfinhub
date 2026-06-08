@@ -1,0 +1,13 @@
+[Unit]
+Description=REX FinHub — weekly Blue Ocean L&I report build (Monday 07:10 ET)
+
+[Timer]
+# VPS timezone set to America/New_York — DST handled automatically.
+# Fires Monday 07:10 ET so the HTML is fresh on disk before the Monday
+# send picks it up (right after the weekly system report at 07:05).
+# Persistent=true so a missed firing (VPS down) runs at next boot.
+OnCalendar=Mon 07:10:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

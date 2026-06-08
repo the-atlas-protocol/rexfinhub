@@ -1,0 +1,17 @@
+[Unit]
+Description=REX FinHub — build Blue Ocean L&I Overnight Trading report
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET so the report's "today" header matches market dates.
+Environment=TZ=America/New_York
+# Idempotent — writes reports/blue_ocean_YYYY-MM-DD.html. Re-runs overwrite.
+ExecStart=/home/jarvis/venv/bin/python -m screener.li_engine.analysis.blue_ocean_report
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal
