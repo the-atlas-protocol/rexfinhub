@@ -3011,6 +3011,23 @@ def main():
         log.info("Preview: %s", preview)
         print(f"Preview: {preview}")
 
+    # Wave E1 wire-up (2026-06-08): snapshot this week's recs into
+    # recommendation_history for self-grading. Both v2 and v3 render paths
+    # have `launch` and `whitespace` in scope by this point (defined at the
+    # top of main() and never reassigned). Wrapped in try/except so a
+    # history-append failure NEVER blocks the report send.
+    try:
+        from screener.li_engine.analysis.recommendation_history import (
+            append_weekly_recommendations,
+            build_rows_from_renderer,
+            monday_of,
+        )
+        rows = build_rows_from_renderer(monday_of(date.today()), launch, whitespace)
+        result = append_weekly_recommendations(rows)
+        log.info("recommendation_history: %s", result)
+    except Exception as e:
+        log.warning("recommendation_history append failed (non-fatal): %s", e)
+
 
 if __name__ == "__main__":
     main()
