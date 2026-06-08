@@ -1,0 +1,13 @@
+[Unit]
+Description=REX FinHub — weekly recommendation grader (Sunday 23:00 ET)
+
+[Timer]
+# VPS timezone set to America/New_York — DST handled automatically.
+# Fires Sunday 23:00 ET so outcome columns are fresh before the Monday
+# morning stock_recs send. Persistent=true so a missed firing (VPS down)
+# runs at next boot.
+OnCalendar=Sun 23:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

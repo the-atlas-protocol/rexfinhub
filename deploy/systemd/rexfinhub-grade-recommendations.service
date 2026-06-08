@@ -1,0 +1,19 @@
+[Unit]
+Description=REX FinHub — grade past stock recommendations (recommendation_history)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+# Pin process timezone to ET so "today" in the grader resolves to a market
+# date (matters for the +6mo / +12mo AUM window edges).
+Environment=TZ=America/New_York
+# Idempotent grader — sticky terminal statuses + COALESCE updates mean a
+# second run on the same day is a no-op. Re-runs are safe.
+ExecStart=/home/jarvis/venv/bin/python -m scripts.grade_recommendations --stats
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal

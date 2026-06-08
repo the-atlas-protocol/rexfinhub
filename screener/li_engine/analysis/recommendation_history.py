@@ -618,3 +618,79 @@ def build_rows_from_renderer(
     _row(launch_df, "launch")
     _row(whitespace_df, "filing")
     return out
+
+
+def build_rows_from_v9(
+    week_of: date,
+    no_live_df: pd.DataFrame | None,
+    pipeline_df: pd.DataFrame | None,
+    top_n_whitespace: int = 12,
+    top_n_pipeline: int = 20,
+) -> list[RecRow]:
+    """Convert the trex_combined_v9 internal DataFrames into a RecRow batch.
+
+    Choice of source rows (documented for audit):
+      - ``no_live`` = the scored whitespace ranking with no live L&I product
+        on the underlier. This IS the v9 whitespace recommendation set —
+        the top of `no_live` is what gets surfaced as "what to file" in
+        section 3 of the Monday email.
+      - ``pipeline`` = T-REX 2X Long FILED-NOT-YET-LAUNCHED products,
+        section "what to launch". One row per filed REX product.
+
+    Both are tiered via the default rank-based rule (top 3 = HIGH,
+    next 4 = MEDIUM, rest = WATCH).
+    """
+    out: list[RecRow] = []
+
+    # --- Whitespace (no_live) — ticker is a column in v9, not the index ---
+    if no_live_df is not None and not no_live_df.empty and "ticker" in no_live_df.columns:
+        df = no_live_df.head(top_n_whitespace)
+        for rank, (_, r) in enumerate(df.iterrows()):
+            ticker = r.get("ticker")
+            if not ticker:
+                continue
+            score = r.get("composite_score")
+            try:
+                score_f = float(score) if score is not None and not pd.isna(score) else None
+            except Exception:
+                score_f = None
+            out.append(RecRow(
+                week_of=week_of,
+                ticker=str(ticker),
+                confidence_tier=_tier_for(score_f, rank),
+                composite_score=score_f,
+                fund_name=None,
+                thesis_snippet=None,
+                suggested_rex_ticker=None,
+                section="filing",
+            ))
+
+    # --- Pipeline (filed REX products) — keyed by underlier_clean ---
+    if pipeline_df is not None and not pipeline_df.empty:
+        df = pipeline_df.head(top_n_pipeline)
+        for rank, (_, r) in enumerate(df.iterrows()):
+            underlier = r.get("underlier_clean") or r.get("underlier")
+            if not underlier:
+                continue
+            score = r.get("underlier_score")
+            try:
+                score_f = float(score) if score is not None and not pd.isna(score) else None
+            except Exception:
+                score_f = None
+            fund_name = r.get("fund_name")
+            rex_ticker = r.get("ticker")
+            out.append(RecRow(
+                week_of=week_of,
+                ticker=str(underlier),
+                confidence_tier=_tier_for(score_f, rank),
+                composite_score=score_f,
+                fund_name=str(fund_name) if fund_name and not pd.isna(fund_name) else None,
+                thesis_snippet=None,
+                suggested_rex_ticker=(
+                    str(rex_ticker).split()[0]
+                    if rex_ticker and not pd.isna(rex_ticker) else None
+                ),
+                section="launch",
+            ))
+
+    return out

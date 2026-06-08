@@ -611,6 +611,24 @@ def build():
         scored["has_comp_filing"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_comp_filing", False)).fillna(False)
         no_live = scored[~scored["has_live"]].head(100)
 
+    # Wave E1 wire-up (2026-06-08): snapshot this week's recs into
+    # recommendation_history for self-grading. Fired here (BEFORE the
+    # HTML render) so a render failure later doesn't lose the snapshot.
+    # v9 uses its own row-builder because `no_live` and `pipeline` are
+    # shaped differently from the v2 renderer's `launch` / `whitespace`.
+    # Wrapped in try/except so an append failure NEVER blocks the report.
+    try:
+        from screener.li_engine.analysis.recommendation_history import (
+            append_weekly_recommendations,
+            build_rows_from_v9,
+            monday_of,
+        )
+        _rh_rows = build_rows_from_v9(monday_of(date.today()), no_live, pipeline)
+        _rh_result = append_weekly_recommendations(_rh_rows)
+        log.info("recommendation_history: %s", _rh_result)
+    except Exception as e:
+        log.warning("recommendation_history append failed (non-fatal): %s", e)
+
     n_scored = len(scored)
     n_pipeline = len(pipeline)
     top5 = ", ".join(no_live["ticker"].head(5).tolist()) if not no_live.empty else "—"
