@@ -547,6 +547,116 @@ def check_status_cached(conn: sqlite3.Connection) -> tuple:
             f"{len(rows)} rex_products where status_cached drifted from status_history")
 
 
+# REX-name detection patterns, kept in sync with
+# scripts/sync_rex_products_from_filings.py REX_NAME_PATTERNS +
+# COMPETITOR_NAME_PATTERNS. Duplicated here (not imported) so this assertion
+# runs even if the sync script's imports break.
+_ORPHAN_REX_PATTERNS = (
+    r"^T-?REX\b",
+    r"^REX[\s\-]+\s*OSPREY",
+    r"^REX\s",
+    r"^MICROSECTORS\b",
+    r"^OSPREY\b",
+)
+_ORPHAN_COMPETITOR_PATTERNS = (
+    r"^DIREXION\b", r"^PROSHARES\b", r"^DEFIANCE\b", r"^INNOVATOR\b",
+    r"^ROUNDHILL\b", r"^TRADR\b", r"^GRANITESHARES\b", r"^AMPLIFY\b",
+    r"^KODEX\b", r"^CORGI\b", r"^TUTTLE\b", r"^VOLATILITY\s+SHARES\b",
+    r"^GLOBAL\s+X\b", r"^FIRST\s+TRUST\b", r"^THEMES\b", r"^GSR\b",
+    r"^TIDAL\b", r"^HEDGEYE\b",
+)
+
+
+def _orphan_watermark_cutoff() -> str:
+    """Return ISO date for the orphan-window lower bound.
+
+    The watermark window is the LATER of:
+      * 30 days ago (so a stalled sync script still gets caught after 30d), OR
+      * the last successful run of sync_rex_products_from_filings.py (its
+        watermark file mtime — the script writes today's date on success).
+
+    Returns an ISO date string usable in a `f.filing_date >= ?` SQL filter.
+    """
+    cutoff = (datetime.utcnow().date() - timedelta(days=30))
+    watermark_file = PROJECT_ROOT / "data" / ".sync_rex_products_watermark"
+    if watermark_file.exists():
+        try:
+            wm_raw = watermark_file.read_text(encoding="utf-8").strip()[:10]
+            wm_date = datetime.fromisoformat(wm_raw).date()
+            # Use the LATER (more recent) of the two — narrow the window so a
+            # freshly-running sync script doesn't keep flagging ancient orphans
+            # that the repair script already cleared.
+            if wm_date > cutoff:
+                cutoff = wm_date
+        except (OSError, ValueError):
+            pass
+    return cutoff.isoformat()
+
+
+@_make_assertion("no_orphan_rex_extractions", "integrity")
+def assert_no_orphan_rex_extractions(conn: sqlite3.Connection) -> tuple:
+    """Every REX-name fund_extraction with a series_id inside the watermark
+    window must have a matching identifier_xref(id_type='series_id') row.
+
+    Catches the failure mode that the sprint1/repair-orphans script just
+    cleared (38 orphans): multi-series filings where the canonical-id chain
+    silently fails to materialise and the new series never appears on
+    /operations/pipeline. Without this assertion, the next drop would go
+    unnoticed for weeks.
+
+    Window: filings on/after MAX(30 days ago, sync_rex_products watermark).
+    See [[repair_missing_canonical]] for the matching repair path.
+    """
+    cutoff = _orphan_watermark_cutoff()
+    rows = conn.execute("""
+        SELECT fe.series_id, fe.series_name, f.registrant,
+               f.form, f.filing_date
+        FROM fund_extractions fe
+        JOIN filings f ON f.id = fe.filing_id
+        WHERE fe.series_id IS NOT NULL AND fe.series_id != ''
+          AND f.filing_date >= ?
+          AND NOT EXISTS (
+              SELECT 1 FROM identifier_xref ix
+              WHERE ix.id_type = 'series_id'
+                AND ix.id_value = fe.series_id
+          )
+    """, (cutoff,)).fetchall()
+
+    # Filter to REX-name only (matches sync_rex_products gating). Dedup by
+    # series_id — same series can appear across multiple filings.
+    import re as _re
+    rex_re = [_re.compile(p, _re.IGNORECASE) for p in _ORPHAN_REX_PATTERNS]
+    comp_re = [_re.compile(p, _re.IGNORECASE) for p in _ORPHAN_COMPETITOR_PATTERNS]
+
+    def _is_rex(name: str | None) -> bool:
+        if not name:
+            return False
+        s = name.strip()
+        if any(c.match(s) for c in comp_re):
+            return False
+        return any(r.match(s) for r in rex_re)
+
+    seen: set[str] = set()
+    orphans: list[dict] = []
+    for r in rows:
+        sid = r[0]
+        if sid in seen:
+            continue
+        if _is_rex(r[1]) or _is_rex(r[2]):
+            seen.add(sid)
+            orphans.append({
+                "series_id": sid,
+                "series_name": (r[1] or "")[:60],
+                "form": r[3],
+                "filing_date": str(r[4]) if r[4] else None,
+            })
+
+    n = len(orphans)
+    return (n == 0, n, orphans[:5],
+            f"{n} REX-name fund_extractions since {cutoff} without "
+            f"identifier_xref(series_id) — run scripts/repair_missing_canonical.py")
+
+
 # ============================================================================
 # RUNNER
 # ============================================================================
@@ -566,6 +676,8 @@ ASSERTIONS = [
         # Phase 4/5/6 integrity (added 2026-05-19 evening)
         check_canonical_id, check_xref_consistency, check_override_canonical_id,
         check_status_history_current, check_status_cached,
+        # Phase D hardening (sprint2): orphan-extraction prevention
+        assert_no_orphan_rex_extractions,
     ]
 ]
 
