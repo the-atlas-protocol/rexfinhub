@@ -30,6 +30,12 @@ PY = "/home/jarvis/venv/bin/python"
 
 STEPS = [
     ("apply_fund_master",        [PY, str(PROJECT_ROOT / "scripts" / "apply_fund_master.py")]),
+    # CIC-12 fix (2026-06-08): canonical identity must be assigned BEFORE
+    # apply_underlier_overrides, which keys off canonical_id. Without this
+    # ordering, new rex_products from the overnight sec-scrape lack
+    # product_master + identifier_xref + fund_underlier links until the
+    # next run, leaving the reconciler with nothing to evaluate.
+    ("ensure_canonical_identity", [PY, str(PROJECT_ROOT / "scripts" / "ensure_canonical_identity.py")]),
     ("apply_underlier_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_underlier_overrides.py")]),
     ("apply_issuer_brands",      [PY, str(PROJECT_ROOT / "scripts" / "apply_issuer_brands.py")]),
     ("apply_classification_sweep", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_sweep.py"),
@@ -39,11 +45,6 @@ STEPS = [
     # canonical override-first resolution actually takes effect on the
     # mkt_master_data columns the reports read.
     ("apply_classification_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_overrides.py")]),
-    # Track 5: keep Phase 4/5 canonical identity live — assign canonical_id +
-    # product_master + identifier_xref + underlier links to any rex_products
-    # created since the last run (new SEC filings). MUST run before the
-    # reconciler, which iterates product_master.
-    ("ensure_canonical_identity", [PY, str(PROJECT_ROOT / "scripts" / "ensure_canonical_identity.py")]),
     # Refresh estimated_effective_date from the latest 485-series filing for
     # every product (by series_id) — the sync collapses multi-series filings
     # to one extraction, so funds filing repeated 485BXT extensions drift

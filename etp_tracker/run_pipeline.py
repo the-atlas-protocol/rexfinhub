@@ -47,7 +47,24 @@ def load_ciks_from_db(universe: str = "curated") -> tuple[list[str], dict[str, s
         try:
             query = select(Trust.cik, Trust.name).where(Trust.is_active == True)
             if universe == "curated":
-                query = query.where(Trust.source == "curated")
+                # AW-01/02/03 fix (2026-06-08): include watcher_atom-created
+                # trusts so step4 rollup runs for them. Without this, 6,201
+                # FundStatus rows created by enrich_alert (see
+                # single_filing.py:121) remain frozen at
+                # status_reason='watcher_atom: lightweight rollup pending
+                # step4' forever, because the curated-only filter here meant
+                # step4 never visited the trust.
+                #
+                # A Trust row exists only after enrich_alert ran
+                # resolve_or_create_trust on a FilingAlert, so by the time
+                # we see it here the watcher work for at least one alert is
+                # already past. Per-alert enrichment_status (0=pending,
+                # 1=done, 2=failed, 3=skipped — see FilingAlert model) is
+                # the right gate at the alert worker level; at the trust
+                # level the presence of the Trust row is sufficient.
+                query = query.where(
+                    Trust.source.in_(("curated", "watcher_atom"))
+                )
             elif universe == "discovered":
                 query = query.where(Trust.source == "bulk_discovery")
             # "all" = no additional filter
