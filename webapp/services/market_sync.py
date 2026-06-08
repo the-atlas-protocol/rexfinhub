@@ -226,7 +226,11 @@ def _sync_market_data_locked(
 
     log.info("Bloomberg validation passed: %d rows, critical columns OK", len(master_df))
 
-    # Step 2: Create pipeline run record
+    # Step 2: Create pipeline run record.
+    # Commit immediately so the 'running' row survives even if the main sync
+    # transaction is rolled back by a later exception. The finally block
+    # below mirrors etp_tracker/email_alerts._audit_send's L8a attempt /
+    # L8b result pattern: every started run gets a terminal status written.
     run = MktPipelineRun(
         started_at=datetime.utcnow(),
         status="running",
@@ -234,66 +238,76 @@ def _sync_market_data_locked(
         etp_rows_read=len(master_df),
     )
     db.add(run)
-    db.flush()  # get run.id
+    db.commit()
     run_id = run.id
 
-    # Step 3: Clear existing data (full snapshot replace)
-    log.info("Clearing existing market data...")
-    db.execute(delete(MktReportCache))
-    db.execute(delete(MktTimeSeries).where(True))
-    db.execute(delete(MktMasterData).where(True))
-    db.flush()
-
-    # Step 3b: Apply MicroSectors ETN overrides (bake into DB so Render has correct values)
     try:
-        from webapp.services.market_data import _apply_etn_overrides
-        _apply_etn_overrides(master_df)
-        log.info("ETN overrides baked into master_df for DB insert")
-    except Exception as e:
-        log.warning("ETN overrides not applied (non-fatal): %s", e)
+        # Step 3: Clear existing data (full snapshot replace)
+        log.info("Clearing existing market data...")
+        db.execute(delete(MktReportCache))
+        db.execute(delete(MktTimeSeries).where(True))
+        db.execute(delete(MktMasterData).where(True))
+        db.flush()
 
-    # Step 4: Bulk insert master data
-    log.info("Inserting %d master rows...", len(master_df))
-    master_rows = _insert_master_data(db, master_df, run_id)
-
-    # Step 5: Bulk insert time series
-    ts_rows = 0
-    if not ts_df.empty:
-        log.info("Inserting %d time series rows...", len(ts_df))
-        ts_rows = _insert_time_series(db, ts_df, run_id, master_df)
-
-    # Step 6: Pre-compute and cache reports
-    log.info("Computing report caches...")
-    report_keys = _compute_and_cache_reports(db, master_df, run_id)
-
-    # Step 6a: Pre-compute and cache screener results (non-fatal)
-    try:
-        _compute_and_cache_screener(db)
-    except Exception as e:
-        log.warning("Screener cache skipped: %s", e)
-
-    # Step 6b: Sync global ETP supplement (non-fatal)
-    global_rows = 0
-    try:
-        sheets_dir = Path(csv_dir) if csv_dir else Path("data/DASHBOARD/sheets")
-        global_rows = _sync_global_etp(db, sheets_dir, run_id)
-        log.info("Synced %d global ETP rows", global_rows)
-    except Exception as e:
-        log.warning("Global ETP sync skipped: %s", e)
-
-    # Step 6c: Export CSVs (local only)
-    if not os.environ.get("RENDER"):
+        # Step 3b: Apply MicroSectors ETN overrides (bake into DB so Render has correct values)
         try:
-            _export_csvs(master_df, ts_df)
+            from webapp.services.market_data import _apply_etn_overrides
+            _apply_etn_overrides(master_df)
+            log.info("ETN overrides baked into master_df for DB insert")
         except Exception as e:
-            log.warning("CSV export skipped: %s", e)
+            log.warning("ETN overrides not applied (non-fatal): %s", e)
 
-    # Step 7: Finalize pipeline run
-    run.finished_at = datetime.utcnow()
-    run.status = "completed"
-    run.master_rows_written = master_rows
-    run.ts_rows_written = ts_rows
-    db.commit()
+        # Step 4: Bulk insert master data
+        log.info("Inserting %d master rows...", len(master_df))
+        master_rows = _insert_master_data(db, master_df, run_id)
+
+        # Step 5: Bulk insert time series
+        ts_rows = 0
+        if not ts_df.empty:
+            log.info("Inserting %d time series rows...", len(ts_df))
+            ts_rows = _insert_time_series(db, ts_df, run_id, master_df)
+
+        # Step 6: Pre-compute and cache reports
+        log.info("Computing report caches...")
+        report_keys = _compute_and_cache_reports(db, master_df, run_id)
+
+        # Step 6a: Pre-compute and cache screener results (non-fatal)
+        try:
+            _compute_and_cache_screener(db)
+        except Exception as e:
+            log.warning("Screener cache skipped: %s", e)
+
+        # Step 6b: Sync global ETP supplement (non-fatal)
+        global_rows = 0
+        try:
+            sheets_dir = Path(csv_dir) if csv_dir else Path("data/DASHBOARD/sheets")
+            global_rows = _sync_global_etp(db, sheets_dir, run_id)
+            log.info("Synced %d global ETP rows", global_rows)
+        except Exception as e:
+            log.warning("Global ETP sync skipped: %s", e)
+
+        # Step 6c: Export CSVs (local only)
+        if not os.environ.get("RENDER"):
+            try:
+                _export_csvs(master_df, ts_df)
+            except Exception as e:
+                log.warning("CSV export skipped: %s", e)
+
+        # Step 7: Finalize pipeline run (success path)
+        run.finished_at = datetime.utcnow()
+        run.status = "completed"
+        run.master_rows_written = master_rows
+        run.ts_rows_written = ts_rows
+        db.commit()
+    except BaseException as exc:
+        # Roll back any partial sync work, then record the failure on the run
+        # row so it never stays stuck as 'running' (audit O20 leak fix).
+        try:
+            db.rollback()
+        except Exception:
+            log.exception("Rollback failed during pipeline failure handling")
+        _mark_run_failed(db, run_id, exc)
+        raise
 
     # Step 8: Update .last_market_run.json marker
     _update_last_run_marker(run_id, master_rows)
@@ -314,6 +328,34 @@ def _sync_market_data_locked(
         "report_keys": report_keys,
         "cls_inserted": cls_inserted,
     }
+
+
+def _mark_run_failed(db: Session, run_id: int, exc: BaseException) -> None:
+    """Update a pipeline run row to status='failed' with an error message.
+
+    Best-effort: any exception here is logged but suppressed so the original
+    exception can propagate to the caller.
+    """
+    err = f"{type(exc).__name__}: {exc}"
+    # Truncate so a giant traceback doesn't bloat the row.
+    if len(err) > 2000:
+        err = err[:2000]
+    try:
+        run = db.get(MktPipelineRun, run_id)
+        if run is None:
+            log.error("Cannot mark run %s failed: row not found", run_id)
+            return
+        run.finished_at = datetime.utcnow()
+        run.status = "failed"
+        run.error_message = err
+        db.commit()
+        log.error("Pipeline run %s marked failed: %s", run_id, err)
+    except Exception:
+        log.exception("Failed to mark pipeline run %s as failed", run_id)
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def _auto_scan_classifications(db: Session) -> int:
