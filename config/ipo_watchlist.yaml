@@ -1,7 +1,7 @@
 # Pre-IPO and recently-priced IPOs tracked for L&I filing race intelligence.
 # Update valuations as fresh public reporting comes in — no code change required.
 # Source: screener/li_engine/analysis/weekly_v2_report.py::IPO_DATA
-# Last refresh: 2026-06-02 (T-REX combined report v5 build, web-verified valuations)
+# Last refresh: 2026-06-08 (semantic audit BUG-21 — Cerebras moved to recently_priced; IPO completed 2024, 2x products live)
 #
 # Schema (per entry):
 #   ticker               — short label used by the report
@@ -124,19 +124,6 @@ high_profile_pre_ipo:
     s1_filed: false
     as_of_date: "2026-05-12"
 
-  - ticker: Cerebras
-    company: Cerebras Systems
-    date: "Has filed S-1"
-    valuation: "Targeted ~$8B at filing (pending CFIUS review)"
-    desc: "Wafer-scale AI accelerator chips. AI-infra exposure outside the Nvidia trade."
-    valuation_usd: 8.0
-    last_round_date: "2024-09-30"
-    source_url: "https://www.reuters.com/technology/cerebras-files-ipo-2024-09-30/"
-    expected_ipo_window: "Filed S-1"
-    s1_filed: true
-    s1_filed_date: "2024-09-30"
-    as_of_date: "2026-05-12"
-
   - ticker: Klarna
     company: Klarna
     date: "Filed for IPO"
@@ -154,6 +141,19 @@ high_profile_pre_ipo:
 # RECENTLY PRICED
 # ===========================================================================
 recently_priced:
+
+  - ticker: CBRS
+    company: Cerebras Systems
+    date: "IPO completed (2024); now public"
+    valuation: "Public — multiple 2x leveraged products already live"
+    desc: "IPO completed; ProShares and Defiance have launched 2x leveraged ETFs on CBRS. Foreign whitespace already addressed by competitors."
+    valuation_usd: null
+    last_round_date: "2024-09-30"
+    source_url: "https://www.reuters.com/technology/cerebras-files-ipo-2024-09-30/"
+    expected_ipo_window: "IPO complete"
+    s1_filed: true
+    s1_filed_date: "2024-09-30"
+    as_of_date: "2026-06-08"
 
   - ticker: ALMR
     company: Alamar Biosciences

@@ -234,28 +234,43 @@ def _rollup(extractions: pd.DataFrame, statuses: pd.DataFrame) -> pd.DataFrame:
         rex_stat = sub_s[sub_s["trust_name"].apply(_is_rex)] if not sub_s.empty else sub_s
         comp_stat = sub_s[~sub_s["trust_name"].apply(_is_rex)] if not sub_s.empty else sub_s
 
-        # Determine REX status
+        # Determine REX status. Priority (highest wins): active > filed > pending.
+        # [2026-06-08 semantic audit BUG-20] "filed" must beat "pending" because
+        # a filed product is closer to launch than a stalled/delayed one.
+        # Previously pending masked filed, causing e.g. Samsung to render "pending"
+        # when actual T-REX 2X Samsung filings existed in fund_status.
         rex_status = "none"
         rex_fund_name = None
         rex_ticker = None
         rex_latest_filing = None
         if not rex_stat.empty:
-            # Active/effective products win
-            eff = rex_stat[rex_stat["status"].str.upper().isin(["EFFECTIVE", "ACTIVE", "LIVE"])]
+            statuses_upper = rex_stat["status"].str.upper()
+            eff = rex_stat[statuses_upper.isin(["EFFECTIVE", "ACTIVE", "LIVE"])]
+            filed_rows = rex_stat[statuses_upper.isin(["FILED", "EFFECTIVE-PENDING", "TARGET LIST", "UNDER CONSIDERATION"])]
+            pend = rex_stat[statuses_upper.isin(["PENDING", "PEND", "DELAYED"])]
+            # Also count rex_extr filings as evidence of "filed"
+            extr_has_filings = not rex_extr.empty
             if not eff.empty:
                 rex_status = "active"
                 row = eff.iloc[0]
                 rex_fund_name = row["fund_name"]
                 rex_ticker = row["ticker"]
-            else:
-                pend = rex_stat[rex_stat["status"].str.upper().isin(["PENDING", "PEND", "DELAYED"])]
-                if not pend.empty:
-                    rex_status = "pending"
-                    rex_fund_name = pend.iloc[0]["fund_name"]
-                    rex_ticker = pend.iloc[0]["ticker"]
+            elif not filed_rows.empty or extr_has_filings:
+                rex_status = "filed"
+                if not filed_rows.empty:
+                    rex_fund_name = filed_rows.iloc[0]["fund_name"]
+                    rex_ticker = filed_rows.iloc[0]["ticker"]
                 else:
-                    rex_status = "filed"
-                    rex_fund_name = rex_stat.iloc[0]["fund_name"]
+                    latest = rex_extr.sort_values("filing_date").iloc[-1]
+                    rex_fund_name = latest["series_name"]
+            elif not pend.empty:
+                rex_status = "pending"
+                rex_fund_name = pend.iloc[0]["fund_name"]
+                rex_ticker = pend.iloc[0]["ticker"]
+            else:
+                # Fallback — any other status counts as filed (something exists)
+                rex_status = "filed"
+                rex_fund_name = rex_stat.iloc[0]["fund_name"]
             rex_latest_filing = pd.to_datetime(rex_stat["latest_filing_date"]).max()
 
         if rex_status == "none" and not rex_extr.empty:
