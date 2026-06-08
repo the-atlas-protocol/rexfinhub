@@ -566,7 +566,17 @@ def get_rex_summary(db: Session, fund_structure: str | None = None, category: st
             df = df[df[fund_type_col].isin(types)].copy()
 
     all_cats = df[df["category_display"].notna()]
-    rex = df[df["is_rex"] == True].copy()
+    # REX universe = UNION(is_rex flag, issuer_display='REX').
+    # Audit 2026-06-08 BUG-3: strict `is_rex == True` under-counted REX
+    # products tagged only via issuer_display, causing the weekly digest's
+    # global REX AUM to disagree with downstream issuer-keyed views.
+    is_rex_mask = df["is_rex"] == True
+    issuer_rex_mask = (
+        df["issuer_display"].fillna("").str.strip().str.upper() == "REX"
+        if "issuer_display" in df.columns
+        else pd.Series(False, index=df.index)
+    )
+    rex = df[is_rex_mask | issuer_rex_mask].copy()
 
     # Deduplicate products by ticker (products can appear in multiple rows)
     if "ticker_clean" in rex.columns:
