@@ -169,6 +169,31 @@ If something feels off but no email said so:
    ssh jarvis@46.224.126.196 'cat /home/jarvis/rexfinhub/data/.preflight_result.json | python -m json.tool'
    ```
 
+### touchpoint-vps-disk-cleanup
+
+Rare. Only when the VPS `/home` crosses ~85% (`df -h /home` — the disk is 38 GB). **Never delete blind** — archive first, verify, then clean. [[feedback-no-deletions]] applies even here; the destructive step is gated on a verified backup, not on convenience.
+
+**Root cause (found 2026-06-03):** the Render upload's `etp_tracker_render.<pid>.db` + `.upload.gz` staging files are cleaned up in a `finally` on a normal run — but NOT when the upload process is killed first (disk-full / OOM), which leaves a ~700 MB orphan and reinforces the fill. 4.4 GB across 19 files (back to May 20) on 2026-06-03. Fixed in code (`SYSTEM.md` GAP-08): a startup sweep now removes orphaned `etp_tracker_render.*` files >1 h old before each upload. The manual procedure below stays as the break-glass.
+
+**Procedure — archive → verify → clean:**
+
+1. **Inventory** what's eating the disk:
+   ```bash
+   ssh jarvis@46.224.126.196 "df -h /home; du -sh /home/jarvis/rexfinhub/data/* | sort -rh | head"
+   ```
+2. **Archive** the latest valid nightly backups to D: (the safe copy), from a machine with D: connected. Verify the byte size on D: matches the VPS (`stat -c %s …`). Full archive: `scripts/sync_vps_to_d_on_demand.ps1`.
+   ```bash
+   scp -p jarvis@46.224.126.196:/home/jarvis/rexfinhub/data/backups/etp_tracker_YYYYMMDD.db /d/sec-data/backups/
+   ```
+3. **Clean** — only these, all transient/rebuildable, no unique data lost:
+   - Orphaned upload staging: `rm data/etp_tracker_render.*.db data/etp_tracker_render.*.db.upload.gz`
+   - 0-byte failed backups: `find data/backups -name '*.db' -size 0 -delete`
+   - (Optional, rebuildable) web cache: `rm -rf cache/web/*` — the same cache `[[cboe-cookie]]` treats as clear-safe
+   - **Never touch** `data/etp_tracker.db` (live), `*-wal`, or any non-zero `data/backups/*.db`.
+4. Re-check `df -h /home`.
+
+Last run 2026-06-03: 85% → 73%, freed ~5 GB (19 staging files + 3 zero-byte backups).
+
 ### known-gaps
 
 - GAP-01: No single `/admin/dashboard` showing live status (gate state, last preflight outcome, secret-expiry warnings) in one view. `/admin/system-state` (Phase 7B) covers flags + preflight runs + events; a fully unified dashboard is still missing.
