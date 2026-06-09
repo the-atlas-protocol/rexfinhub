@@ -91,6 +91,23 @@ def _flow_color(val: float) -> str:
     return _GREEN if val >= 0 else _RED
 
 
+def _disp_ticker(t: object) -> str:
+    """Display ticker without the Bloomberg US-equity suffix.
+
+    Strips ONLY the US suffix (' US', ' US Equity', ' Equity') so 'MSTU US'
+    -> 'MSTU'. Non-US listings keep their exchange code: 'FEPI LN' (UCITS)
+    stays 'FEPI LN', 'XXXX KS'/'JP'/'HK' are preserved. Never collapse a
+    two-token non-US ticker to its first token.
+    """
+    s = str(t or "").strip()
+    if not s:
+        return s
+    for suffix in (" US Equity", " US EQUITY", " Equity", " EQUITY", " US"):
+        if s.endswith(suffix):
+            return s[: -len(suffix)].strip()
+    return s
+
+
 def _fmt_currency(val: float) -> str:
     if val is None or (isinstance(val, float) and math.isnan(val)) or val == 0:
         return "--"
@@ -404,7 +421,7 @@ def _rex_spotlight(rex_funds: list[dict], accent: str = _GREEN) -> str:
     if not rex_funds:
         return ""
     sorted_rex = sorted(rex_funds, key=lambda f: f.get("aum", 0), reverse=True)[:8]
-    headers = ["Metric"] + [f["ticker"] for f in sorted_rex]
+    headers = ["Metric"] + [_disp_ticker(f["ticker"]) for f in sorted_rex]
     aligns = ["left"] + ["right"] * len(sorted_rex)
     aum_row = ["AUM"] + [f["aum_fmt"] for f in sorted_rex]
     flow_1w_row = ["1W Flow"] + [f.get("flow_1w_fmt", "--") for f in sorted_rex]
@@ -653,7 +670,7 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10,
 
     def _bar_row(f: dict, label: str = "") -> str:
         flow = _flow_val(f)
-        ticker = _esc(f["ticker"])
+        ticker = _esc(_disp_ticker(f["ticker"]))
         fmt = _esc(f.get(metric_fmt_key, ""))
         is_pos = flow >= 0
         color = _GREEN if is_pos else _RED
@@ -711,7 +728,7 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10,
                  f'font-weight:600;color:{_GRAY};text-transform:uppercase;'
                  f'letter-spacing:0.5px;">No Flow</td></tr>')
         for f in zero_flow:
-            ticker = _esc(f.get("ticker", ""))
+            ticker = _esc(_disp_ticker(f.get("ticker", "")))
             fmt = _esc(f.get(metric_fmt_key, "--"))
             rows += (
                 f'<tr>'
@@ -1100,15 +1117,17 @@ def _li_highlights(data: dict) -> list[str]:
             f"REX: {rex['count']} funds, {rex['total_aum']} AUM ({rex['share']} market share)"
         )
 
-    # 3. Top REX fund mover
-    rex_funds = data.get("rex_funds", [])
+    # 3. Top REX fund mover. Use the segment-reconciled rex_funds lists (same
+    #    pool the body renders) rather than the legacy top-level list, so the
+    #    named fund always matches what the reader sees below.
+    rex_funds = (data.get("ss_rex_funds", []) or []) + (data.get("index_rex_funds", []) or [])
     if not rex_funds:
-        rex_funds = (data.get("ss_rex_funds", []) or []) + (data.get("index_rex_funds", []) or [])
+        rex_funds = data.get("rex_funds", [])
     if rex_funds:
         top_rex = max(rex_funds, key=lambda f: abs(f.get("flow_1w", 0)))
         if abs(top_rex.get("flow_1w", 0)) > 0:
             bullets.append(
-                f"{top_rex['ticker']}: {top_rex['flow_1w_fmt']} 1W flow -- top REX mover"
+                f"{_disp_ticker(top_rex['ticker'])}: {top_rex['flow_1w_fmt']} 1W flow -- top REX mover"
             )
 
     # 4. Top competitor issuer
@@ -1153,15 +1172,15 @@ def _cc_highlights(data: dict) -> list[str]:
             f"REX: {rex['count']} funds, {rex['total_aum']} AUM ({rex['share']} market share)"
         )
 
-    # 3. Top yielding REX fund
-    rex_funds = data.get("rex_funds", [])
+    # 3. Top yielding REX fund (segment-reconciled pool — matches the body)
+    rex_funds = (data.get("ss_rex_funds", []) or []) + (data.get("index_rex_funds", []) or [])
     if not rex_funds:
-        rex_funds = (data.get("ss_rex_funds", []) or []) + (data.get("index_rex_funds", []) or [])
+        rex_funds = data.get("rex_funds", [])
     yielders = [f for f in rex_funds if f.get("yield_val", 0) > 0]
     if yielders:
         top_yield = max(yielders, key=lambda f: f.get("yield_val", 0))
         bullets.append(
-            f"{top_yield['ticker']}: {top_yield['yield_fmt']} yield -- top REX yielder"
+            f"{_disp_ticker(top_yield['ticker'])}: {top_yield['yield_fmt']} yield -- top REX yielder"
         )
 
     # 4. Top REX flow mover
@@ -1169,7 +1188,7 @@ def _cc_highlights(data: dict) -> list[str]:
         top_rex = max(rex_funds, key=lambda f: abs(f.get("flow_1w", 0)))
         if abs(top_rex.get("flow_1w", 0)) > 0:
             bullets.append(
-                f"{top_rex['ticker']}: {top_rex['flow_1w_fmt']} 1W flow -- top REX mover"
+                f"{_disp_ticker(top_rex['ticker'])}: {top_rex['flow_1w_fmt']} 1W flow -- top REX mover"
             )
 
     # 5. Top competitor issuer
@@ -1197,11 +1216,16 @@ def _flow_highlights(data: dict) -> list[str]:
             f"{grand.get('count', 0):,} active ETPs ({grand.get('flow_1w', '$0')} 1W net flow)"
         )
 
-    # 2. REX Financial position (omit market share — it's always ~0% vs full ETP universe)
+    # 2. REX position across the WHOLE ETP universe. This is the all-category
+    #    rollup (L&I + Income + Crypto + Thematic + Defined), which is broader
+    #    than the per-category REX numbers in the L&I and Income reports. Label
+    #    the scope explicitly so this 86/$6.9B does not read as conflicting with
+    #    the L&I report's 62/$5.1B (which is L&I-only). See report-audit handoff.
     rex = data.get("rex_kpis", {})
     if rex and rex.get("count", 0) > 0:
         bullets.append(
-            f"REX Financial: {rex.get('count', 0)} funds, {rex.get('total_aum', '$0')} AUM"
+            f"REX — all ETPs: {rex.get('count', 0)} funds, {rex.get('total_aum', '$0')} AUM "
+            f"(across every category)"
         )
 
     # 3. Top REX fund mover

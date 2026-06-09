@@ -94,7 +94,10 @@ def _load_ms_overrides():
         from market.config import DATA_FILE
         if DATA_FILE.exists():
             xl = pd.ExcelFile(DATA_FILE, engine="openpyxl")
-            if "microsector" in xl.sheet_names:
+            # Sheet renamed 2026-06: "microsector" -> "microsector_aum". Accept both
+            # so the ETN AUM override actually fires (otherwise MicroSectors shows the
+            # inflated Bloomberg issuance value in the market-share cards/charts).
+            if "microsector_aum" in xl.sheet_names or "microsector" in xl.sheet_names:
                 _MS_OVERRIDES = read_overrides(xl)
                 if _MS_OVERRIDES:
                     print(f"  MicroSectors: {len(_MS_OVERRIDES)} ETN overrides loaded")
@@ -137,15 +140,25 @@ def _load(cat_db):
                MktTimeSeries.is_rex, MktTimeSeries.issuer_display, MktTimeSeries.as_of_date)
         .where(MktTimeSeries.category_display == cat_db)
     ).all()
-    # Load inception dates to zero out pre-inception AUM
+    # Load inception dates (zero out pre-inception AUM) + current market_status
+    # so the CURRENT snapshot (months_ago=0) counts only ACTV funds. Without
+    # this the "REX Products" KPI counted delisted/pending time-series tickers
+    # too (e.g. 49 instead of the true 40 active REX single-stock). Ryu 2026-06-09.
     incep_rows = db.execute(
-        select(MktMasterData.ticker, MktMasterData.inception_date)
+        select(MktMasterData.ticker, MktMasterData.inception_date, MktMasterData.market_status)
     ).all()
     db.close()
     incep = {r[0]: r[1] for r in incep_rows if r[1] is not None}
+    _actv_tickers = {r[0] for r in incep_rows if (r[2] or "").upper() == "ACTV"}
 
     df = pd.DataFrame(rows, columns=["ticker", "months_ago", "aum", "is_rex", "issuer", "as_of_date"])
     df["aum"] = df["aum"].fillna(0)
+
+    # Current snapshot (months_ago == 0) must reflect only ACTV funds so the
+    # "REX Products" / "Market AUM" KPIs match the rest of the report (40, not
+    # 49). Historical months keep every ticker so the time series stays
+    # continuous through delistings.
+    df = df[(df["months_ago"] != 0) | (df["ticker"].isin(_actv_tickers))].copy()
 
     # Zero out AUM for months before inception (Bloomberg backfills stale data)
     dates = df["as_of_date"].dropna()

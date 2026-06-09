@@ -279,12 +279,16 @@ def build_grid(rex: pd.DataFrame, comp: pd.DataFrame) -> pd.DataFrame:
         comp_dates = []
         first_comp_eff = None
         first_comp_filing = None
+        first_comp_issuer = None
         for _, c in cf.iterrows():
             comp_dates.append(f"{c['issuer_short']}: {c['projected_effective'].date().isoformat()}")
             if first_comp_eff is None or c["projected_effective"] < first_comp_eff:
                 first_comp_eff = c["projected_effective"]
+                first_comp_issuer = c["issuer_short"]
             if first_comp_filing is None or c["filing_date"] < first_comp_filing:
                 first_comp_filing = c["filing_date"]
+        # Count distinct competitor filers (issuers racing on this underlier).
+        n_filers = len(comp_issuers)
         rex_eff = r["estimated_effective_date"]
         rex_filing = r["initial_filing_date"]
 
@@ -315,21 +319,23 @@ def build_grid(rex: pd.DataFrame, comp: pd.DataFrame) -> pd.DataFrame:
             "rex_estimated_effective": rex_eff,
             "rex_latest_form": r["latest_form"],
             "rex_status": r["status"],
-            "competitor_count": len(comp_issuers),
+            "competitor_count": n_filers,
             "competitor_issuers": ", ".join(comp_issuers) if comp_issuers else "—",
             "competitor_effective_dates": " · ".join(comp_dates) if comp_dates else "—",
             "first_competitor_filing_date": first_comp_filing,
             "first_competitor_effective": first_comp_eff,
+            "first_competitor_issuer": first_comp_issuer or "—",
             "winner": winner,
         })
 
     df = pd.DataFrame(rows)
     if df.empty:
         return df
-    # Sort: underlier asc, then REX effective asc (NaT last).
+    # Sort: contested races first (more filers = more urgent), then soonest
+    # REX estimated effective (NaT last) so imminent launches rise to the top.
     df = df.sort_values(
-        by=["underlier", "rex_estimated_effective"],
-        ascending=[True, True],
+        by=["competitor_count", "rex_estimated_effective"],
+        ascending=[False, True],
         na_position="last",
     ).reset_index(drop=True)
     return df
@@ -346,50 +352,26 @@ def _fmt_date(v) -> str:
     return str(v)
 
 
-def _winner_badge(w: str) -> str:
-    if w == "REX_FIRST":
-        return f'<span style="background:{GREEN};color:white;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">REX FIRST</span>'
-    if w == "COMP_FIRST":
-        return f'<span style="background:{RED};color:white;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">COMP FIRST</span>'
-    if w == "TIED":
-        return f'<span style="background:{ORANGE};color:white;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">TIED</span>'
-    return f'<span style="background:{GRAY};color:white;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">NO COMP</span>'
-
-
-def _row_bg(w: str) -> str:
-    return {
-        "REX_FIRST": GREEN_BG,
-        "COMP_FIRST": RED_BG,
-        "TIED": YELLOW_BG,
-    }.get(w, "white")
-
-
 def render_html(grid: pd.DataFrame, run_date: date | None = None) -> str:
     run_date = run_date or date.today()
     n_total = len(grid)
-    n_rex_first = int((grid["winner"] == "REX_FIRST").sum()) if not grid.empty else 0
-    n_comp_first = int((grid["winner"] == "COMP_FIRST").sum()) if not grid.empty else 0
-    n_tied = int((grid["winner"] == "TIED").sum()) if not grid.empty else 0
-    n_no_comp = int((grid["winner"] == "NO_COMP").sum()) if not grid.empty else 0
+    n_with_comp = int((grid["competitor_count"] > 0).sum()) if not grid.empty else 0
 
+    cols = [
+        ("REX Product", "left"),
+        ("Underlier", "center"),
+        ("REX Filed", "center"),
+        ("REX Est. Effective", "center"),
+        ("Filers", "center"),
+        ("Earliest Competitor", "left"),
+    ]
     header = (
-        '<tr style="background:' + NAVY + ';">'
+        "<tr>"
         + "".join(
-            f'<th style="padding:9px 10px;color:white;font-size:10px;text-transform:uppercase;'
-            f'letter-spacing:0.4px;text-align:{a};position:sticky;top:0;background:{NAVY};">{escape(c)}</th>'
-            for c, a in [
-                ("REX Product", "left"),
-                ("Series ID", "left"),
-                ("Underlier", "center"),
-                ("REX Filing", "center"),
-                ("REX Est. Effective", "center"),
-                ("Form", "center"),
-                ("Status", "center"),
-                ("Comp Filed?", "center"),
-                ("Competitor Issuers", "left"),
-                ("Competitor Effective Dates (proj.)", "left"),
-                ("Race Winner", "center"),
-            ]
+            f'<th style="padding:8px 12px;color:{NAVY};font-size:11px;font-weight:600;'
+            f"text-transform:uppercase;letter-spacing:0.3px;text-align:{a};"
+            f'border-bottom:2px solid {NAVY};white-space:nowrap;">{escape(c)}</th>'
+            for c, a in cols
         )
         + "</tr>"
     )
@@ -397,31 +379,31 @@ def render_html(grid: pd.DataFrame, run_date: date | None = None) -> str:
     body_rows = []
     if grid.empty:
         body_rows.append(
-            f'<tr><td colspan="11" style="padding:18px;font-style:italic;color:{GRAY};">'
-            f"No pre-launch REX products in pipeline."
-            "</td></tr>"
+            f'<tr><td colspan="6" style="padding:18px;font-style:italic;color:{GRAY};">'
+            "No pre-launch REX products in pipeline.</td></tr>"
         )
     else:
-        for _, r in grid.iterrows():
-            bg = _row_bg(r["winner"])
-            comp_yn = (
-                f'<span style="color:{RED};font-weight:700;">YES</span>'
-                if r["competitor_count"] > 0
-                else f'<span style="color:{GRAY};">no</span>'
-            )
+        for i, (_, r) in enumerate(grid.iterrows()):
+            stripe = "white" if i % 2 == 0 else LIGHT
+            n_filers = int(r["competitor_count"])
+            if n_filers > 0:
+                earliest = (
+                    f'{escape(str(r["first_competitor_issuer"]))} '
+                    f'<span style="color:{GRAY};">· {_fmt_date(r["first_competitor_effective"])}</span>'
+                )
+                filers_cell = f'<span style="font-weight:600;">{n_filers}</span>'
+            else:
+                earliest = f'<span style="color:{GRAY};">— none —</span>'
+                filers_cell = f'<span style="color:{GRAY};">0</span>'
             body_rows.append(
-                f'<tr style="background:{bg};">'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;">{escape(str(r["rex_name"]))}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;font-family:Courier New,monospace;color:{GRAY};">{escape(str(r["series_id"] or "—"))}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;font-family:Courier New,monospace;font-weight:700;color:{BLUE};">{escape(r["underlier"])}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;">{_fmt_date(r["rex_filing_date"])}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;font-weight:600;">{_fmt_date(r["rex_estimated_effective"])}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;">{escape(str(r["rex_latest_form"] or "—"))}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;color:{GRAY};">{escape(str(r["rex_status"]))}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;">{comp_yn}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;">{escape(str(r["competitor_issuers"]))}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;color:{GRAY};">{escape(str(r["competitor_effective_dates"]))}</td>'
-                f'<td style="padding:7px 10px;border-bottom:1px solid {BORDER};font-size:11px;text-align:center;">{_winner_badge(r["winner"])}</td>'
+                f'<tr style="background:{stripe};">'
+                f'<td style="padding:7px 12px;border-bottom:1px solid {BORDER};font-size:12px;">{escape(str(r["rex_name"]))}</td>'
+                f'<td style="padding:7px 12px;border-bottom:1px solid {BORDER};font-size:12px;text-align:center;'
+                f'font-family:Courier New,monospace;font-weight:700;color:{NAVY};white-space:nowrap;">{escape(r["underlier"])}</td>'
+                f'<td style="padding:7px 12px;border-bottom:1px solid {BORDER};font-size:12px;text-align:center;white-space:nowrap;color:{GRAY};">{_fmt_date(r["rex_filing_date"])}</td>'
+                f'<td style="padding:7px 12px;border-bottom:1px solid {BORDER};font-size:12px;text-align:center;white-space:nowrap;font-weight:600;">{_fmt_date(r["rex_estimated_effective"])}</td>'
+                f'<td style="padding:7px 12px;border-bottom:1px solid {BORDER};font-size:12px;text-align:center;">{filers_cell}</td>'
+                f'<td style="padding:7px 12px;border-bottom:1px solid {BORDER};font-size:12px;white-space:nowrap;">{earliest}</td>'
                 "</tr>"
             )
 
@@ -429,53 +411,23 @@ def render_html(grid: pd.DataFrame, run_date: date | None = None) -> str:
 <title>Launch Race Grid — {run_date.isoformat()}</title>
 <style>
 body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: {LIGHT}; margin: 0; padding: 24px; color: {NAVY}; }}
-.container {{ max-width: 1500px; margin: 0 auto; background: white;
-              box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
-.header {{ padding: 24px 30px; border-bottom: 3px solid {NAVY}; }}
-.title {{ font-size: 22px; font-weight: 700; color: {NAVY}; }}
-.subtitle {{ font-size: 12px; color: {GRAY}; margin-top: 4px; }}
-.kpis {{ display: flex; gap: 18px; padding: 16px 30px; background: {LIGHT}; border-bottom: 1px solid {BORDER}; }}
-.kpi {{ background: white; border: 1px solid {BORDER}; border-radius: 6px; padding: 10px 14px; min-width: 100px; }}
-.kpi .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: {GRAY}; }}
-.kpi .value {{ font-size: 22px; font-weight: 700; color: {NAVY}; margin-top: 2px; }}
-.legend {{ font-size: 11px; color: {GRAY}; padding: 10px 30px; border-bottom: 1px solid {BORDER}; }}
-.legend span {{ display: inline-block; padding: 2px 8px; border-radius: 10px; color: white; font-weight: 700; margin-right: 6px; }}
-.grid-wrap {{ padding: 0 30px 24px; }}
-table.grid {{ width: 100%; border-collapse: collapse; background: white; }}
-.footer {{ font-size: 11px; color: {GRAY}; padding: 16px 30px; border-top: 1px solid {BORDER}; line-height: 1.55; }}
+        background: white; margin: 0; padding: 24px 30px; color: {NAVY}; }}
+.title {{ font-size: 18px; font-weight: 700; color: {NAVY}; margin: 0 0 2px; }}
+.subtitle {{ font-size: 12px; color: {GRAY}; margin-bottom: 16px; }}
+table.grid {{ width: 100%; border-collapse: collapse; }}
+.footer {{ font-size: 11px; color: {GRAY}; margin-top: 16px; line-height: 1.5; }}
 </style></head><body>
-<div class="container">
-  <div class="header">
-    <div class="title">REX Launch Race Grid</div>
-    <div class="subtitle">REX pre-launch pipeline vs. competitor filings on the same underlier — generated {run_date.isoformat()}</div>
-  </div>
-  <div class="kpis">
-    <div class="kpi"><div class="label">Pre-Launch REX</div><div class="value">{n_total}</div></div>
-    <div class="kpi"><div class="label">REX First</div><div class="value" style="color:{GREEN};">{n_rex_first}</div></div>
-    <div class="kpi"><div class="label">Tied</div><div class="value" style="color:{ORANGE};">{n_tied}</div></div>
-    <div class="kpi"><div class="label">Competitor First</div><div class="value" style="color:{RED};">{n_comp_first}</div></div>
-    <div class="kpi"><div class="label">No Competitor</div><div class="value" style="color:{GRAY};">{n_no_comp}</div></div>
-  </div>
-  <div class="legend">
-    <span style="background:{GREEN};">REX FIRST</span> our estimated effective is &gt;7d earlier than first competitor &nbsp;·&nbsp;
-    <span style="background:{ORANGE};">TIED</span> within 7 days of first competitor &nbsp;·&nbsp;
-    <span style="background:{RED};">COMP FIRST</span> first competitor effective is &gt;7d earlier &nbsp;·&nbsp;
-    <span style="background:{GRAY};">NO COMP</span> no competing filing in last 365d
-  </div>
-  <div class="grid-wrap">
-    <table class="grid">{header}{''.join(body_rows)}</table>
-  </div>
+  <div class="title">REX Launch Race Grid</div>
+  <div class="subtitle">{n_total} pre-launch REX products · {n_with_comp} with a competing filing · projected effective dates · {run_date.isoformat()}</div>
+  <table class="grid">{header}{''.join(body_rows)}</table>
   <div class="footer">
-    Competitor effective dates are projected using the SEC 485(a) automatic-effectiveness window
-    ({RULE_485A_DAYS} days from filing date). REX estimated effective dates come from
-    <code>rex_products.estimated_effective_date</code>. Competitor scope: 485APOS / 485BPOS / 485BXT /
-    N-1A / S-1 filings in last 365 days from a recognized non-REX issuer.<br>
-    Underlier join uses the canonical Bloomberg underlier (trailing " US" dropped so NVDA US matches NVDA;
-    other exchange codes — KS / LN / JP / HK — preserved).<br><br>
-    <strong>REX Financial — internal pipeline view. Not investment advice.</strong>
+    One row per pre-launch REX product (status: {", ".join(PRE_LAUNCH_STATUSES)}).
+    <strong>Filers</strong> = distinct non-REX issuers with a leveraged/inverse filing on the same underlier in the last 365 days.
+    <strong>Earliest Competitor</strong> = the filer whose projected effective date is soonest, using the SEC 485(a) {RULE_485A_DAYS}-day automatic-effectiveness window.
+    REX estimated effective dates come from <code>rex_products.estimated_effective_date</code>.
+    Internal pipeline view — not investment advice.
   </div>
-</div></body></html>"""
+</body></html>"""
     return html
 
 

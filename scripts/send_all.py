@@ -84,19 +84,35 @@ def _build_autocall(db) -> tuple[str, str]:
 
 
 def _build_stock_recs(db) -> tuple[str, str]:
-    html_path = PROJECT_ROOT / "reports" / f"li_weekly_v2_{date.today().isoformat()}.html"
-    if not html_path.exists():
-        from screener.li_engine.analysis.weekly_v2_report import main as build_main
+    # Re-wired 2026-06-09 (Ryu): the stock_recs slot must send the current
+    # T-REX Combined report (trex_combined_v9), NOT the old li_weekly_v2
+    # "Stock Recommendations of the Week" report. They are different reports;
+    # the pipeline was still pointing at the legacy one.
+    html_path = PROJECT_ROOT / "reports" / f"trex_combined_{date.today().isoformat()}.html"
+    # ALWAYS rebuild fresh at send time so we never ship a stale earlier bake.
+    # (The old "if not exists" guard meant a file baked before a later fix would
+    # be sent as-is.) Ryu 2026-06-09.
+    try:
+        from screener.li_engine.analysis.trex_combined_v9 import main as build_main
         build_main()
-    subject = f"Stock Recommendations of the Week - {date.today().strftime('%B %d, %Y')}"
+    except Exception as _e:
+        if not html_path.exists():
+            raise
+        print(f"WARN: trex_combined rebuild failed ({_e}); falling back to last good file")
+    subject = f"T-REX Stock Recommendation System - {date.today().strftime('%B %d, %Y')}"
     return subject, html_path.read_text(encoding="utf-8")
 
 
 def _build_blue_ocean(db) -> tuple[str, str]:
     html_path = PROJECT_ROOT / "reports" / f"blue_ocean_{date.today().isoformat()}.html"
-    if not html_path.exists():
+    # ALWAYS rebuild fresh at send time (no stale earlier-bake). Ryu 2026-06-09.
+    try:
         from screener.li_engine.analysis.blue_ocean_report import main as build_main
         build_main()
+    except Exception as _e:
+        if not html_path.exists():
+            raise
+        print(f"WARN: blue_ocean rebuild failed ({_e}); falling back to last good file")
     subject = f"Blue Ocean — L&I Overnight Trading · {date.today().strftime('%b %d, %Y')}"
     return subject, html_path.read_text(encoding="utf-8")
 

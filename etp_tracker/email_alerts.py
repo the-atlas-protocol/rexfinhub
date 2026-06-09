@@ -1566,12 +1566,30 @@ def _gather_daily_data(db_session, since_date: str | None = None,
         _now_et = datetime.now()  # Fallback if zoneinfo unavailable
     today = _now_et
     today_date = _now_et.date()
+    _auto_since = not since_date
     if not since_date:
         # Daily report covers TODAY's filings only — matches user expectation that
         # "today's report" means filings dated today (ET market day), not a
         # rolling 24h window or UTC-day off-by-one.
         since_date = today.strftime("%Y-%m-%d")
     since_dt = date_type.fromisoformat(since_date)
+    # Fallback: if no 485 filings have landed for `since_date` yet (early morning
+    # before EDGAR posts, or a quiet day), back the window up to the most recent
+    # day that DOES have 485 filings so the section is never blank. Only when the
+    # caller didn't pin an explicit date. Ryu 2026-06-09.
+    if _auto_since:
+        _has = db_session.execute(
+            select(func.count(Filing.id))
+            .where(Filing.filing_date >= since_dt)
+            .where(Filing.form.ilike("485%"))
+        ).scalar() or 0
+        if _has == 0:
+            _last = db_session.execute(
+                select(func.max(Filing.filing_date)).where(Filing.form.ilike("485%"))
+            ).scalar()
+            if _last:
+                since_date = str(_last)[:10]
+                since_dt = date_type.fromisoformat(since_date)
     yesterday = today_date - timedelta(days=1)
 
     # --- New launches: Bloomberg inception_date in last 7 days ---

@@ -192,7 +192,7 @@ def _apply_etn_overrides(df: pd.DataFrame) -> pd.DataFrame:
         from market.config import DATA_FILE
         if DATA_FILE.exists():
             xl = pd.ExcelFile(DATA_FILE, engine="openpyxl")
-            if "microsector" in xl.sheet_names:
+            if "microsector_aum" in xl.sheet_names or "microsector" in xl.sheet_names:
                 ov = read_overrides(xl)
                 if ov:
                     apply_overrides(df, ov)

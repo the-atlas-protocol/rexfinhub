@@ -336,7 +336,7 @@ NVDK US,NVDA,,Synthetic,Single Stock
 TSLK US,TSLA,,Traditional,Single Stock
 ODTE US,,,Traditional,Broad Beta
 SBAR US,,Autocall,Synthetic,Autocallable
-CAGE US,,,Synthetic,Broad Beta
+CAGE US,,Autocall,Synthetic,Autocallable
 LQDM US,,BTSICTLQ,Synthetic,Broad Beta
 MUYY US,,,Traditional,Broad Beta
 HYGM US,,BTSICTHY,Synthetic,Broad Beta

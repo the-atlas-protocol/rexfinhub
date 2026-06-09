@@ -96,6 +96,14 @@ SEED_FOREIGN_UNIVERSE = [
     ("VALE",      "Vale SA ADR",                  "NYSE", "Materials",                55.0, [" VALE ", "VALE SA"]),
     ("PBR",       "Petroleo Brasileiro ADR",      "NYSE", "Energy",                   90.0, ["PETROBRAS", " PBR "]),
     ("INFY",      "Infosys Ltd ADR",              "NYSE", "Information Technology",   70.0, ["INFOSYS"]),
+    # Added 2026-06-09 (Ryu) — foreign names competitors have already filed L&I on
+    # but were missing from the seed. Verified against fund_status.
+    ("285A.T",    "Kioxia Holdings Corp",         "TSE",  "Memory",                   10.0, ["KIOXIA"]),
+    ("8035.T",    "Tokyo Electron Ltd",           "TSE",  "Semiconductors",           90.0, ["TOKYO ELECTRON"]),
+    ("6857.T",    "Advantest Corp",               "TSE",  "Semiconductors",           60.0, ["ADVANTEST"]),
+    ("2454.TW",   "MediaTek Inc",                 "TWSE", "Semiconductors",           70.0, ["MEDIATEK"]),
+    ("ARM",       "Arm Holdings ADR",             "NASDAQ","Semiconductors",          140.0, ["ARM HOLDINGS", " ARM "]),
+    ("GRAB",      "Grab Holdings",                "NASDAQ","Information Technology",    18.0, ["GRAB HOLDINGS", " GRAB "]),
 ]
 
 # REX-affiliated registrant matches (REX itself + the white-label trust
@@ -217,6 +225,37 @@ def _is_rex(registrant: str) -> bool:
     return bool(registrant) and bool(REX_REGISTRANT_PAT.search(registrant))
 
 
+# Brand detection so the foreign "Filers" count reflects distinct competitor
+# brands (Direxion, GraniteShares, …) rather than the shared registrant trust.
+_FOREIGN_BRANDS = [
+    ("DIREXION", "Direxion"), ("GRANITESHARES", "GraniteShares"),
+    ("PROSHARES", "ProShares"), ("DEFIANCE", "Defiance"), ("TRADR", "Tradr"),
+    ("LEVERAGE SHARES", "Leverage Shares"), ("LEVERAGESHARES", "Leverage Shares"),
+    ("INNOVATOR", "Innovator"), ("ROUNDHILL", "Roundhill"), ("TUTTLE", "Tuttle"),
+    ("KURV", "Kurv"), ("VOLATILITY SHARES", "Volatility Shares"),
+    ("BATTLESHARES", "Battleshares"), ("CORGI", "Corgi"), ("KODEX", "Kodex"),
+]
+
+
+def _brands_in(*texts) -> set:
+    out = set()
+    for t in texts:
+        u = str(t or "").upper()
+        for key, disp in _FOREIGN_BRANDS:
+            if key in u:
+                out.add(disp)
+    return out
+
+
+_LI_NAME = re.compile(r"(\d(?:\.\d)?X|LEVERAG|INVERSE|\bBULL\b|\bBEAR\b|ULTRA(?:PRO)?|DAILY TARGET|\bSHORT\b)", re.I)
+
+
+def _is_li_name(name) -> bool:
+    """A leveraged/inverse product name (so the foreign competitor metrics
+    ignore plain Samsung/SK Hynix funds that leak in on the keyword)."""
+    return bool(_LI_NAME.search(str(name or "")))
+
+
 def _rollup(extractions: pd.DataFrame, statuses: pd.DataFrame) -> pd.DataFrame:
     """Collapse multi-row filings into one row per foreign_ticker."""
     if extractions.empty and statuses.empty:
@@ -233,6 +272,13 @@ def _rollup(extractions: pd.DataFrame, statuses: pd.DataFrame) -> pd.DataFrame:
         comp_extr = sub_e[~sub_e["registrant"].apply(_is_rex)]
         rex_stat = sub_s[sub_s["trust_name"].apply(_is_rex)] if not sub_s.empty else sub_s
         comp_stat = sub_s[~sub_s["trust_name"].apply(_is_rex)] if not sub_s.empty else sub_s
+        # Competitor metrics must only count LEVERAGED/INVERSE products — a plain
+        # "Samsung ETF" matched the keyword and injected a bogus 2026-01-28
+        # "effective" date. Filter comp frames to L&I names only. Ryu 2026-06-09.
+        if not comp_extr.empty:
+            comp_extr = comp_extr[comp_extr["series_name"].apply(_is_li_name)]
+        if not comp_stat.empty:
+            comp_stat = comp_stat[comp_stat["fund_name"].apply(_is_li_name)]
 
         # Determine REX status. Priority (highest wins): active > filed > pending.
         # [2026-06-08 semantic audit BUG-20] "filed" must beat "pending" because
@@ -282,7 +328,23 @@ def _rollup(extractions: pd.DataFrame, statuses: pd.DataFrame) -> pd.DataFrame:
         # Competitor activity
         comp_filings = len(comp_extr)
         comp_distinct_funds = comp_extr["series_name"].nunique() if not comp_extr.empty else 0
-        comp_distinct_issuers = comp_extr["registrant"].nunique() if not comp_extr.empty else 0
+        # Distinct competitor BRANDS (not registrant trusts) from both the
+        # filing series names and the fund_status fund names.
+        brands = set()
+        if not comp_extr.empty:
+            for nm in comp_extr["series_name"]:
+                brands |= _brands_in(nm)
+        if not comp_stat.empty:
+            for nm in comp_stat["fund_name"]:
+                brands |= _brands_in(nm)
+        comp_distinct_issuers = len(brands) if brands else (
+            comp_extr["registrant"].nunique() if not comp_extr.empty else 0)
+        # Earliest ACTUAL competitor effective date (prospectus) from fund_status.
+        comp_earliest_eff = None
+        if not comp_stat.empty:
+            _ed = pd.to_datetime(comp_stat["effective_date"], errors="coerce").dropna()
+            if not _ed.empty:
+                comp_earliest_eff = _ed.min().date().isoformat()
         comp_active = 0
         comp_2x_status = "none"
         if not comp_stat.empty:
@@ -294,15 +356,29 @@ def _rollup(extractions: pd.DataFrame, statuses: pd.DataFrame) -> pd.DataFrame:
         elif comp_filings > 0:
             comp_2x_status = "filed"
 
+        # REX's own effective date. Prefer the scraped prospectus effective date;
+        # otherwise project from REX's filing + 75d (SEC 485(a) auto-effectiveness),
+        # so a REX filing always shows a date — same rule as the pipeline section.
+        # Ryu 2026-06-09.
+        rex_effective = None
+        if not rex_stat.empty:
+            _re = pd.to_datetime(rex_stat["effective_date"], errors="coerce").dropna()
+            if not _re.empty:
+                rex_effective = _re.min().date().isoformat()
+        if rex_effective is None and rex_latest_filing is not None and pd.notna(rex_latest_filing):
+            rex_effective = (pd.to_datetime(rex_latest_filing) + pd.Timedelta(days=75)).date().isoformat()
+
         rows.append({
             "foreign_ticker": ticker,
             "rex_status": rex_status,
             "rex_fund_name": rex_fund_name,
             "rex_ticker": rex_ticker,
+            "rex_effective": rex_effective,
             "rex_latest_filing": rex_latest_filing,
             "competitor_filings_total": comp_filings,
             "competitor_distinct_funds": comp_distinct_funds,
             "competitor_distinct_issuers": comp_distinct_issuers,
+            "competitor_earliest_eff": comp_earliest_eff,
             "competitor_2x_status": comp_2x_status,
             "competitor_active_count": int(comp_active),
         })
@@ -324,7 +400,16 @@ def rank(df: pd.DataFrame, universe: pd.DataFrame) -> pd.DataFrame:
         return df
 
     meta = universe[["foreign_ticker", "name", "market", "sector", "market_cap_usd"]].drop_duplicates("foreign_ticker")
-    df = df.merge(meta, on="foreign_ticker", how="left")
+    # Start from the FULL universe (left join) so un-filed megacaps appear too —
+    # Ryu wants whitespace foreign names, not just the ones with filings.
+    df = meta.merge(df, on="foreign_ticker", how="left")
+    df["rex_status"] = df["rex_status"].fillna("none")
+    for _c in ("competitor_filings_total", "competitor_distinct_funds",
+               "competitor_distinct_issuers", "competitor_active_count"):
+        if _c in df.columns:
+            df[_c] = df[_c].fillna(0)
+    if "competitor_2x_status" in df.columns:
+        df["competitor_2x_status"] = df["competitor_2x_status"].fillna("none")
 
     # Suppress active REX products (already-launched markets) from the
     # candidate list — same convention as US launch_candidates.

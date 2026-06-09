@@ -206,11 +206,24 @@ def _gather_filing_data(db_session, days: int = 7) -> dict:
 
     cutoff = date_type.today() - timedelta(days=days)
 
-    # Fund filings: 485* forms only (prospectus-related)
+    # Audit 2026-06-08 BUG-4 fix: scope all filing-activity KPIs to trusts that
+    # actually issue ETFs. Previously these counted across every trust in the
+    # DB (mutual funds, closed-end funds, etc.), inflating "Trusts Monitored"
+    # to ~15,889 and "Newly Effective"/"Pending" to thousands of non-ETP funds.
+    # Mirrors the daily report's _etf_trust_ids subquery (email_alerts.py).
+    _etf_trust_ids = (
+        select(FundStatus.trust_id)
+        .where(FundStatus.fund_name.ilike("%ETF%"))
+        .group_by(FundStatus.trust_id)
+    ).subquery()
+    _etf_trust_id_sel = select(_etf_trust_ids.c.trust_id)
+
+    # Fund filings: 485* forms only (prospectus-related), ETF trusts only
     fund_filings = db_session.execute(
         select(func.count(Filing.id))
         .where(Filing.filing_date >= cutoff)
         .where(Filing.form.ilike("485%"))
+        .where(Filing.trust_id.in_(_etf_trust_id_sel))
     ).scalar() or 0
 
     # Audit 2026-06-08 BUG-4: FundStatus has one row per share class. The
@@ -221,16 +234,20 @@ def _gather_filing_data(db_session, days: int = 7) -> dict:
         select(func.count(func.distinct(func.coalesce(FundStatus.series_id, FundStatus.id))))
         .where(FundStatus.status == "EFFECTIVE")
         .where(FundStatus.effective_date >= cutoff)
+        .where(FundStatus.trust_id.in_(_etf_trust_id_sel))
     ).scalar() or 0
 
-    # Pending funds: distinct funds (series) in PENDING status
+    # Pending funds: distinct funds (series) in PENDING status, ETF trusts only
     pending_funds = db_session.execute(
         select(func.count(func.distinct(func.coalesce(FundStatus.series_id, FundStatus.id))))
         .where(FundStatus.status == "PENDING")
+        .where(FundStatus.trust_id.in_(_etf_trust_id_sel))
     ).scalar() or 0
 
     trust_count = db_session.execute(
-        select(func.count(Trust.id)).where(Trust.is_active == True)
+        select(func.count(func.distinct(Trust.id)))
+        .where(Trust.is_active == True)
+        .where(Trust.id.in_(_etf_trust_id_sel))
     ).scalar() or 0
 
     return {

@@ -101,6 +101,28 @@ def _safe_float(val: Any) -> float:
         return 0.0
 
 
+def _aum_weighted_yield(df: pd.DataFrame) -> float:
+    """AUM-weighted average annualized yield (in %).
+
+    A plain mean over-weights tiny single-stock covered-call funds that quote
+    100-200% headline yields, producing an unrepresentative figure (e.g. 43%).
+    Weighting by AUM gives the "where the money actually sits" yield. Funds
+    with a zero/NaN yield are excluded from both numerator and denominator so
+    they neither inflate nor dilute the result.
+    """
+    if "annualized_yield" not in df.columns or "aum" not in df.columns or df.empty:
+        return 0.0
+    y = pd.to_numeric(df["annualized_yield"], errors="coerce")
+    w = pd.to_numeric(df["aum"], errors="coerce")
+    mask = y.notna() & (y != 0) & w.notna() & (w > 0)
+    if not mask.any():
+        return 0.0
+    wsum = float(w[mask].sum())
+    if wsum <= 0:
+        return 0.0
+    return float((y[mask] * w[mask]).sum() / wsum)
+
+
 def _optimise_dtypes(df: pd.DataFrame) -> None:
     """Downcast numeric columns to float32 and low-cardinality strings to category."""
     _CATEGORY_COLS = {"etp_category", "issuer_display", "issuer"}
@@ -986,11 +1008,7 @@ def _compute_email_segment(df: pd.DataFrame, data_aum: pd.DataFrame,
     }
 
     if include_yield and "annualized_yield" in df.columns:
-        avg_yield = float(
-            df["annualized_yield"].replace(0, float("nan")).mean()
-        )
-        if math.isnan(avg_yield):
-            avg_yield = 0.0
+        avg_yield = _aum_weighted_yield(df)
         kpis["avg_yield"] = _fmt_pct(avg_yield)
 
     # Per-segment AUM timeline (3 years)
@@ -1535,7 +1553,7 @@ def get_cc_report(db: Session | None = None) -> dict:
     total_aum = float(cc["aum"].sum())
     flow_1w = float(cc["fund_flow_1week"].sum())
     flow_1m_total = float(cc["fund_flow_1month"].sum())
-    avg_yield = float(cc["annualized_yield"].replace(0, float("nan")).mean()) if "annualized_yield" in cc.columns else 0.0
+    avg_yield = _aum_weighted_yield(cc)
 
     # WoW AUM change from time-series
     aum_change_1w, aum_change_positive = _compute_aum_wow(data_aum, cc["ticker_clean"].tolist())
@@ -2295,6 +2313,10 @@ def get_flow_report(db: Session | None = None, use_cache: bool = True) -> dict:
             "flow_1w": _fmt_flow(suite_rex_flow_1w),
             "flow_1w_positive": suite_rex_flow_1w >= 0,
             "flow_1w_raw": suite_rex_flow_1w,
+            # The email builder reads "flow_1m"; previously only "flow_1m_raw"
+            # was set, so the per-suite REX 1M flow always rendered "--".
+            "flow_1m": _fmt_flow(suite_rex_flow_1m),
+            "flow_1m_positive": suite_rex_flow_1m >= 0,
             "flow_1m_raw": suite_rex_flow_1m,
             "market_share": _fmt_pct(suite_rex_share),
         }

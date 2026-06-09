@@ -65,13 +65,13 @@ def read_overrides(xl: pd.ExcelFile) -> dict[str, dict]:
             },
         }
     """
-    if "microsector" not in xl.sheet_names:
-        log.info("microsector sheet not found, skipping ETN overrides")
+    # Sheet was renamed 2026-06: microsector -> microsector_aum, data_ms -> microsector_sh.
+    # Accept both names so older files still parse.
+    if "microsector_aum" not in xl.sheet_names and "microsector" not in xl.sheet_names:
+        log.info("microsector_aum sheet not found, skipping ETN overrides")
         return {}
 
-    # New layout: data_ms (shares) + data_price (prices) as separate sheets
-    # Legacy layout: data_msector (shares + prices combined)
-    has_new = "data_ms" in xl.sheet_names and "data_price" in xl.sheet_names
+    has_new = ("microsector_sh" in xl.sheet_names or "data_ms" in xl.sheet_names) and "data_price" in xl.sheet_names
     has_legacy = "data_msector" in xl.sheet_names
     if not has_new and not has_legacy:
         log.info("No shares/prices sheets found (need data_ms+data_price or data_msector)")
@@ -199,8 +199,9 @@ def get_stale_tickers(overrides: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def _read_microsector_aum(xl: pd.ExcelFile) -> pd.DataFrame:
-    """Read microsector sheet: dates x tickers with daily AUM in raw dollars."""
-    raw = xl.parse("microsector", header=None)
+    """Read microsector_aum sheet: dates x tickers with daily AUM in raw dollars."""
+    sheet_name = "microsector_aum" if "microsector_aum" in xl.sheet_names else "microsector"
+    raw = xl.parse(sheet_name, header=None)
 
     # Row 3 has short tickers; filter to reliable set
     ticker_cols = {}
@@ -244,8 +245,9 @@ def _read_shares_and_prices(xl: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFram
       Row 0: Dates | BBG tickers ("NRGU US Equity", ...)
       Row 1+: date | price values
     """
-    # --- Shares from data_ms ---
-    raw_s = xl.parse("data_ms", header=None)
+    # --- Shares from microsector_sh (or legacy data_ms) ---
+    shares_sheet = "microsector_sh" if "microsector_sh" in xl.sheet_names else "data_ms"
+    raw_s = xl.parse(shares_sheet, header=None)
     shares_map = {}
     for i in range(1, raw_s.shape[1]):
         bbg = raw_s.iloc[1, i]
@@ -266,14 +268,17 @@ def _read_shares_and_prices(xl: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFram
 
     # --- Prices from data_price ---
     raw_p = xl.parse("data_price", header=None)
-    # Row 0 = header: "Dates" + BBG tickers like "NRGU US Equity"
+    # Row 0 = header: "Dates" + tickers. Format changed 2026-06 from the
+    # Bloomberg yellow-key "NRGU US Equity" to the short "NRGU US". Accept
+    # both: take the first whitespace token and test against the reliable set.
     prices_map = {}
     for i in range(1, raw_p.shape[1]):
         hdr = raw_p.iloc[0, i]
-        if pd.notna(hdr) and "Equity" in str(hdr):
-            short = str(hdr).split()[0].strip()
-            if short in _RELIABLE_TICKERS:
-                prices_map[i] = short
+        if pd.isna(hdr):
+            continue
+        short = str(hdr).split()[0].strip().upper()
+        if short in _RELIABLE_TICKERS:
+            prices_map[i] = short
 
     prices_cols = [0] + list(prices_map.keys())
     prices = raw_p.iloc[1:, prices_cols].copy()

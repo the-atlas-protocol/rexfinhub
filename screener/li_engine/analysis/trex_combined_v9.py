@@ -119,10 +119,22 @@ def _fmt_pct(v):
 
 def _clean(t):
     if not isinstance(t, str): return ""
-    return t.upper().replace(" US","").replace(" EQUITY","").strip()
+    s = t.upper().strip()
+    # Strip Bloomberg yellow-key suffixes (CURNCY/COMDTY/INDEX) and exchange
+    # codes so raw strings like "XETUSD CURNCY" / "DJTU UA" don't surface.
+    for suf in (" CURNCY", " COMDTY", " INDEX", " EQUITY"):
+        if s.endswith(suf):
+            s = s[: -len(suf)].strip()
+    # Drop a trailing 2-letter exchange code (US/UA/UW/UN/LN/KS/TT…) — but only
+    # when there's a ticker before it.
+    parts = s.rsplit(" ", 1)
+    if len(parts) == 2 and len(parts[1]) == 2 and parts[1].isalpha() and parts[0]:
+        s = parts[0]
+    return s.strip()
 
 
-_ALIAS = {"GOOG":"GOOGL","GOOGL":"GOOGL","BRKA":"BRKB","BRK.A":"BRKB","BRK/A":"BRKB","BRKB":"BRKB","BRK/B":"BRKB","BRK.B":"BRKB"}
+_ALIAS = {"GOOG":"GOOGL","GOOGL":"GOOGL","BRKA":"BRKB","BRK.A":"BRKB","BRK/A":"BRKB","BRKB":"BRKB","BRK/B":"BRKB","BRK.B":"BRKB",
+          "SPACEX":"SPCX","SPCX":"SPCX"}
 def _canon(t):
     c = _clean(t)
     return _ALIAS.get(c, c)
@@ -195,8 +207,140 @@ def load_rex_position():
     for u, r in agg.iterrows():
         if r["actv"] > 0:   pos[u] = ("Live", GREEN)
         elif r["filed"] > 0: pos[u] = ("Filed", BLUE)
-        else:               pos[u] = ("Not in", RED)
+        else:               pos[u] = ("—", GRAY)  # "Not in" w/ red was useless color (Ryu 2026-06-09)
     return pos
+
+
+# Competitor-issuer detection from a fund/series name (non-REX leveraged issuers).
+_COMP_ISSUER_PATS = [
+    (re.compile(r"DIREXION", re.I), "Direxion"),
+    (re.compile(r"GRANITESHARES", re.I), "GraniteShares"),
+    (re.compile(r"PROSHARES", re.I), "ProShares"),
+    (re.compile(r"DEFIANCE", re.I), "Defiance"),
+    (re.compile(r"\bTRADR\b", re.I), "Tradr"),
+    (re.compile(r"LEVERAGE\s*SHARES", re.I), "Leverage Shares"),
+    (re.compile(r"INNOVATOR", re.I), "Innovator"),
+    (re.compile(r"ROUNDHILL", re.I), "Roundhill"),
+    (re.compile(r"TUTTLE", re.I), "Tuttle"),
+    (re.compile(r"\bKURV\b", re.I), "Kurv"),
+    (re.compile(r"VOLATILITY\s*SHARES", re.I), "Volatility Shares"),
+    (re.compile(r"BATTLESHARES", re.I), "Battleshares"),
+    (re.compile(r"YIELDMAX", re.I), "YieldMax"),
+    (re.compile(r"GLOBAL\s*X", re.I), "Global X"),
+    (re.compile(r"AMPLIFY", re.I), "Amplify"),
+    (re.compile(r"\bCORGI\b", re.I), "Corgi"),
+    (re.compile(r"\bKODEX\b", re.I), "Kodex"),
+]
+# L&I detection + REX exclusion for the competitor universe.
+_LI_NAME_RE = re.compile(r"(\d(?:\.\d)?x|leverag|inverse|\bbull\b|\bbear\b|ultra(?:pro)?|daily\s+target)", re.I)
+_REX_NAME_RE = re.compile(r"\brex\b|t-rex|microsector", re.I)
+# Underlier-from-name patterns, ordered most specific first. Cover GraniteShares
+# / Tradr / Leverage Shares ("2X Long NVDA"), Direxion ("Daily NVDA Bull 2X"),
+# ProShares ("Ultra NVDA"), and Defiance bracketed pre-IPO names ("[OpenAI]").
+_COMP_UND_PATS = [
+    # {2,12} not {1,6} so company-name underliers (Kioxia, SpaceX, Anthropic) match.
+    re.compile(r"\d(?:\.\d)?x\s+(?:long|short|bull|bear|inverse)\s+([A-Za-z]{2,12})\b", re.I),
+    re.compile(r"daily\s+target\s+\d(?:\.\d)?x\s+(?:long|short)\s+([A-Za-z]{2,12})\b", re.I),
+    re.compile(r"daily\s+([A-Za-z]{2,12})\s+(?:bull|bear)\b", re.I),
+    re.compile(r"ultra(?:pro)?\s+(?:short\s+)?([A-Za-z]{2,12})\b", re.I),
+    re.compile(r"(?:long|short)\s+([A-Za-z]{2,12})\s+(?:daily|etf)\b", re.I),
+    re.compile(r"\[([A-Za-z][A-Za-z ]{1,18})\]"),  # bracketed pre-IPO e.g. [OpenAI]
+]
+_COMP_UND_STOP = {"ETF","ETN","LONG","SHORT","DAILY","TARGET","BULL","BEAR","INVERSE",
+                  "ULTRA","ULTRAPRO","SHARES","DAILY","INDEX","FUND","TRUST","X","ULTRASHORT"}
+
+
+def _comp_issuer_of(name):
+    for pat, disp in _COMP_ISSUER_PATS:
+        if pat.search(name or ""):
+            return disp
+    return None
+
+
+def _comp_underlier_of(name):
+    for pat in _COMP_UND_PATS:
+        m = pat.search(name or "")
+        if m:
+            tok = m.group(1).strip().upper().replace(" ", "")
+            if tok and tok not in _COMP_UND_STOP:
+                return _canon(tok)
+    return ""
+
+
+def load_underlier_competition():
+    """Map canonical underlier -> {'n': distinct non-REX L&I filers,
+    'eff': earliest ACTUAL prospectus effective date (YYYY-MM-DD or None)}.
+
+    '# filers' counts EVERY distinct non-REX issuer that has filed an L&I product
+    on the underlier — pending filings included even when no effective date is
+    scraped yet (that is the whole point of tracking the race). 'eff' is the
+    earliest ACTUAL prospectus effective date (fund_status.effective_date) among
+    those filings, or None if none has an effective date yet. Ryu 2026-06-09.
+    """
+    df = _df("""SELECT fund_name, status, effective_date
+                FROM fund_status
+                WHERE fund_name IS NOT NULL""")
+    out = {}
+    if df.empty:
+        return out
+    from collections import defaultdict
+    acc = defaultdict(lambda: {"issuers": set(), "dates": []})
+    for name, _status, eff in df.itertuples(index=False):
+        if not _LI_NAME_RE.search(name) or _REX_NAME_RE.search(name):
+            continue
+        iss = _comp_issuer_of(name)
+        if not iss:
+            continue
+        u = _comp_underlier_of(name)
+        if not u:
+            continue
+        acc[u]["issuers"].add(iss)
+        d = str(eff)[:10] if pd.notna(eff) else ""
+        if d and d not in ("None", "nan", "NaT"):
+            acc[u]["dates"].append(d)
+    for u, v in acc.items():
+        dates = sorted(v["dates"])
+        out[u] = {"n": len(v["issuers"]), "eff": dates[0] if dates else None}
+    return out
+
+
+def load_underlier_live():
+    """Map canonical underlier -> {'top_aum': largest live L&I AUM ($M),
+    'has_long': bool, 'has_inv': bool}. Used to show whether a live product
+    already exists on an underlier (and how big), and to deprioritise filing an
+    inverse where a live inverse already exists. Ryu 2026-06-09."""
+    df = _df("""SELECT map_li_underlier AS u, map_li_direction AS d,
+                  market_status, aum
+                FROM mkt_master_data
+                WHERE primary_category='LI' AND market_status='ACTV'
+                  AND map_li_underlier IS NOT NULL AND map_li_underlier!=''""")
+    out = {}
+    if df.empty:
+        return out
+    df["aum"] = pd.to_numeric(df["aum"], errors="coerce").fillna(0.0)
+    df["uc"] = df["u"].apply(_canon)
+    df["is_inv"] = df["d"].astype(str).str.lower().str.contains("short|inv", na=False)
+    df["is_long"] = df["d"].astype(str).str.lower().str.contains("long", na=False)
+    for u, g in df.groupby("uc"):
+        out[u] = {
+            "top_aum": float(g["aum"].max()),
+            "has_long": bool(g["is_long"].any()),
+            "has_inv": bool(g["is_inv"].any()),
+        }
+    return out
+
+
+def _comp_cells(comp: dict, underlier: str):
+    """Return (filers_cell, earliest_eff_cell) HTML for a given underlier.
+    Gray '—' when there is no competitor filing on that underlier."""
+    d = comp.get(_canon(underlier)) if underlier else None
+    if not d or not d.get("n"):
+        return (f'<span style="color:{GRAY};">—</span>', "center"), (f'<span style="color:{GRAY};">—</span>', "center")
+    n = d["n"]
+    eff = d.get("eff") or "—"
+    n_html = f'<b style="color:{NAVY};">{n}</b>'
+    eff_html = f'<span style="color:{NAVY};">{escape(eff)}</span>' if eff != "—" else f'<span style="color:{GRAY};">—</span>'
+    return (n_html, "center"), (eff_html, "center")
 
 
 def load_recent_competitor_filings():
@@ -211,21 +355,10 @@ def load_recent_competitor_filings():
     if df.empty: return df
     df = df[df["series_name"].fillna("").apply(is_li_product)]
     df = df[~df["series_name"].fillna("").apply(is_high_leverage)]  # drop 3X+
-    def extract_underlier(name):
-        if not isinstance(name, str): return ""
-        for pat in [
-            r"\b(?:LONG|SHORT)\s+([A-Z]{2,6})\s+(?:DAILY|ETF|ETN)",
-            r"\b\d(?:\.\d)?X\s+(?:LONG|SHORT|BULL|BEAR|INVERSE)\s+([A-Z]{2,6})",
-            r"\b(?:BULL|BEAR)\s+\d(?:\.\d)?X\s+([A-Z]{2,6})",
-            r"\bULTRA(?:PRO|SHORT)?\s+([A-Z]{2,6})",
-            r"\bDAILY\s+TARGET\s+\d(?:\.\d)?X\s+(?:LONG|SHORT|INVERSE)\s+([A-Z]{2,6})",
-            r"\bDAILY\s+\d(?:\.\d)?X\s+([A-Z]{2,6})",
-        ]:
-            m = re.search(pat, name.upper())
-            if m: return m.group(1)
-        m = re.search(r"\b([A-Z]{2,6})\s+(?:DAILY|ETF|ETN)\b", name.upper())
-        return m.group(1) if m else ""
-    df["underlier"] = df["series_name"].apply(extract_underlier)
+    # Use the shared, stop-word-aware underlier extractor (rejects "DAILY",
+    # truncated company words, etc.) instead of the old loose [A-Z]{2,6} regex
+    # that leaked garbage labels. Ryu 2026-06-09.
+    df["underlier"] = df["series_name"].apply(_comp_underlier_of)
     df["filing_date_dt"] = pd.to_datetime(df["filing_date"], errors="coerce")
     df["days_since"] = (pd.Timestamp(date.today()) - df["filing_date_dt"]).dt.days
     df = df.sort_values("filing_date_dt", ascending=False).drop_duplicates("series_name", keep="first")
@@ -252,11 +385,10 @@ def load_imminent_launches():
     if df.empty: return df
     today = pd.Timestamp(date.today())
     df["inception_dt"] = pd.to_datetime(df["inception_date"], errors="coerce")
-    # Keep: undated PEND, or inception within last 60d (recently launched, PEND lag), or future <=1y
-    df = df[
-        df["inception_dt"].isna()
-        | ((df["inception_dt"] >= today - pd.Timedelta(days=60)) & (df["inception_dt"] <= today + pd.Timedelta(days=365)))
-    ]
+    # Bloomberg Pending Funds: PEND products with a FUTURE inception date only
+    # (Ryu 2026-06-09). Undated PEND and past-dated PEND (launch lag / stale)
+    # are excluded — this section is forward-looking imminent launches only.
+    df = df[df["inception_dt"] > today]
     df["days_remaining"] = (df["inception_dt"] - today).dt.days
 
     # Underlier fallback: when DB has null, try to extract from fund_name.
@@ -292,7 +424,7 @@ def load_imminent_launches():
     return df.head(30)
 
 
-def load_trex_2x_long_pipeline():
+def load_trex_2x_long_pipeline(single_stocks: set | None = None):
     """T-REX 2X (Long & Inverse) FILED-NOT-YET-LAUNCHED products. Status in
     {Filed, Under Consideration, Target List} — drops Effective/Listed.
     The point: which to launch from those we have filed that are new to the market.
@@ -301,6 +433,7 @@ def load_trex_2x_long_pipeline():
     they belong here because the section precedes Inverse Gap and the user
     expectation is "what T-REX 2X have we filed but not yet launched".
     """
+    single_stocks = single_stocks or set()
     df = _df("""SELECT ticker, name AS fund_name, direction, status,
                   initial_filing_date, estimated_effective_date,
                   underlier, underlying_ticker
@@ -315,9 +448,10 @@ def load_trex_2x_long_pipeline():
     def extract_from_trex(name):
         if not isinstance(name, str): return ""
         n = name.upper()
-        # T-REX 2X (LONG|INVERSE) <CODE> DAILY (code can be 2-12 chars, alphanumeric)
-        m = re.search(r"\bT-REX\s+2X\s+(?:LONG|INVERSE)\s+([A-Z0-9\.\-]{2,12})\s+DAILY", n)
-        if m: return m.group(1)
+        # T-REX 2X (LONG|INVERSE) <CODE> DAILY — CODE may be a multi-word foreign
+        # name ("SK HYNIX") so allow internal spaces, non-greedy up to DAILY.
+        m = re.search(r"\bT-REX\s+2X\s+(?:LONG|INVERSE)\s+([A-Z0-9\.\- ]{2,20}?)\s+DAILY", n)
+        if m: return m.group(1).strip()
         # Fallback for company-name pipeline entries (Anthropic, SpaceX, Viva Republica)
         # No clean ticker; return ""
         return ""
@@ -329,6 +463,11 @@ def load_trex_2x_long_pipeline():
     df["underlier_clean"] = underlier_str.apply(_canon)
     df["filing_dt"] = pd.to_datetime(df["initial_filing_date"], errors="coerce")
     df["eff_dt"] = pd.to_datetime(df["estimated_effective_date"], errors="coerce")
+    # 47/60 filed T-REX 2X have a NULL estimated_effective_date. These are 485APOS
+    # filings that become effective automatically 75 days after filing (SEC Rule
+    # 485(a)). Fill the blanks with that projection so REX Eff is never empty.
+    # Ryu 2026-06-09.
+    df["eff_dt"] = df["eff_dt"].fillna(df["filing_dt"] + pd.Timedelta(days=75))
     df["status_binary"] = df.apply(_collapse_status, axis=1)
 
     try:
@@ -359,26 +498,37 @@ def load_counts():
 
 
 def load_inverse_gap(single_stocks: set):
+    # NB: NO aum floor here. Inverse-existence must see EVERY active inverse
+    # product regardless of size — bear funds like MUD/NVDD/MSFD are small but
+    # real, and filtering them out falsely reported MU/NVDA/MSFT as "no inverse"
+    # gaps (Ryu 2026-06-09). The $100M threshold is applied only to the LONG
+    # product we surface, not to the gap detection.
     df = _df("""SELECT map_li_underlier AS u, map_li_direction AS d,
                   is_rex, COALESCE(issuer_nickname, issuer) AS issuer,
                   ticker, fund_name, aum
                 FROM mkt_master_data
                 WHERE primary_category='LI' AND market_status='ACTV'
                   AND map_li_underlier IS NOT NULL AND map_li_underlier!=''
-                  AND aum IS NOT NULL AND aum > 100
                   AND fund_name NOT LIKE '%MICROSECTORS%'
                   AND fund_name NOT LIKE '%MicroSectors%'""")
     if df.empty: return df
+    df["aum"] = pd.to_numeric(df["aum"], errors="coerce").fillna(0.0)
     df["u_clean"] = df["u"].apply(_canon)
     df = df[df["u_clean"].isin(single_stocks)]
     df["is_long"] = df["d"].astype(str).str.lower().str.contains("long", na=False)
     df["is_inv"] = df["d"].astype(str).str.lower().str.contains("short|inv", na=False)
     rows = []
     for u, g in df.groupby("u_clean"):
-        n_long = int(g["is_long"].sum()); n_inv = int(g["is_inv"].sum())
-        if n_long == 0 or n_inv > 0: continue
-        top = g[g["is_long"]].sort_values("aum", ascending=False).iloc[0]
-        rows.append({"underlier": u, "n_long": n_long,
+        # A genuine gap = at least one MEANINGFUL long ($100M+) and ZERO inverse
+        # of any size anywhere on this underlier.
+        n_inv = int(g["is_inv"].sum())
+        if n_inv > 0:
+            continue
+        longs = g[g["is_long"] & (g["aum"] >= 100)]
+        if longs.empty:
+            continue
+        top = longs.sort_values("aum", ascending=False).iloc[0]
+        rows.append({"underlier": u, "n_long": int(g["is_long"].sum()),
                      "top_ticker": top["ticker"], "top_fund": top["fund_name"],
                      "top_issuer": top["issuer"], "top_aum": float(top["aum"])})
     return pd.DataFrame(rows).sort_values("top_aum", ascending=False).head(15) if rows else pd.DataFrame()
@@ -403,7 +553,8 @@ def load_launch_anyway(rex_pos: dict, single_stocks: set):
     rows = []
     today = pd.Timestamp(date.today())
     for u, g in df[df["is_long"]].groupby("u_clean"):
-        if rex_pos.get(u, ("Not in", RED))[0] != "Not in": continue
+        # "REX not in this underlier" is now marked by the em-dash sentinel.
+        if rex_pos.get(u, ("—", GRAY))[0] != "—": continue
         n_long = len(g)
         if not (1 <= n_long <= 2): continue
         top = g.sort_values("aum", ascending=False).iloc[0]
@@ -420,7 +571,13 @@ def load_launch_anyway(rex_pos: dict, single_stocks: set):
 
 def load_foreign():
     if not FL.exists(): return pd.DataFrame()
-    return pd.read_parquet(FL).sort_values("composite_score", ascending=False).head(15)
+    df = pd.read_parquet(FL)
+    # Non-US-ADR top products only — US ADRs (NYSE/NASDAQ-listed) can already be
+    # made into US 2x products, so they aren't the foreign whitespace. Ryu wants
+    # the foreign-LISTED names (.KS / .T / .TW / .HK / etc.). Ryu 2026-06-09.
+    if "market" in df.columns:
+        df = df[~df["market"].astype(str).str.upper().isin(["NYSE", "NASDAQ", "NYSE ARCA", "AMEX"])]
+    return df.sort_values("composite_score", ascending=False).head(25)
 
 
 def load_delisting_watch():
@@ -579,10 +736,12 @@ def build():
 
     single_stocks = _single_stock_set()
     rex_pos = load_rex_position()
+    comp = load_underlier_competition()  # underlier -> {n filers, earliest prospectus eff date}
+    live = load_underlier_live()         # underlier -> {top live L&I AUM, has_long, has_inv}
     counts = load_counts()
     imminent = load_imminent_launches()
     recent_comp = load_recent_competitor_filings()
-    pipeline = load_trex_2x_long_pipeline()
+    pipeline = load_trex_2x_long_pipeline(single_stocks)
     scored = load_scored()
     inverse_gap = load_inverse_gap(single_stocks)
     launch_anyway = load_launch_anyway(rex_pos, single_stocks)
@@ -661,19 +820,20 @@ def build():
                 dr_int = int(dr); uc = RED if dr_int<=21 else (ORANGE if dr_int<=60 else GRAY)
                 dr_str = f'<span style="color:{uc};font-weight:700;">{dr_int}d</span>'
             inc_str = str(r['inception_dt'].date()) if pd.notna(r['inception_dt']) else "—"
-            u = r['underlier_clean']; rex_label, rex_color = rex_pos.get(u, ("Not in", RED))
+            u = r['underlier_clean']; rex_label, rex_color = rex_pos.get(u, ("—", GRAY))
+            fc, ec = _comp_cells(comp, u)
             rows += _tr(
                 _tk(u or "—"),
+                fc, ec,
                 _tk(_clean(r['product_ticker']) if pd.notna(r['product_ticker']) else "—"),
                 escape(_safe_str(r['issuer']))[:24],
                 escape(_safe_str(r['fund_name']))[:46],
-                (escape(_safe_str(r.get('leverage'))), "center"),
                 (escape(inc_str), "center"),
                 (dr_str, "center"),
                 (f'<span style="color:{rex_color};font-weight:700;">{rex_label}</span>', "center"),
             )
         imminent_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Underlier','Product','Competitor','Fund Name','Leverage','Expected','Timing','REX Position'])}
+{_table_header(['Underlier','Filers','Earliest Eff','Product','Competitor','Fund Name','Expected','Timing','REX Position'])}
 {rows}</table>"""
 
     # ---------------- RECENT (60d, no 3X) ----------------
@@ -685,9 +845,11 @@ def build():
             ds=int(r['days_since']) if pd.notna(r['days_since']) else 0
             color=RED if ds<=14 else (ORANGE if ds<=30 else GRAY)
             u = _canon(r['underlier']) if r['underlier'] else ""
-            rex_label, rex_color = rex_pos.get(u, ("Not in", RED))
+            rex_label, rex_color = rex_pos.get(u, ("—", GRAY))
+            fc, ec = _comp_cells(comp, u)
             rows += _tr(
                 _tk(u or "—"),
+                fc, ec,
                 escape(_safe_str(r['registrant']))[:28],
                 escape(_safe_str(r['series_name']))[:60],
                 (escape(str(r['filing_date_dt'].date())), "center"),
@@ -695,16 +857,27 @@ def build():
                 (f'<span style="color:{rex_color};font-weight:700;">{rex_label}</span>', "center"),
             )
         recent_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Underlier','Registrant','Series','Filed','Days Since','REX Position'])}
+{_table_header(['Underlier','Filers','Earliest Eff','Registrant','Series','Filed','Days Since','REX Position'])}
 {rows}</table>"""
 
-    # ---------------- PIPELINE (T-REX 2X Long & Inverse, top 20) ----------------
+    # ---------------- PIPELINE (T-REX 2X Long & Inverse — full filed queue) ----------------
+    # Show the entire queue so the table count matches the headline KPI exactly
+    # (previously head(20), which made the KPI "N products" disagree with the table).
     if pipeline.empty:
         pipeline_html = f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">No T-REX 2X Long or Inverse products in pipeline.</div>'
     else:
-        pipe_top = pipeline.sort_values("underlier_score", ascending=False).head(20)
+        pp = pipeline.copy()
+        pp["_is_inv"] = pp["fund_name"].astype(str).str.upper().str.contains("INVERSE")
+        # An inverse filing is only worth launching if NO live inverse exists on
+        # the underlier. Demote inverse rows whose underlier already has a live
+        # inverse (e.g. INVERSE MU — MUD already trades). Ryu 2026-06-09.
+        pp["_dead_inv"] = pp.apply(
+            lambda r: bool(r["_is_inv"]) and bool(live.get(r["underlier_clean"], {}).get("has_inv")),
+            axis=1,
+        )
+        pp = pp.sort_values(["_dead_inv", "underlier_score"], ascending=[True, False])
         rows=""
-        for _, r in pipe_top.iterrows():
+        for _, r in pp.iterrows():
             sb = r["status_binary"]
             status_color = GREEN if sb == "Effective" else BLUE
             u=r['underlier_clean']
@@ -712,6 +885,15 @@ def build():
             score_html=f'<b style="color:{NAVY};">{score:.1f}</b>' if score>0 else f'<span style="color:{GRAY};">—</span>'
             file_dt=str(r['filing_dt'].date()) if pd.notna(r['filing_dt']) else "—"
             eff_dt=str(r['eff_dt'].date()) if pd.notna(r['eff_dt']) else "—"
+            fc, ec = _comp_cells(comp, u)
+            lv = live.get(u, {})
+            if lv.get("top_aum"):
+                _exists = "Inverse exists" if (r["_is_inv"] and lv.get("has_inv")) else "Live"
+                live_html = (f'<span style="color:{ORANGE if r["_dead_inv"] else NAVY};font-weight:600;">'
+                             f'{_exists} · {_fmt_aum_m(lv["top_aum"])}</span>')
+                live_cell = (live_html, "right")
+            else:
+                live_cell = (f'<span style="color:{GREEN};font-weight:700;">whitespace</span>', "right")
             rows += _tr(
                 _tk(_clean(r['ticker']) if pd.notna(r['ticker']) and r['ticker'] else "—"),
                 escape(_safe_str(r['fund_name']))[:50],
@@ -719,10 +901,12 @@ def build():
                 (f'<span style="color:{status_color};font-weight:700;">{sb}</span>', "center"),
                 (escape(file_dt), "center"),
                 (escape(eff_dt), "center"),
+                live_cell,
+                fc, ec,
                 (score_html, "right"),
             )
         pipeline_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Ticker','Fund Name','Underlier','Status','Filed','Effective','Score'])}
+{_table_header(['Ticker','Fund Name','Underlier','REX Status','REX Filed','REX Eff','Live Market','Comp Filers','Comp Earliest Eff','Score'])}
 {rows}</table>"""
 
     # ---------------- MEGA TABLE ----------------
@@ -735,24 +919,29 @@ def build():
             sector=_safe_str(r.get('sector'))[:16]
             themes=_safe_str(r.get('themes'), "").replace(',','·')[:16]
             mcap=_fmt_mcap(r.get('market_cap'))
-            vol=r.get('rvol_90d') or 0
+            vol=r.get('rvol_90d')
+            vol=0 if (vol is None or pd.isna(vol)) else vol
             ret1m=_fmt_pct(r.get('ret_1m')); ret1y=_fmt_pct(r.get('ret_1y'))
             ment=int(r.get('mentions_24h') or 0)
-            score=r.get('composite_score') or 0
-            rex_y=bool(r.get('has_rex_filing')); comp_y=bool(r.get('has_comp_filing'))
+            # Display the 0-100 percentile score, not the raw z-score composite
+            # (which ranges roughly -1 to 1.8 and reads as broken). Ryu 2026-06-09.
+            score=r.get('score_pct')
+            if score is None or (isinstance(score, float) and pd.isna(score)):
+                score=r.get('composite_score') or 0
+            rex_y=bool(r.get('has_rex_filing'))
             rex_badge=f'<span style="color:{BLUE};font-weight:700;">Y</span>' if rex_y else f'<span style="color:{GRAY};">N</span>'
-            comp_badge=f'<span style="color:{ORANGE};font-weight:700;">Y</span>' if comp_y else f'<span style="color:{GRAY};">N</span>'
+            fc, ec = _comp_cells(comp, tk)
             rows += _tr(
                 (str(i+1), "center"),
                 _tk(tk), escape(name), escape(sector), escape(themes),
                 (mcap, "right"), (f"{vol:.0f}%", "right"),
                 (ret1m, "right"), (ret1y, "right"),
                 (str(ment), "right"),
-                (rex_badge, "center"), (comp_badge, "center"),
-                (f'<b style="color:{NAVY};">{score:.1f}</b>', "right"),
+                (rex_badge, "center"), fc, ec,
+                (f'<b style="color:{NAVY};">{score:.0f}</b>', "right"),
             )
         mega_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['#','Ticker','Company','Sector','Theme','Mkt Cap','Vol','1m','1y','Buzz','REX Filed','Comp Filed','Score'])}
+{_table_header(['#','Ticker','Company','Sector','Theme','Mkt Cap','Vol','1m','1y','Buzz','REX Filed','Comp Filers','Earliest Eff','Score (0-100)'])}
 {rows}</table>"""
 
     # ---------------- INVERSE GAP ----------------
@@ -761,8 +950,10 @@ def build():
     else:
         rows=""
         for _, r in inverse_gap.iterrows():
+            fc, ec = _comp_cells(comp, r['underlier'])
             rows += _tr(
                 _tk(r['underlier']),
+                fc, ec,
                 (str(r['n_long']), "center"),
                 _tk(_clean(r['top_ticker'])),
                 escape(_safe_str(r['top_fund']))[:42],
@@ -770,7 +961,7 @@ def build():
                 (_fmt_aum_m(r['top_aum']), "right"),
             )
         ig_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Underlier','Long Count','Top Long Product','Fund Name','Issuer','Top AUM'])}
+{_table_header(['Underlier','Filers','Earliest Eff','Long Count','Top Long Product','Fund Name','Issuer','Top AUM'])}
 {rows}</table>"""
 
     # ---------------- LAUNCH ANYWAY (top 20 + first-launch) ----------------
@@ -782,8 +973,10 @@ def build():
             mo = r.get("months_old")
             age_str = f"{mo:.0f}mo" if mo is not None else "—"
             age_color = GREEN if (mo is not None and mo >= 12) else (ORANGE if (mo is not None and mo >= 6) else GRAY)
+            fc, ec = _comp_cells(comp, r['underlier'])
             rows += _tr(
                 _tk(r['underlier']),
+                fc, ec,
                 (str(r['n_long']), "center"),
                 _tk(_clean(r['top_ticker'])),
                 escape(_safe_str(r['top_fund'])),
@@ -793,7 +986,7 @@ def build():
                 (f'<span style="color:{age_color};font-weight:700;">{age_str}</span>', "center"),
             )
         la_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Underlier','Comp Count','Top Product','Fund Name','Issuer','Top AUM','First Launch','Track Record'])}
+{_table_header(['Underlier','Filers','Earliest Eff','Comp Products','Top Product','Fund Name','Issuer','Top AUM','First Launch','Track Record'])}
 {rows}</table>"""
 
     # ---------------- FOREIGN ----------------
@@ -807,19 +1000,31 @@ def build():
             mcap = r.get('market_cap_usd', 0)
             mcap_str = f"${mcap/1e9:.0f}B" if mcap and mcap>=1e9 else _fmt_mcap((mcap or 0)/1e6)
             score = r.get('composite_score',0)
+            # Foreign competition is matched by company-name keyword in
+            # foreign_filings.py (the .KS/.T ticker would never match the
+            # name-keyed helper). Use those precomputed columns. Ryu 2026-06-09.
+            n_f = int(r.get('competitor_distinct_issuers', 0) or 0)
+            ef = r.get('competitor_earliest_eff')
+            rxe = r.get('rex_effective')
+            def _datecell(v):
+                ok = v is not None and pd.notna(v) and str(v) not in ('None','nan','NaT')
+                return ((f'<span style="color:{NAVY};">{escape(str(v))}</span>' if ok
+                         else f'<span style="color:{GRAY};">—</span>'), "center")
+            fc = ((f'<b style="color:{NAVY};">{n_f}</b>' if n_f
+                   else f'<span style="color:{GRAY};">—</span>'), "center")
             rows += _tr(
                 _tk(_safe_str(r['foreign_ticker'])),
                 escape(_safe_str(r.get('name')))[:32],
                 (escape(_safe_str(r.get('market'))), "center"),
-                escape(_safe_str(r.get('sector')))[:18],
                 (mcap_str, "right"),
                 (f'<span style="color:{rs_color};font-weight:700;">{rs}</span>', "center"),
-                (f'<span style="color:{cs_color};font-weight:700;">{cs}</span>', "center"),
-                (str(r.get('competitor_active_count',0)), "center"),
+                _datecell(rxe),
+                fc,
+                _datecell(ef),
                 (f'<b style="color:{NAVY};">{score:.1f}</b>', "right"),
             )
         foreign_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Ticker','Company','Market','Sector','Global Mkt Cap','REX Status','Comp 2x','Comp Active','Score'])}
+{_table_header(['Ticker','Company','Market','Global Mkt Cap','REX Status','REX Eff','Comp Filers','Comp Earliest Eff','Score'])}
 {rows}</table>"""
 
     # ---------------- IPO ----------------
@@ -835,13 +1040,6 @@ def build():
             window = r.get("expected_ipo_window") or r.get("date") or "—"
             s1 = "YES" if r.get("s1_filed") else "—"
             s1_color = GREEN if r.get("s1_filed") else GRAY
-            stale = r.get("stale_days")
-            if stale is None:
-                stale_str = "—"
-            elif stale > 60:
-                stale_str = f'<span style="color:{RED};font-weight:700;">{stale}d</span>'
-            else:
-                stale_str = f'<span style="color:{GRAY};">{stale}d</span>'
             rex_y = bool(r.get("rex_filed"))
             rex_badge = (f'<span style="color:{GREEN};font-weight:700;">YES</span>' if rex_y
                          else f'<span style="color:{GRAY};">no</span>')
@@ -855,10 +1053,9 @@ def build():
                 (str(n_filings), "center"),
                 escape(issuers[:50]),
                 (rex_badge, "center"),
-                (stale_str, "center"),
             )
         ipo_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Company','Valuation','IPO Window','S-1','L&I Filings','Top Filers','REX Filed','Data Age'])}
+{_table_header(['Company','Valuation','IPO Window','S-1','L&I Filings','Top Filers','REX Filed'])}
 {rows}</table>"""
         if rp:
             rp_rows = ""
@@ -987,6 +1184,12 @@ def build():
 {recs_html}
 """
 
+    # YAML refresh date derived from the file's real mtime (was hardcoded).
+    if YAML_PATH.exists():
+        yaml_refresh_note = datetime.fromtimestamp(YAML_PATH.stat().st_mtime).strftime("%Y-%m-%d")
+    else:
+        yaml_refresh_note = "YAML missing"
+
     # ---------------- METHODOLOGY ----------------
     methodology_html = f"""
 <div style="font-size:12px;color:#1a1a2e;line-height:1.7;">
@@ -1019,20 +1222,29 @@ def build():
 
   <p><strong>Track record — concurrent backtest:</strong> For each single-stock L&amp;I underlier with at least one active product, we sum today's AUM across all L&amp;I products on that underlier, subtract the same sum from 3 months ago (<code>mkt_time_series.aum_value</code> with <code>months_ago=3</code>), and compare to the underlier's composite score. Basket indices and sector ETNs are excluded so the comparison is apples-to-apples single-stock. If the scoring works, HIGH-score buckets should show larger / more positive average flows than LOW-score buckets. This is concurrent validity, not a forward test — the forward test (recommendation_history hit-rate) needs ~10 weeks of accrued recommendations before it's statistically meaningful.</p>
 
-  <p><strong>IPO valuations:</strong> <code>config/ipo_watchlist.yaml</code> (verified web sources, last refresh 2026-06-02). Rows older than 60 days are flagged in the Data Age column. To refresh: edit YAML's <code>valuation_usd</code>, <code>as_of_date</code>, <code>s1_filed</code> fields — no code change required.</p>
+  <p><strong>IPO valuations:</strong> <code>config/ipo_watchlist.yaml</code> (verified web sources, last refresh {yaml_refresh_note}). To refresh: edit YAML's <code>valuation_usd</code>, <code>as_of_date</code>, <code>s1_filed</code> fields — no code change required.</p>
 
   <p style="margin-top:10px;font-size:11px;color:{GRAY};"><strong>Recent updates:</strong> race timing removed from scoring buckets (now its own section); tier bands (LAUNCH/FILE/WATCH) removed; methodology embedded; track record (flow backtest + forward hit-rate) added; T-REX delisting watch added; pipeline restricted to T-REX 2X (Long &amp; Inverse) filed-not-launched; recent filings tightened to 60d ≤2X; report scoped to single-stock L&amp;I — basket indices and sector ETNs excluded throughout.</p>
 </div>
 """
 
-    yaml_refresh_note = "2026-06-02 (verified)" if YAML_PATH.exists() else "YAML missing"
     bucket_signal = ""
     if flow_buckets:
-        h = flow_buckets.get("HIGH (≥40)", {}).get("avg_flow", 0)
-        l = flow_buckets.get("LOW (<20)", {}).get("avg_flow", 0)
-        if abs(h) > 1 or abs(l) > 1:
-            verdict = "scoring tracks flows" if h > l else "scoring inverts flows"
-            bucket_signal = f"Scoring vs flow (3mo): HIGH-bucket avg {_fmt_flow_m(h)} · LOW-bucket avg {_fmt_flow_m(l)} → {verdict}"
+        hb = flow_buckets.get("HIGH (≥40)", {})
+        # Compare HIGH against the next-lower populated bucket. The LOW (<20)
+        # bucket is empty (no single-stock underlier scores that low), so
+        # comparing HIGH vs an empty LOW produced a bogus "scoring tracks flows"
+        # claim that contradicted the "sample too small" verdict. Ryu 2026-06-09.
+        lb = flow_buckets.get("LOW (<20)", {})
+        lo_label = "LOW"
+        if not lb.get("n"):
+            lb = flow_buckets.get("MED (20-39)", {})
+            lo_label = "MED"
+        h = hb.get("avg_flow", 0)
+        l = lb.get("avg_flow", 0)
+        if lb.get("n") and (abs(h) > 1 or abs(l) > 1):
+            verdict = "higher-score underliers see larger flows" if h > l else "scoring inverts flows"
+            bucket_signal = f"Scoring vs flow (3mo): HIGH-bucket avg {_fmt_flow_m(h)} · {lo_label}-bucket avg {_fmt_flow_m(l)} → {verdict}"
 
     html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>T-REX Stock Recommendation System — {today_pretty}</title></head>
@@ -1058,16 +1270,16 @@ def build():
   {f'<div style="font-size:11px;color:{TEAL};margin-top:6px;font-weight:600;">{bucket_signal}</div>' if bucket_signal else ''}
 </td></tr>
 
-{_section_header('1 · Imminent Competitor Launches — PEND status', RED, 'Non-REX L&I products currently in PEND state — recently launched (status lag), upcoming, or undated. Dead-stale (>60d past inception with no ACTV transition) excluded.')}
+{_section_header('1 · Bloomberg Pending Funds', RED, 'Non-REX L&I products in Bloomberg PEND state with a FUTURE inception date — genuinely upcoming launches only. Undated and past-dated PEND rows are excluded.')}
 <tr><td style="padding:6px 30px 8px;">{imminent_html}</td></tr>
 
 {_section_header('Recent Competitor L&I Filings — New Series, Last 60 Days (≤2X)', ORANGE, 'Non-REX 485APOS for new L&I series (deduped by series name — re-filings of the same series suppressed). 3X+ products excluded. Top 50 most recent.')}
 <tr><td style="padding:6px 30px 8px;">{recent_html}</td></tr>
 
-{_section_header('2 · Our Pipeline — T-REX 2X (Long &amp; Inverse) Filed, Not Yet Launched (Top 20)', BLUE, 'T-REX 2X Long and Inverse products in Filed / Under Consideration / Target List status — what we have on file but have not yet shipped to market. Underlier score from the daily scoring run. Pre-IPO targets (Anthropic / SpaceX / etc.) appear with no score since their underlier is private.')}
+{_section_header(f'2 · Our Pipeline — T-REX 2X (Long & Inverse) Filed, Not Yet Launched ({n_pipeline})', BLUE, 'T-REX 2X Long and Inverse products in Filed / Under Consideration / Target List status — what we have on file but have not yet shipped to market. Full queue shown, ranked by underlier score. Pre-IPO targets (Anthropic / SpaceX / etc.) appear with no score since their underlier is private.')}
 <tr><td style="padding:6px 30px 8px;">{pipeline_html}</td></tr>
 
-{_section_header('3 · Whitespace Ranking — Top 100 Underliers With No Live L&I Product', NAVY, 'From the curated whitespace pool (1,417 tickers), ranked by composite score. Filter: no active L&I product on the underlier yet. REX/Comp filing flags show whether anyone has filed.')}
+{_section_header('3 · Whitespace Ranking — Top 100 Underliers With No Live L&I Product', NAVY, f'From the curated whitespace pool ({n_scored:,} tickers), ranked by composite score. Filter: no active L&I product on the underlier yet. REX/Comp filing flags show whether anyone has filed.')}
 <tr><td style="padding:6px 30px 8px;">{mega_html}</td></tr>
 
 {_section_header('4 · Inverse Gap — Underliers With Long Product but Zero Inverse (Single-Stock)', PURPLE, 'Single-stock underliers where competitor (or REX) ships an active long L&I product but no inverse exists anywhere. MU, NVDA, TSLA, AAPL etc. already have inverse coverage (verified) and are correctly absent from this list. Baskets / indices / commodities excluded.')}
@@ -1079,7 +1291,7 @@ def build():
 {_section_header('6 · Foreign Megacap Underliers', "#34495e", 'Curated overseas single-stock underliers — Samsung, SK Hynix, Tencent, Toyota, etc. Global market cap, REX status, competitor 2x activity.')}
 <tr><td style="padding:6px 30px 8px;">{foreign_html}</td></tr>
 
-{_section_header('7 · Pre-IPO Watchlist & Recently Priced IPOs', TEAL, f'High-profile pre-IPO targets with current valuations + S-1 status. YAML-backed (last refresh {yaml_refresh_note}). Rows older than 60d flagged in Data Age. L&I filer race shows who has filed leveraged products on each target.')}
+{_section_header('7 · Pre-IPO Watchlist & Recently Priced IPOs', TEAL, f'High-profile pre-IPO targets with current valuations + S-1 status. YAML-backed (last refresh {yaml_refresh_note}). L&I filer race shows who has filed leveraged products on each target.')}
 <tr><td style="padding:6px 30px 8px;">{ipo_html}</td></tr>
 
 {_section_header("8 · T-REX Delisting Watch — Live Products < $15M @ 6mo+", RED, "T-REX brand only. ACTV products with AUM under $15M and age >= 5.5 months. Rule of thumb: funds that have not crossed $15M by month 6 historically do not graduate, so these are review candidates.")}
