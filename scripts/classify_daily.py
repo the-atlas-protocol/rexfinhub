@@ -282,6 +282,11 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
                      confidence=c.get("confidence", "HIGH"), dry_run=dry_run)
 
     # ---- Tier 2: LLM + independent verification ---------------------------
+    # The outside bucket includes hundreds of LEGACY unclassified funds
+    # (scan is status-agnostic for backfill). Newest launches are what the
+    # gap audit nags about and what reports need first — process newest-first
+    # so the daily limit always covers the funds that matter today.
+    outside.sort(key=lambda f: str(f.get("inception_date", "")), reverse=True)
     outside = outside[:limit]
     proposals = []
     if outside and ai_classify.is_available():
