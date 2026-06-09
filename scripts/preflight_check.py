@@ -183,6 +183,18 @@ def audit_classification(db) -> dict:
         """)
         tier1 = [{"ticker": r[0], "name": r[1], "inception": r[2], "issuer": r[3],
                   "tier": "etp_category NULL"} for r in cur.fetchall()]
+        # Full-ticker exclusions (exclusions.csv rows with EMPTY etp_category)
+        # mean "outside all 5 tracked categories" — acknowledged, not a gap.
+        # Pair-exclusions (etp_category set) still only undo a wrong pair.
+        # (Engine session 2026-06-09: lets auto_classify's Other verdicts and
+        # standing rulings like OBTC stop nagging forever.)
+        try:
+            import pandas as _pd
+            _exc = _pd.read_csv(PROJECT_ROOT / "config" / "rules" / "exclusions.csv")
+            _full = set(_exc[_exc["etp_category"].isna()]["ticker"].astype(str).str.strip())
+            tier1 = [g for g in tier1 if g["ticker"] not in _full]
+        except Exception:
+            pass
         # Tier 2: NULL issuer_display on ACTV ETPs (any age)
         cur.execute("""
             SELECT ticker, fund_name, issuer

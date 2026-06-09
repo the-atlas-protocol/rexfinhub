@@ -14,6 +14,10 @@ EnvironmentFile=/home/jarvis/rexfinhub/config/.env
 # Pin process timezone to ET (audit fix R7).
 Environment=TZ=America/New_York
 ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main
+# Engine session 2026-06-09: classify autonomously FIRST (tiers: rulings ->
+# rules -> LLM+critic -> queue; docs/CLASSIFICATION.md), then report. The '-'
+# tolerates an LLM-API hiccup so the sweep report still goes out.
+ExecStart=-/home/jarvis/venv/bin/python scripts/classify_daily.py --apply
 ExecStart=/home/jarvis/venv/bin/python scripts/classification_sweep.py --post-summary
 TimeoutStartSec=300
 StandardOutput=journal
