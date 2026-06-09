@@ -21,7 +21,6 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
     form = str(row.get("Form", "")).upper()
     eff_date = str(row.get("Effective Date", "")).strip()
     delaying = str(row.get("Delaying Amendment", "")).upper() == "Y"
-    filing_date = str(row.get("Filing Date", "")).strip()
 
     # Parse effective date if present
     eff_dt = None
@@ -35,31 +34,26 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
 
     today = datetime.now()
 
-    # 485BPOS = Post-effective amendment (fund is trading)
+    # 485BPOS = Post-effective amendment under Rule 485(b): registration becomes
+    # effective on its stated date. EFFECTIVE only once that date has arrived;
+    # a future-dated BPOS is registered-but-not-yet-effective (-> PENDING).
+    # (Registration effective != listed/trading: listing needs 8-A12B + ticker,
+    # handled by the reconciler, not here.)
     if form.startswith("485B") and "POS" in form:
-        return "EFFECTIVE", "485BPOS filed (fund trading)"
+        if eff_dt and eff_dt.date() > today.date():
+            return "PENDING", f"485BPOS effective date {eff_date} is future"
+        return "EFFECTIVE", "485BPOS effective (registration cleared)"
 
-    # 485BXT = Extension of time with new effective date
+    # 485BXT = delaying amendment: DELAYS a pending 485APOS to a stated new
+    # effective date (the EFFECTIVENESS DATE header). It does NOT make a fund
+    # effective by itself -- the later 485BPOS / auto-effectiveness does. So a
+    # row whose latest form is 485BXT is DELAYED, carrying the scheduled date.
+    # (Removed the old +150d "presumed effective" auto-promote and the
+    # eff_date<=today -> EFFECTIVE shortcut: both manufactured false Effectives.)
     if form.startswith("485B") and "XT" in form:
-        if delaying:
-            return "DELAYED", "485BXT with delaying amendment"
         if eff_dt:
-            if eff_dt.date() <= today.date():
-                return "EFFECTIVE", f"485BXT effective as of {eff_date}"
-            else:
-                return "PENDING", f"485BXT effective date {eff_date} is future"
-        # 485BXT extensions are typically 45-120 days from filing
-        # If 150+ days have passed, the extension has elapsed and fund is effective
-        if filing_date:
-            try:
-                fdt = pd.to_datetime(filing_date, errors="coerce")
-                if not pd.isna(fdt):
-                    extension_deadline = fdt + pd.Timedelta(days=150)
-                    if extension_deadline.date() <= today.date():
-                        return "EFFECTIVE", "485BXT presumed effective (extension period elapsed)"
-            except Exception:
-                pass
-        return "PENDING", "485BXT filed (awaiting effectiveness)"
+            return "DELAYED", f"485BXT delays effectiveness to {eff_date}"
+        return "DELAYED", "485BXT filed (effectiveness delayed)"
 
     # 485APOS = Initial filing (post-effective amendment FORM but used for
     # both new funds AND material changes to existing funds).
@@ -75,24 +69,12 @@ def _determine_status(row: pd.Series) -> tuple[str, str]:
     if form.startswith("485A"):
         if delaying:
             return "DELAYED", "485APOS with delaying amendment"
-        if eff_dt:
-            if eff_dt.date() <= today.date():
-                return "EFFECTIVE", f"485APOS effective as of {eff_date}"
-            else:
-                return "PENDING", f"485APOS effective date {eff_date} is future"
-        # Default: 75 days from filing (new-fund 485APOS clock).
-        if filing_date:
-            try:
-                fdt = pd.to_datetime(filing_date, errors="coerce")
-                if not pd.isna(fdt):
-                    default_eff = fdt + pd.Timedelta(days=75)
-                    if default_eff.date() <= today.date():
-                        return "EFFECTIVE", f"485APOS presumed effective (+75 days)"
-                    else:
-                        return "PENDING", f"485APOS +75 day period not elapsed"
-            except Exception:
-                pass
-        return "PENDING", "485APOS filed (awaiting effectiveness)"
+        # 485APOS is the initial filing entering the Rule 485(a) review window.
+        # It is PENDING until a 485BPOS makes it effective. The filing+75d date
+        # is only an ESTIMATE of when auto-effectiveness could occur -- it does
+        # NOT make the fund effective, so we no longer auto-promote on +75d
+        # (that estimate is surfaced as estimated_effective_date downstream).
+        return "PENDING", "485APOS filed (in Rule 485(a) review)"
 
     # 497/497K = Supplement (fund must already be effective to file these)
     if form.startswith("497"):

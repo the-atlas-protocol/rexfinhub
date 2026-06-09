@@ -78,13 +78,17 @@ log = logging.getLogger("sync_rex_products_from_filings")
 
 ACCEPTED_FORMS = ("485APOS", "485BPOS", "485BXT")
 
-# Form precedence: a 485BPOS arriving is "later-stage" than a 485APOS that
-# preceded it. 485BXT (sticker) is the latest — it amends an already-effective
-# prospectus, so its arrival should never downgrade the status.
+# Form precedence by lifecycle stage, oldest-first:
+#   485APOS (filed/in-review) -> 485BXT (DELAYS the pending amendment, states a
+#   new effective date) -> 485BPOS (registration effective).
+# 485BXT sits BETWEEN APOS and BPOS: it pushes a pending filing, it does NOT
+# amend an already-effective prospectus. A 485BPOS arriving after a 485BXT must
+# still register as later-stage (the prior code ranked BXT above BPOS, so a BPOS
+# landing after a delay was silently ignored and the row never went Effective).
 _FORM_RANK = {
     "485APOS": 1,
-    "485BPOS": 2,
-    "485BXT":  3,
+    "485BXT":  2,
+    "485BPOS": 3,
 }
 
 # Default Rule 485(a) review window for 485APOS filings — used to seed
@@ -179,6 +183,44 @@ def _is_rex_name(name: str | None) -> bool:
 def _later_form(old: str | None, new: str | None) -> bool:
     """Return True if ``new`` is a later-stage form than ``old``."""
     return _FORM_RANK.get(new or "", 0) > _FORM_RANK.get(old or "", 0)
+
+
+# Lifecycle rank for rex_products.status. Mirrors status_reconciler's
+# _LIFECYCLE_ORDER but in the Title-case vocabulary rex_products uses. Sync only
+# ever PROMOTES along this order; demotions/corrections are the reconciler's job
+# (it has the Bloomberg/8-A12B evidence sync lacks). This keeps the reconciler's
+# Phase-1 corrections from being reverted on the next sync.
+_STATUS_RANK = {
+    "Under Consideration": 0,
+    "Target List": 1,
+    "Filed": 2,
+    "Delayed": 3,
+    "Effective": 4,
+    "Listed": 5,
+    "Delisted": 6,
+}
+
+
+def _form_status(form: str | None, eff_date: date | None, today: date) -> str:
+    """Status implied by a freshly-seen filing, per the corrected effectiveness
+    model (two separate legal events — registration-effective vs listed).
+
+    - 485BPOS = registration effective, but only once its stated effective date
+      has arrived. A future-dated BPOS is still 'Filed' (registered, not yet
+      effective), NOT 'Effective'.
+    - 485BXT = delays a pending amendment to a stated future date -> 'Delayed'.
+    - 485APOS (or anything else) = on file / in review -> 'Filed'.
+
+    Listing (-> 'Listed') requires an 8-A12B + ticker + first trade and is never
+    inferred from a 485 form here.
+    """
+    if form == "485BPOS":
+        if eff_date is not None and eff_date <= today:
+            return "Effective"
+        return "Filed"
+    if form == "485BXT":
+        return "Delayed"
+    return "Filed"
 
 
 def _parse_inception(raw) -> date | None:
@@ -459,7 +501,6 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
 
             if existing is None:
                 # ----- Phase 1: INSERT new row -----
-                new_status = "Effective" if f.form == "485BPOS" else "Filed"
                 est_eff: date | None = None
                 if ext is not None and ext.effective_date:
                     est_eff = ext.effective_date
@@ -467,6 +508,8 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
                     est_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
                 elif f.form == "485BPOS" and f.filing_date:
                     est_eff = f.filing_date
+                # Status from the corrected model (date-gated effective; BXT=delayed).
+                new_status = _form_status(f.form, est_eff, today)
 
                 # When a series has multiple classes (C-IDs), join with "|" so
                 # the row records every class under this series. Single-class
@@ -572,13 +615,22 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
                                existing.latest_prospectus_link, f.primary_link, row_label)
                         existing.latest_prospectus_link = f.primary_link
 
-                # 485BPOS arriving on a 'Filed' row -> Effective
-                if f.form == "485BPOS":
-                    if existing.status == "Filed" and "status" not in overrides:
+                # Promote status along the lifecycle per the corrected model:
+                # 485BXT -> Delayed, 485BPOS (eff date arrived) -> Effective.
+                # PROMOTE ONLY — never demote. Demotions and evidence-based
+                # corrections (ghost-Listed, Bloomberg ACTV/LIQU) belong to the
+                # status_reconciler, which is the single authority for downgrades.
+                # This is what keeps the reconciler's corrections from being
+                # reverted the next time this filing's series is re-synced.
+                if "status" not in overrides:
+                    proposed = _form_status(f.form, existing.estimated_effective_date, today)
+                    cur_rank = _STATUS_RANK.get(existing.status or "", 0)
+                    new_rank = _STATUS_RANK.get(proposed, 0)
+                    if new_rank > cur_rank:
                         if not dry_run:
                             _audit(db, "UPDATE", existing.id, "status",
-                                   existing.status, "Effective", row_label)
-                            existing.status = "Effective"
+                                   existing.status, proposed, row_label)
+                            existing.status = proposed
                         stats.status_promotions += 1
 
     if not dry_run:

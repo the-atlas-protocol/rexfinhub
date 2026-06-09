@@ -41,9 +41,10 @@ log = logging.getLogger("status_reconciler")
 # Status enum (matches status_history.status values; lowercase canonical)
 STATUS_UNDER_CONSIDERATION = "under_consideration"
 STATUS_TARGET_LIST = "target_list"
-STATUS_FILED = "filed"
-STATUS_EFFECTIVE = "effective"
-STATUS_LISTED = "listed"
+STATUS_FILED = "filed"          # 485APOS on file, in SEC review (a.k.a. pending)
+STATUS_DELAYED = "delayed"      # 485BXT pushed the effective date (not yet effective)
+STATUS_EFFECTIVE = "effective"  # 485BPOS registration effective + date arrived; NOT trading
+STATUS_LISTED = "listed"        # own ticker trading (Bloomberg ACTV) — actually live
 STATUS_DELISTED = "delisted"
 STATUS_SUSPENDED = "suspended"
 
@@ -55,6 +56,7 @@ _CAPM_CASE_STATUS = {
     "under_consideration": "Under Consideration",
     "target_list": "Target List",
     "filed": "Filed",
+    "delayed": "Delayed",
     "effective": "Effective",
     "listed": "Listed",
     "delisted": "Delisted",
@@ -88,10 +90,24 @@ def gather_evidence(conn: sqlite3.Connection, canonical_id: str) -> dict:
 
     rex_status, latest_form, listed_date, eff_date, filing_date, inception = cur
 
-    # SEC evidence: 485BPOS = SEC declared the registration effective
-    # 485A* = filed but not yet effective. 497 = supplement (post-effective).
-    sec_effective = (latest_form in ("485BPOS", "485BXT") and eff_date is not None) or \
-                    (eff_date is not None and eff_date <= datetime.utcnow().date().isoformat())
+    # SEC evidence — corrected model (2026-06-09, effectiveness overhaul):
+    #   485APOS = filed, in review (pending). NOT effective.
+    #   485BXT  = a DELAY of a pending 485APOS; carries the new scheduled
+    #             effective date. NOT effective — it means effectiveness moved.
+    #   485BPOS = registration effective ON its effective date (immediate / <=30d).
+    # A registration is "effective" ONLY when a 485BPOS has landed AND its
+    # effective date has actually arrived (<= today). A future-dated 485BPOS is
+    # filed-not-yet-effective. We no longer treat "estimated date passed" or the
+    # mere presence of a 485BXT as effectiveness (that mislabeled 128 L&I rows).
+    _today = datetime.utcnow().date().isoformat()
+    # Effective = a 485BPOS landed and its effective date arrived, OR the latest
+    # form is a 497/497K (definitive prospectus filed AFTER effectiveness — it
+    # implies the registration is already effective).
+    sec_effective = (latest_form == "485BPOS" and eff_date is not None and eff_date <= _today) \
+                    or (latest_form in ("497", "497K"))
+    # Delayed: the most recent 485 form is a 485BXT (extension) — effectiveness
+    # has been pushed and a 485BPOS has not yet superseded it.
+    sec_delayed = (latest_form == "485BXT")
     sec_filed = latest_form is not None and latest_form.startswith("485")
 
     # Bloomberg evidence: mkt_master_data row matching the fund's OWN
@@ -124,6 +140,7 @@ def gather_evidence(conn: sqlite3.Connection, canonical_id: str) -> dict:
 
     return {
         "sec_effective_evidence": sec_effective,
+        "sec_delayed_evidence": sec_delayed,
         "sec_filed_evidence": sec_filed,
         "bloomberg_actv_evidence": bbg_actv,
         "bloomberg_liqu_evidence": bbg_liqu,
@@ -159,17 +176,16 @@ def derive_status(evidence: dict) -> str:
     if evidence.get("bloomberg_actv_evidence"):
         return STATUS_LISTED
 
-    # Not yet on the Bloomberg active feed — SEC + exchange evidence drives
-    # the pre-launch lifecycle.
-    sec_cat = bool(evidence.get("sec_effective_evidence"))
-    exchange_cat = bool(
-        evidence.get("bloomberg_first_trade_evidence")
-        or evidence.get("cboe_listing_evidence")
-    )
-    if sec_cat and exchange_cat:
-        return STATUS_TARGET_LIST
-    if sec_cat:
+    # Not yet on the Bloomberg active feed — SEC evidence drives the pre-launch
+    # lifecycle: filed (485APOS) -> delayed (485BXT) -> effective (485BPOS
+    # arrived). "effective" means the REGISTRATION is effective; the fund is not
+    # trading until it appears ACTV on Bloomberg with its own ticker (handled
+    # above). Order matters: a confirmed-effective 485BPOS outranks an earlier
+    # 485BXT delay.
+    if evidence.get("sec_effective_evidence"):
         return STATUS_EFFECTIVE
+    if evidence.get("sec_delayed_evidence"):
+        return STATUS_DELAYED
     if evidence.get("sec_filed_evidence"):
         return STATUS_FILED
     return STATUS_UNDER_CONSIDERATION
@@ -314,8 +330,12 @@ def main() -> int:
             # are corrected explicitly (demote_liqu_dlst_rex_products.py), not
             # by the reconciler guessing from absent evidence.
             if cur is not None and not _is_promotion(cur, new):
-                skipped_demotions += 1
-                continue
+                # Permit a narrow correction of a prior over-promotion (the 128
+                # never-effective + 85 ghost-listed rows); otherwise stay
+                # conservative and skip the demotion.
+                if not _is_correction_demotion(cur, new, ev):
+                    skipped_demotions += 1
+                    continue
             append_transition(conn, cid, cur, new, ev, set_by="reconciler")
             applied += 1
         conn.commit()
@@ -326,18 +346,46 @@ def main() -> int:
         conn.close()
 
 
+_LIFECYCLE_ORDER = {
+    STATUS_UNDER_CONSIDERATION: 0,
+    STATUS_TARGET_LIST: 1,
+    STATUS_FILED: 2,
+    STATUS_DELAYED: 3,     # 485BXT delay — between filed and effective
+    STATUS_EFFECTIVE: 4,   # registration effective (not trading)
+    STATUS_LISTED: 5,
+    STATUS_SUSPENDED: 6,
+    STATUS_DELISTED: 7,
+}
+
+
 def _is_promotion(current: str, proposed: str) -> bool:
     """True if proposed is later in the lifecycle than current."""
-    order = {
-        STATUS_UNDER_CONSIDERATION: 0,
-        STATUS_FILED: 1,
-        STATUS_EFFECTIVE: 2,
-        STATUS_TARGET_LIST: 3,
-        STATUS_LISTED: 4,
-        STATUS_SUSPENDED: 5,
-        STATUS_DELISTED: 6,
-    }
-    return order.get(proposed, 0) > order.get(current, 0)
+    return _LIFECYCLE_ORDER.get(proposed, 0) > _LIFECYCLE_ORDER.get(current, 0)
+
+
+def _is_correction_demotion(current: str, proposed: str, evidence: dict) -> bool:
+    """Allow a NARROW downward correction of a prior OVER-promotion — only when
+    the current (higher) status is no longer supported by evidence AND the fund
+    is not actually trading. This corrects the 128 rows marked `effective` with
+    no confirmed 485BPOS, and the 85 ghost-`listed` rows whose own ticker never
+    appears ACTV on Bloomberg. It is NOT a market-driven demotion (a trading
+    fund going dark) — that remains the job of the explicit LIQU/DLST path.
+
+    Guards: never touch a row Bloomberg says is ACTV (it's genuinely trading),
+    and only demote within the pre-trading band (listed->effective/delayed/filed,
+    effective->delayed/filed, delayed->filed).
+    """
+    if evidence.get("bloomberg_actv_evidence"):
+        return False  # genuinely trading — leave it
+    if not _is_promotion(proposed, current):
+        return False  # not actually a downward move
+    # current must be an over-promotion: effective/listed without the evidence
+    # that justifies it (no confirmed-effective BPOS; no own-ticker ACTV).
+    if current == STATUS_LISTED:
+        return True   # no ACTV (guarded above) => ghost-listed correction
+    if current == STATUS_EFFECTIVE:
+        return not evidence.get("sec_effective_evidence")  # no confirmed BPOS arrived
+    return False
 
 
 if __name__ == "__main__":

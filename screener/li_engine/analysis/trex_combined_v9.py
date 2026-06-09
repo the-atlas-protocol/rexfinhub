@@ -182,12 +182,15 @@ def _tk(t):
 
 
 def _collapse_status(row) -> str:
+    # Preserve the real lifecycle status. The reconciler now distinguishes
+    # Filed (485APOS pending) / Delayed (485BXT) / Effective (485BPOS arrived,
+    # registration effective, not trading) / Listed (trading). We no longer
+    # collapse to a Filed/Effective binary or guess Effective from a passed
+    # estimated date — that was the pre-overhaul band-aid. Ryu 2026-06-09.
     raw = _safe_str(row.get("status"), "").strip()
-    if raw in ("Effective", "Listed"):
-        return "Effective"
-    eff = row.get("eff_dt")
-    if pd.notna(eff) and eff <= pd.Timestamp(date.today()):
-        return "Effective"
+    if raw in ("Filed", "Delayed", "Effective", "Listed",
+               "Under Consideration", "Target List", "Delisted"):
+        return raw
     return "Filed"
 
 
@@ -440,7 +443,7 @@ def load_trex_2x_long_pipeline(single_stocks: set | None = None):
                 FROM rex_products
                 WHERE (name LIKE 'T-REX 2X Long%' OR name LIKE 'T-REX 2X LONG%'
                        OR name LIKE 'T-REX 2X Inverse%' OR name LIKE 'T-REX 2X INVERSE%')
-                  AND status IN ('Filed','Under Consideration','Target List')
+                  AND status IN ('Filed','Delayed','Under Consideration','Target List')
                 ORDER BY initial_filing_date DESC""")
     if df.empty: return df
 
@@ -468,6 +471,21 @@ def load_trex_2x_long_pipeline(single_stocks: set | None = None):
     # 485(a)). Fill the blanks with that projection so REX Eff is never empty.
     # Ryu 2026-06-09.
     df["eff_dt"] = df["eff_dt"].fillna(df["filing_dt"] + pd.Timedelta(days=75))
+
+    # Drop DORMANT filings from the active pipeline. A scheduled/projected
+    # effective date more than 6 months in the past, with the fund still not
+    # launched, means the registration window lapsed without a listing — these
+    # are abandoned shelf filings (e.g. the 2024-06-18 T-REX 2X batch on
+    # AI/HOOD/RBLX/SMCI that never went live), not launch candidates. Keying on
+    # eff_dt (not filing_date) keeps re-extended filings whose 485BXT pushed the
+    # date forward. (Ryu 2026-06-09: declutter the pipeline of dead filings.)
+    _dormant_cut = pd.Timestamp.today().normalize() - pd.Timedelta(days=183)
+    _n_before = len(df)
+    df = df[df["eff_dt"].isna() | (df["eff_dt"] >= _dormant_cut)].copy()
+    _n_dormant = _n_before - len(df)
+    if _n_dormant:
+        log.info("pipeline: excluded %d dormant filings (eff date >6mo past, unlaunched)", _n_dormant)
+
     df["status_binary"] = df.apply(_collapse_status, axis=1)
 
     try:
@@ -879,7 +897,8 @@ def build():
         rows=""
         for _, r in pp.iterrows():
             sb = r["status_binary"]
-            status_color = GREEN if sb == "Effective" else BLUE
+            status_color = {"Effective": GREEN, "Listed": GREEN, "Delayed": ORANGE,
+                            "Filed": BLUE}.get(sb, GRAY)
             u=r['underlier_clean']
             score=r.get('underlier_score',0) or 0
             score_html=f'<b style="color:{NAVY};">{score:.1f}</b>' if score>0 else f'<span style="color:{GRAY};">—</span>'
