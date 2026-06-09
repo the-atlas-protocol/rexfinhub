@@ -59,7 +59,8 @@ STANDING_RULINGS: dict[str, tuple] = {
 }
 
 _MIRROR_FILES = (
-    "fund_mapping.csv", "exclusions.csv", "attributes_LI.csv", "attributes_CC.csv",
+    "fund_mapping.csv", "exclusions.csv", "issuer_mapping.csv",
+    "attributes_LI.csv", "attributes_CC.csv",
     "attributes_Crypto.csv", "attributes_Defined.csv", "attributes_Thematic.csv",
 )
 
@@ -163,12 +164,89 @@ def _mirror_rules(dry_run: bool) -> None:
             shutil.copy2(s, dst / name)
 
 
+def _fix_issuer_gaps(fh, dry_run: bool) -> int:
+    """Already-classified ACTV funds whose (category, issuer) pair is missing
+    from issuer_mapping.csv show issuer_display=NULL on every page/report.
+    Deterministic fix: register the pair; _update_issuer_mapping derives the
+    display nickname (brand-overrides layer can refine later)."""
+    import sqlite3
+    from tools.rules_editor.classify_engine import _update_issuer_mapping
+    con = sqlite3.connect(str(PROJECT_ROOT / "data" / "etp_tracker.db"))
+    rows = con.execute("""
+        SELECT ticker, etp_category, issuer FROM mkt_master_data
+        WHERE market_status='ACTV' AND etp_category IS NOT NULL
+          AND (issuer_display IS NULL OR issuer_display='')
+          AND issuer IS NOT NULL AND issuer != ''
+    """).fetchall()
+    con.close()
+    if not rows:
+        return 0
+    pseudo = [{"ticker": t, "etp_category": c, "issuer": i} for t, c, i in rows]
+    for t, c, i in rows:
+        _journal(fh, ticker=t, tier=1, decision="issuer-mapping",
+                 category=c, issuer=i, dry_run=dry_run)
+    if dry_run:
+        return len(rows)
+    return _update_issuer_mapping(pseudo)
+
+
+def _fix_cc_attr_gaps(fh, dry_run: bool, max_funds: int = 30) -> tuple[int, int]:
+    """ACTV CC funds missing from attributes_CC.csv (the autocall tool + CC
+    analytics read that file). LLM derives underlier/cc_category; the critic
+    pass is skipped — attribute fill on an already-confirmed category is
+    lower-stakes than categorization. Returns (fixed, api_calls)."""
+    import sqlite3
+    import pandas as pd
+    attr_path = RULES_DIR / "attributes_CC.csv"
+    have = set()
+    if attr_path.exists():
+        have = set(pd.read_csv(attr_path)["ticker"].astype(str).str.strip())
+    con = sqlite3.connect(str(PROJECT_ROOT / "data" / "etp_tracker.db"))
+    rows = con.execute("""
+        SELECT ticker, fund_name, issuer FROM mkt_master_data
+        WHERE market_status='ACTV' AND etp_category='CC'
+    """).fetchall()
+    con.close()
+    missing = [{"ticker": t, "fund_name": n_, "issuer": i}
+               for t, n_, i in rows if t not in have][:max_funds]
+    if not missing or not ai_classify.is_available():
+        return (0, 0)
+    proposals = ai_classify.classify_batch(missing)
+    name_by_ticker = {m["ticker"]: m["fund_name"] for m in missing}
+    fixed = 0
+    if not dry_run and proposals:
+        df = pd.read_csv(attr_path) if attr_path.exists() else pd.DataFrame(
+            columns=["ticker", "map_cc_underlier", "map_cc_index", "cc_type", "cc_category"])
+        for p in proposals:
+            if not p.ticker or p.ticker in have:
+                continue
+            is_autocall = "AUTOCALL" in str(name_by_ticker.get(p.ticker, "")).upper()
+            df.loc[len(df)] = {
+                "ticker": p.ticker,
+                "map_cc_underlier": p.underlier or "",
+                "map_cc_index": "",
+                "cc_type": "Autocallable" if is_autocall else "Traditional",
+                "cc_category": p.cc_category or "Single Stock",
+            }
+            fixed += 1
+            _journal(fh, ticker=p.ticker, tier=2, decision="cc-attrs",
+                     underlier=p.underlier, cc_category=p.cc_category, dry_run=dry_run)
+        df.to_csv(attr_path, index=False)
+    elif proposals:
+        fixed = len(proposals)
+        for p in proposals:
+            _journal(fh, ticker=p.ticker, tier=2, decision="cc-attrs",
+                     underlier=p.underlier, dry_run=dry_run)
+    return (fixed, 1)
+
+
 def run(since_days: int, limit: int, dry_run: bool) -> dict:
     from webapp.database import init_db, SessionLocal
     from webapp.models import ClassificationProposal
 
     stats = {"rules_applied": 0, "ai_applied": 0, "ai_excluded": 0,
-             "queued": 0, "rulings": 0, "api_calls": 0}
+             "queued": 0, "rulings": 0, "api_calls": 0,
+             "issuer_fixed": 0, "cc_attrs_fixed": 0}
     log_dir = PROJECT_ROOT / "logs"
     log_dir.mkdir(exist_ok=True)
     jpath = log_dir / f"auto_classify_{date.today().strftime('%Y%m%d')}.jsonl"
@@ -276,6 +354,16 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
     finally:
         db.close()
         fh.close()
+
+    # ---- Issuer-display + CC-attribute gap fills ---------------------------
+    fh2 = jpath.open("a", encoding="utf-8")
+    try:
+        stats["issuer_fixed"] = _fix_issuer_gaps(fh2, dry_run)
+        cc_fixed, cc_calls = _fix_cc_attr_gaps(fh2, dry_run)
+        stats["cc_attrs_fixed"] = cc_fixed
+        stats["api_calls"] += cc_calls
+    finally:
+        fh2.close()
 
     _mirror_rules(dry_run)
     return stats
