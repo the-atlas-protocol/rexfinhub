@@ -70,6 +70,15 @@ def write_master_data(
     """
     from webapp.models import MktMasterData
 
+    # Dedup on the UNIQUE key (ticker, etp_category) before insert — guards
+    # against duplicate source rows (e.g. new defined-outcome series listed
+    # twice in the Bloomberg sheet). Keep first. (added 2026-05-29)
+    if {'ticker', 'etp_category'}.issubset(master_df.columns):
+        before = len(master_df)
+        master_df = master_df.drop_duplicates(subset=['ticker', 'etp_category'], keep='first')
+        if len(master_df) != before:
+            log.warning('write_master_data: dropped %d duplicate (ticker,etp_category) rows', before - len(master_df))
+
     # Clear existing data
     session.query(MktMasterData).delete()
 

@@ -713,6 +713,26 @@ def upload_db_to_render():
     render_db = PROJECT_ROOT / "data" / f"etp_tracker_render.{os.getpid()}.db"
     gz_path = str(render_db) + ".upload.gz"
 
+    # GAP-08: sweep staging files orphaned by prior uploads that were KILLED
+    # before their finally-cleanup ran (disk-full / OOM crashes leave a
+    # ~700 MB etp_tracker_render.<pid>.db behind, which then helps fill the
+    # disk — the exact vicious cycle that drove /home to 100% on 2026-05-25
+    # and 2026-06-01). A normal upload finishes in <2 min, so anything older
+    # than an hour is definitively orphaned. Per-pid naming means this never
+    # touches a concurrent run's in-flight file.
+    try:
+        import time as _t
+        _cutoff = _t.time() - 3600
+        for _stale in (PROJECT_ROOT / "data").glob("etp_tracker_render.*"):
+            try:
+                if _stale.stat().st_mtime < _cutoff:
+                    _stale.unlink()
+                    print(f"  Swept orphaned staging file: {_stale.name}")
+            except OSError:
+                pass
+    except Exception:
+        pass
+
     try:
         print("  Preparing Render upload...", end=" ", flush=True)
         # 2026-05-14: Switched from (wal_checkpoint + shutil.copy2 + DROP TABLE
