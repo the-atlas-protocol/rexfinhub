@@ -13,6 +13,8 @@ updated: 2026-05-19
 | File | What it is | When to read it |
 |---|---|---|
 | [`INDEX.md`](INDEX.md) | This file. The map. | First — every session. |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | **THE MASTER FILE** — comprehensive system architecture: every subsystem, table ownership, the daily clock, data flows, gates, storage, debt register | Second — before any substantive work |
+| [`CLASSIFICATION.md`](CLASSIFICATION.md) | The taxonomy contract + autonomous classification engine | Before touching categories/rules |
 | [`SYSTEM.md`](SYSTEM.md) | Canonical AS-IS — what production does today | Operating, debugging, explaining current state |
 | [`TARGET.md`](TARGET.md) | Canonical TO-BE — what we're building toward | Planning, designing, justifying the rebuild |
 | [`RUNBOOK.md`](RUNBOOK.md) | Ryu's daily operating manual | Daily ops, incident response, "how do I X" |
