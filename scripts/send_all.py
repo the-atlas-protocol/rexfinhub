@@ -93,7 +93,11 @@ def _build_stock_recs(db) -> tuple[str, str]:
     # (The old "if not exists" guard meant a file baked before a later fix would
     # be sent as-is.) Ryu 2026-06-09.
     try:
-        from screener.li_engine.analysis.trex_combined_v9 import main as build_main
+        # trex_combined_v9's entrypoint is build(), not main(). The old import
+        # of a nonexistent `main` raised ImportError straight into the fallback
+        # below, silently shipping a stale earlier bake on every send
+        # (audit 2026-06-09).
+        from screener.li_engine.analysis.trex_combined_v9 import build as build_main
         build_main()
     except Exception as _e:
         if not html_path.exists():
