@@ -120,7 +120,14 @@ def main():
     else:
         print(f"\nDRY-RUN — no email sent. Open in browser: {out_html}")
 
-    return 0 if n_gaps == 0 else 1
+    # Exit 0 even with gaps (audit 2026-06-09): gaps are a WARN delivered via
+    # the summary email above, not a unit failure. The old non-zero exit put
+    # the systemd unit into 'failed' state every day there was routine
+    # classification work to do — drowning real failures and training
+    # operators to ignore red units. A crash still exits non-zero naturally.
+    if n_gaps:
+        print(f"\n{n_gaps} gap(s) — reported via summary email; exiting 0 (warn != fail).")
+    return 0
 
 
 if __name__ == "__main__":

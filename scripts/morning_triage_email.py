@@ -151,12 +151,25 @@ def main() -> int:
             print("No assertion_run rows found. Run scripts/run_assertions.py first.",
                   file=sys.stderr)
             return 1
-        run_at = max(r["detail"] for r in results) if False else ""
         run_at = conn.execute("SELECT MAX(run_at) FROM assertion_run").fetchone()[0]
+
+        # Staleness guard (audit 2026-06-09): the unit now tolerates a
+        # failing/crashing assertion run so this email ALWAYS sends — but if
+        # the assertions never wrote a fresh row, this report would silently
+        # describe yesterday. Detect and say so loudly instead.
+        stale_h = None
+        try:
+            stale_h = (datetime.utcnow()
+                       - datetime.fromisoformat(run_at)).total_seconds() / 3600
+        except (TypeError, ValueError):
+            pass
 
         failed_n = sum(1 for r in results if not r["passed"])
         subject = f"[REX TRIAGE] {datetime.utcnow().strftime('%Y-%m-%d')} — "
-        subject += "ALL CLEAR" if failed_n == 0 else f"{failed_n} items need attention"
+        if stale_h is not None and stale_h > 6:
+            subject += f"ASSERTIONS DID NOT RUN (latest data {stale_h:.0f}h old)"
+        else:
+            subject += "ALL CLEAR" if failed_n == 0 else f"{failed_n} items need attention"
 
         text = render_text(results, run_at)
 

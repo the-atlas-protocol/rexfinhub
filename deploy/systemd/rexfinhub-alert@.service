@@ -1,0 +1,18 @@
+[Unit]
+Description=REX FinHub failure alert for %i
+# Template unit: any rexfinhub-*.service can declare
+#   OnFailure=rexfinhub-alert@%n.service
+# and a critical-alert email fires when that unit fails. This is the
+# OnFailure backstop the audit (2026-06-09) found missing on every unit —
+# previously a failed backup/scrape was visible only in journalctl.
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+Environment=TZ=America/New_York
+ExecStart=/home/jarvis/venv/bin/python -c "from etp_tracker.email_alerts import send_critical_alert; import subprocess; tail = subprocess.run(['journalctl', '-u', '%i', '-n', '20', '--no-pager'], capture_output=True, text=True).stdout[-3000:]; send_critical_alert('systemd unit FAILED: %i', 'Unit %i entered failed state.\n\nLast 20 journal lines:\n\n' + tail)"
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=120

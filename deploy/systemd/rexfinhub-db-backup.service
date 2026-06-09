@@ -1,6 +1,8 @@
 [Unit]
 Description=REX FinHub Daily DB Backup
 After=network.target
+# Audit 2026-06-09: a failed backup must page, not rot in journalctl.
+OnFailure=rexfinhub-alert@%n.service
 
 [Service]
 Type=oneshot
@@ -9,10 +11,18 @@ WorkingDirectory=/home/jarvis/rexfinhub
 # Pin process timezone to ET so the backup filename's date stamp
 # matches the market-local day (audit fix R7).
 Environment=TZ=America/New_York
-ExecStart=/bin/bash -c 'mkdir -p data/backups && sqlite3 data/etp_tracker.db ".backup data/backups/etp_tracker_$(date +%%Y%%m%%d).db" && find data/backups -name "etp_tracker_*.db" -mtime +7 -delete'
+# Order is load-bearing (audit 2026-06-09, ADR 0011 E5):
+#  1. PRUNE FIRST — the old unit pruned after the backup, so on a full disk
+#     the backup failed with ENOSPC and its own cleanup never ran (the exact
+#     vicious cycle of the 2026-05-25 incident).
+#  2. Backup via the atomic .backup API.
+#  3. VERIFY the snapshot with integrity_check — a torn/partial backup that
+#     would fail at restore time must fail TONIGHT instead.
+ExecStart=/bin/bash -c 'set -e; mkdir -p data/backups; find data/backups -name "etp_tracker_*.db" -mtime +7 -delete; F="data/backups/etp_tracker_$(date +%%Y%%m%%d).db"; sqlite3 data/etp_tracker.db ".backup $F"; R=$(sqlite3 "$F" "PRAGMA integrity_check;"); [ "$R" = "ok" ] || { echo "integrity_check FAILED: $R"; rm -f "$F"; exit 1; }; echo "backup OK: $F ($(du -h "$F" | cut -f1))"'
 StandardOutput=journal
 StandardError=journal
-TimeoutStartSec=300
+# integrity_check on a ~790MB snapshot needs headroom beyond the old 300s.
+TimeoutStartSec=900
 
 [Install]
 WantedBy=multi-user.target

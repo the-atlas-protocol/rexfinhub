@@ -5,6 +5,8 @@ Description=REX FinHub Morning Triage (assertion run + summary email)
 # Bloomberg sync + classification settle.
 After=network-online.target
 Wants=network-online.target
+# Audit 2026-06-09: if the email step itself dies, escalate.
+OnFailure=rexfinhub-alert@%n.service
 
 [Service]
 Type=oneshot
@@ -12,10 +14,17 @@ User=jarvis
 WorkingDirectory=/home/jarvis/rexfinhub
 EnvironmentFile=/home/jarvis/rexfinhub/config/.env
 Environment=TZ=America/New_York
-# Run the 10-assertion suite, then send the triage summary email.
+# Run the assertion suite, then send the triage summary email.
 # Both scripts are idempotent (running multiple times in a day is harmless;
 # each writes a new run_at row to assertion_run).
-ExecStart=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/run_assertions.py
+#
+# The '-' prefix is load-bearing (audit 2026-06-09): run_assertions exits 2
+# when any assertion FAILS, and systemd skips ExecStartPost when a oneshot
+# ExecStart exits non-zero — so the triage email died exactly on the days it
+# had failures to report. Tolerate the assertion exit code; the email itself
+# carries the failure signal (and a staleness guard covers an assertion
+# CRASH: subject flips to "ASSERTIONS DID NOT RUN").
+ExecStart=-/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/run_assertions.py
 ExecStartPost=/home/jarvis/venv/bin/python /home/jarvis/rexfinhub/scripts/morning_triage_email.py
 TimeoutStartSec=300
 StandardOutput=journal

@@ -3,6 +3,9 @@ Description=REX FinHub SEC Filing Scrape
 After=network-online.target
 Wants=network-online.target
 
+# Audit 2026-06-09: failures must page, not rot in journalctl.
+OnFailure=rexfinhub-alert@%n.service
+
 [Service]
 Type=oneshot
 User=jarvis

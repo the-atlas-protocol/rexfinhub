@@ -96,8 +96,28 @@ def _safe_redirect(url: str) -> str:
     return url
 
 
-# Paths that don't require site auth
-_PUBLIC_PREFIXES = ("/login", "/static/", "/health", "/api/v1/", "/favicon", "/robots.txt", "/sitemap.xml")
+# Paths that don't require site auth.
+#
+# Audit 2026-06-09: this list used to exempt the ENTIRE "/api/v1/" tree, which
+# left every key-less data endpoint under it (13F holdings JSON/CSV exports,
+# /api/v1/search over Bloomberg-derived mkt_master_data, home-kpis,
+# ticker-strip, aum-goals) open to the unauthenticated internet. Only the
+# M2M endpoints that carry their OWN auth (X-API-Key / bearer token) — plus
+# /live/recent, which is deliberately public — stay exempt. Everything else
+# under /api/v1/ now requires the site session, which the home-page JS
+# already has.
+_PUBLIC_PREFIXES = (
+    "/login", "/static/", "/health", "/favicon", "/robots.txt", "/sitemap.xml",
+    # M2M endpoints with their own key/bearer auth:
+    "/api/v1/db/",                  # X-API-Key (DB/notes/holdings uploads)
+    "/api/v1/uploads/",             # RENDER_UPLOAD_TOKEN bearer (screener cache)
+    "/api/v1/parquets/",            # X-API-Key (analysis parquets)
+    "/api/v1/reports/upload",       # X-API-Key (prebaked report HTML)
+    "/api/v1/live/",                # push = key-auth; recent = deliberately public
+    "/api/v1/etp/",                 # X-API-Key (external screener consumers)
+    "/api/v1/returns",              # X-API-Key
+    "/api/v1/maintenance",          # own token auth + CSRF-protected
+)
 
 
 class SiteAuthMiddleware(BaseHTTPMiddleware):
@@ -108,6 +128,11 @@ class SiteAuthMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(p) for p in _PUBLIC_PREFIXES):
             return await call_next(request)
         if not request.session.get("site_auth"):
+            # JSON endpoints get a proper 401 — redirecting a fetch() to the
+            # login HTML page just produces confusing parse errors client-side.
+            if path.startswith("/api/"):
+                return JSONResponse({"detail": "Authentication required"},
+                                    status_code=401)
             next_url = quote(path, safe="/")
             return StarletteRedirect(f"/login?next={next_url}", status_code=302)
         return await call_next(request)

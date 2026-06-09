@@ -397,19 +397,94 @@ def check_override_categories(conn: sqlite3.Connection) -> tuple:
 
 @_make_assertion("backup_recent", "infra")
 def check_backup(conn: sqlite3.Connection) -> tuple:
-    """Most recent data/backups/etp_tracker_*.db should be < 30 hours old."""
+    """Most recent NIGHTLY backup (etp_tracker_YYYYMMDD.db) should be < 30 hours old.
+
+    Audit 2026-06-09: the old glob ``etp_tracker*.db*`` also matched the
+    ``*_pre_*`` rollback snapshots written every 15 minutes by sync --apply,
+    so a dead nightly backup stayed green indefinitely. Match ONLY the
+    nightly naming pattern. A missing backups dir is a FAILURE on the VPS
+    (it means the backup unit never ran); only local dev gets a pass.
+    """
+    import re as _re
+    import sys as _sys
     backup_dir = PROJECT_ROOT / "data" / "backups"
+    on_vps = _sys.platform.startswith("linux")
     if not backup_dir.exists():
+        if on_vps:
+            return (False, 1, [], "data/backups missing on VPS — backup unit never ran")
         return (True, 0, [], "no backups dir (local dev DB)")
-    backups = sorted(backup_dir.glob("etp_tracker*.db*"),
-                     key=lambda p: p.stat().st_mtime, reverse=True)
-    if not backups:
-        return (False, 1, [], "no backups found")
-    age_h = (datetime.utcnow().timestamp() - backups[0].stat().st_mtime) / 3600
+    nightly = [p for p in backup_dir.glob("etp_tracker_*.db")
+               if _re.fullmatch(r"etp_tracker_\d{8}\.db", p.name)]
+    if not nightly:
+        if not on_vps:
+            return (True, 0, [], "no nightly backups (local dev DB)")
+        return (False, 1, [], "no nightly etp_tracker_YYYYMMDD.db backups found")
+    latest = max(nightly, key=lambda p: p.stat().st_mtime)
+    age_h = (datetime.utcnow().timestamp() - latest.stat().st_mtime) / 3600
     passed = age_h < 30
     return (passed, 0 if passed else 1,
-            [{"latest_backup": backups[0].name, "age_h": round(age_h, 1)}],
-            f"latest backup {age_h:.1f}h old (threshold 30h)")
+            [{"latest_backup": latest.name, "age_h": round(age_h, 1)}],
+            f"latest nightly backup {age_h:.1f}h old (threshold 30h)")
+
+
+@_make_assertion("restrictive_flag_age", "send_pipeline")
+def check_restrictive_flag_age(conn: sqlite3.Connection) -> tuple:
+    """Restrictive system_flags must not be forgotten.
+
+    send_paused stuck on for 14 days and preflight_maintenance for a month
+    both silently degraded the system (audit 2026-06-09). Nag until cleared:
+    send_paused > 3 days or preflight_maintenance > 7 days = FAIL.
+    """
+    limits_days = {"send_paused": 3, "preflight_maintenance": 7}
+    try:
+        rows = conn.execute(
+            "SELECT flag_name, is_set, set_at, set_by FROM system_flags"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return (True, 0, [], "no system_flags table (local dev DB)")
+    stale = []
+    for name, is_set, set_at, set_by in rows:
+        if name not in limits_days or not is_set:
+            continue
+        try:
+            age_d = (datetime.utcnow() - datetime.fromisoformat(set_at)).days
+        except (TypeError, ValueError):
+            age_d = 999
+        if age_d > limits_days[name]:
+            stale.append({"flag": name, "age_days": age_d, "set_by": set_by,
+                          "limit_days": limits_days[name]})
+    passed = not stale
+    return (passed, len(stale), stale,
+            f"{len(stale)} restrictive flag(s) older than their limit"
+            if stale else "no stale restrictive flags")
+
+
+@_make_assertion("git_tree_clean", "infra")
+def check_git_tree_clean(conn: sqlite3.Connection) -> tuple:
+    """Production working tree must match git (deploy=git, ADR 0011 E4).
+
+    scp-deployed-but-uncommitted files caused unversioned production code
+    (audit 2026-06-09: nightly L&I engine existed only on VPS disk). Tracked
+    modifications/deletions = FAIL on the VPS; untracked files are reported
+    but tolerated. Local dev always passes (work-in-progress is normal).
+    """
+    import subprocess as _sp
+    import sys as _sys
+    if not _sys.platform.startswith("linux"):
+        return (True, 0, [], "local dev — not enforced")
+    try:
+        out = _sp.run(["git", "status", "--porcelain"], cwd=str(PROJECT_ROOT),
+                      capture_output=True, text=True, timeout=30).stdout
+    except Exception as e:  # git missing / not a repo
+        return (True, 0, [], f"git unavailable ({e})")
+    tracked = [l for l in out.splitlines() if l[:2].strip() and not l.startswith("??")]
+    untracked_n = sum(1 for l in out.splitlines() if l.startswith("??"))
+    passed = not tracked
+    return (passed, len(tracked),
+            [{"path": l[3:], "state": l[:2].strip()} for l in tracked[:5]],
+            f"{len(tracked)} tracked file(s) modified on prod tree, "
+            f"{untracked_n} untracked" if tracked
+            else f"tree clean ({untracked_n} untracked tolerated)")
 
 
 @_make_assertion("preflight_token_valid", "send_pipeline")
@@ -678,6 +753,8 @@ ASSERTIONS = [
         check_status_history_current, check_status_cached,
         # Phase D hardening (sprint2): orphan-extraction prevention
         assert_no_orphan_rex_extractions,
+        # Engine session (audit 2026-06-09): forgotten-flag + deploy-drift guards
+        check_restrictive_flag_age, check_git_tree_clean,
     ]
 ]
 
