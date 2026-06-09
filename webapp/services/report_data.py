@@ -1193,8 +1193,13 @@ def get_li_report(db: Session | None = None) -> dict:
     data_notional = cache["data_notional"]
     rex_tickers = cache["rex_tickers"]
 
-    # Filter to LI tickers (ETFs + ETNs)
-    li = master[(master["etp_category"] == "LI") & (master["fund_type"].isin(["ETF", "ETN"]))].copy()
+    # Filter to LI tickers (ETFs + ETNs, ACTV only — was missing the ACTV filter
+    # pre-2026-06-08, which over-counted by 13 funds / $9.6B from delisted+pending REX
+    # products. See report_emails BUG-01 for context).
+    li_mask = (master["etp_category"] == "LI") & (master["fund_type"].isin(["ETF", "ETN"]))
+    if "market_status" in master.columns:
+        li_mask = li_mask & (master["market_status"] == "ACTV")
+    li = master[li_mask].copy()
     if li.empty:
         return {"available": True, "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
                 "kpis": {}, "providers": [], "top10": [], "bottom10": [],
