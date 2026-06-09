@@ -1187,3 +1187,24 @@ Recommendations:
 - P1 — Stop the hygiene cron from killing rollback snapshots: change the 15-min *_pre_*.db delete to age >24h (or exempt the four known prefixes) and let each script's keep-3 rotation do its job; this r
 - P2 — Repoint sync_vps_to_d.ps1 / _on_demand.ps1 step 1 at data/backups snapshots instead of the live WAL DB; mark D:\sec-data\backups\ copies as hot-copy quality. Recommend (not delete) retiring the d
 - P2 — Extend backup scope: include config/.env (secrets) and live_feed.db in the nightly archive leg; add GLOSSARY entries for [[db-backup]], [[D-drive archive]], [[pre-write snapshot]]; move the resto
+
+---
+
+### WEBAPP / PUBLIC SITE (re-run mapper — original died on API overload)
+
+Single FastAPI app; whole-site password gate via SiteAuthMiddleware + signed-cookie sessions; admin tier via session is_admin; M2M /api/v1 endpoints (X-API-Key for DB/parquet/report uploads, RENDER_UPLOAD_TOKEN bearer for screener-cache). CBOE data ~27 days stale (40 consecutive failed runs). 36 independent Jinja2Templates instances bypass the StrictUndefined protection built after the 2026-05-12 blank-page incident.
+
+- **[high] Unauthenticated /api/v1 data endpoints exposed (site-auth bypass via _PUBLIC_PREFIXES)** — main.py:100 exempted the whole '/api/v1/' tree; NO auth on 13F holdings JSON/CSV exports (holdings.py:707-1028), /api/v1/search over Bloomberg-derived mkt_master_data (global_search.py:110-124), home-kpis/ticker-strip/aum-goals (dashboard.py). **FIXED this session (commit a57c774): explicit M2M allowlist + session-required + 401 JSON for anonymous /api/*.**
+- **[medium] 13F intel routers documented admin-only but ungated** — main.py:459-461 + routes.py:38 claim require_admin; zero routers use it (dependencies.py:53-67 built but unused). Fix: APIRouter(dependencies=[Depends(require_admin)]) on intel/intel_competitors/intel_insights/holdings.
+- **[high] CBOE data stale ~27 days** — 3 completed vs 40 failed scan runs; max(last_checked_at)=2026-05-13; banner plumbing works. (Cluster with the CBOE WAF decision — RYU_DECISIONS #9.)
+- **[medium] Empty ADMIN_PASSWORD fails open** — admin.py:820 grants admin on empty-string submit when unset; 3 routers also accept a never-set legacy admin_auth cookie via non-constant-time compare.
+- **[medium] StrictUndefined covers 1 of 36 template environments** — templates_init.py prescribes the pattern; 36 routers instantiate raw Jinja2Templates.
+- **[medium] Bloomberg/ETN boundary policy drift** — feedback_reports_local_only says ETN/BBG never on the website, but /api/v1/etp/screener serves ETN rows by design, bbg_timeseries_panel.parquet uploads to Render and renders on /tools/li/candidates. Needs an ADR: bless "derived fields behind site password" or strip. (The unauth leak part is fixed.)
+- **[low] Dead: screener_service.py, competitor_lookup.py (test-only), dormant Azure SSO (auth.py MSAL + auth_routes, no consumers), orphan templates (screener_4x, screener_rankings, pipeline_summary.html).**
+- **[low] DataFreshnessMiddleware opens a DB session per page request** — cache with 30-60s TTL.
+
+Mismatches: SYSTEM.md GAP-02 says no CSRF middleware (shipped at main.py:170-240); SYSTEM.md maps /filings/symbols to routers/symbols.py (doesn't exist; actual = filings.py:_symbols_impl at /tools/tickers); SYSTEM.md marks RENDER_UPLOAD_TOKEN "possibly unused" (actively used both sides); run_daily docstring claims "stripped DB (no 13F tables)" upload (stripping removed 2026-05-14).
+
+Org: v3 URL migration frozen mid-flight (pillar routers re-register legacy impls, "PR 5 deletes them" never landed — every page has 2-3 URLs); auth enforced 4 different ways; ~70 flat templates + 8 subdirs, two naming conventions.
+
+Recommendations: require_admin on 13F routers; fail closed on empty ADMIN_PASSWORD; StrictUndefined migration one router per commit; SYSTEM.md webapp section refresh; Bloomberg-boundary ADR; mobile = wide tables need scroll containers before claiming support.
