@@ -33,6 +33,8 @@ RULES_PATHS = [
     "config/rules/attributes_Crypto.csv",
     "config/rules/attributes_Defined.csv",
     "config/rules/attributes_Thematic.csv",
+    "config/rules/rex_suite_mapping.csv",
+    "config/rules/rex_funds.csv",
     "config/rules/_queues_report.json",
     "docs/issuer_review_queue.csv",
 ]
