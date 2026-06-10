@@ -364,3 +364,84 @@ KHPI US,,SPX,Traditional,Broad Beta
 LBAY US,,Basket,Traditional,Alternatives
 TOPW US,,Basket,Synthetic,Alternatives
 JPO US,JPM,,Synthetic,Single Stock
+SMCP US,Mid-Cap,,,Broad Beta
+THGG US,Global Growth,,,Broad Beta
+THII US,India,,,Broad Beta
+VDG US,Developed Markets Ex-US,,,Broad Beta
+VDV US,Developed Markets Ex-US,,,Broad Beta
+SSMG US,Small/Mid Cap,,,Broad Beta
+CVSM US,Small/Mid-cap US equity,,,Broad Beta
+CVGD US,Global equity dividend payers,,,Dividend/Sector
+TPFC US,US equities with free cash flow focus,,,Factor/Quality
+TPFG US,US equities with free cash flow growth focus,,,Factor/Growth
+WCMG US,Global equity,,,Broad Beta
+EMEM US,Emerging Markets,,,Broad Beta
+SDEE US,Broad U.S. Equities,,,Broad Beta
+TOAO US,Mixed Allocation,,,Broad Beta
+TOEQ US,Mixed Allocation,,,Broad Beta
+EMFI US,Emerging Markets Debt,,,Broad Beta
+FEMV US,Mid-Cap Value Equities,,,Broad Beta
+FEMG US,Mid-Cap Growth Equities,,,Broad Beta
+FSEG US,Small-Cap Growth Equities,,,Broad Beta
+FSEV US,Small-Cap Value Equities,,,Broad Beta
+BUYB US,S&P 500,,,Broad Beta
+SSCP US,Russell 2000,,,Small Cap
+FHIL US,International Developed Markets,,,International
+NISM US,MSCI International Small-Mid Cap,,,International
+NYYY US,NVDA,,Traditional,Single Stock
+AHD US,HOOD,,Autocallable,Single Stock
+TYYY US,TSLA,,Traditional,Single Stock
+PLA US,PLTR,,Autocallable,Single Stock
+MRA US,MARA,,Autocallable,Single Stock
+SCA US,SMCI,,Autocallable,Single Stock
+INYY US,INTC,,Traditional,Single Stock
+MATE US,,,Traditional,Broad Beta
+ACTS US,US Equity,,,Broad Beta
+AIMS US,US Small Cap,,,Small Cap
+ARWG US,US Equity,,,Growth
+AVOS US,Global Equity,,,Broad Beta
+AVRY US,US Equity,,,Broad Beta
+AVTM US,Global Equity,,,Broad Beta
+BAIV US,International Equity,,,International Value
+BCGD US,Global Equity,,,Value
+BCGS US,Global Equity,,,Broad Beta
+BCSM US,US Small/Mid Cap,,,Small/Mid Cap
+BREE US,Emerging Markets,,,Emerging Markets
+BRES US,US Equity,,,Broad Beta
+FFF US,US Large Cap,,,Broad Beta
+FSML US,US Small Cap,,,Broad Beta
+GAID US,International Equities,,,Broad Beta
+GARY US,Growth Equities,,,Broad Beta
+GAUD US,US Equities,,,Broad Beta
+HYGA US,Credit/Bonds,,,Fixed Income
+IDVY US,International Dividend Stocks,,,Broad Beta
+INDZ US,India,,,Broad Beta
+IVSI US,International Developed Markets,,,Broad Beta
+IVSX US,International Developed Markets,,,Broad Beta
+JIDE US,International Developed Markets,,,Broad Beta
+LCO US,US Equities,,,Broad Beta
+MEMA US,Emerging Markets,,,Broad Beta
+TISC US,International Small Cap,,,Broad Beta
+TILC US,International Large Cap,,,Broad Beta
+AMEM US,,,,International
+GEQ US,,,,Global Equity
+AQLG US,,,,Large Cap Growth
+PCPP US,,,,Broad Beta
+MIVL US,,,,International
+BRSM US,,,,Small/Mid Cap
+NUDG US,US Large-Cap Dividend Stocks,,,Broad Beta
+BGIA US,International Developed Markets,,,Broad Beta
+BGEG US,MSCI Emerging Markets,,,Broad Beta
+TRUI US,Industrials Sector,,,Sector
+TRUO US,Consumer Staples Sector,,,Sector
+ZINC US,US Dividend/Income Stocks,,,Broad Beta
+BROL US,Large Cap Equities,,,Broad Beta
+PJUS US,US Large Cap,,,Broad Beta
+GIEQ US,International Equities,,,Broad Beta
+EMSC US,Emerging Markets Small Cap,,,Broad Beta
+DFMC US,US Micro Cap,,Traditional,Broad Beta
+DVVY US,Diversified US Equities,,Traditional,Broad Beta
+ENHI US,International Equities,,Traditional,Broad Beta
+ESIM US,International Equities,,Traditional,Broad Beta
+EXEQ US,US Large Cap,,Traditional,Broad Beta
+FEMD US,US Mid Cap,,Traditional,Broad Beta

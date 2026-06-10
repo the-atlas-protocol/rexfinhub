@@ -34,3 +34,67 @@ TPFG US,,factor_only
 TPFI US,,fixed_income
 PCEB US,,fixed_income
 CLOO US,,fixed_income
+AGGZ US,,"auto-llm-other: Enhanced fixed income ETF with no leverage, derivatives strategy, or thematic tilt—standard bond fund variant."
+HYGA US,,auto-llm-other: Enhanced credit ETF with fixed income focus and no leverage or structural derivative strategy evident.
+LQID US,,"auto-llm-other: Short maturity fixed income ETF with no leverage, derivatives, or thematic exposure."
+SHRD US,,"auto-llm-other: Catholic values-aligned bond ETF with no leverage, derivatives strategy, or structural complexity."
+TOAO US,,"auto-llm-other: Mixed allocation active fund without clear leverage, derivative strategy, or thematic focus; appears to be a traditional balanced ETF."
+TOEQ US,,"auto-llm-other: Mixed allocation active fund without identifiable leverage, derivatives, or thematic tilt; standard balanced equity-focused product."
+EMFI US,,"auto-llm-other: Emerging markets debt ETF is a fixed income product not fitting leverage, crypto, or defined categories."
+IBMX US,,auto-llm-other: Term bond ETF with 2035 maturity target; standard fixed income ladder strategy without leverage.
+BAY US,,auto-llm-other: Geographic single-region (Bay Area) equity ETF is a localized strategy outside thematic or sector focus.
+LQ US,,auto-llm-other: Tax-aware alternatives ETF blends multiple alternative asset classes without a single primary focus.
+FUSD US,,"auto-llm-other: Ultrashort bond ETF is fixed-income focused with near-zero duration, not equity or derivative-based."
+GOVM US,,auto-llm-other: Treasury bond ETF is a traditional fixed income product outside REX Financial's derivative-based categories.
+BFLX US,,"auto-llm-other: Actively managed flexible equity strategy does not fit leveraged, crypto, or defined outcome profiles."
+HIS US,,auto-llm-other: US focused opportunities ETF is a traditional active equity strategy without leverage or defined structure.
+NUDG US,,auto-llm-other: Dividend growth ETF is a conventional equity income strategy outside REX's specialized product categories.
+JTNY US,,auto-llm-other: Municipal bond ETF is a traditional fixed income product outside REX Financial's categories.
+PJUS US,,auto-llm-other: Core US equity ETF is a conventional broad-based equity strategy without leverage or structured outcomes.
+AAAD US,,auto-llm-other: CLO aggregate duration bond ETF is a traditional fixed income product outside REX's categories.
+PINC US,,auto-llm-other: Securitized income ETF is a traditional fixed income strategy without leverage or derivative structure.
+JCAL US,,auto-llm-other: Municipal bond ETF is a traditional fixed income product outside REX Financial's specialized categories.
+ESTA GR,,auto-llm-other: Corporate bond short duration strategy is a conventional fixed income product outside REX's categories.
+GIEQ US,,auto-llm-other: Data-enhanced international equity ETF is a conventional equity strategy without leverage or defined structure.
+UUPP US,,auto-llm-other: CLO bond ETF is a traditional fixed income product outside REX Financial's leverage and structured categories.
+AAAC US,,"auto-llm-other: CLO (Collateralized Loan Obligation) ETF is a specialized fixed income product that doesn't fit LI, CC, Crypto, Defined, or Thematic categories."
+BRIB US,,"auto-llm-other: Core bond ETF is a standard fixed income product outside LI, CC, Crypto, Defined, or Thematic categories."
+BTOT US,,"auto-llm-other: Total USD fixed income market ETF is a broad bond index fund with no leverage, derivatives, or thematic focus."
+CCOM US,,auto-llm-other: Chinese commodities strategy ETF focuses on commodity exposure without leverage or defined outcome structures.
+CCRP US,,"auto-llm-other: Corporate bond ETF is a traditional fixed income product with no leverage, options, or thematic overlay."
+COMD US,,auto-llm-other: Broad commodity strategy ETF provides commodity exposure without leverage or defined outcome structures.
+CRXP US,,auto-llm-other: Core plus bond ETF is a traditional fixed income product without leverage or structured outcomes.
+DLUX US,,"auto-llm-other: Ultrashort income ETF is a fixed income product with minimal duration, no leverage or structural complexity."
+EVPF US,,auto-llm-other: Preferred securities and income ETF is a fixed income product focused on preferred shares without leverage or defined outcomes.
+FAAA US,,auto-llm-other: AAA CLO ETF is a fixed income product focused on collateralized loan obligations without leverage or structural complexity.
+FCLO US,,auto-llm-other: CLO ETF is a fixed income product focused on collateralized loan obligations without leverage or structural complexity.
+IMTG US,,"auto-llm-other: Agency mortgage-backed securities ETF is a specialized fixed-income product not fitting standard LI, CC, or Defined categories."
+IQMM US,,"auto-llm-other: Money market ETF with active management is a cash-equivalent product outside standard leveraged, crypto, or thematic categories."
+JA US,,auto-llm-other: CLO (collateralized loan obligation) ETF is a specialized structured credit product not fitting standard categories.
+JMMF US,,"auto-llm-other: 100% US Treasury money market ETF is a cash-equivalent product outside standard leveraged, crypto, or thematic categories."
+KAMO US,,auto-llm-other: Credit opportunities fixed-income ETF targeting flexible credit strategies is a specialized product outside standard categories.
+LTAX US,,"auto-llm-other: Tax-free municipal bond ETF is a specialized fixed-income product not fitting standard LI, crypto, or thematic categories."
+LVIG US,,"auto-llm-other: Longview advantage fixed-income ETF is an actively managed bond fund outside standard leveraged, crypto, or thematic categories."
+MBBA US,,"auto-llm-other: Mortgage-backed securities active ETF is a specialized fixed-income product not fitting standard LI, crypto, or thematic categories."
+LSTB US,,"auto-llm-other: Natixis Loomis Sayles total return bond ETF; standard fixed income strategy without leverage, defined structures, or thematic focus."
+LSCP US,,auto-llm-other: Natixis Loomis Sayles dynamic core plus bond ETF; traditional fixed income strategy with active management but no leverage or special structure.
+FSTB US,,"auto-llm-other: Fidelity short-term bond fund; traditional fixed income ETF without leverage, derivatives, or thematic structure."
+FIMU US,,auto-llm-other: Fidelity intermediate municipal bond ETF; standard fixed income muni bond product without leverage or defined structure.
+BSJY US,,auto-llm-other: Invesco BulletShares 2034 high yield corporate bond ETF; structured maturity ladder bond product without leverage or complex derivatives.
+CHYG US,,auto-llm-other: High-yield corporate bond fund with 0-5 year maturity is specialized fixed income not aligned with standard product categories.
+CIVG US,,auto-llm-other: Investment-grade corporate bond fund with 1-5 year maturity is a specialized fixed income product outside core categories.
+CUST US,,"auto-llm-other: Fixed income Treasury bond ETF with 1-3 year maturity; standard bond fund not fitting LI, CC, Crypto, Defined, or Thematic categories."
+CIEI US,,auto-llm-other: Fixed income Treasury bond ETF with 3-7 year maturity; standard bond fund not requiring specialized categorization.
+CGOV US,,auto-llm-other: Fixed income T-Bill ETF with 0-3 month maturity; short-duration Treasury fund not fitting other category definitions.
+CBIL US,,auto-llm-other: Fixed income T-Bill ETF with 3-12 month maturity; intermediate short-duration Treasury fund.
+YCLO US,,auto-llm-other: Collateralized loan obligation fixed income ETF; specialized credit product not fitting primary categories.
+VCHY US,,auto-llm-other: High-yield corporate bond index ETF; fixed income credit product not requiring specialized classification.
+PRIZ US,,auto-llm-other: Preferred income fixed income ETF; specialized fixed income product focusing on preferred stock income.
+JPFP US,,"auto-llm-other: Managed futures strategy ETF using systematic trend-following approach across multiple asset classes, not fitting standard equity/leverage categories."
+ASEC US,,auto-llm-other: Securitized credit ETF targeting fixed income credit instruments; not an equity-based leverage or thematic product.
+ADDS US,,"auto-llm-other: Hedgeye index-based alternative strategy ETF using dynamic allocation/factor combination, not a standard leverage or thematic approach."
+WDE US,,"auto-llm-other: Securitized debt ETF focused on structured fixed income credit assets, not an equity or leverage product."
+FITZ US,,"auto-llm-other: Must-have portfolio equity ETF; branded equity strategy without clear leveraged, crypto, or specific thematic mandates."
+DWWN US,,"auto-llm-other: Long-duration bond ETF; fixed income duration strategy without leverage, crypto, or thematic focus."
+DINE US,,auto-llm-other: Tax-aware diversified income strategy with mixed allocation; complex multi-asset strategy outside core REX categories.
+CBOX US,,auto-llm-other: Tax-aware collateral-based alternative; structured alternative product outside REX's primary equity and structured categories.
