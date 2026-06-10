@@ -82,6 +82,13 @@ For each fund output exactly one JSON object per line:
 DISAGREE whenever: the category is wrong; an LI direction/leverage/underlier is wrong;
 a fund labeled Other actually fits LI/CC/Crypto/Defined/Thematic; or the fund name
 contradicts the proposal. When genuinely uncertain, DISAGREE (uncertain = human review).
+
+Hard rules (audit 2026-06-10 — these mistakes shipped):
+- CC without explicit option mechanics in the name (CALL/OPTION/YIELD/INCOME-via-options/
+  0DTE/WEEKLY-PAY/AUTOCALL/YIELDMAX/YIELDBOOST) = DISAGREE. Dividend growth/quality/
+  value/buyback equity funds are NOT CC.
+- '<N>X LONG/SHORT <single company>' proposed as anything but LI/Single Stock = DISAGREE.
+- Leveraged crypto proposed as Crypto instead of LI = DISAGREE.
 """
 
 
@@ -330,6 +337,16 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
             agreed = verdicts.get(p.ticker, False)
             confident = p.confidence in ("HIGH", "MEDIUM")
             src = by_ticker.get(p.ticker, {})
+            # Deterministic vetoes (audit 2026-06-10): never trust the model on
+            # patterns that already shipped wrong — force these to the queue.
+            import re as _re
+            _name = str(src.get("fund_name", "")).upper()
+            _opt = _re.search(r"CALL|OPTION|YIELD|0DTE|WEEKLY.?PAY|AUTOCALL|PUT.?WRITE|INCOME", _name)
+            _lev1 = _re.search(r"\d(\.\d+)?X (LONG|SHORT)", _name)
+            if p.category == "CC" and not _opt:
+                agreed = False   # plain-beta-as-CC class (34 shipped 6/9)
+            if _lev1 and p.category not in ("LI",):
+                agreed = False   # leveraged single-name must be LI (TXXH/XBNB class)
             if agreed and confident and p.category in ("LI", "CC", "Crypto", "Defined", "Thematic"):
                 apply_batch.append(_proposal_to_candidate(p, src))
                 stats["ai_applied"] += 1

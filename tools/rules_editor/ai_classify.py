@@ -55,6 +55,15 @@ Output exactly one JSON object per fund, one per line, like:
 
 Rules:
 - `category` must be one of: LI, CC, Crypto, Defined, Thematic, Other
+- CC REQUIRES explicit options-income mechanics in the name or strategy: covered call,
+  call/put writing, option income, yield via options, 0DTE/weekly-pay, autocallable,
+  YieldMax/YieldBoost/XETFS-style. Dividend growth, dividend appreciation, quality,
+  value, buyback, plain equity-income WITHOUT options = Other, NEVER CC.
+- LEVERAGED CRYPTO (2X BTC/ETH/SOL/HYPE/BNB etc.) = LI, not Crypto. Crypto = unlevered
+  spot/futures/staked coin exposure only.
+- A leveraged fund named '<N>X LONG <TICKER>' or '<N>X SHORT <TICKER>' on a single
+  company = LI with subcategory Single Stock and underlier = that ticker — even when
+  the company is obscure. Index/Basket is ONLY for index/sector/multi-name baskets.
 - `confidence` must be one of: HIGH (very sure), MEDIUM (likely but ambiguous), LOW (uncertain)
 - For LI: include `direction` (Long/Short), `leverage` (number), and `underlier` (ticker or index)
 - For CC: include `underlier` (stock/index) and `cc_category` (Single Stock, Broad Beta, Tech, etc.)
