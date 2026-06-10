@@ -10,7 +10,7 @@ supersedes: parts of 0003 (timer fleet shape)
 
 ## Context
 
-The 2026-06-09 full-system audit (73-agent sweep + live recon; `docs/audit_2026-06-09/`)
+The 2026-06-09 full-system audit (73-agent sweep + live recon; `docs/audits/2026-06-09-engine/`)
 found 171 defects whose root causes collapse into five architectural diseases, each with a
 production incident already on the books:
 
@@ -101,6 +101,6 @@ declared in the bake step's contract, not discovered at send time.
   table → writing step → upstream filing/Bloomberg row.
 - The flag matrix (8 states) becomes 4 DB rows with alarms; the class of "forgotten flag"
   outages ends.
-- Cost: migration must be incremental (slice plan in `docs/audit_2026-06-09/ENGINE_PLAN.md`);
+- Cost: migration must be incremental (slice plan in `docs/audits/2026-06-09-engine/ENGINE_PLAN.md`);
   each slice ships with before/after verification, and old paths retire only after the
   3-gate proof of death (build-prove-retire).

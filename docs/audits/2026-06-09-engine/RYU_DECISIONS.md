@@ -74,5 +74,5 @@ full-universe sweep and keep ad-hoc checks. Pick a lane and I'll build it.
 ## 10. Classification approval batch (Slice 6, ready now)
 37 unclassified (incl. REX's own **TLDR US** → suggest `Income`/T-Bill bucket per taxonomy;
 OBTC → exclusions per your standing ruling; 2×21Shares → Crypto; GraniteShares autocallables
-+ XETFS/YieldMax income → CC attrs). Full queue: `docs/audit_2026-06-09/` + sweep HTML.
++ XETFS/YieldMax income → CC attrs). Full queue: `docs/audits/2026-06-09-engine/` + sweep HTML.
 Say "show me the classification batch" and I'll format it for one-pass approval.

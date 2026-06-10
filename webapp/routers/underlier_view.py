@@ -26,7 +26,7 @@ Bifurcation fix
 ---------------
 `mkt_master_data.map_li_underlier` is stored as ``'NVDA US'`` for 16 of 17
 NVDA rows and bare ``'NVDA'`` for 1, per
-docs/audit_2026-05-11/01_webapp_consistency.md (issues F1/F2). REX
+docs/audits/2026-05-11-rebuild/01_webapp_consistency.md (issues F1/F2). REX
 ``rex_products.underlier`` is stored bare (``'NVDA'``). This route MATCHES
 BOTH FORMATS by stripping the trailing `` US`` / `` Curncy`` suffix on the
 mkt-master side at query time and comparing case-insensitively against the

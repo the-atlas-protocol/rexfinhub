@@ -1,75 +1,62 @@
 ---
 doc: index
 status: canonical
-updated: 2026-05-19
+updated: 2026-06-10
 ---
 
 # rexfinhub — Documentation Index
 
-> Pure navigation. No domain facts. If you're a Claude session loaded into this repo, **read this first**, then `GLOSSARY.md`, then route to the right doc per `### load-order` below.
+> Pure navigation. If you're new here (human or Claude session): read
+> **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — the master file — then come back only
+> when you need something specific.
 
-### map
+## The folder, in one breath
 
-| File | What it is | When to read it |
-|---|---|---|
-| [`INDEX.md`](INDEX.md) | This file. The map. | First — every session. |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | **THE MASTER FILE** — comprehensive system architecture: every subsystem, table ownership, the daily clock, data flows, gates, storage, debt register | Second — before any substantive work |
-| [`CLASSIFICATION.md`](CLASSIFICATION.md) | The taxonomy contract + autonomous classification engine | Before touching categories/rules |
-| [`SYSTEM.md`](SYSTEM.md) | Canonical AS-IS — what production does today | Operating, debugging, explaining current state |
-| [`TARGET.md`](TARGET.md) | Canonical TO-BE — what we're building toward | Planning, designing, justifying the rebuild |
-| [`RUNBOOK.md`](RUNBOOK.md) | Ryu's daily operating manual | Daily ops, incident response, "how do I X" |
-| [`GLOSSARY.md`](GLOSSARY.md) | Single source for every domain term | Whenever an unfamiliar term appears |
-| [`DECISIONS/`](DECISIONS/) | Immutable ADRs — why a thing is the way it is | "Why is this designed this way?" |
-| [`LOG.md`](LOG.md) | Append-only changelog | Reconstructing what changed and when |
-| [`raw/`](raw/) | Preserved audits + reports (read-only) | Historical reference; never edited |
-
-### load-order
-
-Per common task — load in the order shown:
-
-| Task | Load order |
-|---|---|
-| Operate / debug live system | `INDEX.md` → `SYSTEM.md` → `GLOSSARY.md` |
-| Plan or build a phase | `INDEX.md` → `TARGET.md` → `SYSTEM.md` (for current state) → `GLOSSARY.md` |
-| Daily ops / "how do I X" | `INDEX.md` → `RUNBOOK.md` → `GLOSSARY.md` |
-| Understand a past decision | `INDEX.md` → `DECISIONS/NNNN-*.md` |
-| Explain to LLM-on-the-site | `INDEX.md` → `SYSTEM.md` + `GLOSSARY.md` (atomic chunks by `###`) |
-| Reconstruct history | `INDEX.md` → `LOG.md` → relevant `DECISIONS/` |
-
-### query-recipes
-
-Terminal patterns (always run from repo root):
-
-```bash
-# List every stable anchor in a doc
-rg "^### " docs/SYSTEM.md
-rg "^### " docs/TARGET.md
-
-# Find every doc referencing a glossary term
-rg -l "\[\[bloomberg-pull\]\]" docs/
-
-# Find dead terms in glossary
-rg "status: deprecated" docs/GLOSSARY.md -A 3
-
-# Find every ADR
-ls docs/DECISIONS/
-
-# Find every TODO/GAP (per-doc known-gaps sections; no inline TODOs)
-rg "^- GAP-" docs/
+```
+docs/
+├── ARCHITECTURE.md    ← THE MASTER FILE. Start here, always.
+├── SYSTEM.md            what production does today (AS-IS detail)
+├── TARGET.md            what we're building toward (TO-BE)
+├── RUNBOOK.md           how Ryu operates day-to-day (gates, sends, incidents)
+├── CLASSIFICATION.md    the full-scale taxonomy contract + autonomous engine
+├── GLOSSARY.md          every domain term ([[term]] links resolve here)
+├── LOG.md               append-only changelog
+├── INDEX.md             this map
+├── DECISIONS/           immutable ADRs — why things are the way they are
+├── audits/              dated audit evidence (read-only after the fact)
+│   ├── 2026-05-11-rebuild/      the May rebuild audit
+│   ├── 2026-05-12/  rex_ops_2026-05-12/  2026-05-13 baseline
+│   ├── 2026-06-09-engine/       the engine session (MASTER_AUDIT, ENGINE_PLAN…)
+│   └── 2026-06-10-labels/       report label-accuracy audit
+├── archive/             superseded one-off artifacts (never edited)
+├── raw/                 preserved legacy docs (read-only)
+├── issuer_review_queue.csv   ← live runtime queue (admin UI reads it here)
+└── ticker_review_queue.csv   ← live runtime queue
 ```
 
-### lifecycle-legend
+Everything else that used to clutter this folder (underlier audit CSVs, residue
+files, daily conflict CSVs, one-off handoffs) was archived or repointed to
+`data/` in the 2026-06-10 cleanup. If a script writes a runtime artifact into
+docs/, that's a bug — docs/ is documentation plus the two live queues above.
 
-| Status | Meaning |
+## Load order per task
+
+| Task | Read |
 |---|---|
-| canonical | Current truth. Use this. |
-| draft | In progress; subject to change. |
-| proposed | Not yet adopted. Don't rely on. |
-| deprecated | Superseded; see the linked successor. |
-| archive | Historical reference. Read-only. |
+| Anything substantive | `ARCHITECTURE.md` first, every time |
+| Operate / debug live | → `RUNBOOK.md` → `SYSTEM.md` |
+| Touch classification/rules | → `CLASSIFICATION.md` |
+| Plan a build phase | → `TARGET.md` + `DECISIONS/0011-engine-architecture.md` |
+| Understand a past decision | → `DECISIONS/` |
+| Verify a claim about the system | → `audits/` (dated evidence) |
+| Unfamiliar term | → `GLOSSARY.md` |
+
+### lifecycle-legend
+canonical = current truth · draft = in progress · proposed = not yet adopted ·
+deprecated = superseded · archive = read-only history
 
 ### known-gaps
-
-- GAP-01: ADR `0001-docs-framework.md` documents this layout; future ADRs as decisions land.
-- GAP-02: CI hook to enforce "TARGET edits require SYSTEM edit when phase ships" — not yet built.
-- GAP-03: Pre-commit hook to enforce `[[term]]` → glossary cross-check — not yet built.
+- GAP-01: future ADRs as decisions land (0011 awaiting status flip to accepted).
+- GAP-02: CI hook enforcing "TARGET edits require SYSTEM edit when phase ships" — not built.
+- GAP-03: pre-commit `[[term]]` → glossary cross-check — not built.
+- GAP-04: the two live queue CSVs belong in data/ with an admin-UI repoint (next cleanup slice).

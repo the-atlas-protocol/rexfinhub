@@ -66,7 +66,7 @@ Verification: 3-day shadow journal parity; step-failure injection isolates corre
 1. Unbrick the proposal loop: triage the 1,669 pending (auto-expire >90d stale; batch-present
    the 81 L&I ones to Ryu via the existing review UI/queue).
 2. Backlog: present the 37 unclassified + 20 issuer gaps + 7 CC attrs as one approval batch
-   (queue extracted: audit_2026-06-09; includes REX's own TLDR US; OBTC → exclusions per
+   (queue extracted: audits/2026-06-09-engine; includes REX's own TLDR US; OBTC → exclusions per
    standing ruling). After approval lands → remove maintenance flag (RYU_DECISIONS #5).
 3. Single rules truth: data/rules = master, config/rules = generated mirror (build step),
    VPS reads only config/rules from git — kills 3-way CSV drift.

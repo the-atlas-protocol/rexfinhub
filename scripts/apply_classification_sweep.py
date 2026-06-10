@@ -646,7 +646,8 @@ def run_sweep(
 
     # Write conflicts CSV
     today = datetime.utcnow().strftime("%Y-%m-%d")
-    conflicts_path = PROJECT_ROOT / "docs" / f"classification_conflicts_{today}.csv"
+    conflicts_path = PROJECT_ROOT / "data" / "conflicts" / f"classification_conflicts_{today}.csv"
+    conflicts_path.parent.mkdir(parents=True, exist_ok=True)
     conflicts_path.parent.mkdir(parents=True, exist_ok=True)
     if conflicts_csv_rows:
         with conflicts_path.open("w", encoding="utf-8", newline="") as f:

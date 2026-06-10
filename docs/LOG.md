@@ -143,7 +143,7 @@ updated: 2026-05-19
 
 ## 2026-05-11 / 2026-05-12
 
-- Rebuild day (see `raw/audit_2026-05-11/`). 17 systemd units pinned with `TZ=America/New_York`. `sqlite3` installed on VPS. `fail2ban` activated. `classify_engine.py` `RULES_DIR` flipped from `data/rules/` → `config/rules/`. 3-axis taxonomy (primary_strategy + asset_class + sub_strategy) wired (commit 63ab8fd). First successful 7-report send to etfupdates@rexfin.com at 07:00 ET Tuesday 5/12 — first send in 14 days.
+- Rebuild day (see `raw/audits/2026-05-11-rebuild/`). 17 systemd units pinned with `TZ=America/New_York`. `sqlite3` installed on VPS. `fail2ban` activated. `classify_engine.py` `RULES_DIR` flipped from `data/rules/` → `config/rules/`. 3-axis taxonomy (primary_strategy + asset_class + sub_strategy) wired (commit 63ab8fd). First successful 7-report send to etfupdates@rexfin.com at 07:00 ET Tuesday 5/12 — first send in 14 days.
 
 ## 2026-04-27
 

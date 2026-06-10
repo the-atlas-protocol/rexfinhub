@@ -950,9 +950,10 @@ def classification_stats(request: Request, db: Session = Depends(get_db)):
     except Exception:
         pending_proposals = 0
 
-    # Latest conflicts CSV link (file generated under docs/classification_conflicts_YYYY-MM-DD.csv)
+    # Latest conflicts CSV link (runtime artifact — moved out of docs/ to
+    # data/conflicts/ in the 2026-06-10 folder cleanup; docs/ is documentation only)
     from pathlib import Path
-    docs_dir = Path(__file__).resolve().parent.parent.parent / "docs"
+    docs_dir = Path(__file__).resolve().parent.parent.parent / "data" / "conflicts"
     latest_conflicts_csv = None
     if docs_dir.exists():
         candidates = sorted(docs_dir.glob("classification_conflicts_*.csv"), reverse=True)

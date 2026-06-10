@@ -1,14 +1,14 @@
 ---
 doc: architecture
 status: canonical
-updated: 2026-06-09
+updated: 2026-06-10
 ---
 
 # REXFINHUB — MASTER SYSTEM ARCHITECTURE
 
 > **The master file.** Everything the system is, where every piece lives, who owns every
 > table, what runs when, and how data becomes a report. Verified against production
-> 2026-06-09 (73-agent audit + live recon + same-day fixes — `docs/audit_2026-06-09/`).
+> 2026-06-09/10 (73-agent audit + label-accuracy audit + live recon + same-day fixes — `docs/audits/2026-06-09-engine/`).
 > Routing: [`INDEX.md`](INDEX.md) · terms: [`GLOSSARY.md`](GLOSSARY.md) · design intent:
 > [`DECISIONS/0011-engine-architecture.md`](DECISIONS/0011-engine-architecture.md) ·
 > taxonomy: [`CLASSIFICATION.md`](CLASSIFICATION.md) · ops: [`RUNBOOK.md`](RUNBOOK.md)
@@ -301,7 +301,7 @@ autonomous classification · market pipeline · assertions/triage · backups(+in
 
 **Parked by decision (Ryu 6/9):** CBOE scanner (WAF; data frozen 5/13) · 13F Q1'26
 (accepted loss) · offsite backup leg (declined) · VPS deletion list (awaits explicit go;
-~4GB redundant DB copies + repo-root clutter listed in `audit_2026-06-09/RYU_DECISIONS.md` §8).
+~4GB redundant DB copies + repo-root clutter listed in `audits/2026-06-09-engine/RYU_DECISIONS.md` §8).
 
 **Open debt (ENGINE_PLAN slices, highest value first):** send-path exactly-once ledger
 + recipient misroute hard-error (Slice 3) · RESTORE runbook + drill (Slice 4) ·
@@ -320,5 +320,5 @@ template migration · scripts/ lifecycle reorg (ops/admin/archive) · GLOSSARY a
 2. [`GLOSSARY.md`](GLOSSARY.md) for any unfamiliar term.
 3. [`CLASSIFICATION.md`](CLASSIFICATION.md) before touching categories/rules.
 4. [`RUNBOOK.md`](RUNBOOK.md) before operating (gates, sends, incidents).
-5. [`audit_2026-06-09/`](audit_2026-06-09/) for evidence behind any claim here.
+5. [`audits/2026-06-09-engine/`](audits/2026-06-09-engine/) for evidence behind any claim here.
 6. [`DECISIONS/`](DECISIONS/) before re-litigating any design.
