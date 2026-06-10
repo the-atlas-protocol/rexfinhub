@@ -987,5 +987,7 @@ PLPW US,,,Long,1.0,PLTR
 KEEX US,Equity,Single Stock,Long,2.0,BITF
 SPCL US,Equity,Index/Basket/ETF Based,Long,2.0,
 HELS US,,,Long,1.3,US Equities
-,,,,,
 XBNB US,Crypto,Single Stock,Long,2.0,BNB
+UMAL US,,,Long,2.0,UMAC
+SGVA US,,,Short,1.0,US Treasury
+TXXH US,Crypto,Single Stock,Long,2.0,HYPE
