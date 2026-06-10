@@ -4226,7 +4226,7 @@ TJUN US,FT VEST EMERGING MARKETS BUFFER ETF - JUNE,First Trust,Equity,Defined Ou
 TKNQ US,AMPLIFY TOKENIZATION TECHNOLOGY ETF,Amplify,Crypto,Plain Beta,Single-Access,single,multi-token crypto,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Crypto
 TLA US,GRANITESHARES AUTOCALLABLE TSLA ETF,GraniteShares,Equity,Income,Structured Product Income > Autocallable,single,TSLA US,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 TLCI US,TOUCHSTONE INTERNATIONAL EQUITY ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-TLDR US,THE LADDERED T-BILL ETF,REX ETF Trust,Fixed Income,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
+TLDR US,THE LADDERED T-BILL ETF,REX ETF Trust,Fixed Income,Plain Beta,Bond Ladder,,,,,standalone,physical,,,,,,,,,,,,,,,curated-2026-06-10,REX Laddered T-Bill; AI mislabeled Defined/Buffer (Laddered pun) — curated
 TLH US,ISHARES 10-20 YEAR TREASURY BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 TLT US,ISHARES 20+ YEAR TREASURY BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 TLTD US,FLEXSHARES MORNINGSTAR DEVELOPED MARKETS EX-US FACTOR TILT INDEX FUND,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
