@@ -125,3 +125,12 @@ VDG US,,"audit-2026-06-10: plain-beta equity, AI-tier CC mislabel reverted"
 VDV US,,"audit-2026-06-10: plain-beta equity, AI-tier CC mislabel reverted"
 WCMG US,,"audit-2026-06-10: plain-beta equity, AI-tier CC mislabel reverted"
 ZINC US,,"audit-2026-06-10: plain-beta equity, AI-tier CC mislabel reverted"
+YSAG US,,auto-llm-other: Physical commodity (silver) ETF; spot metal exposure without leverage or options mechanics.
+YSAU US,,auto-llm-other: Physical commodity (gold) ETF; spot metal exposure without leverage or options mechanics.
+AMEI US,,auto-llm-other: Equity income ETF focused on dividend growth without explicit options-income or covered call mechanics.
+AMGR US,,"auto-llm-other: Growth equity ETF with no leverage, options-income, or thematic focus; plain equity."
+TPUT US,,"auto-llm-other: Capital appreciation/market opportunities ETF; broad equity without leverage, thematic focus, or options mechanics indicated."
+FPAA US,,"auto-llm-other: Global multi-asset allocation fund with no leverage, options strategies, or crypto exposure."
+OWN US,,"auto-llm-other: Insider ownership equity ETF with no leverage, options strategies, or specialized thematic focus."
+HBMX US,,"auto-llm-other: Concentrated memory-stack equity portfolio; no leverage, options mechanics, or thematic signal apparent."
+PCSG US,,"auto-llm-other: Small-mid cap growth equity fund with no leverage, options income, or thematic focus; standard equity selection strategy."
