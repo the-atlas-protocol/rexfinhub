@@ -57,6 +57,12 @@ STANDING_RULINGS: dict[str, tuple] = {
     # Ryu 2026-06-08: only REX-Osprey products count; Osprey-only funds are out
     # of scope for the tracker ("we shouldn't even be looking at OBTC").
     "OBTC US": ("exclude", "ryu-ruling-2026-06-08: Osprey-only product, out of scope"),
+    # 2026-06-10: the LLM+critic both misread "Laddered T-Bill" as a
+    # defined-outcome ladder. REX's own funds get curated rows, never
+    # re-classified by the AI tier.
+    "TLDR US": ("exclude", "curated: REX Laddered T-Bill — fund_master row is "
+                           "Fixed Income/Plain Beta/Bond Ladder; outside the 5 "
+                           "legacy categories"),
 }
 
 _MIRROR_FILES = (
