@@ -1219,7 +1219,7 @@ EMDV US,PROSHARES MSCI EMERGING MARKETS DIVIDEND GROWERS ETF,,Equity,Plain Beta,
 EMEQ US,NOMURA FOCUSED EMERGING MARKETS EQUITY ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 EMES US,HARBOR EMERGING MARKETS SELECT ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 EMET US,VANECK COPPER AND GREEN METALS ETF,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-EMFI US,PICTET EMERGING MARKETS DEBT ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+EMFI US,PICTET EMERGING MARKETS DEBT ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 EMGF US,ISHARES EMERGING MARKETS EQUITY FACTOR ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 EMHC US,STATE STREET SPDR BLOOMBERG EMERGING MARKETS USD BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 EMHY US,ISHARES J.P. MORGAN EM HIGH YIELD BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -2519,7 +2519,7 @@ KEMX US,KRANESHARES MSCI EMERGING MARKETS EX CHINA INDEX ETF,,Equity,Plain Beta,
 KFEB US,INNOVATOR US SMALL CAP POWER BUFFER ETF - FEBRUARY,Innovator,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,12,,9.0,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined; phase6-backfill; phase6-backfill
 KGLD US,KURV GOLD ENHANCED INCOME ETF,Kurv,Commodity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 KGRN US,KRANESHARES MSCI CHINA CLEAN TECHNOLOGY INDEX ETF,KraneShares,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
-KHPI US,KENSINGTON HEDGED PREMIUM INCOME ETF,,Multi-Asset,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+KHPI US,KENSINGTON HEDGED PREMIUM INCOME ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: income fund recategorized
 KHYB US,KRANESHARES ASIA PACIFIC HIGH INCOME USD BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 KIE US,STATE STREET SPDR S&P INSURANCE ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 KIQQ US,KRANESHARES INSPEREX NASDAQ DYNAMIC BUFFERED HIGH INCOME INDEX ETF,KraneShares,Equity,Defined Outcome,Buffer,,,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined
@@ -4053,7 +4053,7 @@ SRVR US,PACER DATA & INFRASTRUCTURE REAL ESTATE ETF,Pacer,Equity,Plain Beta,Them
 SSFI US,DAY HAGAN SMART SECTOR FIXED INCOME ETF,,Fixed Income,Plain Beta,Sector,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 SSG US,PROSHARES ULTRASHORT SEMICONDUCTORS,ProShares,Equity,L&I,Short,,,,,standalone,physical,2.0,short,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 SSK US,REX-OSPREY SOL + STAKING ETF,REX,Crypto,Plain Beta,Single-Access,single,Solana,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Crypto
-SSMG US,VIRTUS SILVANT SMALL/MID GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+SSMG US,VIRTUS SILVANT SMALL/MID GROWTH ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 SSO US,PROSHARES ULTRA S&P500,ProShares,Equity,L&I,Long,,,,,standalone,physical,2.0,long,daily,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=LI
 SSPY US,STRATIFIED LARGECAP INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 SSS US,CYBER HORNET S&P 500 AND SOLANA 75/25 STRATEGY ETF,Cyber Hornet,Equity,Plain Beta,Single-Access,single,crypto + traditional asset,,,standalone,physical,,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Crypto
@@ -4080,7 +4080,7 @@ STXD US,STRIVE 1000 DIVIDEND GROWTH ETF,EA,Equity,Plain Beta,Thematic,,,,,standa
 STXE US,STRIVE EMERGING MARKETS EX-CHINA ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 STXG US,STRIVE 1000 GROWTH ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 STXK US,STRIVE SMALL-CAP ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-STXL US,DEFIANCE DAILY TARGET 2X LONG STX ETF,,Equity,L&I,Long,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+STXL US,DEFIANCE DAILY TARGET 2X LONG STX ETF,,Equity,L&I,Long,single,STX,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 STXT US,STRIVE TOTAL RETURN BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 STXV US,STRIVE 1000 VALUE ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 STXX US,TRADR 2X LONG STX DAILY ETF,,Equity,L&I,Long,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -4268,7 +4268,7 @@ TOLL US,TEMA DURABLE QUALITY ETF,Tema,Equity,Plain Beta,Thematic,,,,,standalone,
 TOLZ US,PROSHARES DJ BROOKFIELD GLOBAL INFRASTRUCTURE ETF,ProShares,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Thematic
 TOPC US,ISHARES S&P 500 3% CAPPED ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 TOPT US,ISHARES TOP 20 US STOCKS ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-TOPW US,ROUNDHILL TOP WEEKLYPAY ETF,,Equity,Income,Derivative Income > 0DTE / Weekly-Pay,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+TOPW US,ROUNDHILL TOP WEEKLYPAY ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: income fund recategorized
 TOS US,TWIN OAK STRATEGIC SOLUTIONS ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 TOT US,LIONSHARES US EQUITY TOTAL RETURN ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 TOTL US,STATE STREET DOUBLELINE TOTAL RETURN TACTICAL ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -4541,10 +4541,10 @@ VCRM US,VANGUARD CORE TAX-EXEMPT BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,sta
 VCSH US,VANGUARD SHORT-TERM CORPORATE BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 VDC US,VANGUARD CONSUMER STAPLES ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 VDE US,VANGUARD ENERGY ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-VDG US,VANGUARD DEVELOPED MARKETS EX-US GROWTH INDEX ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+VDG US,VANGUARD DEVELOPED MARKETS EX-US GROWTH INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 VDI US,VIRTUS INTERNATIONAL DIVIDEND ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 VDIG US,VANGUARD WELLINGTON DIVIDEND GROWTH ACTIVE ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
-VDV US,VANGUARD DEVELOPED MARKETS EX-US VALUE INDEX ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
+VDV US,VANGUARD DEVELOPED MARKETS EX-US VALUE INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 VEA US,VANGUARD FTSE DEVELOPED MARKETS ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 VEFA US,VANECK MSCI EAFE ANALYST SENTIMENT ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 VEGA US,ADVISORSHARES STAR GLOBAL BUY-WRITE ETF,AdvisorShares,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
@@ -4738,7 +4738,7 @@ XBI US,STATE STREET SPDR S&P BIOTECH ETF,,Equity,Plain Beta,Broad,,,,,standalone
 XBIL US,F/M US TREASURY 6 MONTH BILL ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
 XBJA US,INNOVATOR US EQUITY ACCELERATED 9 BUFFER ETF - JANUARY,Innovator,Equity,Defined Outcome,Growth,,,,,standalone,physical,,,,,12,,9.0,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=Defined; phase6-backfill; phase6-backfill
 XBJL US,INNOVATOR U.S. EQUITY ACCELERATED 9 BUFFER ETF - JULY,Innovator,Equity,Defined Outcome,Growth,,,,,standalone,physical,,,,,12,,9.0,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined; phase6-backfill; phase6-backfill
-XBNB US,TEUCRIUM XETFS 2X LONG DAILY BNB ETF,Teucrium,Crypto,Plain Beta,Single-Access,,,,,standalone,physical,2.0,,,,,,,,,,,,,,seed-2026-05-01,Migrated from etp_category=Crypto
+XBNB US,TEUCRIUM XETFS 2X LONG DAILY BNB ETF,Teucrium,Crypto,L&I,Long,,,,,standalone,physical,2.0,,,,,,,,,,,,,,audit-2026-06-10,audit: leveraged crypto -> L&I per convention
 XBOC US,INNOVATOR US EQUITY ACCELERATED 9 BUFFER ETF-OCTOBER,Innovator,Equity,Defined Outcome,Growth,,,,,standalone,physical,,,,,12,,9.0,,,,,,,,seed-2026-05-01,Migrated from etp_category=Defined; phase6-backfill; phase6-backfill
 XBTY US,GRANITESHARES YIELDBOOST BITCOIN ETF,GraniteShares,Crypto,Income,Derivative Income > Covered Call,single,BITX US,,,standalone,physical,,,,,,,,,,,,,40_act,,seed-2026-05-01,Migrated from etp_category=CC
 XC US,WISDOMTREE TRUE EMERGING MARKETS FUND,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,db-export-2026-05-01,Recovered from DB after CSV desync
@@ -5101,11 +5101,11 @@ THLV US,THOR EQUAL WEIGHT LOW VOLATILITY ETF,THOR Financial Technologies Tr,Equi
 THMR US,THOR ADAPTIVERISK DYNAMIC ETF,THOR Financial Technologies Tr,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 THY US,TOEWS AGILITY SHARES DYNAMIC TACTICAL INCOME ETF,Northern Lights Fund Trust/Toe,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 TOAK US,TWIN OAK SHORT HORIZON ABSOLUTE RETURN ETF,Twin Oak ETF Co/USA,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
-TOAO US,TWIN OAK ACTIVE OPPORTUNITIES III ETF,Twin Oak ETF Co/USA,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
+TOAO US,TWIN OAK ACTIVE OPPORTUNITIES III ETF,Twin Oak ETF Co/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 TRND US,PACER TRENDPILOT FUND OF FUNDS ETF,Pacer,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 TRTY US,CAMBRIA TRINITY ETF,Cambria,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 TSPX US,TWIN OAK ACTIVE OPPORTUNITIES ETF,Twin Oak ETF Co/USA,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
-TXXH US,21SHARES 2X LONG HYPE ETF,Teucrium,Equity,L&I,Long,single,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
+TXXH US,21SHARES 2X LONG HYPE ETF,Teucrium,Crypto,L&I,Long,single,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,audit-2026-06-10,audit: leveraged crypto -> L&I per convention
 UPAR US,UPAR ULTRA RISK PARITY ETF,Tidal Trust I,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 USAF US,ATLAS AMERICA FUND,2023 ETF Series Trust/The,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 VFMV US,VANGUARD U.S. MINIMUM VOLATILITY ETF,Vanguard,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
@@ -5125,7 +5125,7 @@ YLDW US,WESTWOOD ENHANCED INCOME OPPORTUNITY ETF,Ultimus Managers Trust/Westwoo,
 YYY US,AMPLIFY CEF HIGH INCOME ETF,Amplify,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 MHIG US,MILLIMAN HEALTHCARE INFLATION GUARD ETF,Milliman Funds Trust,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 MHIP US,MILLIMAN HEALTHCARE INFLATION PLUS ETF,Milliman Funds Trust,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
-WRTH US,WORTH CHARTING OPTIONS INCOME ETF,Tidal Trust III,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
+WRTH US,WORTH CHARTING OPTIONS INCOME ETF,Tidal Trust III,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: income fund recategorized
 CRY US,GRANITESHARES YIELDBOOST CRCL ETF,GraniteShares,Multi-Asset,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 XEY US,GRANITESHARES YIELDBOOST ETHER ETF,GraniteShares,Multi-Asset,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
 BLUI US,BLUEMONTE DIVERSIFIED INCOME ETF,Exchange-Traded Concepts ETFs/,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,classify-remaining-2026-05-05,Backfilled by enhanced classifier (Phase 5 manual rules)
@@ -5781,7 +5781,7 @@ EMDD US,COLUMBIA EM STRATEGIC OPPORTUNITIES ETF,Columbia ETF Trust II,Equity,Pla
 EMDG US,EGSHARES EMERGING MARKETS DIVIDEND GROWTH ETF,EGShares ETFs/USA,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 EMDI US,ISHARES MSCI EMERGING MARKETS CONSUMER DISCRETIONARY ETF,iShares ETFs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 EMDR US,VELOCITYSHARES EMERGING MARKETS DR ETF,VelocityShares ETFs/ALPs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
-EMEM US,VIRTUS GLOVISTA EMERGING MARKETS ETF,ETFis Series Trust I,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
+EMEM US,VIRTUS GLOVISTA EMERGING MARKETS ETF,ETFis Series Trust I,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 EMER US,IQ EMERGING MARKETS MID CAP ETF,New York Life Investments ETF,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 EMEY US,ISHARES MSCI EMERGING MARKETS ENERGY CAPPED ETF,iShares ETFs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 EMFM US,GLOBAL X MSCI NEXT EMERGING & FRONTIER ETF,Global X ETFs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
@@ -5905,7 +5905,7 @@ FISN US,GLOBAL X FISHING INDUSTRY ETF,Global X ETFs/USA,Equity,Plain Beta,Broad,
 FITS US,THE HEALTH AND FITNESS ETF,VelocityShares ETFs/ALPs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 FIVR US,STRATEGY SHARES NASDAQ 5HANDL INDEX ETF,Strategy Shares Inc/Fund Paren,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 FIVZ US,PIMCO 3-7 YEAR U.S. TREASURY INDEX EXCHANGE-TRADED FUND,Pimco ETF Trust,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
-FIYY US,GRANITESHARES YIELDBOOST 20Y+ TREASURIES ETF,GraniteShares,Multi-Asset,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
+FIYY US,GRANITESHARES YIELDBOOST 20Y+ TREASURIES ETF,GraniteShares,Equity,Income,Derivative Income > Covered Call,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: income fund recategorized
 FJNK US,PACIFIC GLOBAL FOCUSED HIGH YIELD ETF,Pacific Global ETF Trust,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 FLAT US,IPATH US TREASURY FLATTENER ETN,Barclays Bank PLC,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 FLCEX US,FIDELITY LARGE CAP CORE ENHANCED INDEX FUND,Fidelity Commonwealth Trust II,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
@@ -6581,7 +6581,7 @@ OKTX US,TRADR 2X LONG OKTA DAILY ETF,Tradr,Equity,L&I,Long,single,,,,standalone,
 OLD US,THE LONG-TERM CARE ETF,Janus Detroit Street Trust,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 OMOM US,INVESCO RUSSELL 1000 MOMENTUM FACTOR ETF,Invesco ETFs/USA,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 ONEF US,RUSSELL EQUITY ETF,Russell ETFs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
-ONG US,DIREXION DAILY OIL SERVICES BULL 2X SHARES,Direxion,Equity,L&I,Long,single,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
+ONG US,DIREXION DAILY OIL SERVICES BULL 2X SHARES,Direxion,Equity,L&I,Long,single,ON,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 ONTL US,O'SHARES FTSE RUSSELL INTERNATIONAL QUALITY DIVIDEND ETF,OSI ETF Trust,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 OOL US,DB CRUDE OIL INDEX LONG EXCHANGE TRADED NOTES,Deutsche,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 OOQB US,ONE+ONE NASDAQ-100 AND BITCOIN ETF,VolatilityShares,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
@@ -6649,7 +6649,7 @@ PMOM US,PRINCIPAL SUSTAINABLE MOMENTUM INDEX ETF,Principal Exchange-Traded Fund,
 PMPT US,ISECTORS POST-MPT GROWTH ETF,ETFis Series Trust I,Multi-Asset,Plain Beta,Allocation,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 PMR US,INVESCO DYNAMIC RETAIL ETF,Invesco ETFs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 PNXQ US,POWERSHARES NXQ PORTFOLIO,Invesco ETFs/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
-POEL US,DEFIANCE DAILY TARGET 2X LONG POET ETF,Defiance,Equity,L&I,Long,single,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
+POEL US,DEFIANCE DAILY TARGET 2X LONG POET ETF,Defiance,Equity,L&I,Long,single,POET,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 POTX US,GLOBAL X CANNABIS ETF,Global X,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 PP US,THE MEET KEVIN PRICING POWER ETF,Tidal Trust II,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 PPDM US,DIREXION SHARES ETF TRUST-PORTFOLIO + DEVELOPED MARKETS ETF,Direxion,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
@@ -6888,7 +6888,7 @@ SLT US,PACER SALT HIGH TRUBETA US MAR,Pacer ETFs/USA,Equity,Plain Beta,Broad,,,,
 SLVY US,RUSSELL 2000 LOW VOLATILITY ETF,Russell ETFs/USA,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 SLY US,SPDR S&P 600 SMALL CAPETF,State Street ETF/USA,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 SMCC US,DEFIANCE LEVERAGED LONG + INCOME SMCI ETF,YieldMax,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
-SMCP US,ALPHAMARK ACTIVELY MANAGED SMALL CAP ETF,ETF Series Solutions,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
+SMCP US,ALPHAMARK ACTIVELY MANAGED SMALL CAP ETF,ETF Series Solutions,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 SMDY US,SYNTAX STRATIFIED MIDCAP ETF,WEBs ETF Trust,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 SMEZ US,SPDR EURO STOXX SMALL CAP ETF,State Street ETF/USA,Currency,Plain Beta,Single-Currency,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
 SMHYL EU,SEMICONDUCTOR HOLDRS TRUST,HOLDRs,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,universal-classify-2026-05-06,Backfilled by universal classifier (all market_status)
@@ -7248,16 +7248,16 @@ GOVM US,ISHARES 1-10 YEAR TREASURY BOND ETF,,Fixed Income,Plain Beta,Broad,,,,,s
 THOR US,THORNBURG PREMIUM INCOME BUILDER ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 DRMP US,TUTTLE CAPITAL MEMORY STACK INCOME BLAST ETF,,Equity,Defined Outcome,Growth,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 JPFP US,JPMORGAN MANAGED FUTURES PLUS ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-FEMV US,FIDELITY ENHANCED MID CAP VALUE ETF,,Equity,Income,Derivative Income > Covered Call,single,Mid-Cap Value Equities,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-FEMG US,FIDELITY ENHANCED MID CAP GROWTH ETF,,Equity,Income,Derivative Income > Covered Call,single,Mid-Cap Growth Equities,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-FSEG US,FIDELITY ENHANCED SMALL CAP GROWTH ETF,,Equity,Income,Derivative Income > Covered Call,single,Small-Cap Growth Equities,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-FSEV US,FIDELITY ENHANCED SMALL CAP VALUE ETF,,Equity,Income,Derivative Income > Covered Call,single,Small-Cap Value Equities,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+FEMV US,FIDELITY ENHANCED MID CAP VALUE ETF,,Equity,Plain Beta,Broad,single,Mid-Cap Value Equities,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+FEMG US,FIDELITY ENHANCED MID CAP GROWTH ETF,,Equity,Plain Beta,Broad,single,Mid-Cap Growth Equities,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+FSEG US,FIDELITY ENHANCED SMALL CAP GROWTH ETF,,Equity,Plain Beta,Broad,single,Small-Cap Growth Equities,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+FSEV US,FIDELITY ENHANCED SMALL CAP VALUE ETF,,Equity,Plain Beta,Broad,single,Small-Cap Value Equities,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 WDIG US,WISDOMTREE EFFICIENT RARE EARTH PLUS STRATEGIC METALS FUND,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 VEN US,TEUCRIUM VENEZUELA-RELATED OPPORTUNITIES ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 TCAN US,21SHARES CANTON NETWORK ETF,,Crypto,Plain Beta,Single-Access,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 XOVL US,DEFIANCE DAILY TARGET 2X LONG XOVR ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-CVSM US,CRESALTA SMALL AND MID-CAP ETF,,Equity,Income,Derivative Income > Covered Call,single,Small/Mid-cap US equity,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-CVGD US,CRESALTA GLOBAL DIVIDEND ETF,,Equity,Income,Derivative Income > Covered Call,single,Global equity dividend payers,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+CVSM US,CRESALTA SMALL AND MID-CAP ETF,,Equity,Plain Beta,Broad,single,Small/Mid-cap US equity,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+CVGD US,CRESALTA GLOBAL DIVIDEND ETF,,Equity,Plain Beta,Broad,single,Global equity dividend payers,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 NICO US,HEXIS ACTIVE NICOTINE ENGAGEMENT ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 BIOY US,GRANITESHARES YIELDBOOST BIOTECH ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 AXTU US,T-REX 2X LONG AXTI DAILY TARGET ETF,,Equity,L&I,Long,single,AXTI,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7265,8 +7265,8 @@ BLUP US,RPM DEMOCRATIC PRESIDENT ETF,,Multi-Asset,Plain Beta,Thematic,,,,,standa
 TECY US,GRANITESHARES YIELDBOOST TECHNOLOGY ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 FINY US,GRANITESHARES YIELDBOOST FINANCIALS ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 KMCA US,PLUS KOREA MANUFACTURING CORE ALLIANCE INDEX ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-AMPU US,DEFIANCE DAILY TARGET 2X LONG AMPX ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-AMKL US,DEFIANCE DAILY TARGET 2X LONG AMKR ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+AMPU US,DEFIANCE DAILY TARGET 2X LONG AMPX ETF,,Equity,L&I,Long,single,AMPX,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+AMKL US,DEFIANCE DAILY TARGET 2X LONG AMKR ETF,,Equity,L&I,Long,single,AMKR,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 RSIT US,RETURN STACKED INTERNATIONAL STOCKS & MANAGED FUTURES ETF,,Multi-Asset,L&I,Long,,,,,standalone,swap,1.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 CMAY US,CORGI US EQUITIES 15% STRUCTURED BUFFER ETF - MAY SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 MFEB US,PACER SWAN SOS MODERATE FEBRUARY ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7275,13 +7275,13 @@ MMAY US,PACER SWAN SOS MODERATE MAY ETF,,Equity,Defined Outcome,Buffer,,,,,stand
 DDFY US,INNOVATOR EQUITY DUAL DIRECTIONAL 15 BUFFER ETF - MAY,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 QQMY US,CORGI GROWTH & TECHNOLOGY 15% STRUCTURED BUFFER ETF - MAY SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 MNVR US,PACER SWAN SOS MODERATE NOVEMBER ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-TPFC US,TIMOTHY PLAN FREE CASH FLOW ETF,,Equity,Income,Derivative Income > Covered Call,single,US equities with free cash flow focus,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-TPFG US,TIMOTHY PLAN FREE CASH FLOW GROWTH ETF,,Equity,Income,Derivative Income > Covered Call,single,US equities with free cash flow growth focus,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+TPFC US,TIMOTHY PLAN FREE CASH FLOW ETF,,Equity,Plain Beta,Broad,single,US equities with free cash flow focus,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+TPFG US,TIMOTHY PLAN FREE CASH FLOW GROWTH ETF,,Equity,Plain Beta,Broad,single,US equities with free cash flow growth focus,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 DDTY US,INNOVATOR EQUITY DUAL DIRECTIONAL 10 BUFFER ETF - MAY,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 MAUG US,PACER SWAN SOS MODERATE AUGUST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 KEEX US,DEFIANCE DAILY TARGET 2X LONG KEEL ETF,,Multi-Asset,L&I,Long,single,BITF,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 SPCL US,DEFIANCE DAILY 2X SPACE ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-WCMG US,FIRST TRUST WCM GLOBAL EQUITY ETF,,Equity,Income,Derivative Income > Covered Call,single,Global equity,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+WCMG US,FIRST TRUST WCM GLOBAL EQUITY ETF,,Equity,Plain Beta,Broad,single,Global equity,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 XA US,CORGI AI CYBERSECURITY ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 ODDZ US,CORGI SPORTS BETTING & GAMBLING ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 CMAG US,CORGI MAG 7 ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7320,18 +7320,18 @@ WR US,CORGI U.S. WAR MACHINE ETF,,Equity,Plain Beta,Thematic,,,,,standalone,phys
 PTNT US,CORGI IP LICENSING & ROYALTIES ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 WDAI US,PACER S&P WORLD 3AI TOP 300 ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 PSAI US,PACER S&P 500 3AI TOP 100 ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-BUYB US,PROSHARES S&P 500 BUYBACK ARISTOCRATS ETF,,Equity,Income,Derivative Income > Covered Call,single,S&P 500,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-SSCP US,SMART SMALL CAP ETF,,Equity,Income,Derivative Income > Covered Call,single,Russell 2000,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+BUYB US,PROSHARES S&P 500 BUYBACK ARISTOCRATS ETF,,Equity,Plain Beta,Broad,single,S&P 500,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+SSCP US,SMART SMALL CAP ETF,,Equity,Plain Beta,Broad,single,Russell 2000,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 FHIL US,FEDERATED HERMES INTERNATIONAL LEADERS ETF,,Equity,Income,Derivative Income > Covered Call,single,International Developed Markets,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 ATC US,GRANITESHARES AUTOCALLABLE COIN ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 THYP US,21SHARES HYPERLIQUID ETF,,Crypto,Plain Beta,Single-Access,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 MSR US,GRANITESHARES AUTOCALLABLE MSTR ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-NISM US,NYLI INTERNATIONAL SMALL-MID CAP EQUITY ETF,,Equity,Income,Derivative Income > Covered Call,single,MSCI International Small-Mid Cap,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+NISM US,NYLI INTERNATIONAL SMALL-MID CAP EQUITY ETF,,Equity,Plain Beta,Broad,single,MSCI International Small-Mid Cap,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 LOHA US,ROUNDHILL HALO ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-QVOL US,INFRASTRUCTURE CAPITAL NASDAQ OPTION INCOME ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+QVOL US,INFRASTRUCTURE CAPITAL NASDAQ OPTION INCOME ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: income fund recategorized
 GTND US,GOALTENDER ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 VAIE US,VEGASHARES US EQUITY AUTOCALLABLE INCOME ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-ASTY US,DEFIANCE DAILY TARGET 2X LONG ASTS ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+ASTY US,DEFIANCE DAILY TARGET 2X LONG ASTS ETF,,Equity,L&I,Long,single,ASTS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 ACGO US,HARTFORD ALPHA CAPTURE GROWTH ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 NYYY US,XETFS NVDA DAILY INCOME ETF,,Equity,Income,Derivative Income > Covered Call,single,NVDA,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 AHD US,GRANITESHARES AUTOCALLABLE HOOD ETF,,Equity,Income,Derivative Income > Covered Call,single,HOOD,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7348,21 +7348,21 @@ CIEG US,LEVERAGE SHARES 2X LONG CIEN DAILY ETF,,Equity,L&I,Long,single,CIEN,,,st
 ETNG US,LEVERAGE SHARES 2X LONG ETN DAILY ETF,,Equity,L&I,Long,single,ETN,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 AMAU US,LEVERAGE SHARES 2X LONG AMAT DAILY ETF,,Equity,L&I,Long,single,AMAT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 WDRN US,WISDOMTREE PHYSICAL AI HUMANOIDS AND DRONES FUND,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-NUDG US,NUVEEN DIVIDEND GROWTH FUND/ETF,,Equity,Income,Derivative Income > Covered Call,single,US Large-Cap Dividend Stocks,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+NUDG US,NUVEEN DIVIDEND GROWTH FUND/ETF,,Equity,Plain Beta,Broad,single,US Large-Cap Dividend Stocks,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 NGIF US,NUVEEN GLOBAL INFRASTRUCTURE FUND/ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-PJUS US,PGIM JENNISON US CORE EQUITY ETF,,Equity,Income,Derivative Income > Covered Call,single,US Large Cap,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+PJUS US,PGIM JENNISON US CORE EQUITY ETF,,Equity,Plain Beta,Broad,single,US Large Cap,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 DLMY US,FT VEST US EQUITY DUAL DIRECTIONAL BUFFER ETF - MAY,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 BHYP US,BITWISE HYPERLIQUID ETF,,Crypto,Plain Beta,Single-Access,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 CBRG US,LEVERAGE SHARES 2X LONG CBRS DAILY ETF,,Equity,L&I,Long,single,CBRS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 AVAZ US,2X AVALANCHE ETF,,Multi-Asset,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 SUIL US,2X SUI ETF,,Multi-Asset,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 HALX US,TUTTLE CAPITAL HEAVY ASSET LOW OBSOLESCENCE ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-GIEQ US,GOLDMAN SACHS DATA ENHANCED INTERNATIONAL EQUITY ETF,,Equity,Income,Derivative Income > Covered Call,single,International Equities,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+GIEQ US,GOLDMAN SACHS DATA ENHANCED INTERNATIONAL EQUITY ETF,,Equity,Plain Beta,Broad,single,International Equities,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 RIZE US,PRINCIPAL INFLATION PROTECTION ETF,,Fixed Income,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 USLV US,DIREXION DAILY SILVER BULL 2X ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-OSSL US,DEFIANCE DAILY TARGET 2X LONG OSS ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+OSSL US,DEFIANCE DAILY TARGET 2X LONG OSS ETF,,Equity,L&I,Long,single,OSS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 BTCU US,DIREXION DAILY BITCOIN BULL 2X ETF,,Multi-Asset,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-EMSC US,SOPHUS CAPITAL EMERGING MARKET SMALL CAP ETF,,Equity,Income,Derivative Income > Covered Call,single,Emerging Markets Small Cap,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+EMSC US,SOPHUS CAPITAL EMERGING MARKET SMALL CAP ETF,,Equity,Plain Beta,Broad,single,Emerging Markets Small Cap,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 EVMU US,DIREXION DAILY ETHER BULL 2X ETF,,Multi-Asset,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 UGLD US,DIREXION DAILY GOLD BULL 2X ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 FOTO US,TUTTLE CAPITAL PURE PLAY PHOTONICS ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7370,12 +7370,12 @@ MRA US,GRANITESHARES AUTOCALLABLE MARA ETF,,Equity,Income,Derivative Income > Co
 SCA US,GRANITESHARES AUTOCALLABLE SMCI ETF,,Equity,Income,Derivative Income > Covered Call,single,SMCI,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 ASUP US,T-REX 2X LONG ASTS DAILY TARGET ETF,,Equity,L&I,Long,single,ASTS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 LITU US,T-REX 2X LONG LITE DAILY TARGET ETF,,Equity,L&I,Long,single,LITE,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-MIVL US,MFS ACTIVE INTERNATIONAL VALUE ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-BRSM US,MFS BLENDED RESEARCH SMALL-MID CAP ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+MIVL US,MFS ACTIVE INTERNATIONAL VALUE ETF,,Equity,Plain Beta,Broad,,,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+BRSM US,MFS BLENDED RESEARCH SMALL-MID CAP ETF,,Equity,Plain Beta,Broad,,,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 INYY US,YIELDMAX INTC OPTION INCOME STRATEGY ETF,,Equity,Income,Derivative Income > Covered Call,single,INTC,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-BROL US,BARON RISK OPTIMIZED LARGE CAP ETF,,Equity,Income,Derivative Income > Covered Call,single,Large Cap Equities,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-VELL US,DEFIANCE DAILY TARGET 2X LONG VELO ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-WYFL US,DEFIANCE DAILY TARGET 2X LONG WYFI ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+BROL US,BARON RISK OPTIMIZED LARGE CAP ETF,,Equity,Plain Beta,Broad,single,Large Cap Equities,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+VELL US,DEFIANCE DAILY TARGET 2X LONG VELO ETF,,Equity,L&I,Long,single,VELO,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+WYFL US,DEFIANCE DAILY TARGET 2X LONG WYFI ETF,,Equity,L&I,Long,single,WYFI,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 XVO US,CORGI US MID-CAP 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 XHOA US,CORGI US REAL ESTATE 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 WX US,CORGI ALL WORLD 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7409,12 +7409,12 @@ XKRE US,CORGI US REGIONAL BANKS 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swa
 MGKX US,CORGI US MEGA-CAP GROWTH 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 TEUP US,T-REX 2X LONG TE DAILY TARGET ETF,,Equity,L&I,Long,single,TE,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 XAGI US,CORGI AGIX 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-ZINC US,ZACKS INCOME ETF,,Equity,Income,Derivative Income > Covered Call,single,US Dividend/Income Stocks,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-BGIA US,BAILLIE GIFFORD INTERNATIONAL ALPHA ETF,,Equity,Income,Derivative Income > Covered Call,single,International Developed Markets,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+ZINC US,ZACKS INCOME ETF,,Equity,Plain Beta,Broad,single,US Dividend/Income Stocks,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+BGIA US,BAILLIE GIFFORD INTERNATIONAL ALPHA ETF,,Equity,Plain Beta,Broad,single,International Developed Markets,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 USX US,CORGI TOTAL US MARKET 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 ASD US,DEFIANCE AUTISM IMPACT ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-BGEG US,BAILLIE GIFFORD EMERGING MARKETS ETF,,Equity,Income,Derivative Income > Covered Call,single,MSCI Emerging Markets,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-INFH US,DEFIANCE DAILY TARGET 2X LONG INFQ ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+BGEG US,BAILLIE GIFFORD EMERGING MARKETS ETF,,Equity,Plain Beta,Broad,single,MSCI Emerging Markets,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+INFH US,DEFIANCE DAILY TARGET 2X LONG INFQ ETF,,Equity,L&I,Long,single,INFQ,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 CTJN US,CORGI US EQUITIES 30% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 IDJN US,CORGI INTERNATIONAL DEVELOPED EQUITIES 15% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 CBRX US,TRADR 2X LONG CBRS DAILY ETF,,Equity,L&I,Long,single,CBRS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7424,16 +7424,16 @@ HYPG US,GRAYSCALE HYPERLIQUID STAKING ETF,,Crypto,Plain Beta,Single-Access,,,,,s
 CBRZ US,TRADR 2X SHORT CBRS DAILY ETF,,Equity,L&I,Short,single,CBRS,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 AIQD US,MICROSECTORS -3X SHORT ARTIFICIAL INTELLIGENCE AI ETNS,,Equity,L&I,Short,,,,,standalone,swap,3.0,short,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 CJUN US,CORGI US EQUITIES 15% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-MUZ US,DEFIANCE DAILY TARGET 2X SHORT MU ETF,,Equity,L&I,Short,,,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+MUZ US,DEFIANCE DAILY TARGET 2X SHORT MU ETF,,Equity,L&I,Short,single,MU,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 AIQU US,MICROSECTORS 3X LONG ARTIFICIAL INTELLIGENCE AI ETNS,,Equity,L&I,Long,,,,,standalone,swap,3.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 DDTZ US,INNOVATOR EQUITY DUAL DIRECTIONAL 10 BUFFER ETF - JUNE,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-PCPP US,PORTER & COMPANY PORTER PORTFOLIO INDEX ETF,,Multi-Asset,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+PCPP US,PORTER & COMPANY PORTER PORTFOLIO INDEX ETF,,Equity,Plain Beta,Broad,,,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 EMJN US,CORGI EMERGING MARKETS EQUITIES 15% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 SCJN US,CORGI US SMALL-CAP 15% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 QJN US,CORGI GROWTH & TECHNOLOGY 10% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 JUNC US,CORGI US EQUITIES 10% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 HJUN US,CORGI US EQUITIES 100% STRUCTURED BUFFER ETF - JUNE SERIES,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-GEQ US,CAMBRIA GLOBAL EW 2 ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+GEQ US,CAMBRIA GLOBAL EW 2 ETF,,Equity,Plain Beta,Broad,,,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 SAMX US,CORGI SAMSUNG 2X DAILY ETF,,Equity,L&I,Long,single,005930 KS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 ASMX US,CORGI ASM 2X DAILY ETF,,Equity,L&I,Long,single,ASM NA,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 MDTX US,CORGI MEDIATEK 2X DAILY ETF,,Equity,L&I,Long,single,2454 TT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
@@ -7446,11 +7446,11 @@ BESX US,CORGI BESI 2X DAILY ETF,,Equity,L&I,Long,single,BESI NA,,,standalone,swa
 TELX US,CORGI TEL 2X DAILY ETF,,Equity,L&I,Long,single,8035 JT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 DISC US,CORGI DISCO 2X DAILY ETF,,Equity,L&I,Long,single,6146 JT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 LBIX US,COINSHARES BITCOIN VOLATILITY LEVERAGED ETF,,Equity,L&I,Long,,,,,standalone,swap,,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-TRUI US,VANECK INDUSTRIALS TRUSECTOR ETF,,Equity,Income,Derivative Income > Covered Call,single,Industrials Sector,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-TRUO US,VANECK CONSUMER STAPLES TRUSECTOR ETF,,Equity,Income,Derivative Income > Covered Call,single,Consumer Staples Sector,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+TRUI US,VANECK INDUSTRIALS TRUSECTOR ETF,,Equity,Plain Beta,Broad,single,Industrials Sector,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
+TRUO US,VANECK CONSUMER STAPLES TRUSECTOR ETF,,Equity,Plain Beta,Broad,single,Consumer Staples Sector,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 DELC US,CORGI DELTA ELECTRONICS 2X DAILY ETF,,Equity,L&I,Long,single,2308 TT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 BBIX US,COINSHARES BITCOIN VOLATILITY INVERSE ETF,,Crypto,Plain Beta,Single-Access,single,Bitcoin,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-AQLG US,HCM LARGE CAP GROWTH ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+AQLG US,HCM LARGE CAP GROWTH ETF,,Equity,Plain Beta,Broad,,,,,standalone,options,,,,,,,,,,,,,,,audit-2026-06-10,audit: AI CC mislabel reverted
 NXPG US,LEVERAGE SHARES 2X LONG NXPI DAILY ETF,,Equity,L&I,Long,single,NXPI,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 MCHU US,TRADR 2X LONG MCHP DAILY ETF,,Equity,L&I,Long,single,MCHP,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 NXPX US,TRADR 2X LONG NXPI DAILY ETF,,Equity,L&I,Long,single,NXPI,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
