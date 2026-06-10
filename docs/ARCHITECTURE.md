@@ -173,10 +173,17 @@ launch-timing signal); inception_date = real first-trade date (99% populated).
 
 ---
 
-## 6. The autonomous classification engine (built 2026-06-09, Ryu mandate)
+## 6. The autonomous classification engine (built 2026-06-09, rebuilt to FULL SCALE 2026-06-10)
 
-Contract: [`CLASSIFICATION.md`](CLASSIFICATION.md). Five proprietary categories
-(LI/CC/Crypto/Defined/Thematic — never Morningstar's), "Other" = full-ticker exclusion.
+Contract: [`CLASSIFICATION.md`](CLASSIFICATION.md). TWO layers, ONE decision path:
+the FULL-SCALE 3-axis taxonomy (asset_class x primary_strategy x sub_strategy +
+~20 attributes; master = `config/rules/fund_master.csv`, full universe; DB home =
+23 columns on mkt_master_data restamped by `apply_fund_master.py` after every
+sync) and the LEGACY 5-category projection (etp_category + map_* — still what
+all money pages/reports read, by design until consumer-by-consumer cutover).
+The engine feeds BOTH from each decision and runs INSIDE the Bloomberg chain
+(17:15/21:00, right after data lands — Ryu 2026-06-10) with 09:00 as catch-up +
+report. The day's rules delta auto-commits to git (`commit_rules_delta.py`).
 
 `scripts/classify_daily.py --apply` (09:00 daily, before the sweep report):
 

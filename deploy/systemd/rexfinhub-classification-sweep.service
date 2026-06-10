@@ -18,6 +18,9 @@ ExecStartPre=-/usr/bin/git -C /home/jarvis/rexfinhub pull --ff-only origin main
 # rules -> LLM+critic -> queue; docs/CLASSIFICATION.md), then report. The '-'
 # tolerates an LLM-API hiccup so the sweep report still goes out.
 ExecStart=-/home/jarvis/venv/bin/python scripts/classify_daily.py --apply
+# Stamp this morning's decisions onto mkt_master_data immediately (don't
+# wait for the 17:15 chain) — idempotent, seconds.
+ExecStart=-/home/jarvis/venv/bin/python scripts/apply_fund_master.py
 ExecStart=/home/jarvis/venv/bin/python scripts/classification_sweep.py --post-summary
 TimeoutStartSec=300
 StandardOutput=journal

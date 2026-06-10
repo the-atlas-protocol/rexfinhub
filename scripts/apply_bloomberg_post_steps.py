@@ -29,6 +29,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 PY = "/home/jarvis/venv/bin/python"
 
 STEPS = [
+    # Ryu 2026-06-10: classification happens RIGHT AFTER the Bloomberg data
+    # lands, not the next morning. classify_daily (tiers: rulings -> rules ->
+    # LLM+critic -> queue) feeds BOTH layers — legacy CSVs AND fund_master.csv
+    # (the full 3-axis taxonomy master) — so the very next step's restamp
+    # already carries today's launches. The 09:00 run remains as catch-up +
+    # the sweep report email.
+    ("classify_daily",           [PY, str(PROJECT_ROOT / "scripts" / "classify_daily.py"),
+                                  "--apply"]),
     ("apply_fund_master",        [PY, str(PROJECT_ROOT / "scripts" / "apply_fund_master.py")]),
     # CIC-12 fix (2026-06-08): canonical identity must be assigned BEFORE
     # apply_underlier_overrides, which keys off canonical_id. Without this
@@ -59,6 +67,10 @@ STEPS = [
     # rex_products.status and status_cached. Diff still logged to
     # data/.status_reconciler.log.
     ("status_reconciler_apply", [PY, "-m", "webapp.services.status_reconciler", "--apply"]),
+    # Data-as-code (ADR 0011 E4): the engine's rules mutations get committed
+    # and pushed daily so git stays the truth and the VPS tree stays clean
+    # (the git_tree_clean assertion fired on exactly this drift, 2026-06-10).
+    ("commit_rules_delta",      [PY, str(PROJECT_ROOT / "scripts" / "commit_rules_delta.py")]),
 ]
 
 

@@ -45,6 +45,7 @@ from tools.rules_editor.classify_engine import (  # noqa: E402
     scan_unmapped, apply_classifications, RULES_DIR,
 )
 from tools.rules_editor import ai_classify  # noqa: E402
+from scripts import fund_master_writer as fmw  # noqa: E402  (full-taxonomy feeder)
 
 log = logging.getLogger("auto_classify")
 
@@ -59,6 +60,7 @@ STANDING_RULINGS: dict[str, tuple] = {
 }
 
 _MIRROR_FILES = (
+    "fund_master.csv",  # FULL-SCALE 3-axis master — its 2026-05-01 desync must never repeat
     "fund_mapping.csv", "exclusions.csv", "issuer_mapping.csv",
     "attributes_LI.csv", "attributes_CC.csv",
     "attributes_Crypto.csv", "attributes_Defined.csv", "attributes_Thematic.csv",
@@ -246,7 +248,8 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
 
     stats = {"rules_applied": 0, "ai_applied": 0, "ai_excluded": 0,
              "queued": 0, "rulings": 0, "api_calls": 0,
-             "issuer_fixed": 0, "cc_attrs_fixed": 0}
+             "issuer_fixed": 0, "cc_attrs_fixed": 0,
+             "master_rows_added": 0, "master_healed": 0}
     log_dir = PROJECT_ROOT / "logs"
     log_dir.mkdir(exist_ok=True)
     jpath = log_dir / f"auto_classify_{date.today().strftime('%Y%m%d')}.jsonl"
@@ -276,6 +279,10 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
         if not dry_run:
             apply_classifications(candidates)
         stats["rules_applied"] = len(candidates)
+        # FULL-SCALE layer: every applied fund also gets a 28-column
+        # fund_master.csv row (the missing feeder, Ryu 2026-06-10).
+        stats["master_rows_added"] += fmw.append_rows(
+            [fmw.candidate_to_master_row(c) for c in candidates], dry_run)
         for c in candidates:
             _journal(fh, ticker=c["ticker"], tier=1, decision="apply",
                      category=c["etp_category"], source="rules",
@@ -328,6 +335,10 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
                     stats["ai_excluded"] += 1
                     _journal(fh, ticker=p.ticker, tier=2, decision="exclude-other",
                              rationale=p.rationale, confidence=p.confidence, dry_run=dry_run)
+                # fund_master is FULL-UNIVERSE: 'Other' still earns a real
+                # Plain-Beta/etc. row via the universal rule cascade.
+                stats["master_rows_added"] += fmw.append_rows(
+                    [fmw.other_to_master_row(src, p.rationale)], dry_run)
             else:
                 if p.ticker not in existing_q and not dry_run:
                     d = ai_classify.proposal_to_db_dict(p)
@@ -354,11 +365,53 @@ def run(since_days: int, limit: int, dry_run: bool) -> dict:
 
         if apply_batch and not dry_run:
             apply_classifications(apply_batch)
+        if apply_batch:
+            stats["master_rows_added"] += fmw.append_rows(
+                [fmw.candidate_to_master_row(c) for c in apply_batch], dry_run)
         if not dry_run:
             db.commit()
     finally:
         db.close()
         fh.close()
+
+    # ---- FULL-LAYER drift heal: legacy-classified funds missing a
+    # fund_master row (e.g. everything classified 2026-05-01..06-09 while the
+    # feeder was frozen). Translate from the mkt row's own map_* columns.
+    import sqlite3 as _sq
+    _con = _sq.connect(str(PROJECT_ROOT / "data" / "etp_tracker.db"))
+    _con.row_factory = _sq.Row
+    _rows = _con.execute("""
+        SELECT ticker, fund_name, etp_category, asset_class_focus,
+               map_li_direction, map_li_leverage_amount, map_li_underlier,
+               map_cc_underlier, map_crypto_underlier, cc_category
+        FROM mkt_master_data
+        WHERE market_status='ACTV' AND etp_category IS NOT NULL
+    """).fetchall()
+    _con.close()
+    _missing = fmw.missing_from_master([r["ticker"] for r in _rows])
+    fh3 = jpath.open("a", encoding="utf-8")
+    heal_batch = []
+    for r in _rows:
+        if r["ticker"] not in _missing:
+            continue
+        heal_batch.append(fmw.candidate_to_master_row({
+            "ticker": r["ticker"], "fund_name": r["fund_name"],
+            "etp_category": r["etp_category"],
+            "asset_class": r["asset_class_focus"] or "",
+            "attributes": {
+                "map_li_direction": r["map_li_direction"] or "",
+                "map_li_leverage_amount": r["map_li_leverage_amount"] or "",
+                "map_li_underlier": r["map_li_underlier"] or "",
+                "map_cc_underlier": r["map_cc_underlier"] or "",
+                "map_crypto_underlier": r["map_crypto_underlier"] or "",
+                "cc_category": r["cc_category"] or "",
+            },
+        }))
+        _journal(fh3, ticker=r["ticker"], tier=1, decision="master-heal",
+                 category=r["etp_category"], dry_run=dry_run)
+    fh3.close()
+    if heal_batch:
+        stats["master_healed"] = fmw.append_rows(heal_batch, dry_run)
 
     # ---- Issuer-display + CC-attribute gap fills ---------------------------
     fh2 = jpath.open("a", encoding="utf-8")
