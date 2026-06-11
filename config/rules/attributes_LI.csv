@@ -997,3 +997,5 @@ XXDC US,Equity,Index/Basket/ETF Based,Long,2.0,
 LOFF US,Equity,Single Stock,Long,2.0,SPCX
 SPCF US,Equity,Single Stock,Long,2.0,SPCX
 SPAX US,Equity,Single Stock,Long,2.0,SPCX
+SPCM US,Equity,Single Stock,Long,2.0,SPCX
+SPCG US,Equity,Single Stock,Short,2.0,SPCX
