@@ -65,7 +65,7 @@ _REX_UPDATE_FIELDS: dict[str, tuple[str, str]] = {
 }
 
 _VALID_STATUSES = {
-    "Under Consideration", "Target List", "Filed", "Effective", "Listed", "Delisted",
+    "Under Consideration", "Target List", "Filed", "Delayed", "Effective", "Listed", "Delisted",
 }
 
 

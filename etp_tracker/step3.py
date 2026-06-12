@@ -85,6 +85,56 @@ _DELAYING_PHRASES = [
     "rule 473",
 ]
 
+# --- 485APOS cover-page effectiveness ELECTION (Hub_Trex A1, 2026-06-12) ----
+# A pending 485APOS elects its effective date on the cover page via checkbox:
+#   (b)    immediately upon filing  -> filing date
+#   (b)    on (date)                -> that date
+#   (a)(1) 60 days after filing     -> filing + 60
+#   (a)(2) 75 days after filing     -> filing + 75
+#   (a)(2) on (date)                -> that date
+# Nothing parsed this before, so every pending filing carried a NULL or a
+# blanket +75d guess (wrong whenever 60d / a specific date was elected).
+_CHECKED = r"(?:☒|■|&#9746;|\[\s*[xX]\s*\]|\(\s*[xX]\s*\)|\bX\b)"
+_ELECTION_PATTERNS = [
+    (re.compile(_CHECKED + r"[^\n\r]{0,80}?immediately upon filing", re.IGNORECASE), "immediate"),
+    (re.compile(_CHECKED + r"[^\n\r]{0,80}?60\s*days after filing[^\n\r]{0,60}?\(a\)\s*\(1\)", re.IGNORECASE), "days60"),
+    (re.compile(_CHECKED + r"[^\n\r]{0,80}?75\s*days after filing[^\n\r]{0,60}?\(a\)\s*\(2\)", re.IGNORECASE), "days75"),
+    (re.compile(_CHECKED + r"[^\n\r]{0,40}?on\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})[^\n\r]{0,60}?\(b\)", re.IGNORECASE), "date_b"),
+    (re.compile(_CHECKED + r"[^\n\r]{0,40}?on\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})[^\n\r]{0,60}?\(a\)\s*\(2\)", re.IGNORECASE), "date_a2"),
+]
+
+
+def _parse_485a_election(txt: str, filing_date) -> tuple[str, str]:
+    """Parse the cover-page effectiveness election of a 485APOS.
+
+    Returns (effective_date 'YYYY-MM-DD' or '', confidence) where confidence
+    is 'ELECTION' on a successful parse. filing_date may be a date or ISO str.
+    """
+    if not isinstance(txt, str) or not txt.strip() or filing_date is None:
+        return "", ""
+    try:
+        fdt = pd.to_datetime(str(filing_date))
+    except Exception:
+        return "", ""
+    # The election block lives on the cover page — scan only the front matter.
+    head = re.sub(r"\s+", " ", txt[:8000])
+    for rx, kind in _ELECTION_PATTERNS:
+        m = rx.search(head)
+        if not m:
+            continue
+        if kind == "immediate":
+            return fdt.strftime("%Y-%m-%d"), "ELECTION"
+        if kind == "days60":
+            return (fdt + pd.Timedelta(days=60)).strftime("%Y-%m-%d"), "ELECTION"
+        if kind == "days75":
+            return (fdt + pd.Timedelta(days=75)).strftime("%Y-%m-%d"), "ELECTION"
+        if kind in ("date_b", "date_a2"):
+            d = _parse_date_string(m.group(1))
+            if d:
+                return d, "ELECTION"
+    return "", ""
+
+
 # High-confidence patterns (checkbox selections, explicit designations)
 _DATE_PHRASES_HIGH_CONFIDENCE = [
     r"on\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s+pursuant\s+to\s+paragraph",
@@ -377,10 +427,21 @@ def _extract_full(client: SECClient, txt_url: str, form: str,
             eff_confidence = "IXBRL"
             strategy_name = "full+ixbrl"
 
-    # Regex cascade (skipped if iXBRL already gave us a date)
-    if eff_confidence != "IXBRL" and txt_text:
+    # 485APOS cover-page election — the authoritative scheduled-effective
+    # source for a pending filing (Hub_Trex A1). Trumps the phrase cascade;
+    # iXBRL prospectus_date still wins when present (actual document date).
+    if form.upper().startswith("485A") and eff_confidence != "IXBRL" and txt_text:
+        ed_el, conf_el = _parse_485a_election(txt_text, filing_dt)
+        if ed_el:
+            eff_date_col = ed_el
+            eff_confidence = conf_el
+
+    # Regex cascade — still runs for the delaying-amendment flag, but the
+    # date only applies when neither iXBRL nor the election already decided.
+    if txt_text:
         ed_txt, conf_txt, delay_txt = _find_effective_date_in_text(txt_text)
-        if ed_txt and (not eff_date_col or conf_txt == "HIGH"):
+        if (eff_confidence not in ("IXBRL", "ELECTION")
+                and ed_txt and (not eff_date_col or conf_txt == "HIGH")):
             eff_date_col = ed_txt
             eff_confidence = conf_txt
         delaying = delay_txt

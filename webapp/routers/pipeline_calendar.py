@@ -114,6 +114,7 @@ def _pipeline_root_impl(
 VALID_STATUSES = [
     "Under Consideration",  # was: Research / Counsel / Board / Pending Board
     "Filed",                # was: Filed / Filed (485A/B) / Awaiting (no eff date)
+    "Delayed",              # 485BXT pushed the pending amendment (effectiveness model 2026-06-09)
     "Effective",            # was: Effective / Awaiting (eff date set)
     "Target List",          # SEC-effective + queued for exchange listing (post-Effective shortlist)
     "Listed",               # was: Listed / ACTV — actively trading
@@ -127,6 +128,7 @@ STATUS_COLORS = {
     "Under Consideration":   "#94a3b8",  # slate
     "Target List":           "#64748b",  # darker slate
     "Filed":                 "#2563eb",  # blue
+    "Delayed":               "#d97706",  # amber — 485BXT delay
     "Effective":             "#0d9488",  # teal
     "Listed":                "#059669",  # dark green
     "Delisted":              "#6b7280",  # dim grey
@@ -207,6 +209,7 @@ def _pipeline_summary_impl(request: Request):
 # "Under Consideration" which is NOT pending-effective.
 PENDING_EFFECTIVE_STATUSES = [
     "Filed",
+    "Delayed",  # 485BXT-delayed products are still pending effectiveness
 ]
 
 # Statuses that mean "done / no longer in the active pipeline". Used to
@@ -538,6 +541,10 @@ def _pipeline_products_render(
         _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status == "Filed").count()
     )
+    n_delayed = (
+        _rex_only_filter(db.query(RexProduct))
+        .filter(RexProduct.status == "Delayed").count()
+    )
     n_effective_total = (
         _rex_only_filter(db.query(RexProduct))
         .filter(RexProduct.status == "Effective").count()
@@ -554,6 +561,7 @@ def _pipeline_products_render(
     funnel = [
         {"label": "Under Consideration", "count": n_under_consideration, "statuses": ["Under Consideration"]},
         {"label": "Filed",               "count": n_filed,               "statuses": ["Filed"]},
+        {"label": "Delayed",             "count": n_delayed,             "statuses": ["Delayed"]},
         {"label": "Effective",           "count": n_effective_total,     "statuses": ["Effective"]},
         {"label": "Target List",         "count": n_target,              "statuses": ["Target List"]},
         {"label": "Listed",              "count": n_live,                "statuses": ["Listed"]},
