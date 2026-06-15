@@ -67,6 +67,12 @@ STEPS = [
     # rex_products.status and status_cached. Diff still logged to
     # data/.status_reconciler.log.
     ("status_reconciler_apply", [PY, "-m", "webapp.services.status_reconciler", "--apply"]),
+    # WS-C1 (2026-06-15): capture the fully-enriched end-of-cycle state into the
+    # append-only mkt_daily_snapshot so daily history is never lost to the next
+    # sync's snapshot-replace. LAST data step — after all classification +
+    # reconciliation — so the snapshot reflects the day's final truth. Idempotent
+    # per date (last run of the day wins).
+    ("snapshot_daily",          [PY, str(PROJECT_ROOT / "scripts" / "snapshot_daily.py")]),
     # Data-as-code (ADR 0011 E4): the engine's rules mutations get committed
     # and pushed daily so git stays the truth and the VPS tree stays clean
     # (the git_tree_clean assertion fired on exactly this drift, 2026-06-10).
