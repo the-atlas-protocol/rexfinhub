@@ -48,11 +48,16 @@ def ensure_table(conn: sqlite3.Connection) -> None:
     if "id" in src_cols:
         src_cols.remove("id")  # source PK is meaningless across days
     col_defs = ",\n  ".join(f'"{c}"' for c in src_cols)
+    # No PK on (snapshot_date, ticker): mkt_master_data can carry duplicate
+    # tickers (multi-class / data-quality dups) and a faithful daily snapshot
+    # must preserve every row. Indexed for fast per-day and per-ticker reads.
     conn.execute(
         f'CREATE TABLE {SNAPSHOT_TABLE} (\n'
-        f'  snapshot_date TEXT NOT NULL,\n  {col_defs},\n'
-        f'  PRIMARY KEY (snapshot_date, ticker)\n)'
+        f'  snapshot_date TEXT NOT NULL,\n  {col_defs}\n)'
     )
+    conn.execute(
+        f"CREATE INDEX IF NOT EXISTS idx_{SNAPSHOT_TABLE}_date "
+        f"ON {SNAPSHOT_TABLE} (snapshot_date)")
     conn.execute(
         f"CREATE INDEX IF NOT EXISTS idx_{SNAPSHOT_TABLE}_ticker "
         f"ON {SNAPSHOT_TABLE} (ticker, snapshot_date)")
