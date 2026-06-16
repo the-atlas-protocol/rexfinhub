@@ -603,6 +603,17 @@ def _render_winners_losers_yielders(perf_metrics: dict, rex_df: pd.DataFrame) ->
     yield_data = perf_metrics.get("yield", {})
     all_yielders = yield_data.get("best5", []) if yield_data else []
 
+    # Drop any liquidated/delisted REX fund that slipped into the perf lists — a
+    # liquidated G&I fund (e.g. COII/MSII) must never appear in winners/losers/
+    # yielders. rex_df carries market_status; exclude its non-ACTV tickers. (2026-06-16)
+    _mcol = next((c for c in rex_df.columns if c.lower().strip() == "market_status"), None) if not rex_df.empty else None
+    if _mcol and "ticker_clean" in rex_df.columns:
+        _dead = set(rex_df[rex_df[_mcol] != "ACTV"]["ticker_clean"])
+        if _dead:
+            winners = [w for w in winners if w.get("ticker", "") not in _dead]
+            losers = [l for l in losers if l.get("ticker", "") not in _dead]
+            all_yielders = [y for y in all_yielders if y.get("ticker", "") not in _dead]
+
     # Filter yielders to income-suite tickers
     if all_yielders and not rex_df.empty and "category_display" in rex_df.columns:
         income_tickers = set(
