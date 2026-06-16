@@ -173,7 +173,11 @@ def _by_suite(df):
         members = [t for t, sx in TICKER_SUITE.items()
                    if sx == s and t in df.columns]
         if members:
-            out[s] = df[members].fillna(0).sum(axis=1)
+            # Coerce to numeric before summing — the Bloomberg data_flow sheet can
+            # carry a stray string (e.g. '#N/A', a label) in a flow cell, which made
+            # df.sum() raise "unsupported operand type(s) for +: 'float' and 'str'"
+            # and crashed the whole Portfolio report build (preview went stale).
+            out[s] = df[members].apply(pd.to_numeric, errors="coerce").fillna(0).sum(axis=1)
     return out
 
 
