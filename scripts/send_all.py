@@ -130,6 +130,23 @@ def _build_portfolio_suite(db) -> tuple[str, str]:
     return build_html(db_path, xlsm_path)
 
 
+def _build_microsectors(db) -> tuple[str, str]:
+    # MicroSectors L&I Industry Report — the competitive weekly (5-page, brand fonts).
+    # Brought into the repo from a chat artifact (scripts/microsectors_industry_report.py)
+    # so it's reproducible. ALWAYS rebuild fresh so we never ship a stale bake.
+    import subprocess
+    html_path = PROJECT_ROOT / "reports" / f"microsectors_industry_{date.today().isoformat()}.html"
+    try:
+        subprocess.run([sys.executable, str(PROJECT_ROOT / "scripts" / "microsectors_industry_report.py")],
+                       cwd=str(PROJECT_ROOT), check=True, timeout=300)
+    except Exception as _e:
+        if not html_path.exists():
+            raise
+        print(f"WARN: microsectors rebuild failed ({_e}); using last good file")
+    subject = f"MicroSectors L&I Industry Report — {date.today().strftime('%B %d, %Y')}"
+    return subject, html_path.read_text(encoding="utf-8")
+
+
 # (key, builder, list_type, critical)
 # critical=True means a failure aborts the rest of the bundle.
 REPORTS = {
@@ -142,16 +159,18 @@ REPORTS = {
     "stock_recs":      (_build_stock_recs,      "stock_recs",      False),
     "blue_ocean":      (_build_blue_ocean,      "blue_ocean",      False),
     "portfolio_suite": (_build_portfolio_suite, "portfolio_suite", False),
+    "microsectors":    (_build_microsectors,    "microsectors",    False),
 }
 
 BUNDLES = {
-    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs", "blue_ocean"],
+    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs", "blue_ocean", "microsectors"],
     "daily":           ["daily"],
     "weekly":          ["weekly", "li", "income", "flow"],
     "autocall":        ["autocall"],
     "stock_recs":      ["stock_recs"],
     "blue_ocean":      ["blue_ocean"],
     "portfolio_suite": ["portfolio_suite"],
+    "microsectors":    ["microsectors"],
 }
 
 
