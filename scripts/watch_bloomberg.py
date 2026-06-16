@@ -85,6 +85,27 @@ def _trigger_sync(bbg_path: Path):
         except Exception as e:
             print(f"  Classification failed (non-fatal): {e}")
 
+        # Curated enrichment restamp — sync_market_data full-replaces
+        # mkt_master_data and clears the curated 3-axis taxonomy + issuer_display
+        # to NULL. Without restamping here, every fresh-file trigger left REX's
+        # primary_strategy/issuer NULL until the nightly chain (the recurring
+        # 'auto'-sync taxonomy wipe, 2026-06-16). Mirror run_daily.run_market_sync:
+        # apply_fund_master (curated) + derive/apply issuer brands. Idempotent.
+        print("  Restamping curated taxonomy + issuer brands...")
+        import subprocess as _sp
+        for _name, _args in (
+            ("apply_fund_master", ["apply_fund_master.py"]),
+            ("derive_issuer_brands", ["derive_issuer_brands.py"]),
+            ("apply_issuer_brands", ["apply_issuer_brands.py"]),
+        ):
+            try:
+                _r = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / _args[0])],
+                             capture_output=True, text=True, timeout=300)
+                if _r.returncode != 0:
+                    print(f"  WARN: {_name} exit={_r.returncode}: {_r.stderr[:160]}")
+            except Exception as _e:
+                print(f"  WARN: {_name} skipped: {_e}")
+
         # Screener cache
         print("  Rebuilding screener cache...")
         try:
