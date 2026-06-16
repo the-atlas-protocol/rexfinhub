@@ -384,6 +384,10 @@ def build_html(db_path: str, xlsm_path: str) -> tuple[str, str]:
     """
     funds = _load_master(db_path)
     flow_raw = _load_flow_history(xlsm_path)
+    # Coerce all flow columns to numeric once — the Bloomberg data_flow sheet can
+    # carry stray strings ('#N/A', labels) that otherwise crash every downstream
+    # .sum() with "unsupported operand type(s) for +: 'float'/'int' and 'str'".
+    flow_raw = flow_raw.apply(pd.to_numeric, errors="coerce")
     last_date = flow_raw.index.max()
     flow_suite_full = _by_suite(flow_raw)
 
