@@ -272,7 +272,7 @@ def _load_from_db(db: Session) -> dict[str, Any]:
         from market.config import DATA_FILE as _report_data_file
         if _report_data_file.exists():
             _ms_xl = pd.ExcelFile(_report_data_file, engine="openpyxl")
-            if "microsector" in _ms_xl.sheet_names:
+            if any("microsector" in s for s in _ms_xl.sheet_names):
                 _ms_ov = _ms_read(_ms_xl)
                 if _ms_ov:
                     _ms_apply(master, _ms_ov)
@@ -518,7 +518,7 @@ def _load_all() -> dict[str, Any]:
         from market.microsectors import read_overrides as _ms_read, apply_overrides as _ms_apply
         if DATA_FILE.exists():
             _ms_xl = pd.ExcelFile(DATA_FILE, engine="openpyxl")
-            if "microsector" in _ms_xl.sheet_names:
+            if any("microsector" in s for s in _ms_xl.sheet_names):
                 _ms_ov = _ms_read(_ms_xl)
                 if _ms_ov:
                     _ms_apply(master, _ms_ov)
@@ -2103,12 +2103,12 @@ _FLOW_SUITES = [
         "key": "autocallable",
         "label": "Autocallable",
         "rex_suites": ["Autocallable"],
-        "peer_category": "Income - Index/Basket/ETF Based",
+        # NO peer_category — autocallables are a tiny niche (~23 funds / ~$3B), NOT
+        # the entire $189B "Income - Index/Basket/ETF Based" category. Seeding from
+        # that category was the $189B/266-product bug (2026-06-16). A fund qualifies
+        # ONLY if: name contains "autocall", OR cc_category=='Autocallable', OR
+        # cc_type=='Autocallable' (the 3-way encoding) — built from an empty base.
         "peer_name_filter": r"(?i)autocall",
-        # Autocallables are encoded THREE ways (audit 2026-06-15) — a fund
-        # qualifies if ANY hold: name contains "autocall", OR
-        # cc_category=='Autocallable', OR cc_type=='Autocallable'. The name
-        # match is STANDALONE (any active ETF), not narrowed to peer_category.
         "peer_cc_category": "Autocallable",
         "peer_cc_type": "Autocallable",
         "peer_name_standalone": True,
@@ -2118,7 +2118,10 @@ _FLOW_SUITES = [
         "key": "thematic",
         "label": "Thematic",
         "rex_suites": ["DRNZ", "Thematic"],
-        "peer_tickers": ["JEDI US", "DADS US"],
+        # DADS US was BMAX's competitor peer; BMAX is delisted (LIQU), so DADS is
+        # an orphan with no live REX counterpart — removed (2026-06-16). JEDI
+        # stays as the competitor to DRNZ (the only remaining ACTV REX Thematic).
+        "peer_tickers": ["JEDI US"],
     },
     {
         "key": "crypto",
@@ -2253,12 +2256,25 @@ def get_flow_report(db: Session | None = None, use_cache: bool = True) -> dict:
                 master["ticker"].isin(peer_ticker_set)
                 & active_etf_mask
             )
-        elif has_category_display and "peer_category" in suite_cfg:
-            # Category-based: full category as peer group
-            peer_mask = (
-                (master["category_display"] == suite_cfg["peer_category"])
-                & active_etf_mask
-            )
+        elif has_category_display and ("peer_category" in suite_cfg
+                or suite_cfg.get("peer_name_standalone")
+                or suite_cfg.get("peer_cc_category")
+                or suite_cfg.get("peer_cc_type")):
+            # Qualifier-based peer group. Seed from the category if one is given,
+            # else start EMPTY (autocallables have NO category base — they are a
+            # ~23-fund niche, not the whole income-options category).
+            if "peer_category" in suite_cfg:
+                peer_mask = (
+                    (master["category_display"] == suite_cfg["peer_category"])
+                    & active_etf_mask
+                )
+            else:
+                peer_mask = pd.Series(False, index=master.index)
+            # Always include this suite's own REX funds (e.g. ATCL) so they show
+            # even if not tagged by the qualifiers below.
+            if not suite_rex_df.empty and "ticker" in suite_rex_df.columns:
+                peer_mask = peer_mask | (
+                    master["ticker"].isin(set(suite_rex_df["ticker"])) & active_etf_mask)
             # Name filter. By default it NARROWS the peer group (AND). For
             # autocallables (peer_name_standalone) the name match is also a
             # STANDALONE qualifier: any active ETF whose name says "autocall"

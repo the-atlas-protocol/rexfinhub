@@ -510,12 +510,16 @@ def generate_category_charts(cat_db: str, label: str) -> dict | None:
 
     fig_r = _chart_rex(df, as_of, label)
     fig_c = _chart_comp(df, as_of, label)
+    # 3rd chart Ryu wants: issuer market-share with REX as the bottom band
+    # (rex_bottom=True). Same _chart_comp machinery — just stacked REX-at-bottom.
+    fig_s = _chart_comp(df, as_of, label, rex_bottom=True)
 
     result = {
         "label": label,
         "summary": m,
         "rex_b64": _fig_to_b64(fig_r),
         "comp_b64": _fig_to_b64(fig_c),
+        "share_b64": _fig_to_b64(fig_s),
         "cur": {
             "total_aum": cur.total_aum,
             "rex_aum": cur.rex_aum,

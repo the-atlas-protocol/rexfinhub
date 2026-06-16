@@ -1378,8 +1378,13 @@ def _segment_charts(cat_db: str, label: str) -> str:
             '</div></td></tr>'
         )
 
+    share_row = ""
+    if r.get("share_b64"):
+        share_row = (f'\n<tr><td style="padding:2px 30px 8px;">'
+                     f'<img src="data:image/png;base64,{r["share_b64"]}" width="580" '
+                     f'style="width:100%;max-width:580px;height:auto;" alt="Issuer Market Share"></td></tr>')
     return f"""<tr><td style="padding:2px 30px;"><img src="data:image/png;base64,{r['rex_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="REX Position"></td></tr>
-<tr><td style="padding:2px 30px 8px;"><img src="data:image/png;base64,{r['comp_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="Competitive Landscape"></td></tr>"""
+<tr><td style="padding:2px 30px;"><img src="data:image/png;base64,{r['comp_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="Competitive Landscape"></td></tr>{share_row}"""
 
 
 def _build_report_email(data: dict, report_type: str, title: str,

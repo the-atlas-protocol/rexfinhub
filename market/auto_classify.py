@@ -998,12 +998,21 @@ def _singlestock_underlier_from_name(name: str) -> str | None:
     if not name:
         return None
     n = name.upper()
+    # MicroSectors / index / ETN products are categorically index-based and must
+    # NEVER be read as single-stock — bail before the regex can mis-capture a
+    # generic word like LEVERAGED/ARTIFICIAL (the AIQU/AIQD/DULL mislabel, 2026-06-16).
+    if any(w in n for w in ("MICROSECTORS", "INDEX", "ETN")):
+        return None
     for rx in (_SS_LEV_RX, _SS_DIREXION_RX):
         m = rx.search(n)
         if not m:
             continue
         tok = m.group(1).strip(" .-")
-        if tok and tok not in _NON_SINGLESTOCK_WORDS and any(ch.isalpha() for ch in tok):
+        # The token must look like a real exchange ticker (1-5 letters), not a
+        # multi-syllable index/structure word. 'NVDA'/'TSLA' pass; 'LEVERAGED'(9),
+        # 'ARTIFICIAL'(10), 'SEMICONDUCTOR' fail.
+        if (tok and tok not in _NON_SINGLESTOCK_WORDS
+                and re.fullmatch(r"[A-Z]{1,5}", tok)):
             return tok
     return None
 

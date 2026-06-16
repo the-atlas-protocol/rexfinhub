@@ -174,6 +174,12 @@ def apply_overrides(df: pd.DataFrame, overrides: dict[str, dict]) -> pd.DataFram
         for key, value in vals.items():
             col = f"{prefix}{key}"
             if col in df.columns:
+                # Coerce target to numeric first — after _optimise_dtypes some flow
+                # columns are 'string' dtype, and writing a float into them raised
+                # TypeError and aborted the ENTIRE override (so MicroSectors fell
+                # back to inflated Bloomberg issuance, ~$8B vs true ~$3B). 2026-06-16.
+                if not pd.api.types.is_numeric_dtype(df[col]):
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
                 df.loc[mask, col] = value
         count += 1
 
