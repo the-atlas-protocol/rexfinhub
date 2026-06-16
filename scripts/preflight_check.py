@@ -726,6 +726,47 @@ def build_summary_html(audits: list[dict], token: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Audit 9: Report charts present (B2 — no silently-chartless reports)
+# ---------------------------------------------------------------------------
+
+def audit_report_charts(db) -> dict:
+    """Assert the L&I + Income previews actually contain their market-share charts.
+
+    B2: chart generation used to fail silently (return "") and ship a chartless
+    report. Each report has 2 segments (Single Stock + Index/ETF), each carrying
+    a REX-position chart. Fewer than expected — or the presence of the new visible
+    failure banner — means a chart silently vanished -> HALT the send.
+    """
+    out = {"name": "Report charts present", "status": "pass", "detail": "", "rows": []}
+    checks = [
+        ("li_report.html", PREVIEW_DIR / "li_report.html", 2),
+        ("income_report.html", PREVIEW_DIR / "income_report.html", 2),
+    ]
+    failed: list[str] = []
+    for label, path, expected_n in checks:
+        if not path.exists():
+            # audit_previews already flags missing files; don't double-fail here.
+            out["rows"].append({"file": label, "status": "skipped (missing preview)"})
+            continue
+        html = path.read_text(encoding="utf-8", errors="ignore")
+        n = html.count('alt="REX Position"')
+        has_banner = "could not be generated" in html
+        row = {"file": label, "charts": n, "expected": expected_n,
+               "status": "ok"}
+        if n < expected_n or has_banner:
+            row["status"] = "fail"
+            failed.append(f"{label} ({n}/{expected_n}"
+                          f"{', error-banner present' if has_banner else ''})")
+        out["rows"].append(row)
+    if failed:
+        out["status"] = "fail"
+        out["detail"] = "market-share charts missing/failed: " + "; ".join(failed)
+    else:
+        out["detail"] = "all expected market-share charts present"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -750,7 +791,8 @@ def main():
     audits = []
     for fn in (audit_bloomberg, audit_classification, audit_ticker_dupes_recent,
                audit_null_data, audit_recipients, audit_previews,
-               audit_data_freshness, audit_attribution_completeness):
+               audit_data_freshness, audit_attribution_completeness,
+               audit_report_charts):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)

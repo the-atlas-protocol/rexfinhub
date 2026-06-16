@@ -1282,21 +1282,55 @@ def _flow_metrics_row(cat_kpis: dict, rex_kpis: dict, issuers: list[dict]) -> st
 # ---------------------------------------------------------------------------
 # Market Position: summary table + per-segment charts
 # ---------------------------------------------------------------------------
-def _market_position_card(cat_db: str, label: str,
-                           kpis: dict | None = None) -> str:
-    """Market Position KPI card for a single segment — dual-row style."""
+# B2 (2026-06-15): chart generation used to fail SILENTLY — any exception or an
+# empty result returned "" and the report shipped without its market-share
+# charts, with nobody the wiser. For the L&I/Income reports REX has products in
+# EVERY segment, so a missing chart is a real defect, never a legitimate empty.
+# We now record every failure here so (a) the report renders a visible marker
+# instead of an invisible gap, and (b) the pre-send preflight can HALT the send.
+_CHART_ERRORS: dict[str, str] = {}
+
+
+def reset_chart_errors() -> None:
+    """Clear the per-build chart-error collector (call before a fresh build)."""
+    _CHART_ERRORS.clear()
+
+
+def chart_errors() -> dict[str, str]:
+    """Return {segment_label: reason} for charts that failed this build."""
+    return dict(_CHART_ERRORS)
+
+
+def _category_charts_or_record(cat_db: str, label: str) -> dict | None:
+    """Fetch a segment's charts, recording WHY into _CHART_ERRORS on any miss.
+
+    Returns the chart dict, or None. A None return for an L&I/Income segment is
+    itself a defect (those segments always hold REX products), so it is recorded
+    just like an exception.
+    """
     try:
         from scripts.generate_market_share_charts import generate_category_charts
     except Exception as e:
-        log.warning("Market share charts unavailable: %s", e)
-        return ""
-
+        _CHART_ERRORS[label] = f"chart module import failed: {e}"
+        log.error("Market share charts unavailable for %s: %s", label, e)
+        return None
     try:
         r = generate_category_charts(cat_db, label)
     except Exception as e:
-        log.warning("Chart generation failed for %s: %s", label, e)
-        return ""
+        _CHART_ERRORS[label] = f"generation raised: {e}"
+        log.error("Chart generation FAILED for %s: %s", label, e)
+        return None
+    if not r:
+        _CHART_ERRORS[label] = "no time-series data (expected REX products in this segment)"
+        log.error("Chart generation returned NO DATA for %s (segment expected non-empty)", label)
+        return None
+    return r
 
+
+def _market_position_card(cat_db: str, label: str,
+                           kpis: dict | None = None) -> str:
+    """Market Position KPI card for a single segment — dual-row style."""
+    r = _category_charts_or_record(cat_db, label)
     if not r:
         return ""
 
@@ -1327,21 +1361,22 @@ def _market_position_card(cat_db: str, label: str,
 
 
 def _segment_charts(cat_db: str, label: str) -> str:
-    """Generate REX position + competitive landscape charts for one segment."""
-    try:
-        from scripts.generate_market_share_charts import generate_category_charts
-    except Exception as e:
-        log.warning("Market share charts unavailable: %s", e)
-        return ""
+    """Generate REX position + competitive landscape charts for one segment.
 
-    try:
-        r = generate_category_charts(cat_db, label)
-    except Exception as e:
-        log.warning("Chart generation failed for %s: %s", label, e)
-        return ""
-
+    Fails LOUD: if the charts can't be built, render a visible red marker (and
+    record the reason for the preflight) rather than silently omitting them.
+    """
+    r = _category_charts_or_record(cat_db, label)
     if not r:
-        return ""
+        reason = _CHART_ERRORS.get(label, "unknown error")
+        return (
+            '<tr><td style="padding:8px 30px;">'
+            '<div style="border:1px solid #d63031;color:#d63031;background:#fff5f5;'
+            'padding:8px 12px;border-radius:4px;font-size:13px;">'
+            f'&#9888; Market-share charts for <b>{label}</b> could not be generated '
+            f'({reason}). Investigate before relying on this section.'
+            '</div></td></tr>'
+        )
 
     return f"""<tr><td style="padding:2px 30px;"><img src="data:image/png;base64,{r['rex_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="REX Position"></td></tr>
 <tr><td style="padding:2px 30px 8px;"><img src="data:image/png;base64,{r['comp_b64']}" width="580" style="width:100%;max-width:580px;height:auto;" alt="Competitive Landscape"></td></tr>"""
