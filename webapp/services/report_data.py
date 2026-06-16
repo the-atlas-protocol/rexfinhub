@@ -2105,10 +2105,13 @@ _FLOW_SUITES = [
         "rex_suites": ["Autocallable"],
         "peer_category": "Income - Index/Basket/ETF Based",
         "peer_name_filter": r"(?i)autocall",
-        # OR match: funds classified as cc_category=Autocallable (e.g. SBAR US,
-        # Simplify Barrier Income ETF — product is an autocallable structure but
-        # name doesn't contain "autocall").
+        # Autocallables are encoded THREE ways (audit 2026-06-15) — a fund
+        # qualifies if ANY hold: name contains "autocall", OR
+        # cc_category=='Autocallable', OR cc_type=='Autocallable'. The name
+        # match is STANDALONE (any active ETF), not narrowed to peer_category.
         "peer_cc_category": "Autocallable",
+        "peer_cc_type": "Autocallable",
+        "peer_name_standalone": True,
     },
     # --- Thematic ---
     {
@@ -2256,26 +2259,35 @@ def get_flow_report(db: Session | None = None, use_cache: bool = True) -> dict:
                 (master["category_display"] == suite_cfg["peer_category"])
                 & active_etf_mask
             )
-            # Optional name filter to narrow peer group (e.g. autocallable)
+            # Name filter. By default it NARROWS the peer group (AND). For
+            # autocallables (peer_name_standalone) the name match is also a
+            # STANDALONE qualifier: any active ETF whose name says "autocall"
+            # belongs, regardless of category_display (audit 2026-06-15).
             name_filter = suite_cfg.get("peer_name_filter")
+            name_mask = None
             if name_filter and "fund_name" in master.columns:
-                peer_mask = peer_mask & master["fund_name"].str.contains(
-                    name_filter, case=False, na=False
-                )
-            # OR override: a fund tagged with peer_cc_category (e.g. Autocallable)
-            # should qualify even if its name doesn't match the text filter.
-            # The cc_category column comes through prefixed as
-            # "q_category_attributes.cc_category" in the master dataframe.
+                name_mask = master["fund_name"].str.contains(name_filter, case=False, na=False)
+                if suite_cfg.get("peer_name_standalone"):
+                    peer_mask = peer_mask | (name_mask & active_etf_mask)
+                else:
+                    peer_mask = peer_mask & name_mask
+
+            def _attr_col(base):
+                pref = "q_category_attributes." + base
+                return pref if pref in master.columns else (base if base in master.columns else None)
+
+            # OR: a fund tagged Autocallable via cc_category OR cc_type qualifies
+            # even when the name doesn't say "autocall" (the 3-way encoding).
             cc_cat = suite_cfg.get("peer_cc_category")
             if cc_cat:
-                cc_col = (
-                    "q_category_attributes.cc_category"
-                    if "q_category_attributes.cc_category" in master.columns
-                    else ("cc_category" if "cc_category" in master.columns else None)
-                )
-                if cc_col:
-                    cc_mask = (master[cc_col] == cc_cat) & active_etf_mask
-                    peer_mask = peer_mask | cc_mask
+                col = _attr_col("cc_category")
+                if col:
+                    peer_mask = peer_mask | ((master[col] == cc_cat) & active_etf_mask)
+            cc_typ = suite_cfg.get("peer_cc_type")
+            if cc_typ:
+                col = _attr_col("cc_type")
+                if col:
+                    peer_mask = peer_mask | ((master[col] == cc_typ) & active_etf_mask)
         else:
             peer_mask = rex_suite_mask  # fallback: just REX funds
         peer_df = master[peer_mask]
