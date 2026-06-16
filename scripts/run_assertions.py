@@ -622,6 +622,24 @@ def check_status_cached(conn: sqlite3.Connection) -> tuple:
             f"{len(rows)} rex_products where status_cached drifted from status_history")
 
 
+@_make_assertion("status_record_single_source", "integrity")
+def check_status_record_single_source(conn: sqlite3.Connection) -> tuple:
+    """ADR 0012: status_history is the ONLY status record table.
+
+    rex_product_status_history is an empty duplicate with no writer/reader and is
+    slated for retirement. Assert it stays empty — a non-zero count means a second
+    status-record table started being written, re-fragmenting the single source of
+    truth this ADR closes.
+    """
+    try:
+        n = conn.execute("SELECT COUNT(*) FROM rex_product_status_history").fetchone()[0]
+    except sqlite3.OperationalError:
+        # Table already dropped (Ryu-confirmed retirement) — invariant trivially holds.
+        return (True, 0, [], "rex_product_status_history absent (retired)")
+    return (n == 0, n, [{"rows": n}],
+            f"rex_product_status_history has {n} rows (must be 0 — see ADR 0012)")
+
+
 # REX-name detection patterns, kept in sync with
 # scripts/sync_rex_products_from_filings.py REX_NAME_PATTERNS +
 # COMPETITOR_NAME_PATTERNS. Duplicated here (not imported) so this assertion
@@ -733,6 +751,77 @@ def assert_no_orphan_rex_extractions(conn: sqlite3.Connection) -> tuple:
 
 
 # ============================================================================
+# DRIFT DETECTION (ADR 0012 governance / Part II — keep the ledger true)
+# ============================================================================
+
+@_make_assertion("rules_dirs_in_sync", "drift")
+def check_rules_dirs_in_sync(conn: sqlite3.Connection) -> tuple:
+    """config/rules and data/rules must agree on every file they BOTH contain.
+
+    The two dirs intentionally overlap (each has dir-only files), but a file in
+    BOTH is a mirrored rule: the engine writes data/rules, commit_rules_delta
+    syncs it to config/rules (git-tracked, → Render). A content divergence means
+    the nightly sync didn't finish — classification reads one copy, git ships the
+    other. At 08:00 (after the chain) they must be identical.
+    """
+    import hashlib
+    data_dir = PROJECT_ROOT / "data" / "rules"
+    cfg_dir = PROJECT_ROOT / "config" / "rules"
+    if not data_dir.exists() or not cfg_dir.exists():
+        return (True, 0, [], "a rules dir is absent — skipped")
+
+    def _h(p: Path) -> str:
+        return hashlib.md5(p.read_bytes()).hexdigest()
+
+    divergent = []
+    for f in sorted(data_dir.glob("*.csv")):
+        twin = cfg_dir / f.name
+        if twin.exists() and _h(f) != _h(twin):
+            divergent.append({"file": f.name})
+    return (len(divergent) == 0, len(divergent), divergent[:5],
+            f"{len(divergent)} shared rule file(s) differ between data/rules and config/rules")
+
+
+# Acknowledged data stores (ADR 0012 device map). A NEW *.db not here and not a
+# backup/snapshot is an unacknowledged subsystem → surfaced so Ryu never has to
+# hunt for forgotten databases. To accept a new store, add its basename here
+# (a reviewed, version-controlled change — the ledger stays the source of truth).
+_KNOWN_DB_BASENAMES = {
+    "etp_tracker.db",         # main app DB — the status/market/classification authority
+    "etp_tracker_deploy.db",  # Render upload staging copy
+    "live_feed.db",           # live SEC filing feed store
+    "rexfinhub.db",           # webapp-configured DB (repo root)
+}
+# Backup / snapshot churn — expected, not new subsystems.
+import re as _re_drift
+_DB_BACKUP_RE = _re_drift.compile(
+    r"(^|/)(backups/|.*\.pre_.*\.db$|.*_deploy\.db$|.*\d{8}T\d{6}.*\.db$|.*_\d{8}\.db$)"
+)
+
+
+@_make_assertion("no_unknown_databases", "drift")
+def check_no_unknown_databases(conn: sqlite3.Connection) -> tuple:
+    """Flag any *.db / *.sqlite store that isn't an acknowledged subsystem.
+
+    Catches the 'separate database we forgot about' failure mode: a new store
+    appears (a script's scratch DB, a half-migrated table set) and silently
+    becomes load-bearing. Backups and timestamped snapshots are excluded by
+    pattern; everything else must be in _KNOWN_DB_BASENAMES.
+    """
+    root = PROJECT_ROOT
+    unknown = []
+    for p in list(root.rglob("*.db")) + list(root.rglob("*.sqlite")):
+        rel = p.relative_to(root).as_posix()
+        if rel.startswith(".git/") or _DB_BACKUP_RE.search(rel):
+            continue
+        if p.name not in _KNOWN_DB_BASENAMES:
+            unknown.append({"db": rel})
+    return (len(unknown) == 0, len(unknown), unknown[:5],
+            f"{len(unknown)} unacknowledged database file(s) — review + add to "
+            f"_KNOWN_DB_BASENAMES or retire")
+
+
+# ============================================================================
 # RUNNER
 # ============================================================================
 
@@ -755,6 +844,9 @@ ASSERTIONS = [
         assert_no_orphan_rex_extractions,
         # Engine session (audit 2026-06-09): forgotten-flag + deploy-drift guards
         check_restrictive_flag_age, check_git_tree_clean,
+        # Ultimate Fixup (2026-06-15): ADR 0012 single-source + Part II drift detection
+        check_status_record_single_source,
+        check_rules_dirs_in_sync, check_no_unknown_databases,
     ]
 ]
 
