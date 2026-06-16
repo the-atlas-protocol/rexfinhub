@@ -16,6 +16,8 @@ updated: 2026-06-10
 docs/
 ├── ARCHITECTURE.md    ← THE MASTER FILE. Start here, always.
 ├── SYSTEM_LEDGER.md     the consolidated purpose map — every component, table, device (2026-06-15)
+├── architecture/index.html  VISUAL: full system (sources→schedulers→pipeline→data→outputs), health-coded
+├── lineage/index.html       VISUAL: trace one number — Bloomberg cell → report cell, with file:line
 ├── SYSTEM.md            what production does today (AS-IS detail)
 ├── TARGET.md            what we're building toward (TO-BE)
 ├── RUNBOOK.md           how Ryu operates day-to-day (gates, sends, incidents)
