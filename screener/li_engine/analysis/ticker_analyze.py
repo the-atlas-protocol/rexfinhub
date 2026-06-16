@@ -199,13 +199,24 @@ def analyze_tickers(tickers: list[str], fetch_mentions: bool = True) -> dict[str
 
 
 def rank_against_universe(tickers: list[str]) -> dict[str, dict]:
-    """Returns analysis dict augmented with the composite score + percentile
-    against the full universe (same weights as v3)."""
+    """Returns analysis dict augmented with the composite score + percentile.
+
+    PRODUCTION ALIGNMENT (2026-06-11): the headline composite / percentile / rank
+    now come from li_engine_daily.final_score — the SAME canonical score the sent
+    T-REX Stock Recommendation System (trex_combined_v9 via send_all.py) ranks on.
+    Previously this read whitespace_v3's live composite, which diverged materially
+    from the sent report (e.g. AKAM 70th in v3 vs 99th in production). The v3
+    whitespace row is now retained ONLY for top-driver / flag color, never the
+    headline number, so ad-hoc runs cannot disagree with what shipped.
+    """
+    import sqlite3
+    import re as _re
     from screener.li_engine.analysis.whitespace_v2 import (
         load_universe, annotate_product_coverage,
     )
+    from screener.li_engine.persistence import DB
 
-    # Build and score the full universe
+    # v3 universe — used ONLY for top-drivers / flags color, not the headline score.
     universe = load_universe()
     universe = annotate_product_coverage(universe)
     themes = load_themes()
@@ -213,6 +224,27 @@ def rank_against_universe(tickers: list[str]) -> dict[str, dict]:
     all_tickers = set(universe.index) | set(_clean(t) for t in tickers)
     mentions = load_apewisdom_map(all_tickers)
     scored_full = compute_score_v3(universe, themes, mentions)
+
+    # Canonical production score: latest li_engine_daily run (same source the sent
+    # report's pipeline ranking uses).
+    def _canon(t: str) -> str:
+        return _re.sub(r"\s+US$", "", str(t).upper()).strip()
+
+    conn = sqlite3.connect(str(DB))
+    try:
+        led = pd.read_sql_query(
+            "SELECT ticker, final_score FROM li_engine_daily "
+            "WHERE run_date=(SELECT MAX(run_date) FROM li_engine_daily)", conn)
+    finally:
+        conn.close()
+    led = led.dropna(subset=["final_score"]).copy()
+    led["t"] = led["ticker"].map(_canon)
+    led = led.drop_duplicates("t", keep="first")
+    led = led.sort_values("final_score", ascending=False).reset_index(drop=True)
+    led["rank"] = led.index + 1
+    led["pct"] = led["final_score"].rank(pct=True) * 100
+    prod = led.set_index("t")
+    n_univ = int(len(led))
 
     # Per-ticker rank lookup
     by_ticker = {}
@@ -223,18 +255,21 @@ def rank_against_universe(tickers: list[str]) -> dict[str, dict]:
             by_ticker[tc] = base
             continue
 
-        if tc in scored_full.index:
-            row = scored_full.loc[tc]
+        v3row = scored_full.loc[tc] if tc in scored_full.index else None
+        pc = _canon(tc)
+        if pc in prod.index:
+            r = prod.loc[pc]
             base["score"] = {
-                "composite": float(row["composite_score"]),
-                "percentile": float(row["score_pct"]),
-                "rank_in_universe": int((scored_full["composite_score"] > row["composite_score"]).sum()) + 1,
-                "universe_size": int(len(scored_full)),
-                "top_drivers": top_drivers_v3(row),
-                "flags": negative_flags(row),
+                "composite": float(r["final_score"]),
+                "percentile": float(r["pct"]),
+                "rank_in_universe": int(r["rank"]),
+                "universe_size": n_univ,
+                "top_drivers": top_drivers_v3(v3row) if v3row is not None else [],
+                "flags": negative_flags(v3row) if v3row is not None else [],
+                "source": "li_engine_daily",
             }
         else:
-            base["score"] = {"error": "ticker_below_liquidity_floor_or_missing"}
+            base["score"] = {"error": "ticker_not_in_li_engine_daily_latest_run"}
         base["mentions_24h"] = int(mentions.get(tc, 0))
         by_ticker[tc] = base
 
