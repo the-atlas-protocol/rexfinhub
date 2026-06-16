@@ -45,6 +45,11 @@ STEPS = [
     # next run, leaving the reconciler with nothing to evaluate.
     ("ensure_canonical_identity", [PY, str(PROJECT_ROOT / "scripts" / "ensure_canonical_identity.py")]),
     ("apply_underlier_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_underlier_overrides.py")]),
+    # B1 (2026-06-15): regenerate the regex brand map BEFORE stamping it, so new
+    # funds (e.g. overnight PEND launches) get an issuer_display automatically
+    # instead of accumulating as NULL until a manual derive run. derive preserves
+    # any human-curated rows; apply then stamps the merged set onto mkt_master_data.
+    ("derive_issuer_brands",     [PY, str(PROJECT_ROOT / "scripts" / "derive_issuer_brands.py")]),
     ("apply_issuer_brands",      [PY, str(PROJECT_ROOT / "scripts" / "apply_issuer_brands.py")]),
     ("apply_classification_sweep", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_sweep.py"),
                                      "--apply", "--apply-medium"]),

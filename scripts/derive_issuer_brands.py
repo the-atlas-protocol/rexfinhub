@@ -103,6 +103,7 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^NEUBERGER\b", "Neuberger Berman"),
     (r"^PIMCO\b", "PIMCO"),
     (r"^NUVEEN\b", "Nuveen"),
+    (r"^NATIXIS\b", "Natixis"),
     (r"^COLUMBIA\b", "Columbia"),
     (r"^HARBOR\b", "Harbor"),
     (r"^NORTHERN\b", "Northern Trust"),
@@ -239,6 +240,29 @@ def main() -> int:
             print(f"  {h['ticker']:15s} -> {h['issuer_display']}")
         return 0
 
+    # --- Preserve manual (Layer-3) rows before rewriting ---
+    # The CSV is the source apply_issuer_brands stamps from. Regex hits are
+    # regenerated every run, but human-curated rows (any source NOT starting
+    # with "layer") must survive a re-derive — and they win over regex for the
+    # same ticker. Without this, a nightly derive would silently wipe manual
+    # brand assignments (a latent bug now that derive runs in the chain).
+    manual_rows: list[dict] = []
+    manual_tickers: set[str] = set()
+    if OVERRIDES_CSV.exists():
+        with OVERRIDES_CSV.open(encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                src = (row.get("source") or "").strip().lower()
+                tk = (row.get("ticker") or "").strip()
+                if tk and not src.startswith("layer"):
+                    manual_rows.append({
+                        "ticker": tk,
+                        "issuer_display": (row.get("issuer_display") or "").strip(),
+                        "source": row.get("source") or "manual",
+                        "notes": row.get("notes") or "",
+                    })
+                    manual_tickers.add(tk)
+    out_rows = manual_rows + [h for h in l1_hits if h["ticker"] not in manual_tickers]
+
     # --- Write issuer_brand_overrides.csv ---
     OVERRIDES_CSV.parent.mkdir(parents=True, exist_ok=True)
     with OVERRIDES_CSV.open("w", newline="", encoding="utf-8") as fh:
@@ -246,8 +270,9 @@ def main() -> int:
             fh, fieldnames=["ticker", "issuer_display", "source", "notes"]
         )
         writer.writeheader()
-        writer.writerows(l1_hits)
-    print(f"\nWrote {len(l1_hits):,} rows -> {OVERRIDES_CSV}")
+        writer.writerows(out_rows)
+    print(f"\nWrote {len(out_rows):,} rows -> {OVERRIDES_CSV} "
+          f"({len(manual_rows):,} preserved manual, {len(out_rows) - len(manual_rows):,} regex)")
 
     # --- Write issuer_review_queue.csv ---
     REVIEW_QUEUE_CSV.parent.mkdir(parents=True, exist_ok=True)
