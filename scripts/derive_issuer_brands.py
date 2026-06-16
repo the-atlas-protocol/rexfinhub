@@ -191,7 +191,7 @@ def main() -> int:
     cur = con.cursor()
     cur.execute(
         """
-        SELECT ticker, fund_name, issuer, etp_category
+        SELECT ticker, fund_name, issuer, etp_category, COALESCE(is_rex, 0)
         FROM mkt_master_data
         WHERE market_status IN ('ACTV', 'PEND') AND issuer_display IS NULL
         ORDER BY ticker
@@ -206,14 +206,20 @@ def main() -> int:
     l1_hits: list[dict] = []
     residue: list[dict] = []
 
-    for ticker, fund_name, issuer, etp_category in rows:
+    for ticker, fund_name, issuer, etp_category, is_rex in rows:
         brand = match_brand(fund_name or "")
+        if not brand and is_rex:
+            # Every is_rex fund is a REX product; sub-brands (T-REX, MicroSectors,
+            # REX-Osprey) are already caught by regex, so a remaining is_rex miss is
+            # a plain REX fund (e.g. TLDR, The Laddered T-Bill ETF — name has no
+            # brand keyword). Default it to REX rather than leave issuer_display NULL.
+            brand = "REX"
         if brand:
             l1_hits.append({
                 "ticker": ticker,
                 "issuer_display": brand,
-                "source": "layer1_regex",
-                "notes": f"Matched fund_name: {(fund_name or '').strip()}",
+                "source": "layer1_regex" if match_brand(fund_name or "") else "is_rex_default",
+                "notes": f"Matched fund_name: {(fund_name or '').strip()}" if match_brand(fund_name or "") else "is_rex default -> REX",
             })
         else:
             residue.append({
