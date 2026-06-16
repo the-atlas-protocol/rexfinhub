@@ -281,11 +281,32 @@ def main():
     """)
     xwalk = cur.rowcount
 
+    # Structural rex_suite derivation (runs in BOTH sync paths via this step, unlike
+    # market/transform.py which only the bloomberg-chain hits). A REX product whose
+    # name says its suite can never be left out of a count (the SPAX/T-REX 40-vs-41
+    # bug). Patterns are REX-name-prefixed so they can't tag a competitor.
+    cur.execute("""
+        UPDATE mkt_master_data
+        SET rex_suite = CASE
+            WHEN UPPER(fund_name) LIKE 'T-REX%' THEN 'T-REX'
+            WHEN UPPER(fund_name) LIKE 'MICROSECTORS%' THEN 'MicroSectors'
+            WHEN UPPER(fund_name) LIKE 'REX-OSPREY%' THEN 'Crypto'
+            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%GROWTH & INCOME%' THEN 'Growth & Income'
+            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%PREMIUM INCOME%' THEN 'Equity Premium Income'
+            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%INCOMEMAX%' THEN 'IncomeMax'
+            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%AUTOCALL%' THEN 'Autocallable'
+            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%DRONE%' THEN 'Thematic'
+            ELSE rex_suite END
+        WHERE (rex_suite IS NULL OR rex_suite = '')
+    """)
+    suite_filled = cur.rowcount
+
     con.commit()
     con.close()
 
     print(f"Applied: {updated:,} rows updated in mkt_master_data")
     print(f"Crosswalk-filled primary_strategy (un-curated classified funds): {xwalk:,}")
+    print(f"Structural rex_suite fills (REX funds missing a suite): {suite_filled:,}")
     print(f"Not found: {not_found:,} tickers (in CSV but not in mkt_master_data — possibly liquidated)")
 
     # ---- Postconditions ----

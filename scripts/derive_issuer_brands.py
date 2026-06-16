@@ -193,7 +193,8 @@ def main() -> int:
         """
         SELECT ticker, fund_name, issuer, etp_category, COALESCE(is_rex, 0)
         FROM mkt_master_data
-        WHERE market_status IN ('ACTV', 'PEND') AND issuer_display IS NULL
+        WHERE market_status IN ('ACTV', 'PEND')
+          AND (issuer_display IS NULL OR issuer_display = '' OR issuer_display = issuer)
         ORDER BY ticker
         """
     )
