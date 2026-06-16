@@ -263,10 +263,29 @@ def main():
         else:
             not_found += 1
 
+    # Structural fallback so NO classified fund is left with a NULL primary_strategy
+    # — that NULL is what dumped un-curated launches (e.g. the Leverage Shares 2X
+    # funds) into the Daily report's "Other" bucket. Derive primary_strategy from the
+    # legacy etp_category for any classified fund the curated CSV didn't cover (2026-06-16).
+    cur.execute("""
+        UPDATE mkt_master_data
+        SET primary_strategy = CASE etp_category
+            WHEN 'LI' THEN 'L&I'
+            WHEN 'CC' THEN 'Income'
+            WHEN 'Crypto' THEN 'Plain Beta'
+            WHEN 'Defined' THEN 'Defined Outcome'
+            WHEN 'Thematic' THEN 'Plain Beta'
+            ELSE primary_strategy END
+        WHERE (primary_strategy IS NULL OR primary_strategy = '')
+          AND etp_category IS NOT NULL AND etp_category <> ''
+    """)
+    xwalk = cur.rowcount
+
     con.commit()
     con.close()
 
     print(f"Applied: {updated:,} rows updated in mkt_master_data")
+    print(f"Crosswalk-filled primary_strategy (un-curated classified funds): {xwalk:,}")
     print(f"Not found: {not_found:,} tickers (in CSV but not in mkt_master_data — possibly liquidated)")
 
     # ---- Postconditions ----

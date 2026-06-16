@@ -105,6 +105,20 @@ def classify_fund(row: pd.Series) -> Classification:
             attributes=attrs,
         )
 
+    # --- Rule 1.5: Autocallable (a structure → Income/CC, outranks the underlier
+    # theme). 'DEFIANCE BITCOIN AUTOCALLABLE' is CC, not Crypto (the AUTB bug). ---
+    if "AUTOCALL" in text:
+        attrs["cc_category"] = "Autocallable"
+        attrs["cc_type"] = "Autocallable"
+        return Classification(
+            ticker=ticker,
+            strategy="Income / Covered Call",
+            confidence="HIGH",
+            reason="autocallable in name (structure outranks underlier theme)",
+            underlier_type=_resolve_underlier_type(is_ss_val, ticker, name),
+            attributes=attrs,
+        )
+
     # --- Rule 2: Crypto (non-leveraged only; leveraged crypto -> Rule 3 L&I) ---
     if not uses_lev:
         if is_crypto_val.lower() == "cryptocurrency":
