@@ -38,6 +38,11 @@ PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
 # Active-ETP predicate every report shares (excludes liquidated/delisted).
 ACTV = "market_status = 'ACTV' AND fund_type IN ('ETF','ETN')"
 
+# mkt_master_data.aum is stored in $ MILLIONS (e.g. NVDX=549.15 => $549M). Format
+# to billions by /1000 and treat tolerances in million-units.
+def _b(aum_millions: float) -> str:
+    return f"${aum_millions/1e3:.1f}B"
+
 
 def _q1(con, sql, params=()):
     return con.execute(sql, params).fetchone()[0]
@@ -65,7 +70,7 @@ def l1_universe_sane(con):
 def l1_total_aum_positive(con):
     aum = _q1(con, f"SELECT COALESCE(SUM(aum),0) FROM mkt_master_data WHERE {ACTV}")
     return ("total_etp_aum_positive", aum > 0,
-            f"total ETP AUM = ${aum/1e9:.1f}B")
+            f"total ETP AUM = {_b(aum)}")
 
 
 def _category_share(con, etp_cat):
@@ -79,14 +84,14 @@ def l1_li_category(con):
     total, rex, share = _category_share(con, "LI")
     ok = total > 0 and 0 <= share <= 100
     return ("li_category_aum_and_share", ok,
-            f"L&I total ${total/1e9:.1f}B, REX ${rex/1e9:.1f}B, share {share:.1f}%")
+            f"L&I total {_b(total)}, REX {_b(rex)}, share {share:.1f}%")
 
 
 def l1_cc_category(con):
     total, rex, share = _category_share(con, "CC")
     ok = total > 0 and 0 <= share <= 100
     return ("cc_category_aum_and_share", ok,
-            f"Income total ${total/1e9:.1f}B, REX ${rex/1e9:.1f}B, share {share:.1f}%")
+            f"Income total {_b(total)}, REX {_b(rex)}, share {share:.1f}%")
 
 
 def l1_no_liquidated_is_rex_leak(con):
@@ -176,14 +181,15 @@ def layer2_builder_checks(con):
 
     # tolerance: 0.5% of the source figure (float/rounding drift)
     def _cmp(name, builder_val, source_val):
+        # aum is in $ millions on both sides; tolerance 0.5% with a $1M floor.
         if builder_val is None:
-            out.append((name, True, f"SKIPPED (builder returned no value); source ${source_val/1e9:.2f}B"))
+            out.append((name, True, f"SKIPPED (builder returned no value); source {_b(source_val)}"))
             return
-        tol = max(abs(source_val) * 0.005, 1e6)
+        tol = max(abs(source_val) * 0.005, 1.0)
         ok = abs(builder_val - source_val) <= tol
         out.append((name, ok,
-                    f"builder ${builder_val/1e9:.2f}B vs source ${source_val/1e9:.2f}B "
-                    f"(Δ ${abs(builder_val-source_val)/1e6:.1f}M, tol ${tol/1e6:.1f}M)"))
+                    f"builder {_b(builder_val)} vs source {_b(source_val)} "
+                    f"(Δ ${abs(builder_val-source_val):.0f}M, tol ${tol:.0f}M)"))
 
     try:
         # L&I total AUM

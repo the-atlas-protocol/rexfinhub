@@ -805,7 +805,8 @@ _KNOWN_DB_BASENAMES = {
 # Backup / snapshot churn — expected, not new subsystems.
 import re as _re_drift
 _DB_BACKUP_RE = _re_drift.compile(
-    r"(^|/)(backups/|.*\.pre_.*\.db$|.*_deploy\.db$|.*\d{8}T\d{6}.*\.db$|.*_\d{8}\.db$)"
+    r"(^|/)(backups/|.*\.pre_.*\.db$|.*_deploy\.db$|.*_render\..*\.db$"
+    r"|.*\d{8}T\d{6}.*\.db$|.*_\d{8}\.db$)"
 )
 
 
