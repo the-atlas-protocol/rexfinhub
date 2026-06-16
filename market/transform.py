@@ -313,6 +313,24 @@ def step9b_derive_extra_columns(df: pd.DataFrame, rules: dict) -> pd.DataFrame:
     else:
         df["rex_suite"] = pd.NA
 
+    # Structural fallback: derive rex_suite from the fund NAME for any REX product
+    # the manual mapping missed, so a new fund can NEVER be left out of its suite
+    # (the SPAX → T-REX-count-40-vs-41 bug, 2026-06-16). Patterns are REX-name-
+    # prefixed so they can't tag a competitor (e.g. JPMorgan 'Premium Income').
+    if "fund_name" in df.columns:
+        fn = df["fund_name"].fillna("").str.upper()
+        def _fill_suite(pattern_mask, suite):
+            m = df["rex_suite"].isna() & pattern_mask
+            df.loc[m, "rex_suite"] = suite
+        _fill_suite(fn.str.startswith("T-REX"), "T-REX")
+        _fill_suite(fn.str.startswith("MICROSECTORS"), "MicroSectors")
+        _fill_suite(fn.str.startswith("REX-OSPREY"), "Crypto")
+        _fill_suite(fn.str.startswith("REX") & fn.str.contains("GROWTH & INCOME"), "Growth & Income")
+        _fill_suite(fn.str.startswith("REX") & fn.str.contains("PREMIUM INCOME"), "Equity Premium Income")
+        _fill_suite(fn.str.startswith("REX") & fn.str.contains("INCOMEMAX"), "IncomeMax")
+        _fill_suite(fn.str.startswith("REX") & fn.str.contains("AUTOCALL"), "Autocallable")
+        _fill_suite(fn.str.startswith("REX") & fn.str.contains("DRONE"), "Thematic")
+
     # --- ticker_clean: strip Bloomberg " US" suffix ---
     df["ticker_clean"] = df["ticker"].str.replace(r"\s+US$", "", regex=True)
 
