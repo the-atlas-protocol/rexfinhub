@@ -130,32 +130,54 @@ def build_html() -> str:
 <p>Health from the 2026-06-16 automation audit. Click any node to highlight its flow.</p>
 <div class="legend"><span><i class="dot" style="background:#22c55e"></i>healthy</span>
 <span><i class="dot" style="background:#f59e0b"></i>degraded</span>
-<span><i class="dot" style="background:#ef4444"></i>broken / disabled</span></div></div>
+<span><i class="dot" style="background:#ef4444"></i>broken / disabled</span>
+<span style="color:#64748b">&nbsp;|&nbsp; scroll = zoom &middot; drag = pan &middot; click node = trace flow &middot; dbl-click = reset</span></span></div>
+<input id="search" placeholder="search a component (e.g. sync, snapshot, Render, weekly, reconciler)"
+ style="margin-top:6px;padding:5px 8px;width:380px;border-radius:5px;border:1px solid #475569;background:#0f172a;color:#e2e8f0"></div>
 <div id="canvas"><svg id="svg"></svg></div>
 <script>
 const D = """ + data + """;
 const svg=document.getElementById('svg'), W=1620;
-svg.setAttribute('width',W); svg.setAttribute('height',D.height);
+svg.setAttribute('width','100%'); svg.setAttribute('height','calc(100vh - 120px)');
+svg.setAttribute('viewBox',`0 0 ${W} ${D.height}`);
 const NS='http://www.w3.org/2000/svg', byId={};
+const vp=document.createElementNS(NS,'g'); svg.appendChild(vp);  // pan/zoom viewport
 D.nodes.forEach(n=>byId[n.id]=n);
 const adjOut={}, adjIn={};
 D.edges.forEach(e=>{(adjOut[e.from]=adjOut[e.from]||[]).push(e);(adjIn[e.to]=adjIn[e.to]||[]).push(e);});
-D.lanes.forEach((l,i)=>{const t=document.createElementNS(NS,'text');t.setAttribute('x',D.laneX[i]);t.setAttribute('y',60);t.setAttribute('class','lane-h');t.textContent=l;svg.appendChild(t);});
+D.lanes.forEach((l,i)=>{const t=document.createElementNS(NS,'text');t.setAttribute('x',D.laneX[i]);t.setAttribute('y',60);t.setAttribute('class','lane-h');t.textContent=l;vp.appendChild(t);});
 const edgeEls=[];
 D.edges.forEach(e=>{const a=byId[e.from],b=byId[e.to];if(!a||!b)return;const p=document.createElementNS(NS,'path');
  const x1=a.x+D.laneW,y1=a.y+17,x2=b.x,y2=b.y+17,mx=(x1+x2)/2;
- p.setAttribute('d',`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);p.setAttribute('class','edge');p._e=e;svg.appendChild(p);edgeEls.push(p);});
+ p.setAttribute('d',`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);p.setAttribute('class','edge');p._e=e;vp.appendChild(p);edgeEls.push(p);});
 const nodeEls=[];
 D.nodes.forEach(n=>{const g=document.createElementNS(NS,'g');g.setAttribute('class','node');
  const r=document.createElementNS(NS,'rect');r.setAttribute('x',n.x);r.setAttribute('y',n.y);r.setAttribute('width',D.laneW);r.setAttribute('height',34);
  r.setAttribute('fill',D.fill[n.h]);r.setAttribute('stroke',D.stroke[n.h]);
  const t1=document.createElementNS(NS,'text');t1.setAttribute('x',n.x+8);t1.setAttribute('y',n.y+15);t1.setAttribute('class','lbl');t1.textContent=n.label;
  const t2=document.createElementNS(NS,'text');t2.setAttribute('x',n.x+8);t2.setAttribute('y',n.y+27);t2.setAttribute('class','sub');t2.textContent=n.sub.length>40?n.sub.slice(0,39)+'…':n.sub;
- g.appendChild(r);g.appendChild(t1);g.appendChild(t2);g._n=n;g.onclick=()=>trace(n.id);svg.appendChild(g);nodeEls.push(g);});
+ g.appendChild(r);g.appendChild(t1);g.appendChild(t2);g._n=n;g.onclick=(ev)=>{ev.stopPropagation();trace(n.id);};vp.appendChild(g);nodeEls.push(g);});
+// ---- pan / zoom ----
+let zk=1, px=0, py=0, dragging=false, sx=0, sy=0;
+function apply(){vp.setAttribute('transform',`translate(${px},${py}) scale(${zk})`);}
+svg.addEventListener('wheel',ev=>{ev.preventDefault();const f=ev.deltaY<0?1.12:1/1.12;
+ const r=svg.getBoundingClientRect();const mx=(ev.clientX-r.left)/r.width*W,my=(ev.clientY-r.top)/r.height*D.height;
+ px=mx-(mx-px)*f;py=my-(my-py)*f;zk*=f;apply();},{passive:false});
+svg.addEventListener('mousedown',ev=>{dragging=true;sx=ev.clientX;sy=ev.clientY;});
+window.addEventListener('mousemove',ev=>{if(!dragging)return;const r=svg.getBoundingClientRect();
+ px+=(ev.clientX-sx)/r.width*W;py+=(ev.clientY-sy)/r.height*D.height;sx=ev.clientX;sy=ev.clientY;apply();});
+window.addEventListener('mouseup',()=>dragging=false);
+svg.addEventListener('dblclick',()=>{zk=1;px=0;py=0;apply();reset();});
 function walk(id,adj,acc){(adj[id]||[]).forEach(e=>{const nxt=adj===adjOut?e.to:e.from;if(!acc.nodes.has(nxt)){acc.nodes.add(nxt);acc.edges.add(e);walk(nxt,adj,acc);}else acc.edges.add(e);});}
 function trace(id){const acc={nodes:new Set([id]),edges:new Set()};walk(id,adjOut,acc);walk(id,adjIn,acc);
  nodeEls.forEach(g=>g.classList.toggle('dim',!acc.nodes.has(g._n.id)));
  edgeEls.forEach(p=>{const on=acc.edges.has(p._e);p.classList.toggle('hot',on);p.classList.toggle('dim',!on);});}
+function reset(){nodeEls.forEach(g=>g.classList.remove('dim'));edgeEls.forEach(p=>p.classList.remove('hot','dim'));}
+svg.addEventListener('click',e=>{if(e.target===svg)reset();});
+document.getElementById('search').addEventListener('input',function(){const q=this.value.toLowerCase().trim();
+ if(!q){reset();return;}
+ nodeEls.forEach(g=>{const n=g._n;const hit=(n.label+' '+n.sub).toLowerCase().includes(q);g.classList.toggle('dim',!hit);});
+ edgeEls.forEach(p=>p.classList.add('dim'));});
 </script></body></html>"""
 
 
