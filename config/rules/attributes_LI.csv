@@ -1000,3 +1000,16 @@ SPAX US,Equity,Single Stock,Long,2.0,SPCX
 SPCM US,Equity,Single Stock,Long,2.0,SPCX
 SPCG US,Equity,Single Stock,Short,2.0,SPCX
 SPXP US,,Index,Long,1.5,S&P 500
+FNG US,Equity,Single Stock,Long,2.0,FN
+ADIU US,Equity,Single Stock,Long,2.0,ADI
+AXTL US,Equity,Single Stock,Long,2.0,AXTI
+KEYG US,Equity,Single Stock,Long,2.0,KEYS
+MCHG US,Equity,Single Stock,Long,2.0,MCHP
+DRAL US,Equity,Index/Basket/ETF Based,Long,2.0,
+APHG US,Equity,Single Stock,Long,2.0,APH
+TELG US,Equity,Single Stock,Long,2.0,TEL
+TSEG US,Equity,Single Stock,Long,2.0,TSEM
+IOSX US,Equity,Single Stock,Long,2.0,AAPL
+APPC US,Equity,Single Stock,Long,2.0,APP
+FBX US,Equity,Single Stock,Long,2.0,META
+TWSC US,Equity,Single Stock,Long,2.0,TSM
