@@ -424,7 +424,7 @@ def run_classification():
     try:
         from webapp.services.data_engine import build_all, build_all_from_csvs
         from market.auto_classify import classify_all
-        from market.db_writer import write_classifications, create_pipeline_run
+        from market.db_writer import write_classifications, create_pipeline_run, finish_pipeline_run
         from webapp.database import init_db, SessionLocal
 
         init_db()
@@ -444,6 +444,11 @@ def run_classification():
                 classifications = classify_all(etp)
                 run_id = create_pipeline_run(db, source_file="daily_classify")
                 n_written = write_classifications(db, classifications, run_id=run_id)
+                # Finalize the run — without this the row stays status='running'
+                # forever (33 orphaned 'daily_classify' rows accumulated since
+                # 2026-06-03; the no_dup_active / pipeline-health views read these).
+                finish_pipeline_run(db, run_id, status="completed",
+                                    master_rows_written=n_written)
                 db.commit()
                 print(f"  Unified classify: {n_written} funds classified")
             else:

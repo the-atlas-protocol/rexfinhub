@@ -429,6 +429,17 @@ def _update_last_run_marker(run_id: int, row_count: int) -> None:
 # ---------------------------------------------------------------------------
 def _insert_master_data(db: Session, df: pd.DataFrame, run_id: int) -> int:
     """Insert master data rows from DataFrame into mkt_master_data."""
+    # Dedup on the UNIQUE key (ticker, etp_category) before insert — must match
+    # market/db_writer.write_master_data, which already does this. Without it, a
+    # transient duplicate (ticker, etp_category) row in the Bloomberg sheet
+    # aborts the ENTIRE sync with an IntegrityError (the recurring 08:00
+    # sec-scrape crash on CMAY US, 2026-06-16). Keep first.
+    if {"ticker", "etp_category"}.issubset(df.columns):
+        before = len(df)
+        df = df.drop_duplicates(subset=["ticker", "etp_category"], keep="first")
+        if len(df) != before:
+            log.warning("_insert_master_data: dropped %d duplicate (ticker,etp_category) rows",
+                        before - len(df))
     rows = []
     for _, row in df.iterrows():
         ticker = _safe_str(row.get("ticker"))
