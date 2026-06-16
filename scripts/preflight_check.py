@@ -371,14 +371,17 @@ def audit_previews(db) -> dict:
         ("flow_report.html", PREVIEW_DIR / "flow_report.html"),
         ("autocall_report.html", PREVIEW_DIR / "autocall_report.html"),
         ("stock_recs.html",
-         PROJECT_ROOT / "reports" / f"li_weekly_v2_{date.today().isoformat()}.html"),
+         PROJECT_ROOT / "reports" / f"trex_combined_{date.today().isoformat()}.html"),
     ]
 
-    # Auto-build stock_recs if missing (the daily prebake doesn't cover it).
+    # Auto-build stock_recs if missing. MUST be trex_combined_v9 (the T-REX Stock
+    # Recommendation System report) — NOT the legacy weekly_v2 "Stock Recs of the
+    # Week", which is what the send path uses (send_all.py:_build_stock_recs) and
+    # which previously left the preview surface showing the wrong/stale report.
     stock_recs_path = expected[-1][1]
     if not stock_recs_path.exists():
         try:
-            from screener.li_engine.analysis.weekly_v2_report import main as _build_stock_recs
+            from screener.li_engine.analysis.trex_combined_v9 import build as _build_stock_recs
             _build_stock_recs()
         except Exception:
             pass  # If the build fails, the audit will report missing — informative either way.
