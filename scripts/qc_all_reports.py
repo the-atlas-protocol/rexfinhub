@@ -32,6 +32,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))  # so Layer 2 can import the webapp builders
 DB_PATH = PROJECT_ROOT / "data" / "etp_tracker.db"
 PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
 
