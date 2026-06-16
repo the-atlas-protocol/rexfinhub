@@ -166,12 +166,12 @@ MLPI US,,MQMNLPTU,Traditional,Energy
 SCEP US,,Basket,Traditional,Broad Beta
 YBST US,,FOF,Synthetic,Single Stock
 YBTY US,,FOF,Synthetic,Single Stock
-CAIE US,,Autocall,Synthetic,Autocallable
-CAIQ US,,Autocall,Synthetic,Autocallable
-ACEI US,,Autocall,Synthetic,Autocallable
-ACII US,,Autocall,Synthetic,Autocallable
-PAYH US,,Autocall,Synthetic,Autocallable
-PAYM US,,Autocall,Synthetic,Autocallable
+CAIE US,,Autocall,Autocallable,Autocallable
+CAIQ US,,Autocall,Autocallable,Autocallable
+ACEI US,,Autocall,Autocallable,Autocallable
+ACII US,,Autocall,Autocallable,Autocallable
+PAYH US,,Autocall,Autocallable,Autocallable
+PAYM US,,Autocall,Autocallable,Autocallable
 XOMO US,XOM US,,Synthetic,Single Stock
 WMTI US,WMT US,,Synthetic,Single Stock
 UNHW US,UNH US,,Synthetic,Single Stock
@@ -284,10 +284,10 @@ AAPY US,AAPL US,,Synthetic,Single Stock
 AAPW US,AAPL US,,Synthetic,Single Stock
 HAKY US,,HACK US,Traditional,Tech
 NDIV US,,NDIVITR,Traditional,Energy
-ANV US,NVDA US,Autocall,Synthetic,Autocallable
-TLA US,TSLA US,Autocall,Synthetic,Autocallable
+ANV US,NVDA US,Autocall,Autocallable,Autocallable
+TLA US,TSLA US,Autocall,Autocallable,Autocallable
 XSPI US,,SPX,Traditional,Broad Beta
-ATCL US,,Autocall,Synthetic,Autocallable
+ATCL US,,Autocall,Autocallable,Autocallable
 FEPI LN,,Basket,Traditional,Tech
 FEGI LN,,Basket,Traditional,Tech
 CEGI LN,,Basket,Traditional,Crypto
@@ -314,7 +314,7 @@ SLVO US,,SLV,Synthetic,Commodity
 GLDI US,,GLD,Synthetic,Commodity
 BWVTF US,,SPX,Synthetic,Broad Beta
 GIF US,,FOF,Synthetic,Single Stock
-ACYN US,,Autocall,Synthetic,Autocallable
+ACYN US,,Autocall,Autocallable,Autocallable
 MINY US,,Basket,Traditional,Single Stock
 ROCY US,,,Traditional,Broad Beta
 ROCQ US,,,Traditional,Tech
@@ -335,8 +335,8 @@ DDDD US,,,Synthetic,Broad Beta
 NVDK US,NVDA,,Synthetic,Single Stock
 TSLK US,TSLA,,Traditional,Single Stock
 ODTE US,,,Traditional,Broad Beta
-SBAR US,,Autocall,Synthetic,Autocallable
-CAGE US,,Autocall,Synthetic,Autocallable
+SBAR US,,Autocall,Autocallable,Autocallable
+CAGE US,,Autocall,Autocallable,Autocallable
 LQDM US,,BTSICTLQ,Synthetic,Broad Beta
 MUYY US,,,Traditional,Broad Beta
 HYGM US,,BTSICTHY,Synthetic,Broad Beta
@@ -348,12 +348,12 @@ BIOY US,,,Traditional,Sector
 TECY US,,,Traditional,Sector
 FINY US,,,Traditional,Broad Beta
 JELA US,,Autocall,Synthetic,Autocallable
-JELM US,,Autocall,Synthetic,Autocallable
-JELH US,,Autocall,Synthetic,Autocallable
-ACYS US,,Autocall,Synthetic,Autocallable
-ATC US,,,Synthetic,Broad Beta
-MSR US,,,Synthetic,Broad Beta
-VAIE US,,,Traditional,Broad Beta
+JELM US,,Autocall,Autocallable,Autocallable
+JELH US,,Autocall,Autocallable,Autocallable
+ACYS US,,Autocall,Autocallable,Autocallable
+ATC US,,,Autocallable,Autocallable
+MSR US,,,Autocallable,Autocallable
+VAIE US,,,Autocallable,Autocallable
 DPRE US,,Basket,Traditional,Real Estate
 JHDG US,,SPX,Traditional,Broad Beta
 JUDO US,,SPX,Traditional,Broad Beta
@@ -389,11 +389,11 @@ SSCP US,Russell 2000,,,Small Cap
 FHIL US,International Developed Markets,,,International
 NISM US,MSCI International Small-Mid Cap,,,International
 NYYY US,NVDA,,Traditional,Single Stock
-AHD US,HOOD,,Autocallable,Single Stock
+AHD US,HOOD,,Autocallable,Autocallable
 TYYY US,TSLA,,Traditional,Single Stock
-PLA US,PLTR,,Autocallable,Single Stock
-MRA US,MARA,,Autocallable,Single Stock
-SCA US,SMCI,,Autocallable,Single Stock
+PLA US,PLTR,,Autocallable,Autocallable
+MRA US,MARA,,Autocallable,Autocallable
+SCA US,SMCI,,Autocallable,Autocallable
 INYY US,INTC,,Traditional,Single Stock
 MATE US,,,Traditional,Broad Beta
 ACTS US,US Equity,,,Broad Beta

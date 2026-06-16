@@ -234,7 +234,7 @@ LTL US,Equity,Index/Basket/ETF Based,Long,2.0,
 LULG US,Equity,Single Stock,Long,2.0,LULU US
 LUNL US,Equity,Single Stock,Long,2.0,LUNR US
 LYFX US,Equity,Single Stock,Long,2.0,LYFT
-MAGX US,Equity,Index/Basket/ETF Based,Long,2.0,
+MAGX US,Equity,Single Stock,Long,2.0,MAGNIFICENT
 MDBX US,Equity,Single Stock,Long,2.0,MDB US
 METD US,Equity,Single Stock,Short,1.0,META US
 METU US,Equity,Single Stock,Long,2.0,META US
@@ -441,15 +441,15 @@ TBF US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
 TBT US,Fixed Income,Index/Basket/ETF Based,Short,2.0,
 TBX US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
 TBXU US,Equity,Index/Basket/ETF Based,Long,2.0,
-TECL US,Equity,Index/Basket/ETF Based,Long,3.0,
-TECS US,Equity,Index/Basket/ETF Based,Short,3.0,
+TECL US,Equity,Single Stock,Long,3.0,TECHNOLOGY
+TECS US,Equity,Single Stock,Short,3.0,TECHNOLOGY
 TEMT US,Equity,Single Stock,Long,2.0,TEM US
 TERG US,Equity,Single Stock,Long,2.0,TER US
 TEXU US,Equity,Index/Basket/ETF Based,Long,2.0,
 TMF US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
 TMV US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
 TNA US,Equity,Index/Basket/ETF Based,Long,3.0,
-TPOR US,Equity,Index/Basket/ETF Based,Long,3.0,
+TPOR US,Equity,Single Stock,Long,3.0,TRANSPORTATION
 TQQQ US,Equity,Index/Basket/ETF Based,Long,3.0,
 TSDD US,Equity,Single Stock,Short,2.0,TSLA US
 TSL US,Equity,Single Stock,Long,1.25,TSLA US
@@ -612,7 +612,7 @@ SZOXF US,Commodity,Energy,Short,1.0,DBODIXX
 JETD US,Equity,Airlines,Short,3.0,PJETSNTR
 FNGU US,Equity,Tech,Long,3.0,NYFANGT
 WTID US,Commodity,Energy,Short,3.0,BIGOIL
-DULL US,Commodity,Gold,Short,3.0,
+DULL US,Commodity,Single Stock,Short,3.0,LEVERAGED
 OILD US,Commodity,Energy,Short,3.0,SOLOILT
 NRGD US,Commodity,Energy,Short,3.0,SOLUSBOT
 GDXD US,Commodity,Gold,Short,3.0,MINERS
@@ -887,7 +887,7 @@ LITZ US,Equity,Single Stock,Short,2.0,LITE
 SNDQ US,Equity,Single Stock,Short,2.0,SNDK
 AXTX US,Equity,Single Stock,Long,2.0,AXTI
 AMA US,Equity,Single Stock,Long,2.0,AMAT
-XOVL US,Equity,Index/Basket/ETF Based,Long,2.0,
+XOVL US,Equity,Single Stock,Long,2.0,XOVR
 AXTU US,Equity,Single Stock,Long,2.0,AXTI
 KRK US,Equity,Index/Basket/ETF Based,Long,2.0,
 HXSL US,Equity,Index/Basket/ETF Based,Long,2.0,
@@ -957,9 +957,9 @@ USX US,Equity,Index/Basket/ETF Based,Long,2.0,
 INFH US,Equity,Single Stock,Long,2.0,INFQ
 CBRX US,Equity,Single Stock,Long,2.0,CBRS
 CBRZ US,Equity,Single Stock,Short,2.0,CBRS
-AIQD US,Equity,Index/Basket/ETF Based,Short,3.0,
+AIQD US,Equity,Single Stock,Short,3.0,ARTIFICIAL
 MUZ US,Equity,Single Stock,Short,2.0,MU
-AIQU US,Equity,Index/Basket/ETF Based,Long,3.0,
+AIQU US,Equity,Single Stock,Long,3.0,ARTIFICIAL
 SAMX US,Equity,Single Stock,Long,2.0,005930 KS
 ASMX US,Equity,Single Stock,Long,2.0,ASM NA
 MDTX US,Equity,Single Stock,Long,2.0,2454 TT
