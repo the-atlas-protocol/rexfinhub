@@ -213,8 +213,7 @@ def layer2_builder_checks(con):
         try:
             flow = rd.get_flow_report(db=db, use_cache=False)
             grand = (flow or {}).get("grand_kpis", {}) or {}
-            fv = grand.get("total_aum") or grand.get("aum")
-            fv = float(fv) if fv is not None else None
+            fv = _parse_money(grand.get("total_aum") or grand.get("aum"))
             src = _q1(con, f"SELECT COALESCE(SUM(aum),0) FROM mkt_master_data WHERE {ACTV}")
             _cmp("flow_grand_aum_matches_source", fv, src)
         except Exception as e:
@@ -224,8 +223,29 @@ def layer2_builder_checks(con):
     return out
 
 
+def _parse_money(v):
+    """Parse a builder money value to $ MILLIONS. Handles raw numbers and the
+    builders' display strings: '$16,138.1B', '$213.0B', '1,234M', '$1.2T'."""
+    if isinstance(v, (int, float)):
+        return float(v)
+    if not isinstance(v, str):
+        return None
+    s = v.strip().replace("$", "").replace(",", "")
+    mult = 1.0
+    if s[-1:].upper() == "B":
+        mult, s = 1e3, s[:-1]          # billions -> millions
+    elif s[-1:].upper() == "T":
+        mult, s = 1e6, s[:-1]          # trillions -> millions
+    elif s[-1:].upper() == "M":
+        mult, s = 1.0, s[:-1]          # already millions
+    try:
+        return float(s) * mult
+    except ValueError:
+        return None
+
+
 def _builder_total_aum(report: dict):
-    """Best-effort extract the category total AUM from a get_li/get_cc report dict."""
+    """Best-effort extract the category total AUM (in $millions) from a report dict."""
     if not isinstance(report, dict):
         return None
     for path in (("kpis", "total_aum"), ("kpis", "market_aum"),
@@ -239,10 +259,9 @@ def _builder_total_aum(report: dict):
                 ok = False
                 break
         if ok and cur is not None:
-            try:
-                return float(cur)
-            except (TypeError, ValueError):
-                pass
+            parsed = _parse_money(cur)
+            if parsed is not None:
+                return parsed
     return None
 
 
