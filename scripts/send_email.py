@@ -416,6 +416,22 @@ def main():
         print(f"  Market sync failed (non-fatal): {e}")
         import traceback; traceback.print_exc()
 
+    # Curated enrichment restamp — sync_market_data full-replaces mkt_master_data
+    # and clears the curated 3-axis taxonomy + issuer_display to NULL. Building a
+    # report off a bare sync therefore ran on de-enriched data and left the
+    # taxonomy NULL (the 'auto'-sync wipe, 2026-06-16). Restamp before building.
+    # Idempotent; the nightly chain runs the same steps.
+    print("  Restamping curated taxonomy + issuer brands...")
+    import subprocess as _sp_es
+    for _es_name in ("apply_fund_master.py", "derive_issuer_brands.py", "apply_issuer_brands.py"):
+        try:
+            _es_r = _sp_es.run([sys.executable, str(Path(__file__).resolve().parent / _es_name)],
+                               capture_output=True, text=True, timeout=300)
+            if _es_r.returncode != 0:
+                print(f"  WARN: {_es_name} exit={_es_r.returncode}: {_es_r.stderr[:160]}")
+        except Exception as _es_e:
+            print(f"  WARN: {_es_name} skipped: {_es_e}")
+
     # Bloomberg staleness guard — abort (and alert) if data is too old.
     # Graph API failures now raise BloombergGraphError, which we treat as a
     # hard abort too so we never send with stale/uncertain data.
