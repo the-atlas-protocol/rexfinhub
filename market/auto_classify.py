@@ -684,13 +684,16 @@ def _extract_leverage_attrs(name: str, lev_amount: str, is_ss_val, attrs: dict) 
     elif lev_amount and lev_amount.lower() not in ("", "nan", "none"):
         attrs["leverage_amount"] = lev_amount
 
-    # Underlier from is_singlestock
-    if pd.notna(is_ss_val):
+    # Underlier from is_singlestock; fall back to the fund name for new
+    # single-stock launches Bloomberg hasn't stamped yet (Plan A1).
+    if pd.notna(is_ss_val) and str(is_ss_val).strip():
         ss = str(is_ss_val).strip()
-        if ss:
-            # Strip Bloomberg suffix
-            underlier = re.sub(r"\s+(US|Curncy|Comdty|Index|Equity)$", "", ss)
-            attrs["underlier"] = underlier
+        underlier = re.sub(r"\s+(US|Curncy|Comdty|Index|Equity)$", "", ss)
+        attrs["underlier"] = underlier
+    else:
+        name_underlier = _singlestock_underlier_from_name(name)
+        if name_underlier:
+            attrs["underlier"] = name_underlier
 
 
 def _extract_income_attrs(name: str, is_ss_val, attrs: dict) -> None:
@@ -967,10 +970,51 @@ def _is_spot_crypto(name: str) -> bool:
         not re.search(r"\b(FUTURES|INDEX|BASKET|DIVERSIFIED)\b", name)
 
 
+# Index/sector/asset keywords that must NEVER be read as a single-stock underlier.
+_NON_SINGLESTOCK_WORDS = {
+    "S&P", "SP", "SPX", "NASDAQ", "NDX", "DOW", "DJIA", "RUSSELL", "RTY", "MSCI",
+    "EAFE", "EMERGING", "INDEX", "BASKET", "SECTOR", "SEMICONDUCTOR", "SEMI",
+    "SEMIS", "TREASURY", "TREASURIES", "BOND", "BONDS", "GOLD", "SILVER", "OIL",
+    "CRUDE", "GAS", "VIX", "VOLATILITY", "FANG", "INNOVATION", "TECH", "ENERGY",
+    "FINANCIAL", "FINANCIALS", "BANK", "BANKS", "REGIONAL", "BIOTECH", "RETAIL",
+    "HOMEBUILDER", "HOMEBUILDERS", "REAL", "ESTATE", "UTILITIES", "MATERIALS",
+    "INDUSTRIALS", "HEALTHCARE", "STAPLES", "DISCRETIONARY", "AI", "CRYPTO",
+    "BITCOIN", "ETHER", "ETHEREUM", "BLOCKCHAIN", "URANIUM", "LITHIUM", "DEFENSE",
+}
+
+# "<N>X LONG|SHORT|BULL|BEAR|INVERSE <UNDERLIER>" — Defiance/T-REX/GraniteShares form.
+_SS_LEV_RX = re.compile(
+    r"\b\d(?:\.\d+)?X\s+(?:LONG|SHORT|BULL|BEAR|INVERSE)\s+([A-Z][A-Z0-9.\-]{0,14})\b")
+# "Direxion Daily <UNDERLIER> Bull|Bear 2X" form.
+_SS_DIREXION_RX = re.compile(r"\bDAILY\s+([A-Z][A-Z0-9.\-]{0,14})\s+(?:BULL|BEAR)\b")
+
+
+def _singlestock_underlier_from_name(name: str) -> str | None:
+    """Extract the single-stock underlier from a leveraged fund NAME when the
+    Bloomberg is_singlestock field is blank (the new-launch failure mode that
+    mislabeled Defiance '2X LONG <TICKER>' as Index/blank). Conservative:
+    returns a token only when it looks like a single ticker/company and is NOT
+    an index/sector/asset word — otherwise None (leave it Index)."""
+    if not name:
+        return None
+    n = name.upper()
+    for rx in (_SS_LEV_RX, _SS_DIREXION_RX):
+        m = rx.search(n)
+        if not m:
+            continue
+        tok = m.group(1).strip(" .-")
+        if tok and tok not in _NON_SINGLESTOCK_WORDS and any(ch.isalpha() for ch in tok):
+            return tok
+    return None
+
+
 def _resolve_underlier_type(is_ss_val, ticker: str, name: str) -> str:
-    """Resolve underlier_type from is_singlestock field."""
+    """Resolve underlier_type from is_singlestock field, with a name-pattern
+    fallback when Bloomberg leaves is_singlestock blank (new launches)."""
     if pd.isna(is_ss_val) or not str(is_ss_val).strip():
-        return "Index"
+        # Fallback: a '<N>X LONG/SHORT <ticker>' name IS single-stock even when
+        # Bloomberg hasn't stamped is_singlestock yet (Plan A1, 2026-06-15).
+        return "Single Stock" if _singlestock_underlier_from_name(name) else "Index"
     val = str(is_ss_val).strip()
     if val.endswith(" Curncy"):
         return "Currency"
