@@ -343,6 +343,25 @@ def run_market_sync():
     except Exception as e:
         print(f"  WARN: brand application skipped: {e}")
 
+    # Curated 3-axis taxonomy (apply_fund_master) — Bloomberg sync clears
+    # asset_class/primary_strategy/sub_strategy + 20 attribute cols to NULL on
+    # re-import. The nightly bloomberg-chain restamps from fund_master.csv, but
+    # the 4x/day intraday refresh runs THIS path without it, so the entire
+    # curated taxonomy (incl. REX's own ~85 products, which the auto-sweep does
+    # NOT classify) was NULL for most of the day. Must run BEFORE the sweep so
+    # the sweep's no-overwrite safeguard preserves these curated values.
+    print("  Applying curated fund_master taxonomy...")
+    try:
+        _rfm = _sp.run([sys.executable, str(PROJECT_ROOT / "scripts" / "apply_fund_master.py")],
+                       capture_output=True, text=True, timeout=300)
+        if _rfm.returncode != 0:
+            print(f"  WARN: apply_fund_master exit={_rfm.returncode}: {_rfm.stderr[:200]}")
+        for line in _rfm.stdout.splitlines():
+            if "Applied:" in line or "Not found:" in line:
+                print(f"  {line.strip()}")
+    except Exception as e:
+        print(f"  WARN: apply_fund_master skipped: {e}")
+
     # Classification sweep (3-axis taxonomy: asset_class x primary_strategy
     # x sub_strategy + 14 attribute columns). Bloomberg sync also clears
     # these to NULL on re-import. HIGH-confidence only auto-applies; MED/LOW
