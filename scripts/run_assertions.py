@@ -158,16 +158,26 @@ def check_underlier_id(conn: sqlite3.Connection) -> tuple:
 
 @_make_assertion("etp_category_coverage", "classification")
 def check_etp_category(conn: sqlite3.Connection) -> tuple:
-    """Every active REX product should have etp_category."""
+    """Every active REX product that belongs to a legacy bucket should have etp_category.
+
+    The legacy etp_category has exactly five buckets (LI/CC/Crypto/Defined/Thematic).
+    REX products whose curated 3-axis asset_class is outside that universe — T-Bill /
+    bond ladders (Fixed Income), Multi-Asset, Currency — legitimately have NO legacy
+    category and are NOT shown in any legacy-bucket report (those filter on etp_category;
+    Portfolio buckets them by rex_suite). So they're exempt: forcing a wrong legacy label
+    would be data corruption (Ryu, 2026-06-16). Funds still lacking BOTH etp_category and
+    a curated asset_class are genuine gaps and still fail.
+    """
     rows = conn.execute("""
         SELECT ticker FROM mkt_master_data
         WHERE market_status = 'ACTV' AND is_rex = 1
           AND (etp_category IS NULL OR etp_category = '')
+          AND COALESCE(asset_class, '') NOT IN ('Fixed Income', 'Multi-Asset', 'Currency')
         LIMIT 20
     """).fetchall()
     return (len(rows) == 0, len(rows),
             [{"ticker": r[0]} for r in rows[:5]],
-            f"{len(rows)} active REX products missing etp_category")
+            f"{len(rows)} active REX products missing etp_category (excl. non-legacy asset classes)")
 
 
 # ============================================================================
