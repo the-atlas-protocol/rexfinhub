@@ -149,10 +149,19 @@ def l1_history_today(con):
         return ("daily_history_captured", False, "mkt_daily_snapshot missing")
 
 
+def l1_no_micro_singlestock(con):
+    # MicroSectors are index/sector ETNs — must NEVER be tagged Single Stock
+    # (the AIQU/AIQD/DULL heuristic regression, 2026-06-16).
+    n = _q1(con, "SELECT COUNT(*) FROM mkt_master_data WHERE fund_name LIKE '%MICROSECTORS%' "
+            "AND LOWER(COALESCE(map_li_subcategory,'')) = 'single stock'")
+    return ("no_microsectors_single_stock", n == 0,
+            f"{n} MicroSectors funds mis-tagged Single Stock (must be 0)")
+
+
 LAYER1 = [l1_no_duplicate_keys, l1_universe_sane, l1_total_aum_positive,
           l1_li_category, l1_cc_category, l1_no_liquidated_is_rex_leak,
-          l1_rex_completeness, l1_autocall_union_tagged, l1_data_fresh,
-          l1_history_today]
+          l1_rex_completeness, l1_autocall_union_tagged, l1_no_micro_singlestock,
+          l1_data_fresh, l1_history_today]
 
 
 # ---------------------------------------------------------------------------

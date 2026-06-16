@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>rexfinhub — full system architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+ body{margin:0;background:#0f172a;color:#e2e8f0;font-family:-apple-system,Segoe UI,sans-serif}
+ #top{padding:10px 16px;background:#1e293b;border-bottom:1px solid #334155;position:sticky;top:0;z-index:9}
+ #top h1{margin:0 0 3px;font-size:15px} #top p{margin:0;font-size:12px;color:#94a3b8}
+ #ctl{margin-top:6px;font-size:12px}
+ #ctl button{background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:4px;padding:3px 9px;cursor:pointer;margin-right:6px}
+ #wrap{overflow:auto;padding:14px}
+ .mermaid{background:#0f172a}
+ .legend span{margin-right:16px;font-size:12px}
+ .dot{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:4px;vertical-align:middle}
+</style></head>
+<body>
+<div id="top">
+ <h1>rexfinhub &mdash; full system architecture (every component: devices · sources · scripts · data · enrichment · reports · website · docs)</h1>
+ <p>One number's journey flows top&rarr;bottom. Each box says what it IS and what it's FOR. Authority = VPS; local is dev-only; D: is cold archive; Render is a read replica.</p>
+ <div class="legend"><span><span class="dot" style="background:#22c55e"></span>healthy</span>
+ <span><span class="dot" style="background:#f59e0b"></span>degraded / fragile</span>
+ <span><span class="dot" style="background:#ef4444"></span>broken / not-tied-up</span></div>
+ <div id="ctl"><button onclick="zoom(1.15)">+ zoom</button><button onclick="zoom(0.87)">− zoom</button><button onclick="zr()">reset</button> &nbsp;scroll to pan · pinch/buttons to zoom</div>
+</div>
+<div id="wrap"><div class="mermaid" id="g">
+flowchart TB
+
+subgraph DEVICES["🖥️ DEVICES &amp; where each layer lives"]
+  direction LR
+  LOCAL["<b>Local</b> C:\\Projects\\rexfinhub<br/>dev only · Syncthing laptop↔desktop<br/>NEVER authoritative for data"]
+  VPS["<b>VPS</b> jarvis@46.224.126.196<br/>PRODUCTION authority · the SQLite DB<br/>all daemons + timers run here"]
+  DDRIVE["<b>D:</b> D:\\sec-data<br/>cold archive · nightly tarballs + cache<br/>not queried live"]
+  RENDER["<b>Render</b> rexfinhub.com<br/>read-only replica of the VPS DB<br/>auto-deploys on push to main"]
+end
+
+subgraph SOURCES["📥 SOURCES"]
+  direction LR
+  BBG["<b>Bloomberg daily xlsm</b><br/>data/DASHBOARD/bloomberg_daily_file.xlsm<br/>sheets: w1–w5 (metadata), data_aum/flow/price/nav,<br/>mkt_status, microsector_aum/flow/sh (true ETN AUM),<br/>BlueOcean, T-REX"]
+  EDGAR["<b>SEC EDGAR</b><br/>485 filings + daily index<br/>→ new funds, effective dates"]
+  CBOE["<b>CBOE</b><br/>symbol-reservation sweep<br/>(cookie-gated)"]
+  RULES["<b>Rules CSVs</b> config/rules/ (git) ⇄ data/rules/<br/>fund_master.csv (3-axis taxonomy · curated),<br/>attributes_LI/CC/Crypto/Defined/Thematic,<br/>rex_funds.csv (is_rex), issuer_brand_overrides.csv"]
+end
+
+subgraph SCHED["⏱️ SCHEDULERS (systemd timers, VPS)"]
+  direction LR
+  T1["atom-watcher 60s · single-filing-worker<br/>· fresh-poller 15min — SEC discovery"]
+  T2["bloomberg-chain 17:15+21:00<br/>sync + 12 post-steps"]
+  T3["sec-scrape 4×/day → run_daily<br/>(the path that nulls + restamps)"]
+  T4["reconciler 08:00 · classification-sweep 09:00<br/>· db-backup 23:00 · cboe 03:00"]
+  T5["⚠ intraday-refresh DISABLED · preflight DISABLED<br/>· gate-open DISABLED (sends dark)"]
+end
+
+subgraph INGEST["⚙️ INGESTION &amp; ENRICHMENT scripts (run on VPS)"]
+  direction LR
+  ING1["<b>market/ingest+transform</b> → db_writer<br/>full-replace mkt_master_data (dedup ticker,etp_cat)"]
+  ING2["<b>classify_daily</b> rules→LLM→critic→queue<br/>→ etp_category + map_li_*/cc_*"]
+  ING3["<b>apply_fund_master</b> restamp 3-axis<br/>(primary_strategy/sub_strategy/asset_class)"]
+  ING4["<b>derive+apply_issuer_brands</b><br/>issuer_display (brand)"]
+  ING5["<b>market/microsectors</b> true-AUM override<br/>(ETN issuance → real AUM)"]
+  ING6["<b>status_reconciler</b> 3-source rule<br/>→ status_history → status_cached"]
+  ING7["<b>snapshot_daily</b> append EOD history<br/>· commit_rules_delta (rules→git→Render)"]
+  ING8["<b>SEC pipeline</b> step3 485 parser<br/>· sync_rex_products_from_filings"]
+end
+
+subgraph DB["🗄️ DATABASE — data/etp_tracker.db (VPS authority) + live_feed.db"]
+  direction LR
+  DBM["<b>MARKET</b><br/>mkt_master_data (per-sync snapshot · the hub),<br/>mkt_time_series (36mo AUM/flow),<br/>mkt_daily_snapshot (per-day field history),<br/>mkt_stock_data"]
+  DBR["<b>REX LIFECYCLE</b><br/>rex_products (Filed→…→Listed authority),<br/>status_history (bi-temporal · THE authority),<br/>product_master · identifier_xref · fund_underlier"]
+  DBF["<b>FILINGS</b> filings (633K) ·<br/>fund_extractions (714K) · fund_status (215K) ·<br/>name_history · trusts"]
+  DBC["<b>CLASSIFICATION + AUTOCALL</b><br/>classification_override · classification_audit_log ·<br/>autocall_* (125K) · fund_distributions"]
+  DBE["<b>SCORING + OPS</b><br/>li_engine_daily (final_score v1.0.1),<br/>assertion_run · mkt_pipeline_runs ·<br/>mkt_report_cache · reserved_symbols/cboe"]
+  DBL["<b>live_feed.db</b> SEC live feed<br/>(atom-watcher) · backups/ tarballs → D:"]
+end
+
+subgraph REPORTS["📊 REPORTS (build on VPS · email via send_all.py)"]
+  direction LR
+  RDAILY["<b>Daily</b> filing + upcoming launches"]
+  RWEEK["<b>Weekly</b> 5-category landscape"]
+  RLI["<b>L&amp;I</b> REX position + 3 charts"]
+  RINC["<b>Income</b> covered-call + 3 charts"]
+  RFLOW["<b>Flow</b> per-suite competitive"]
+  RAUTO["<b>Autocallable</b> weekly update"]
+  RTREX["<b>T-REX Stock Recs</b> trex_combined_v9"]
+  RBRIEF["<b>T-REX Brief</b> recommendation_brief (on-demand)"]
+  RBLUE["<b>Blue Ocean</b> overnight (monthly)"]
+  RPORT["<b>Portfolio</b> suite flow"]
+  RMS["<b>MicroSectors</b> report ❓ (locating)"]
+end
+
+subgraph WEB["🌐 WEBSITE — Render webapp (FastAPI + Jinja2)"]
+  direction LR
+  WSCREEN["/screener · /market — L&I + ETP screens"]
+  WOPS["/operations/pipeline — REX lifecycle"]
+  WFIL["/filings · /filings/symbols (CBOE)"]
+  WHEALTH["⚠ startup eager-loads 280K-row cache<br/>→ 512MB Render plan OOM"]
+end
+
+subgraph DOCS["📄 DOCS (six-doc framework, repo docs/)"]
+  direction LR
+  D1["ARCHITECTURE · SYSTEM · TARGET · RUNBOOK<br/>· CLASSIFICATION · GLOSSARY · LOG · INDEX"]
+  D2["SYSTEM_LEDGER (consolidated purpose map)<br/>· DECISIONS/ ADRs · audits/"]
+  D3["lineage/index.html (number→source)<br/>· architecture/ (this map)"]
+end
+
+%% ---- flows ----
+BBG --> ING1
+RULES --> ING2 & ING3 & ING4
+EDGAR --> ING8 & T1
+CBOE --> WFIL
+T2 --> ING1
+T3 --> ING1
+ING1 --> DBM
+ING1 --> ING2 --> ING3 --> ING4 --> ING6 --> ING7
+ING5 --> RLI
+ING2 --> DBC
+ING3 --> DBM
+ING6 --> DBR
+ING8 --> DBF & DBR
+DBM --> RDAILY & RWEEK & RLI & RINC & RFLOW & RAUTO & RPORT
+DBR --> RTREX & RBRIEF
+DBM --> RMS
+DBE --> RTREX
+ING7 -->|commit_rules_delta + run_daily --upload| RENDER
+DBM --> DBL
+DBM --> WSCREEN & WOPS
+DBR --> WOPS
+RENDER --> WEB
+VPS -.nightly tarball.-> DDRIVE
+LOCAL -.git push main.-> RENDER
+SCHED --> INGEST
+
+classDef ok fill:#14532d,stroke:#22c55e,color:#e2e8f0;
+classDef warn fill:#78350f,stroke:#f59e0b,color:#e2e8f0;
+classDef bad fill:#7f1d1d,stroke:#ef4444,color:#e2e8f0;
+classDef dev fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0;
+class LOCAL,VPS,DDRIVE,RENDER dev;
+class T5,WHEALTH,RMS bad;
+class T3,ING5 warn;
+</div></div>
+<script>
+ mermaid.initialize({startOnLoad:true, theme:'dark', flowchart:{useMaxWidth:false, htmlLabels:true, curve:'basis'}, securityLevel:'loose'});
+ let z=1; const g=document.getElementById('g');
+ function ap(){g.style.transform='scale('+z+')';g.style.transformOrigin='top left';}
+ function zoom(f){z*=f;ap();} function zr(){z=1;ap();}
+</script>
+</body></html>
