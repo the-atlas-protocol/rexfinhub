@@ -162,30 +162,41 @@ def _read_sheet(name: str, index_col: int | None = None) -> pd.DataFrame:
 
 
 def _apply_ms_history_to_data_aum(data_aum, overrides) -> None:
-    """Back-fill the MicroSectors HISTORICAL AUM series (data_aum, a date x ticker
-    wide-frame in $millions) with the override's true monthly history (aum_1..aum_36).
-    Without this the L&I market-position chart shows raw Bloomberg ETN issuance
-    (~$12B a year ago) while the current snapshot is the overridden true ~$3B.
-    (Ryu 2026-06-17.)"""
+    """Correct the MicroSectors HISTORICAL AUM series in data_aum (a date x ticker
+    frame, $millions) using the override's true monthly history (aum_1..aum_36).
+    data_aum may be DAILY (Excel path) or monthly (DB path), and columns may carry a
+    ' US' suffix (Excel) or not (DB) — handle both. Builds the monthly override points
+    and interpolates onto data_aum's index so the market-position chart reflects the
+    true AUM (~$3B) instead of raw Bloomberg ETN issuance (~$12B). (Ryu 2026-06-17.)"""
     try:
         if data_aum is None or getattr(data_aum, "empty", True) or not overrides:
             return
         now = pd.Timestamp.now().normalize()
-        idx = data_aum.index
+        cols = set(map(str, data_aum.columns))
+        applied = 0
         for ticker_us, vals in overrides.items():
             if not isinstance(vals, dict) or str(ticker_us).startswith("__"):
                 continue
-            col = str(ticker_us).replace(" US", "").strip()
-            if col not in data_aum.columns:
+            col = ticker_us if str(ticker_us) in cols else str(ticker_us).replace(" US", "").strip()
+            if col not in cols:
                 continue
-            if "aum" in vals and len(idx):
-                data_aum.loc[idx.max(), col] = vals["aum"]
+            pts = {}
+            if "aum" in vals:
+                pts[now] = vals["aum"]
             for n in range(1, 37):
                 k = f"aum_{n}"
                 if k in vals:
-                    d = now - pd.DateOffset(months=n)
-                    if d in data_aum.index:
-                        data_aum.loc[d, col] = vals[k]
+                    pts[now - pd.DateOffset(months=n)] = vals[k]
+            if not pts:
+                continue
+            s = pd.Series(pts); s.index = pd.to_datetime(s.index); s = s.sort_index()
+            union = data_aum.index.union(s.index)
+            reindexed = (s.reindex(union).interpolate(method="time")
+                         .reindex(data_aum.index).ffill().bfill())
+            data_aum[col] = reindexed.values
+            applied += 1
+        if applied:
+            log.info("MicroSectors history override applied to %d data_aum cols", applied)
     except Exception as e:
         log.warning("MicroSectors history override (data_aum) failed: %s", e)
 
