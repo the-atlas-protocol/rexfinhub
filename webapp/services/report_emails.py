@@ -577,7 +577,7 @@ def _horizontal_bar_chart(items: list[dict], value_key: str = "market_share",
         val = b.get(value_key, 0)
         pct = abs(val) / max_val * 100
         bar_width = max(pct, 2)
-        color = _CHART_COLORS[i % len(_CHART_COLORS)]
+        color = "#0984e3" if b.get("is_rex") else _CHART_COLORS[i % len(_CHART_COLORS)]  # REX blue
         label = _esc(str(b.get(label_key, ""))[:22])
         val_display = _esc(str(b.get(value_fmt_key, "")))
         share = f'{b.get("market_share", 0):.1f}%' if "market_share" in b else ""
@@ -673,7 +673,7 @@ def _flow_bars(inflows: list[dict], outflows: list[dict], n: int = 10,
         ticker = _esc(_disp_ticker(f["ticker"]))
         fmt = _esc(f.get(metric_fmt_key, ""))
         is_pos = flow >= 0
-        color = _GREEN if is_pos else _RED
+        color = "#0984e3" if f.get("is_rex") else (_GREEN if is_pos else _RED)  # REX blue
 
         # Bar length proportional to max of the same sign
         if is_pos and max_pos > 0:
@@ -769,7 +769,7 @@ def _issuer_share_bars(issuers: list[dict], n: int = 6) -> str:
     legend_items = []
     for i, iss in enumerate(top):
         share = iss.get("market_share", 0)
-        color = _CHART_COLORS[i % len(_CHART_COLORS)]
+        color = "#0984e3" if iss.get("is_rex") else _CHART_COLORS[i % len(_CHART_COLORS)]  # REX blue
         name = _esc(iss["issuer"][:18])
         if share >= 1:
             segments += (f'<td style="width:{share:.1f}%;background:{color};height:22px;'
@@ -1705,8 +1705,61 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
         body += _segment_block(seg, suite_color)
 
+    # Pending & filed autocallable launches (Ryu 2026-06-16) — upcoming supply.
+    body += _pending_autocall_section(db)
+
     html = _wrap_email(title, _NAVY, body, dashboard_url, date_str)
     return html, []
+
+
+def _pending_autocall_section(db) -> str:
+    """A small table of autocallable products that are PEND (filed/expected) but
+    not yet trading — surfaces the upcoming launch pipeline at the bottom of the
+    flow report. Empty string if none or no db."""
+    if db is None:
+        return ""
+    try:
+        from sqlalchemy import text as _text
+        # Estimated effective dates live in rex_products/fund_status, joined by a
+        # cleaned ticker; LEFT JOIN so a fund with no filed date still shows.
+        rows = db.execute(_text(
+            "SELECT m.ticker, m.fund_name, COALESCE(m.issuer_display, m.issuer, '') AS iss, "
+            "       COALESCE((SELECT fs.effective_date FROM fund_status fs "
+            "                 WHERE REPLACE(fs.ticker,' US','')=REPLACE(m.ticker,' US','') "
+            "                   AND fs.effective_date IS NOT NULL LIMIT 1), '') AS eff "
+            "FROM mkt_master_data m "
+            "WHERE m.market_status='PEND' "
+            "  AND (m.cc_category='Autocallable' OR UPPER(m.fund_name) LIKE '%AUTOCALL%') "
+            "ORDER BY m.fund_name"
+        )).fetchall()
+    except Exception:
+        return ""
+    if not rows:
+        return ""
+    trs = ""
+    for tk, name, iss, eff in rows:
+        is_rex = str(iss).upper().startswith("REX")
+        tk_disp = str(tk).replace(" US", "")
+        wt = "font-weight:700;color:#0984e3;" if is_rex else ""
+        trs += (
+            f'<tr>'
+            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;{wt}">{_esc(tk_disp)}</td>'
+            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;{wt}">{_esc(str(name)[:46])}</td>'
+            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;color:#636e72;">{_esc(str(iss)[:22])}</td>'
+            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;color:#636e72;">{_esc(str(eff)[:10] or "—")}</td>'
+            f'</tr>'
+        )
+    return (
+        f'<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">'
+        f'<tr><td style="padding:10px 0 6px;font-size:13px;font-weight:700;'
+        f'letter-spacing:0.5px;color:{_NAVY};">PENDING &amp; FILED AUTOCALLABLE LAUNCHES '
+        f'<span style="font-weight:400;color:#636e72;">({len(rows)})</span></td></tr></table>'
+        f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;">'
+        f'<tr style="color:#636e72;font-size:11px;text-transform:uppercase;">'
+        f'<td style="padding:4px 10px;">Ticker</td><td style="padding:4px 10px;">Fund</td>'
+        f'<td style="padding:4px 10px;">Issuer</td><td style="padding:4px 10px;">Est. Effective</td></tr>'
+        f'{trs}</table>'
+    )
 
 
 def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
