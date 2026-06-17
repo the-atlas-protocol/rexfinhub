@@ -1733,7 +1733,11 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     suites = data.get("suites", [])
     auto_suite = None
     for s in suites:
-        if "autocall" in s.get("label", "").lower():
+        # Match by the stable suite KEY, not the display label: the canonical
+        # suite display name is now "Structured" (definition library), so a
+        # label-substring match on "autocall" finds nothing. The key is still
+        # "autocallable".
+        if s.get("key") == "autocallable" or "autocall" in s.get("label", "").lower():
             auto_suite = s
             break
 
