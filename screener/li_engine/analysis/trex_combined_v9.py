@@ -504,6 +504,23 @@ def load_trex_2x_long_pipeline(single_stocks: set | None = None):
         log.warning("li_engine_daily join failed: %s", e)
         df["underlier_score"] = 0.0
 
+    # Exclude funds that are ALREADY LIVE: a Filed/Delayed row whose exact product
+    # name matches an ACTV product means the status is stale (the fund launched but
+    # rex_products was never promoted). Those are not "not yet launched" — they leak
+    # the count up. (Ryu 2026-06-17: AXTI / TE showed as Delayed while live.)
+    try:
+        _live = _df("SELECT fund_name FROM mkt_master_data "
+                    "WHERE market_status='ACTV' AND fund_name IS NOT NULL")
+        _norm = lambda n: re.sub(r"\s+", " ", str(n).upper()).strip()
+        _live_norm = set(_norm(n) for n in _live["fund_name"])
+        _mask_live = df["fund_name"].apply(_norm).isin(_live_norm)
+        if _mask_live.any():
+            log.info("pipeline: excluded %d already-live funds (stale status): %s",
+                     int(_mask_live.sum()), list(df.loc[_mask_live, "fund_name"]))
+            df = df[~_mask_live].copy()
+    except Exception as e:
+        log.warning("pipeline live-exclusion failed: %s", e)
+
     return df
 
 
@@ -599,6 +616,166 @@ def load_foreign():
     if "market" in df.columns:
         df = df[~df["market"].astype(str).str.upper().isin(["NYSE", "NASDAQ", "NYSE ARCA", "AMEX"])]
     return df.sort_values("composite_score", ascending=False).head(25)
+
+
+# ---- Filer race (ported from the ad-hoc Foreign & Pre-IPO Brief) --------------
+# Shows, per foreign/pre-IPO underlier, WHO has filed an L&I product (REX + every
+# competitor) with status + actual effective date — driven from rex_products
+# (authoritative for REX) + fund_status (competitors), matched by name keyword so
+# multi-word foreign names (SK Square, Leeno Industrial) match correctly. Ryu
+# 2026-06-17: bring the Brief's Foreign & Pre-IPO L&I Competition into this report.
+_INV_RE = re.compile(r"inverse|short|bear|-\dx", re.I)
+
+
+def _race_strip(s):
+    return re.sub(r"\(.*?\)", "", str(s)).upper().replace(" ", "")
+
+
+def _race_collapse(s):
+    s = str(s).strip().lower()
+    return "Effective" if s in ("effective", "active", "listed", "live") else "Filed"
+
+
+def _race_rank(s):
+    return {"Effective": 2, "Filed": 1}.get(s, 0)
+
+
+def _race_eff(*vals):
+    for v in vals:
+        s = str(v)[:10] if v is not None else ""
+        if s and s[:3] not in ("Non", "nan", "NaT", "") and s != "0.0":
+            return s
+    return ""
+
+
+def _load_race_sources():
+    """(REX T-REX filings, competitor fund_status filings) for the filer race."""
+    rexp = _df("""SELECT name, status, initial_filing_date, estimated_effective_date,
+                         official_listed_date
+                  FROM rex_products WHERE product_suite='T-REX'""")
+    fs = _df("""SELECT fund_name, status, effective_date, latest_filing_date
+                FROM fund_status WHERE fund_name IS NOT NULL""")
+    return rexp, fs
+
+
+def _filer_race(keywords, rexp, fs):
+    keys = [_race_strip(k) for k in (keywords or []) if k]
+    if not keys:
+        return []
+    rows = {}
+    for nm, st, _fd, est_eff, listed in rexp.itertuples(index=False):
+        snm = _race_strip(nm)
+        if not any(k in snm for k in keys):
+            continue
+        d = "inverse" if _INV_RE.search(str(nm)) else "long"
+        cur = {"issuer": "T-REX", "status": _race_collapse(st), "dir": d,
+               "date": _race_eff(listed, est_eff), "rex": True}
+        key = ("T-REX", d)
+        if key not in rows or _race_rank(cur["status"]) > _race_rank(rows[key]["status"]):
+            rows[key] = cur
+    for nm, st, eff, _filed in fs.itertuples(index=False):
+        if not _LI_NAME_RE.search(str(nm)) or _REX_NAME_RE.search(str(nm)):
+            continue
+        snm = _race_strip(nm)
+        if not any(k in snm for k in keys):
+            continue
+        iss = _comp_issuer_of(nm)
+        if not iss:
+            continue
+        d = "inverse" if _INV_RE.search(str(nm)) else "long"
+        cur = {"issuer": iss, "status": _race_collapse(st), "dir": d,
+               "date": _race_eff(eff), "rex": False}
+        key = (iss, d)
+        if key not in rows or _race_rank(cur["status"]) > _race_rank(rows[key]["status"]):
+            rows[key] = cur
+    r = list(rows.values())
+    r.sort(key=lambda x: (not x["rex"], -_race_rank(x["status"]), x["date"] or "9999"))
+    return r
+
+
+def load_foreign_competition():
+    """Foreign-listed single stocks (seed ∪ AI-discovered universe) with their L&I
+    filer race. Shows names REX or a competitor has filed 2x on, plus un-filed
+    megacap whitespace, sorted by competitor activity then market cap."""
+    try:
+        from screener.li_engine.analysis.foreign_filings import load_foreign_universe
+        uni = load_foreign_universe()
+    except Exception as e:
+        log.warning("foreign universe load failed: %s", e)
+        return []
+    rexp, fs = _load_race_sources()
+    out = []
+    for _, r in uni.iterrows():
+        # Foreign-LISTED only: US-ADR names (NYSE/NASDAQ) can already be made into a
+        # US 2x product, so they aren't foreign whitespace. Matches the old loader +
+        # the Brief's US-ADR exclusion. Ryu wants the .KS/.T/.HK/.XETRA names.
+        if str(r.get("market", "")).upper() in ("NYSE", "NASDAQ", "NYSE ARCA", "AMEX"):
+            continue
+        kws = list(r.get("name_keywords") or [])
+        race = _filer_race(kws, rexp, fs)
+        ncomp = len({x["issuer"] for x in race if not x["rex"]})
+        out.append({"name": r.get("name", ""), "ticker": r.get("foreign_ticker", ""),
+                    "market": r.get("market", ""), "sector": r.get("sector", ""),
+                    "cap": float(r.get("market_cap_usd", 0) or 0), "race": race, "ncomp": ncomp})
+    # Filed-on names first (the active race), by competitor count then cap; cap the
+    # un-filed whitespace tail so the section stays focused.
+    filed = [x for x in out if x["race"]]
+    unfiled = [x for x in out if not x["race"]]
+    filed.sort(key=lambda x: (-x["ncomp"], -x["cap"]))
+    unfiled.sort(key=lambda x: -x["cap"])
+    return filed + unfiled[:8]
+
+
+def load_preipo_competition():
+    """Genuinely-private pre-IPO targets (from the IPO watchlist yaml) with their
+    L&I filer race + sourced valuation / S-1 status."""
+    data = load_ipo_yaml()
+    rexp, fs = _load_race_sources()
+    out = []
+    for r in (data.get("high_profile") or []):
+        company = r.get("company") or r.get("ticker") or ""
+        if not company:
+            continue
+        kws = [company.upper()]
+        # add a compact alias (no spaces) so "Figure AI" matches "FIGUREAI"
+        alias = re.sub(r"[^A-Z0-9]", "", company.upper())
+        if alias and alias != company.upper():
+            kws.append(alias)
+        race = _filer_race(kws, rexp, fs)
+        out.append({"company": company, "valuation_usd": r.get("valuation_usd"),
+                    "as_of": r.get("as_of_date") or r.get("last_round_date") or "",
+                    "s1": bool(r.get("s1_filed")), "s1_date": r.get("s1_filed_date", ""),
+                    "race": race, "ncomp": len({x["issuer"] for x in race if not x["rex"]})})
+    out.sort(key=lambda x: (-(x["valuation_usd"] or 0)))
+    return out
+
+
+def _race_rex_badge(race):
+    """REX's best status across its filings on this underlier, or 'Not filed'."""
+    rx = [r for r in race if r["rex"]]
+    if not rx:
+        return f'<span style="color:{RED};font-weight:700;">Not filed</span>'
+    best = max(rx, key=lambda r: _race_rank(r["status"]))
+    c = GREEN if best["status"] == "Effective" else BLUE
+    dirs = "+".join("Long" if d == "long" else "Inv" for d in sorted({r["dir"] for r in rx}))
+    return f'<span style="color:{c};font-weight:700;">{best["status"]} · {dirs}</span>'
+
+
+def _race_subrows(race, ncols):
+    """Indented sub-row per filer (REX + competitors) under a foreign/pre-IPO row."""
+    if not race:
+        return (f'<tr style="background:#fafbfc;"><td colspan="{ncols}" style="padding:3px 8px 3px 28px;'
+                f'font-size:10px;color:{GRAY};border-bottom:1px solid {BORDER};">'
+                f'↳ no L&amp;I filings on record yet — open whitespace</td></tr>')
+    out = ""
+    for r in race:
+        c = GREEN if r["status"] == "Effective" else BLUE
+        who = f'<b style="color:{BLUE if r["rex"] else NAVY};">{escape(r["issuer"])}</b>'
+        dt = f' · eff {r["date"]}' if r["date"] else f' · <span style="color:{RED};font-weight:700;">eff date missing</span>'
+        out += (f'<tr style="background:#fafbfc;"><td colspan="{ncols}" style="padding:3px 8px 3px 28px;'
+                f'font-size:10px;border-bottom:1px solid {BORDER};color:{NAVY};">'
+                f'↳ {who} · {r["dir"]} · <span style="color:{c};font-weight:600;">{escape(r["status"])}</span>{dt}</td></tr>')
+    return out
 
 
 def load_delisting_watch():
@@ -766,7 +943,8 @@ def build():
     scored = load_scored()
     inverse_gap = load_inverse_gap(single_stocks)
     launch_anyway = load_launch_anyway(rex_pos, single_stocks)
-    foreign = load_foreign()
+    foreign = load_foreign_competition()
+    preipo = load_preipo_competition()
     delisting = load_delisting_watch()
     flow_top, flow_buckets = load_flow_score_backtest(single_stocks)
     track_recs = load_track_record_recs()
@@ -1014,73 +1192,59 @@ def build():
 {_table_header(['Underlier','Filers','Earliest Eff','Comp Products','Top Product','Fund Name','Issuer','Top AUM','First Launch','Track Record'])}
 {rows}</table>"""
 
-    # ---------------- FOREIGN ----------------
-    if foreign.empty:
-        foreign_html = f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">Foreign candidates not loaded.</div>'
+    # ---------------- FOREIGN — L&I filer race (ported from the Brief) ----------------
+    if not foreign:
+        foreign_html = f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">Foreign universe not loaded.</div>'
     else:
-        rows=""
-        for _, r in foreign.iterrows():
-            rs = _safe_str(r.get('rex_status')); rs_color = {"pending":ORANGE,"active":GREEN,"filed":BLUE}.get(rs.lower(), GRAY)
-            cs = _safe_str(r.get('competitor_2x_status')); cs_color = {"active":RED,"filed":ORANGE}.get(cs.lower(), GRAY)
-            mcap = r.get('market_cap_usd', 0)
-            mcap_str = f"${mcap/1e9:.0f}B" if mcap and mcap>=1e9 else _fmt_mcap((mcap or 0)/1e6)
-            score = r.get('composite_score',0)
-            # Foreign competition is matched by company-name keyword in
-            # foreign_filings.py (the .KS/.T ticker would never match the
-            # name-keyed helper). Use those precomputed columns. Ryu 2026-06-09.
-            n_f = int(r.get('competitor_distinct_issuers', 0) or 0)
-            ef = r.get('competitor_earliest_eff')
-            rxe = r.get('rex_effective')
-            def _datecell(v):
-                ok = v is not None and pd.notna(v) and str(v) not in ('None','nan','NaT')
-                return ((f'<span style="color:{NAVY};">{escape(str(v))}</span>' if ok
-                         else f'<span style="color:{GRAY};">—</span>'), "center")
-            fc = ((f'<b style="color:{NAVY};">{n_f}</b>' if n_f
-                   else f'<span style="color:{GRAY};">—</span>'), "center")
+        ncols = 6
+        rows = ""
+        for x in foreign:
+            cap = x["cap"]
+            cap_str = (f"${cap/1e9:.0f}B" if cap and cap >= 1e9
+                       else (f"${cap/1e6:.0f}M" if cap else "—"))
+            comp_cell = (f'<b style="color:{NAVY};">{x["ncomp"]} competitor(s)</b>' if x["ncomp"]
+                         else (f'<span style="color:{GRAY};">competitors: none</span>' if x["race"]
+                               else f'<span style="color:{GREEN};font-weight:700;">open whitespace</span>'))
             rows += _tr(
-                _tk(_safe_str(r['foreign_ticker'])),
-                escape(_safe_str(r.get('name')))[:32],
-                (escape(_safe_str(r.get('market'))), "center"),
-                (mcap_str, "right"),
-                (f'<span style="color:{rs_color};font-weight:700;">{rs}</span>', "center"),
-                _datecell(rxe),
-                fc,
-                _datecell(ef),
-                (f'<b style="color:{NAVY};">{score:.1f}</b>', "right"),
+                escape(_safe_str(x["name"]))[:30],
+                (_tk(x["ticker"]), "left"),
+                (escape(_safe_str(x["market"])), "center"),
+                (cap_str, "right"),
+                (_race_rex_badge(x["race"]), "center"),
+                comp_cell,
             )
+            rows += _race_subrows(x["race"], ncols)
         foreign_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Ticker','Company','Market','Global Mkt Cap','REX Status','REX Eff','Comp Filers','Comp Earliest Eff','Score'])}
+{_table_header(['Company','Listing','Market','~Mkt Cap','REX','Competitors'], ['left','left','center','right','center','left'])}
 {rows}</table>"""
 
-    # ---------------- IPO ----------------
-    hp = ipo["high_profile"]; rp = ipo["recently_priced"]
-    if not hp:
+    # ---------------- PRE-IPO — L&I filer race (ported from the Brief) ----------------
+    rp = ipo["recently_priced"]
+    if not preipo:
         ipo_html = f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">IPO watchlist YAML missing.</div>'
     else:
-        rows=""
-        for r in sorted(hp, key=lambda x: -(x.get("valuation_usd") or 0)):
-            company = r.get("company") or r.get("ticker") or "—"
-            val_usd = r.get("valuation_usd")
-            val_str = f"${val_usd:,.0f}B" if val_usd else "n/a"
-            window = r.get("expected_ipo_window") or r.get("date") or "—"
-            s1 = "YES" if r.get("s1_filed") else "—"
-            s1_color = GREEN if r.get("s1_filed") else GRAY
-            rex_y = bool(r.get("rex_filed"))
-            rex_badge = (f'<span style="color:{GREEN};font-weight:700;">YES</span>' if rex_y
-                         else f'<span style="color:{GRAY};">no</span>')
-            n_filings = r.get("total_filings", 0)
-            issuers = ", ".join(f["issuer"] for f in (r.get("filers") or [])[:5]) or "—"
+        ncols = 5
+        rows = ""
+        for x in preipo:
+            val = x["valuation_usd"]
+            val_str = (f'<b style="color:{NAVY};">${val:,.0f}B</b>' if val
+                       else f'<span style="color:{GRAY};">—</span>')
+            asof = (f' <span style="color:{GRAY};font-size:10px;">(as of {escape(str(x["as_of"]))})</span>'
+                    if x["as_of"] else '')
+            s1 = (f'<span style="color:{BLUE};font-weight:700;">filed {escape(str(x["s1_date"]))}</span>'
+                  if x["s1"] else f'<span style="color:{GRAY};">no S-1</span>')
+            comp_cell = (f'<b style="color:{NAVY};">{x["ncomp"]} competitor(s)</b>' if x["ncomp"]
+                         else f'<span style="color:{GRAY};">competitors: none</span>')
             rows += _tr(
-                escape(str(company)),
-                (val_str, "right"),
-                (escape(window), "center"),
-                (f'<span style="color:{s1_color};font-weight:700;">{s1}</span>', "center"),
-                (str(n_filings), "center"),
-                escape(issuers[:50]),
-                (rex_badge, "center"),
+                escape(_safe_str(x["company"]))[:26],
+                (val_str + asof, "left"),
+                (s1, "center"),
+                (_race_rex_badge(x["race"]), "center"),
+                comp_cell,
             )
+            rows += _race_subrows(x["race"], ncols)
         ipo_html = f"""<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-{_table_header(['Company','Valuation','IPO Window','S-1','L&I Filings','Top Filers','REX Filed'])}
+{_table_header(['Company','Valuation (as of)','S-1','REX','Competitors'], ['left','left','center','center','left'])}
 {rows}</table>"""
         if rp:
             rp_rows = ""
@@ -1313,10 +1477,10 @@ def build():
 {_section_header('5 · Underliers REX Should Enter — 1-2 Competitor Longs, REX Not In (Top 30)', BLUE, 'Single-stock underliers where 1-2 competitor longs already trade with top-product AUM > $100M, and REX has no position. Proven demand, beatable head count. First-launch date + age shown so you can read seasoning. Lowered threshold from $300M → $100M to surface more candidates.')}
 <tr><td style="padding:6px 30px 8px;">{la_html}</td></tr>
 
-{_section_header('6 · Foreign Megacap Underliers', "#34495e", 'Curated overseas single-stock underliers — Samsung, SK Hynix, Tencent, Toyota, etc. Global market cap, REX status, competitor 2x activity.')}
+{_section_header('6 · Foreign-Listed Underliers — L&I Filer Race', "#34495e", 'Foreign-LISTED single stocks (no liquid US ADR) that REX or a competitor has filed 2x L&I on — driven from rex_products + fund_status, self-healing via the nightly AI underlier-intel step. Each ↳ sub-row is one filer with status + effective date. Filed-on names first, then un-filed megacap whitespace. US-ADR names excluded (already US-tradeable).')}
 <tr><td style="padding:6px 30px 8px;">{foreign_html}</td></tr>
 
-{_section_header('7 · Pre-IPO Watchlist & Recently Priced IPOs', TEAL, f'High-profile pre-IPO targets with current valuations + S-1 status. YAML-backed (last refresh {yaml_refresh_note}). L&I filer race shows who has filed leveraged products on each target.')}
+{_section_header('7 · Pre-IPO — L&I Filer Race', TEAL, f'Genuinely-private pre-IPO targets with sourced valuation + S-1 status (yaml, last refresh {yaml_refresh_note}; AI-sourced nightly). Each ↳ sub-row is one filer (REX + competitors) who has filed a leveraged product on the target.')}
 <tr><td style="padding:6px 30px 8px;">{ipo_html}</td></tr>
 
 {_section_header("8 · T-REX Delisting Watch — Live Products < $15M @ 6mo+", RED, "T-REX brand only. ACTV products with AUM under $15M and age >= 5.5 months. Rule of thumb: funds that have not crossed $15M by month 6 historically do not graduate, so these are review candidates.")}
