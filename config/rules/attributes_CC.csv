@@ -467,3 +467,17 @@ RSPA US,S&P 500 Equal Weight,,Traditional,Broad Beta
 TLTI US,Long-Term Treasuries,,Traditional,Fixed Income
 XRMI US,,,Traditional,Single Stock
 YLDE US,Large Cap Equity,,Traditional,Broad Beta
+CAS US,China A-Shares,,Traditional,Geographic/Sector
+EGGQ US,US Large Cap,,Traditional,Broad Beta
+GRNI US,US Large Cap,,Traditional,Broad Beta
+HIGH US,US Broad Market,,Traditional,Broad Beta
+ICAP US,Infrastructure,,Traditional,Sector
+JUCY US,US Broad Market,,Traditional,Broad Beta
+LITL US,US Small Cap,,Traditional,Sector
+MDST US,Midstream,,Traditional,Sector
+OMAH US,BRK.B,,Traditional,Single Stock
+QUSA US,US Quality,,Traditional,Broad Beta
+RJVI US,US Large Cap,,Traditional,Broad Beta
+THTA US,US Broad Market,,Traditional,Broad Beta
+WEEI US,Energy,,Traditional,Sector
+YLDW US,US Broad Market,,Traditional,Broad Beta
