@@ -182,14 +182,16 @@ def _tk(t):
 
 
 def _collapse_status(row) -> str:
-    # Preserve the real lifecycle status. The reconciler now distinguishes
-    # Filed (485APOS pending) / Delayed (485BXT) / Effective (485BPOS arrived,
-    # registration effective, not trading) / Listed (trading). We no longer
-    # collapse to a Filed/Effective binary or guess Effective from a passed
-    # estimated date — that was the pre-overhaul band-aid. Ryu 2026-06-09.
+    # The only valid lifecycle states are Filed / Effective / Live / Delisted
+    # (Ryu 2026-06-17 — no "Delayed", no "Listed"). Map the underlying reconciler
+    # states onto those four: a 485BXT "Delayed" and the pre-filing pipeline states
+    # are all "Filed" (not yet effective); "Listed"/trading is "Live".
     raw = _safe_str(row.get("status"), "").strip()
-    if raw in ("Filed", "Delayed", "Effective", "Listed",
-               "Under Consideration", "Target List", "Delisted"):
+    raw = {
+        "Delayed": "Filed", "Under Consideration": "Filed", "Target List": "Filed",
+        "Listed": "Live",
+    }.get(raw, raw)
+    if raw in ("Filed", "Effective", "Live", "Delisted"):
         return raw
     return "Filed"
 
@@ -923,7 +925,7 @@ def build():
                 _tk(u or "—"),
                 (f'<span style="color:{status_color};font-weight:700;">{sb}</span>', "center"),
                 (escape(file_dt), "center"),
-                (escape(eff_dt), "center"),
+                (eff_dt, "center"),  # eff_dt is a safe date string or the "Pending" span — don't escape
                 live_cell,
                 fc, ec,
                 (score_html, "right"),

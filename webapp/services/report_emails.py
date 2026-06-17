@@ -1705,9 +1705,6 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
         body += _segment_block(seg, suite_color)
 
-    # Pending & filed autocallable launches (Ryu 2026-06-16) — upcoming supply.
-    body += _pending_autocall_section(db)
-
     html = _wrap_email(title, _NAVY, body, dashboard_url, date_str)
     return html, []
 
@@ -2139,6 +2136,10 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
         f'Values in USD millions. Source: Bloomberg.'
         f'</div></td></tr>'
     )
+
+    # Pending & filed autocallable launches — upcoming supply (moved here from the
+    # flow report, where it didn't belong; Ryu 2026-06-17).
+    body += _pending_autocall_section(db)
 
     # External report (ships to RBC/CAIS): drop the "REX Financial Intelligence
     # Hub" branding line. Keep AUM T-1 and ETN methodology notes.
