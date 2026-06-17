@@ -161,6 +161,35 @@ def _read_sheet(name: str, index_col: int | None = None) -> pd.DataFrame:
     return pd.read_excel(path, sheet_name=name, engine="openpyxl", index_col=index_col)
 
 
+def _apply_ms_history_to_data_aum(data_aum, overrides) -> None:
+    """Back-fill the MicroSectors HISTORICAL AUM series (data_aum, a date x ticker
+    wide-frame in $millions) with the override's true monthly history (aum_1..aum_36).
+    Without this the L&I market-position chart shows raw Bloomberg ETN issuance
+    (~$12B a year ago) while the current snapshot is the overridden true ~$3B.
+    (Ryu 2026-06-17.)"""
+    try:
+        if data_aum is None or getattr(data_aum, "empty", True) or not overrides:
+            return
+        now = pd.Timestamp.now().normalize()
+        idx = data_aum.index
+        for ticker_us, vals in overrides.items():
+            if not isinstance(vals, dict) or str(ticker_us).startswith("__"):
+                continue
+            col = str(ticker_us).replace(" US", "").strip()
+            if col not in data_aum.columns:
+                continue
+            if "aum" in vals and len(idx):
+                data_aum.loc[idx.max(), col] = vals["aum"]
+            for n in range(1, 37):
+                k = f"aum_{n}"
+                if k in vals:
+                    d = now - pd.DateOffset(months=n)
+                    if d in data_aum.index:
+                        data_aum.loc[d, col] = vals[k]
+    except Exception as e:
+        log.warning("MicroSectors history override (data_aum) failed: %s", e)
+
+
 def _load_from_db(db: Session) -> dict[str, Any]:
     """Load report data from SQLite tables (mkt_master_data + mkt_time_series).
 
@@ -276,8 +305,15 @@ def _load_from_db(db: Session) -> dict[str, Any]:
                 _ms_ov = _ms_read(_ms_xl)
                 if _ms_ov:
                     _ms_apply(master, _ms_ov)
+                    _apply_ms_history_to_data_aum(data_aum, _ms_ov)
     except Exception as e:
         log.warning("MicroSectors override failed (non-fatal): %s", e)
+
+    # Never leave issuer_display blank — fall back to the legal issuer name so no
+    # report row shows an empty issuer cell. (Ryu 2026-06-17: blank issuers in daily.)
+    if "issuer_display" in master.columns and "issuer" in master.columns:
+        _blank = master["issuer_display"].isna() | (master["issuer_display"].astype(str).str.strip() == "")
+        master.loc[_blank, "issuer_display"] = master.loc[_blank, "issuer"]
 
     # Canonically (re)derive rex_suite from the fund itself rather than trusting
     # whatever is stored in the column. The stored rex_suite drifts (a new T-REX
@@ -498,6 +534,32 @@ def _load_all() -> dict[str, Any]:
     else:
         master["issuer_display"] = master.get("issuer", "")
 
+    # Per-ticker brand override (issuer_brand_overrides.csv) — the coarse
+    # (etp_category, issuer) map can't split a legal trust like "Tidal Trust II"
+    # into its brands (YieldMax / Defiance / NestYield). Apply the fine-grained
+    # per-ticker brand LAST so the market-position groups by BRAND, not the trust.
+    # (Ryu 2026-06-17: income report showed "Tidal Trust II" instead of YieldMax.)
+    try:
+        _bo = _read_csv(RULES_DIR / "issuer_brand_overrides.csv")
+        if not _bo.empty and {"ticker", "issuer_display"}.issubset(_bo.columns) \
+                and "ticker_clean" in master.columns:
+            _bo = _bo[["ticker", "issuer_display"]].dropna()
+            _bo["ticker_clean"] = (_bo["ticker"].astype(str).str.replace(" US", "", regex=False)
+                                   .str.upper().str.strip())
+            _bomap = {t: d for t, d in zip(_bo["ticker_clean"], _bo["issuer_display"])
+                      if str(d).strip()}
+            if _bomap:
+                _mapped = master["ticker_clean"].map(_bomap)
+                master["issuer_display"] = _mapped.where(_mapped.notna(), master["issuer_display"])
+    except Exception as e:
+        log.warning("issuer_brand_overrides apply failed (non-fatal): %s", e)
+
+    # Never leave issuer_display blank: fall back to the legal issuer name so no
+    # report row shows an empty issuer cell. (Ryu 2026-06-17: blank issuers in daily.)
+    if "issuer" in master.columns:
+        _blank = master["issuer_display"].isna() | (master["issuer_display"].astype(str).str.strip() == "")
+        master.loc[_blank, "issuer_display"] = master.loc[_blank, "issuer"]
+
     # Merge LI attributes
     if "ticker" in li_attrs.columns:
         la = li_attrs.rename(columns={"ticker": "ticker_clean"})
@@ -539,6 +601,7 @@ def _load_all() -> dict[str, Any]:
                 _ms_ov = _ms_read(_ms_xl)
                 if _ms_ov:
                     _ms_apply(master, _ms_ov)
+                    _apply_ms_history_to_data_aum(data_aum, _ms_ov)
     except Exception as e:
         log.warning("MicroSectors override failed (non-fatal): %s", e)
 

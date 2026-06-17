@@ -746,6 +746,12 @@ def _render_category_card(
 
     if master is not None and not master.empty and "category_display" in master.columns:
         cat_df = master[master["category_display"] == cat_name].copy()
+        # ACTV-only: the landscape issuer-table "Products" counts must exclude PEND
+        # (pre-launch) and LIQU (delisted) rows — otherwise REX shows 53/27 instead of
+        # the canonical 41/22. Mirrors the get_category_summary filter. (Ryu 2026-06-17)
+        _mcol = next((c for c in cat_df.columns if c.lower().strip() == "market_status"), None)
+        if _mcol:
+            cat_df = cat_df[cat_df[_mcol].astype(str).str.upper() == "ACTV"].copy()
 
         if not cat_df.empty:
             # AUM MoM growth

@@ -1408,7 +1408,8 @@ def _gather_pipeline_funds(db_session=None) -> list[dict]:
                COALESCE(NULLIF(issuer_display, ''), '') AS issuer_display,
                primary_strategy,
                COALESCE(NULLIF(sub_strategy, ''), '') AS sub_strategy,
-               inception_date, market_status
+               inception_date, market_status,
+               COALESCE(NULLIF(etp_category, ''), '') AS etp_category
         FROM mkt_master_data
         WHERE market_status = 'PEND'
           AND inception_date IS NOT NULL
@@ -1428,6 +1429,7 @@ def _gather_pipeline_funds(db_session=None) -> list[dict]:
                     "ticker": r[0], "fund_name": r[1], "issuer_display": r[2],
                     "primary_strategy": r[3], "sub_strategy": r[4],
                     "inception_date": r[5], "market_status": r[6],
+                    "etp_category": r[7],
                 }
                 for r in rows
             ]
@@ -1466,9 +1468,17 @@ def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
     from collections import defaultdict as _dd
     _TEAL_DARK = "#00695C"
 
+    # Bucket by the CANONICAL etp_category (what the L&I/income/flow reports use),
+    # falling back to primary_strategy only when no category is set. The 3-axis
+    # primary_strategy drifts from etp_category (e.g. ACYQ = CC income but
+    # primary_strategy "Defined Outcome"), so grouping by it put income/autocall
+    # funds in the wrong section. (Ryu 2026-06-17)
+    _ETP_TO_STRAT = {"CC": "Income", "LI": "L&I", "Crypto": "Crypto",
+                     "Defined": "Defined Outcome", "Thematic": "Thematic"}
     groups: dict[str, list[dict]] = _dd(list)
     for f in pipeline_funds:
-        ps = f.get("primary_strategy") or "Other"
+        etp = (f.get("etp_category") or "").strip()
+        ps = _ETP_TO_STRAT.get(etp) or f.get("primary_strategy") or "Other"
         groups[ps].append(f)
 
     # Build per-strategy sub-tables
