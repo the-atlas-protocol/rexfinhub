@@ -38,11 +38,16 @@ import pandas as pd
 # Data file resolution -- single source of truth: bloomberg_daily_file.xlsm
 # Centralized in webapp.services.bbg_file
 # ---------------------------------------------------------------------------
-from webapp.services.bbg_file import get_bloomberg_file
+from webapp.services.bbg_file import BloombergGraphError, get_bloomberg_file
 
 try:
     DATA_FILE = get_bloomberg_file()
-except FileNotFoundError:
+except (FileNotFoundError, BloombergGraphError):
+    # BloombergGraphError (not FileNotFoundError) is what get_bloomberg_file
+    # raises when the Graph API is unavailable; the old narrow except let it
+    # propagate and made importing this module fail off the Graph path. The
+    # local copy is the correct fallback for a path constant (sync freshness is
+    # enforced at the pipeline entry points, not here).
     DATA_FILE = Path("data/DASHBOARD/bloomberg_daily_file.xlsm")  # safe default
 
 
@@ -494,20 +499,21 @@ def _derive_primary_category(df: pd.DataFrame) -> None:
 
 
 def _join_rex_suite(df: pd.DataFrame) -> None:
-    """Join rex_suite_mapping.csv to add rex_suite column. Only REX funds get a value."""
-    from market.config import RULES_DIR
-    csv_path = RULES_DIR / "rex_suite_mapping.csv"
-    if not csv_path.exists():
-        df["rex_suite"] = pd.NA
-        return
-    mapping = pd.read_csv(csv_path, engine="python", on_bad_lines="skip")
-    if "ticker" not in mapping.columns or "rex_suite" not in mapping.columns:
-        df["rex_suite"] = pd.NA
-        return
-    mapping = mapping[["ticker", "rex_suite"]].dropna(subset=["ticker"]).drop_duplicates(subset=["ticker"])
-    df.drop(columns=["rex_suite"], errors="ignore", inplace=True)
-    merged = df.merge(mapping, on="ticker", how="left")
-    df["rex_suite"] = merged["rex_suite"].values
+    """Add the rex_suite column. CANONICAL source = the definition library
+    (market.definitions.suite_of), derived from ticker + fund NAME, so a
+    freshly-launched T-REX/MicroSectors/etc. fund classifies with no manual edit
+    and the Flow report's per-suite count matches every name-based report by
+    construction.
+
+    The hand-maintained rex_suite_mapping.csv is kept only as a FALLBACK
+    override: it fills funds the library cannot classify. A library hit always
+    wins over the CSV, so a stale CSV row can never undercount a suite again
+    (the old 40-vs-41 T-REX drift).
+
+    Thin delegate to market.definitions.attach_rex_suite so there is exactly ONE
+    implementation of the derivation, shared with the report builders."""
+    from market.definitions import attach_rex_suite
+    attach_rex_suite(df)
 
 
 # ---------------------------------------------------------------------------

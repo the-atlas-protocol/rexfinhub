@@ -279,6 +279,20 @@ def _load_from_db(db: Session) -> dict[str, Any]:
     except Exception as e:
         log.warning("MicroSectors override failed (non-fatal): %s", e)
 
+    # Canonically (re)derive rex_suite from the fund itself rather than trusting
+    # whatever is stored in the column. The stored rex_suite drifts (a new T-REX
+    # fund lands with NULL until apply_fund_master runs; a rename like
+    # Autocallable->Structured lags), which is exactly what made the Flow report's
+    # T-REX count disagree with the name-based reports. attach_rex_suite reads the
+    # single source of truth (market.definitions.suite_of) and is import-light, so
+    # it works here even though webapp.services.data_engine cannot be imported in
+    # environments without the Bloomberg Graph file.
+    try:
+        from market.definitions import attach_rex_suite
+        attach_rex_suite(master)
+    except Exception as e:
+        log.warning("_load_from_db: could not derive rex_suite: %s", e)
+
     log.info("Report data loaded from DB: %d funds, timeseries=%s", len(master), has_timeseries)
 
     _optimise_dtypes(master)
@@ -503,13 +517,16 @@ def _load_all() -> dict[str, Any]:
             data_as_of = last_date.strftime("%B %d, %Y")
             data_as_of_short = last_date.strftime("%m/%d/%Y")
 
-    # Derive category_display + rex_suite (needed for flow report suite matching)
+    # Derive category_display + rex_suite (needed for flow report suite matching).
+    # rex_suite is ALWAYS re-derived from the fund name here (the canonical,
+    # self-maintaining source) rather than trusting a possibly-stale stored
+    # column — that stale column is exactly what made the Flow T-REX count read
+    # 40 while name-based reports showed 41.
     try:
         from webapp.services.data_engine import _derive_category_display, _join_rex_suite
         if "category_display" not in master.columns:
             _derive_category_display(master)
-        if "rex_suite" not in master.columns:
-            _join_rex_suite(master)
+        _join_rex_suite(master)
     except Exception as e:
         log.warning("Could not derive category_display/rex_suite: %s", e)
 
@@ -2081,7 +2098,7 @@ _FLOW_SUITES = [
     {
         "key": "epi",
         "label": "Equity Premium Income",
-        "rex_suites": ["Equity Premium Income", "London"],
+        "rex_suites": ["Equity Premium Income"],
         "peer_tickers": [
             "JEPI US", "JEPQ US", "GPIX US",
             "QYLD US", "QQQI US", "IWMI US",
@@ -2101,8 +2118,10 @@ _FLOW_SUITES = [
     },
     {
         "key": "autocallable",
-        "label": "Autocallable",
-        "rex_suites": ["Autocallable"],
+        "label": "Structured",
+        # Canonical suite name is "Structured" (product type = Autocallable, ATCL)
+        # per the definition library (market/definitions.py).
+        "rex_suites": ["Structured"],
         # NO peer_category — autocallables are a tiny niche (~23 funds / ~$3B), NOT
         # the entire $189B "Income - Index/Basket/ETF Based" category. Seeding from
         # that category was the $189B/266-product bug (2026-06-16). A fund qualifies
@@ -2117,7 +2136,7 @@ _FLOW_SUITES = [
     {
         "key": "thematic",
         "label": "Thematic",
-        "rex_suites": ["DRNZ", "Thematic"],
+        "rex_suites": ["Thematic"],
         # DADS US was BMAX's competitor peer; BMAX is delisted (LIQU), so DADS is
         # an orphan with no live REX counterpart — removed (2026-06-16). JEDI
         # stays as the competitor to DRNZ (the only remaining ACTV REX Thematic).

@@ -10,6 +10,14 @@ updated: 2026-05-19
 >
 > Each entry: `## YYYY-MM-DD` header; bullet entries; link to PR / ADR / commit where appropriate.
 
+## 2026-06-16
+
+- **Definition library built** — `market/definitions.py` + `docs/DEFINITIONS.md` now tie fund classification to ONE source: 9 internal suites + market-status KPI rules + the trust registry. Per `docs/GOAL.md`, this is the single source of truth; suites/statuses/trusts must never be re-derived elsewhere.
+- **T-REX `rex_suite` count drift killed** — Flow is now name-derived rather than recomputed per consumer, so the per-suite count no longer drifts across surfaces.
+- **Suites renamed for clarity** — `Autocallable` → `Structured`, `T-Bill` → `MoneyMarket`. Names now match the definition library.
+- **BloombergGraphError exception-type bug fixed** — `market/config.py` + `webapp/services/data_engine.py` caught the wrong exception type, silently aborting the MicroSectors AUM/flow override off the Graph path. Override now lands as intended.
+- **Doc load order consolidated** — canonical order is `INDEX → ARCHITECTURE → SYSTEM_LEDGER → GOAL → DEFINITIONS → GLOSSARY → RUNBOOK → LOG`. Staleness banners added to `SYSTEM.md`, `TARGET.md`, `RUNBOOK.md`, `GLOSSARY.md`; canonical pointer added to `CLASSIFICATION.md`.
+
 ## 2026-05-20
 
 - **Rebuild completion plan adopted** — `docs/raw/ops/REBUILD-COMPLETION-PLAN_2026-05-19.md` is the live execution plan for all remaining rebuild work, organized as Tracks 0-6 under a Build·Prove·Retire principle: retire no legacy artifact until a 3-gate proof of death (static grep / runtime access / equivalence diff) is green. Status lifecycle clarified with Ryu: `under_consideration` is pre-filing; a filing matcher (Phase 5B / Track 5B) attaches incoming 485-series filings to the pre-existing `canonical_id` instead of minting duplicates; `target_list → listed` auto-promotes via the reconciler's 3-source rule (Bloomberg ACTV alone is insufficient).

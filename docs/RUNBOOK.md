@@ -6,6 +6,8 @@ updated: 2026-05-19
 
 # rexfinhub — Daily Operating Runbook
 
+> **STALE (2026-06-16):** verify against the current canonical docs — `docs/SYSTEM_LEDGER.md` (state) and `docs/GOAL.md` (north star) — before relying on details here.
+
 > Ryu-facing. How to interact with the system day-to-day.
 > Architecture explanation lives in `SYSTEM.md`. Terms link via `[[term]]` → `GLOSSARY.md`. Future-state belongs in `TARGET.md`.
 

@@ -6,6 +6,12 @@ updated: 2026-06-10
 
 # CLASSIFICATION — the FULL-SCALE taxonomy contract
 
+> **CANONICAL POINTER (2026-06-16):** the single source of truth for internal
+> suites, market-status KPI rules, and trusts is now **`docs/DEFINITIONS.md` +
+> `market/definitions.py`**. This file remains the detailed
+> external-taxonomy / rules reference that complements it — read `DEFINITIONS.md`
+> first for any suite/status/trust question.
+
 > Every ETP in the universe gets a complete multi-dimensional classification —
 > not just the five REX-tracked strategy buckets. This is the contract the
 > autonomous engine is held to. Design lineage:

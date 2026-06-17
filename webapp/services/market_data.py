@@ -405,6 +405,21 @@ def _load_ts_from_db(db: Session) -> pd.DataFrame:
     except Exception as e:
         log.warning("Pre-inception zeroing failed (non-fatal): %s", e)
 
+    # Memory fix (Render 512MB OOM): this 285K-row frame is cached for the whole
+    # process. The string columns are very low-cardinality (a few thousand tickers,
+    # a handful of categories/issuer groups), so object dtype wastes the most RAM.
+    # Downcasting to `category` + compact numerics cuts the resident footprint
+    # several-fold and shrinks the startup-prewarm spike that was OOM-killing the
+    # webapp. Done in-place so no extra copy is held at peak.
+    for _c in ("ticker", "category_display", "issuer_display",
+               "issuer_group", "fund_category_key"):
+        if _c in df.columns and df[_c].dtype == object:
+            df[_c] = df[_c].astype("category")
+    if "aum_value" in df.columns:
+        df["aum_value"] = df["aum_value"].astype("float32")
+    if "months_ago" in df.columns:
+        df["months_ago"] = pd.to_numeric(df["months_ago"], errors="coerce").fillna(0).astype("int16")
+
     return df
 
 

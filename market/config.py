@@ -3,17 +3,28 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from webapp.services.bbg_file import get_bloomberg_file
+from webapp.services.bbg_file import BloombergGraphError, get_bloomberg_file
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
 # Data file resolution -- single source of truth: bloomberg_daily_file.xlsm
 # Centralized in webapp.services.bbg_file
+#
+# DATA_FILE is just a PATH constant used by report/override code to read the
+# already-downloaded workbook (e.g. the MicroSectors AUM/flow override sheets).
+# When the Graph API is unavailable (local dev, or any non-VPS context) we fall
+# back to the local copy. get_bloomberg_file() raises BloombergGraphError
+# (a RuntimeError) — NOT FileNotFoundError — so the old narrow except never
+# caught it and importing this module raised, which silently aborted the
+# MicroSectors override everywhere off the Graph path. The pipeline's
+# freshness guarantee is enforced separately at the sync entry points
+# (download_bloomberg_from_sharepoint / direct get_bloomberg_file calls), so a
+# path-constant fallback here does not weaken it.
 # ---------------------------------------------------------------------------
 try:
     DATA_FILE = get_bloomberg_file()
-except FileNotFoundError:
+except (FileNotFoundError, BloombergGraphError):
     DATA_FILE = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
 
 # Rules: config/rules/ is git-tracked and NOT hidden by the persistent disk.
