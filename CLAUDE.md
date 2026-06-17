@@ -4,15 +4,21 @@
 
 ## READ FIRST — Documentation layer
 
-This project uses a six-doc canonical framework under `docs/`. **Every session, read `docs/INDEX.md` first** to route to the right reference per task. Resolve any unfamiliar domain term via `docs/GLOSSARY.md`.
+This project uses a canonical doc framework under `docs/`. **Every session, read `docs/INDEX.md`, then `docs/GOAL.md` (north star — one source of truth per fact), then `docs/DEFINITIONS.md` (the REX ETP definition library) first** before routing to the right reference per task. Resolve any unfamiliar domain term via `docs/GLOSSARY.md`.
+
+The lean canonical load order is: `INDEX` → `ARCHITECTURE` → `SYSTEM_LEDGER` → `GOAL` → `DEFINITIONS` → `GLOSSARY` → `RUNBOOK` → `LOG`.
+
+**Single source of truth for fund classification** (internal suites, market-status KPI rules, trusts): `docs/DEFINITIONS.md` + `market/definitions.py`. Never re-derive suites/statuses/trusts elsewhere.
 
 | If you're doing… | Load in this order |
 |---|---|
-| Operating / debugging the live system | `docs/INDEX.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
-| Planning or building a rebuild phase | `docs/INDEX.md` → `docs/TARGET.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
-| Daily ops / "how do I X" | `docs/INDEX.md` → `docs/RUNBOOK.md` → `docs/GLOSSARY.md` |
-| Understanding a past decision | `docs/INDEX.md` → `docs/DECISIONS/NNNN-*.md` |
-| Reconstructing history | `docs/INDEX.md` → `docs/LOG.md` |
+| Anything substantive | `docs/INDEX.md` → `docs/GOAL.md` → `docs/DEFINITIONS.md` first, every time |
+| Classifying funds (suites/status/trusts) | `docs/DEFINITIONS.md` + `market/definitions.py` (single source of truth) |
+| Operating / debugging the live system | → `docs/SYSTEM_LEDGER.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
+| Planning or building a rebuild phase | → `docs/GOAL.md` → `docs/TARGET.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
+| Daily ops / "how do I X" | → `docs/RUNBOOK.md` → `docs/GLOSSARY.md` |
+| Understanding a past decision | → `docs/DECISIONS/NNNN-*.md` |
+| Reconstructing history | → `docs/LOG.md` |
 
 The full doc framework was adopted via `docs/DECISIONS/0001-docs-framework.md`. Anti-patterns and conventions are codified there.
 

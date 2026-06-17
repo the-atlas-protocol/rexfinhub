@@ -612,7 +612,7 @@ SZOXF US,Commodity,Energy,Short,1.0,DBODIXX
 JETD US,Equity,Airlines,Short,3.0,PJETSNTR
 FNGU US,Equity,Tech,Long,3.0,NYFANGT
 WTID US,Commodity,Energy,Short,3.0,BIGOIL
-DULL US,Commodity,Index,Short,3.0,
+DULL US,Commodity,Gold,Short,3.0,Gold
 OILD US,Commodity,Energy,Short,3.0,SOLOILT
 NRGD US,Commodity,Energy,Short,3.0,SOLUSBOT
 GDXD US,Commodity,Gold,Short,3.0,MINERS
@@ -957,9 +957,9 @@ USX US,Equity,Index/Basket/ETF Based,Long,2.0,
 INFH US,Equity,Single Stock,Long,2.0,INFQ
 CBRX US,Equity,Single Stock,Long,2.0,CBRS
 CBRZ US,Equity,Single Stock,Short,2.0,CBRS
-AIQD US,Equity,Index,Short,3.0,
+AIQD US,Equity,Tech,Short,3.0,AI
 MUZ US,Equity,Single Stock,Short,2.0,MU
-AIQU US,Equity,Index,Long,3.0,
+AIQU US,Equity,Tech,Long,3.0,AI
 SAMX US,Equity,Single Stock,Long,2.0,005930 KS
 ASMX US,Equity,Single Stock,Long,2.0,ASM NA
 MDTX US,Equity,Single Stock,Long,2.0,2454 TT

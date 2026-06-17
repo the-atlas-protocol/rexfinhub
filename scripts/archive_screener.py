@@ -226,7 +226,8 @@ def archive_daily(label: str | None = None) -> dict:
         try:
             flow = get_flow_report(_db)
             for s in flow.get("suites", []):
-                if "autocall" in s.get("label", "").lower():
+                # Match by stable key (label is now "Structured" per the definition library)
+                if s.get("key") == "autocallable" or "autocall" in s.get("label", "").lower():
                     issuers = s.get("issuers", [])
                     by_share = sorted(issuers, key=lambda x: x.get("market_share", 0), reverse=True)
                     by_1w = sorted(issuers, key=lambda x: x.get("flow_1w", 0), reverse=True)

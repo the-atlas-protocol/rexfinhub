@@ -6,6 +6,8 @@ updated: 2026-05-19
 
 # rexfinhub — Glossary
 
+> **STALE (2026-06-16):** for fund-classification terms (suites, statuses, trusts) defer to `docs/DEFINITIONS.md` + `market/definitions.py` as the canonical source.
+
 > Single source of canonical names. Every term used with semantic weight in any other doc MUST have an entry here. Cross-reference with `[[term-name]]` syntax.
 >
 > Entry shape (rigid — uniform chunking for retrieval):

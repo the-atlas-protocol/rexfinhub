@@ -15,6 +15,8 @@ updated: 2026-06-10
 ```
 docs/
 ├── ARCHITECTURE.md    ← THE MASTER FILE. Start here, always.
+├── GOAL.md              north star — one source of truth per fact; the active roadmap
+├── DEFINITIONS.md       the REX ETP definition library — 9 internal suites, market-status KPI rules, trusts (mirrors market/definitions.py)
 ├── SYSTEM_LEDGER.md     the consolidated purpose map — every component, table, device (2026-06-15)
 ├── architecture/index.html  VISUAL: full system (sources→schedulers→pipeline→data→outputs), health-coded
 ├── lineage/index.html       VISUAL: trace one number — Bloomberg cell → report cell, with file:line
@@ -46,9 +48,10 @@ docs/, that's a bug — docs/ is documentation plus the two live queues above.
 
 | Task | Read |
 |---|---|
-| Anything substantive | `ARCHITECTURE.md` first, every time |
+| Anything substantive | `ARCHITECTURE.md` → `GOAL.md` → `DEFINITIONS.md` first, every time |
+| Classify funds (suites/status/trusts) | → `DEFINITIONS.md` + `market/definitions.py` (single source of truth) |
 | Operate / debug live | → `RUNBOOK.md` → `SYSTEM.md` |
-| Touch classification/rules | → `CLASSIFICATION.md` |
+| Touch classification/rules | → `DEFINITIONS.md` (canonical) → `CLASSIFICATION.md` (external-taxonomy detail) |
 | Plan a build phase | → `TARGET.md` + `DECISIONS/0011-engine-architecture.md` |
 | Understand a past decision | → `DECISIONS/` |
 | Verify a claim about the system | → `audits/` (dated evidence) |

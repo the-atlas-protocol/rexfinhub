@@ -37,6 +37,19 @@ STEPS = [
     # the sweep report email.
     ("classify_daily",           [PY, str(PROJECT_ROOT / "scripts" / "classify_daily.py"),
                                   "--apply"]),
+    # AI middleman (Ryu 2026-06-16): the rule engine queues funds it can't place;
+    # the context-aware LLM classifier catches the ones with a tracked-category
+    # signal (income-vs-bond, thematic, L&I, crypto) that the rules miss, so
+    # upcoming launches are categorized correctly without manual touch. Idempotent
+    # via its journal — only spends tokens on genuinely new funds.
+    ("ai_classify_unmapped",     [PY, str(PROJECT_ROOT / "scripts" / "ai_classify_unmapped.py")]),
+    # AI underlier-intel (Ryu 2026-06-17): classify every NEW competitor-filed L&I
+    # underlier (foreign / us_stock / pre_ipo / crypto / basket) so the T-REX report's
+    # Foreign and Pre-IPO filer-race sections self-heal — foreign-listed names
+    # (SK Square, Leeno, Siemens, ...) flow into data/foreign/universe.parquet and
+    # private names into the IPO sourcer. Idempotent via its journal.
+    ("ai_underlier_intel",       [PY, str(PROJECT_ROOT / "scripts" / "ai_underlier_intel.py")]),
+    ("ai_source_ipo",            [PY, str(PROJECT_ROOT / "scripts" / "ai_source_ipo.py")]),
     ("apply_fund_master",        [PY, str(PROJECT_ROOT / "scripts" / "apply_fund_master.py")]),
     # CIC-12 fix (2026-06-08): canonical identity must be assigned BEFORE
     # apply_underlier_overrides, which keys off canonical_id. Without this

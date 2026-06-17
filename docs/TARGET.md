@@ -7,6 +7,8 @@ updated: 2026-05-19
 
 # rexfinhub — Target Architecture (To-Be)
 
+> **STALE (2026-06-16):** for the active roadmap see `docs/GOAL.md`.
+
 > Canonical reference for what we're building toward. Future tense. AS-IS lives in `SYSTEM.md`. Decisions justifying the target live in `DECISIONS/`.
 >
 > When a phase ships, its content migrates from `### phases` here into `SYSTEM.md` and gets struck through here (preserve the heading for backlinks).

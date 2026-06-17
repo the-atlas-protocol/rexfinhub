@@ -18,6 +18,10 @@ from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Ensure the repo root is importable when this file is run as a script
+# (`python scripts/apply_fund_master.py`) — needed for `from market...` below.
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 DB_PATH = PROJECT_ROOT / "data" / "etp_tracker.db"
 INPUT_CSV = PROJECT_ROOT / "config" / "rules" / "fund_master.csv"
 
@@ -263,43 +267,56 @@ def main():
         else:
             not_found += 1
 
+    # Which columns actually exist (a minimal/legacy schema may lack the newer
+    # taxonomy columns; the structural blocks below degrade gracefully if so).
+    _cols = {row[1] for row in cur.execute("PRAGMA table_info(mkt_master_data)").fetchall()}
+
     # Structural fallback so NO classified fund is left with a NULL primary_strategy
     # — that NULL is what dumped un-curated launches (e.g. the Leverage Shares 2X
     # funds) into the Daily report's "Other" bucket. Derive primary_strategy from the
     # legacy etp_category for any classified fund the curated CSV didn't cover (2026-06-16).
-    cur.execute("""
-        UPDATE mkt_master_data
-        SET primary_strategy = CASE etp_category
-            WHEN 'LI' THEN 'L&I'
-            WHEN 'CC' THEN 'Income'
-            WHEN 'Crypto' THEN 'Plain Beta'
-            WHEN 'Defined' THEN 'Defined Outcome'
-            WHEN 'Thematic' THEN 'Plain Beta'
-            ELSE primary_strategy END
-        WHERE (primary_strategy IS NULL OR primary_strategy = '')
-          AND etp_category IS NOT NULL AND etp_category <> ''
-    """)
-    xwalk = cur.rowcount
+    xwalk = 0
+    if {"primary_strategy", "etp_category"} <= _cols:
+        cur.execute("""
+            UPDATE mkt_master_data
+            SET primary_strategy = CASE etp_category
+                WHEN 'LI' THEN 'L&I'
+                WHEN 'CC' THEN 'Income'
+                WHEN 'Crypto' THEN 'Plain Beta'
+                WHEN 'Defined' THEN 'Defined Outcome'
+                WHEN 'Thematic' THEN 'Plain Beta'
+                ELSE primary_strategy END
+            WHERE (primary_strategy IS NULL OR primary_strategy = '')
+              AND etp_category IS NOT NULL AND etp_category <> ''
+        """)
+        xwalk = cur.rowcount
 
     # Structural rex_suite derivation (runs in BOTH sync paths via this step, unlike
     # market/transform.py which only the bloomberg-chain hits). A REX product whose
     # name says its suite can never be left out of a count (the SPAX/T-REX 40-vs-41
-    # bug). Patterns are REX-name-prefixed so they can't tag a competitor.
-    cur.execute("""
-        UPDATE mkt_master_data
-        SET rex_suite = CASE
-            WHEN UPPER(fund_name) LIKE 'T-REX%' THEN 'T-REX'
-            WHEN UPPER(fund_name) LIKE 'MICROSECTORS%' THEN 'MicroSectors'
-            WHEN UPPER(fund_name) LIKE 'REX-OSPREY%' THEN 'Crypto'
-            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%GROWTH & INCOME%' THEN 'Growth & Income'
-            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%PREMIUM INCOME%' THEN 'Equity Premium Income'
-            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%INCOMEMAX%' THEN 'IncomeMax'
-            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%AUTOCALL%' THEN 'Autocallable'
-            WHEN UPPER(fund_name) LIKE 'REX%' AND UPPER(fund_name) LIKE '%DRONE%' THEN 'Thematic'
-            ELSE rex_suite END
-        WHERE (rex_suite IS NULL OR rex_suite = '')
-    """)
-    suite_filled = cur.rowcount
+    # bug). Uses the SAME canonical classifier the Flow report reads
+    # (market.definitions.suite_of), so the stored column and the report's in-memory
+    # derivation can never diverge — one definition, not two.
+    #
+    # Re-derives for EVERY classifiable fund (not just NULLs) so a canonical rename
+    # (e.g. Autocallable->Structured, T-Bill->MoneyMarket) propagates to the stored
+    # column. Funds the classifier can't name (returns None) keep their existing
+    # value — name wins, nothing else is clobbered.
+    from market.definitions import suite_of
+
+    suite_filled = 0
+    suite_rows = cur.execute(
+        "SELECT rowid, ticker, fund_name, rex_suite FROM mkt_master_data "
+        "WHERE fund_name IS NOT NULL"
+    ).fetchall() if {"rex_suite", "fund_name"} <= _cols else []
+    updates = [
+        (suite, rid)
+        for rid, ticker, fund_name, cur_suite in suite_rows
+        if (suite := suite_of(ticker, fund_name)) is not None and suite != cur_suite
+    ]
+    if updates:
+        cur.executemany("UPDATE mkt_master_data SET rex_suite = ? WHERE rowid = ?", updates)
+    suite_filled = len(updates)
 
     con.commit()
     con.close()

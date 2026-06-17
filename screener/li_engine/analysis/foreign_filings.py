@@ -104,6 +104,15 @@ SEED_FOREIGN_UNIVERSE = [
     ("2454.TW",   "MediaTek Inc",                 "TWSE", "Semiconductors",           70.0, ["MEDIATEK"]),
     ("ARM",       "Arm Holdings ADR",             "NASDAQ","Semiconductors",          140.0, ["ARM HOLDINGS", " ARM "]),
     ("GRAB",      "Grab Holdings",                "NASDAQ","Information Technology",    18.0, ["GRAB HOLDINGS", " GRAB "]),
+    # Added 2026-06-17 (Ryu) — foreign-listed single stocks competitors actively file
+    # 2x L&I on (Leverage Shares / Defiance, last 60-180d) but absent from the seed.
+    # The nightly ai_underlier_intel.py step discovers further names into universe.parquet.
+    ("402340.KS", "SK Square Co Ltd",             "KRX",  "Semiconductors",           18.0, ["SK SQUARE", "SKSQUARE"]),
+    ("042700.KS", "Hanmi Semiconductor Co Ltd",   "KRX",  "Semiconductors",           12.0, ["HANMI SEMICONDUCTOR", "HANMI SEMI"]),
+    ("058470.KQ", "Leeno Industrial Inc",         "KOSDAQ","Semiconductors",            4.0, ["LEENO INDUSTRIAL", "LEENO"]),
+    ("SIE.DE",    "Siemens AG",                   "XETRA","Industrials",              200.0, ["SIEMENS", "SIMENS"]),
+    ("BESI.AS",   "BE Semiconductor Industries",  "AMS",  "Semiconductors",           12.0, ["BE SEMICONDUCTOR", "BESI"]),
+    ("SIVE.ST",   "Sivers Semiconductors AB",     "STO",  "Semiconductors",            0.3, ["SIVERS SEMICONDUCTORS", "SIVERS"]),
 ]
 
 # REX-affiliated registrant matches (REX itself + the white-label trust

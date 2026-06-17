@@ -294,7 +294,7 @@ def _chart_rex(df, as_of, label):
 # -----------------------------------------------------------------------
 _COMP_PAL_BRIGHT = ["#3d7ec7", "#e8913a", "#5ea66b", "#9b6dc4", "#d15555", "#4db8a8", "#c47a5a"]
 
-def _chart_comp(df, as_of, label, rex_bottom=False):
+def _chart_comp(df, as_of, label, rex_bottom=False, as_share=False):
     a = df[df.aum > 0].copy()
 
     non_rex = a[(a.months_ago == 0) & (~a.is_rex)].groupby("issuer")["aum"].sum().sort_values(ascending=False)
@@ -328,6 +328,12 @@ def _chart_comp(df, as_of, label, rex_bottom=False):
     piv.index = [_d(m, as_of) for m in piv.index]
     piv_b = piv / 1e3
 
+    if as_share:
+        # True market-share: normalise each month to % of that month's total so
+        # every column sums to 100%. Y-axis 0–100, REX at the bottom band.
+        _rowsum = piv_b.sum(axis=1)
+        piv_b = piv_b.div(_rowsum.where(_rowsum != 0), axis=0).fillna(0) * 100
+
     # Colors — brighter palette, Others gray, REX blue
     colors = []
     ci = 0
@@ -356,10 +362,15 @@ def _chart_comp(df, as_of, label, rex_bottom=False):
             total = piv_b.sum(axis=1)
             ax.plot(piv_b.index, total, color=_BLUE, linewidth=2.2, zorder=5)
 
-    ax.set_ylabel("AUM ($B)", fontsize=9, fontweight="bold")
-    total_max = piv_b.sum(axis=1).max()
-    ax.set_ylim(0, total_max * 1.12)
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"\\${x:.0f}B"))
+    if as_share:
+        ax.set_ylabel("Market Share (%)", fontsize=9, fontweight="bold")
+        ax.set_ylim(0, 100)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
+    else:
+        ax.set_ylabel("AUM ($B)", fontsize=9, fontweight="bold")
+        total_max = piv_b.sum(axis=1).max()
+        ax.set_ylim(0, total_max * 1.12)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"\\${x:.0f}B"))
     ax.grid(axis="y", color=_LIGHT, linewidth=0.6, zorder=0)
     ax.set_axisbelow(True)
 
@@ -390,19 +401,25 @@ def _chart_comp(df, as_of, label, rex_bottom=False):
     for lb in labels:
         weight = "900" if lb["col"] == "REX" else "bold"
         size = 9.5 if lb["col"] == "REX" else 8.5
-        ax.text(xr, lb["y"], f"{lb['col']}  {_fb(lb['v'], escape=True)}",
+        vtxt = f"{lb['v']:.1f}%" if as_share else _fb(lb['v'], escape=True)
+        ax.text(xr, lb["y"], f"{lb['col']}  {vtxt}",
                 fontsize=size, fontweight=weight, color=lb["c"], va="center",
                 clip_on=False, zorder=10)
 
-    top_y = (max(l["y"] for l in labels) + gap) if labels else cum
-    total_now = piv_b.sum(axis=1).iloc[-1]
-    ax.text(xr, top_y, f"Total: {_fb(total_now, escape=True)}",
-            fontsize=9, fontweight="bold", color=_NAVY, va="bottom", clip_on=False, zorder=10)
+    # For the share chart the columns always sum to 100% — a "Total" annotation
+    # is meaningless, so only the AUM chart shows it.
+    if not as_share:
+        top_y = (max(l["y"] for l in labels) + gap) if labels else cum
+        total_now = piv_b.sum(axis=1).iloc[-1]
+        ax.text(xr, top_y, f"Total: {_fb(total_now, escape=True)}",
+                fontsize=9, fontweight="bold", color=_NAVY, va="bottom", clip_on=False, zorder=10)
 
     # Title line
     fig.text(0.06, 0.95, f"{label}  |  Competitive Landscape",
              fontsize=12, fontweight="bold", color=_NAVY, ha="left")
-    fig.text(0.06, 0.89, "AUM by Issuer  |  3-Year History  |  Source: Bloomberg",
+    _subtitle = ("Market Share by Issuer (% of category AUM)" if as_share
+                 else "AUM by Issuer") + "  |  3-Year History  |  Source: Bloomberg"
+    fig.text(0.06, 0.89, _subtitle,
              fontsize=9, color="#636e72", ha="left")
 
     fig.subplots_adjust(top=0.84, bottom=0.12, left=0.08, right=0.76)
@@ -510,9 +527,9 @@ def generate_category_charts(cat_db: str, label: str) -> dict | None:
 
     fig_r = _chart_rex(df, as_of, label)
     fig_c = _chart_comp(df, as_of, label)
-    # 3rd chart Ryu wants: issuer market-share with REX as the bottom band
-    # (rex_bottom=True). Same _chart_comp machinery — just stacked REX-at-bottom.
-    fig_s = _chart_comp(df, as_of, label, rex_bottom=True)
+    # 3rd chart Ryu wants: TRUE issuer market-share — % not AUM, Y-axis 0–100%,
+    # every month sums to 100%, REX as the bottom band. (rex_bottom + as_share.)
+    fig_s = _chart_comp(df, as_of, label, rex_bottom=True, as_share=True)
 
     result = {
         "label": label,

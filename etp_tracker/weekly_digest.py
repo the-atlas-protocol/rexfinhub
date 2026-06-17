@@ -606,20 +606,29 @@ def _render_winners_losers_yielders(perf_metrics: dict, rex_df: pd.DataFrame) ->
     # Drop any liquidated/delisted REX fund that slipped into the perf lists — a
     # liquidated G&I fund (e.g. COII/MSII) must never appear in winners/losers/
     # yielders. rex_df carries market_status; exclude its non-ACTV tickers. (2026-06-16)
+    # Normalize tickers on BOTH sides ("COII US" vs "COII") — the previous
+    # comparison missed liquidated funds because the perf-list tickers carry the
+    # " US" suffix while ticker_clean does not, so the exclusion silently no-op'd
+    # and DLST/LIQU funds (COII/MSII/...) leaked into the yielders. (2026-06-16)
+    def _norm(t):
+        return str(t).replace(" US", "").strip().upper()
+
     _mcol = next((c for c in rex_df.columns if c.lower().strip() == "market_status"), None) if not rex_df.empty else None
     if _mcol and "ticker_clean" in rex_df.columns:
-        _dead = set(rex_df[rex_df[_mcol] != "ACTV"]["ticker_clean"])
+        _dead = {_norm(x) for x in rex_df[rex_df[_mcol] != "ACTV"]["ticker_clean"]}
         if _dead:
-            winners = [w for w in winners if w.get("ticker", "") not in _dead]
-            losers = [l for l in losers if l.get("ticker", "") not in _dead]
-            all_yielders = [y for y in all_yielders if y.get("ticker", "") not in _dead]
+            winners = [w for w in winners if _norm(w.get("ticker", "")) not in _dead]
+            losers = [l for l in losers if _norm(l.get("ticker", "")) not in _dead]
+            all_yielders = [y for y in all_yielders if _norm(y.get("ticker", "")) not in _dead]
 
-    # Filter yielders to income-suite tickers
-    if all_yielders and not rex_df.empty and "category_display" in rex_df.columns:
-        income_tickers = set(
-            rex_df[rex_df["category_display"].isin(_INCOME_CATEGORIES)]["ticker_clean"]
-        ) if "ticker_clean" in rex_df.columns else set()
-        yielders = [y for y in all_yielders if y.get("ticker", "") in income_tickers]
+    # Filter yielders to LIVE income-suite tickers (ACTV only — a liquidated
+    # income fund must never appear, even if it slipped past the dead-set above).
+    if all_yielders and not rex_df.empty and "category_display" in rex_df.columns and "ticker_clean" in rex_df.columns:
+        _inc = rex_df[rex_df["category_display"].isin(_INCOME_CATEGORIES)]
+        if _mcol:
+            _inc = _inc[_inc[_mcol] == "ACTV"]
+        income_tickers = {_norm(x) for x in _inc["ticker_clean"]}
+        yielders = [y for y in all_yielders if _norm(y.get("ticker", "")) in income_tickers]
     else:
         yielders = all_yielders
 
@@ -1380,8 +1389,9 @@ def build_weekly_digest_html(
         # --- PART 3: ETP Market Overview (dual KPI: market + REX) ---
         sections.append(_render_etp_overview(market["kpis"], rex_df, master_df))
 
-    # Filing Activity (always shown)
-    sections.append(_render_filing_activity(filing))
+    # Filing Activity section removed per Ryu 2026-06-16 (low signal — the
+    # trust/filing-count card was noise). _render_filing_activity() is kept in
+    # the module but no longer rendered.
 
     if market:
         rex_df = market.get("rex_df", pd.DataFrame())

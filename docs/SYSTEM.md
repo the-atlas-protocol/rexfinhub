@@ -6,6 +6,8 @@ updated: 2026-05-19
 
 # rexfinhub — System (As-Is)
 
+> **STALE (2026-06-16):** for the current consolidated state see `docs/SYSTEM_LEDGER.md`.
+
 > Canonical reference for what production does TODAY. Present tense only. Future-tense design statements belong in `TARGET.md`. Bug list lives in `### known-bugs` here until fixed.
 >
 > Source-of-truth date: VPS state as of 2026-05-19.

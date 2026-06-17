@@ -3,18 +3,56 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from webapp.services.bbg_file import get_bloomberg_file
+from webapp.services.bbg_file import BloombergGraphError, get_bloomberg_file
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
 # Data file resolution -- single source of truth: bloomberg_daily_file.xlsm
 # Centralized in webapp.services.bbg_file
+#
+# DATA_FILE is just a PATH constant used by report/override code to read the
+# already-downloaded workbook (e.g. the MicroSectors AUM/flow override sheets).
+# When the Graph API is unavailable (local dev, or any non-VPS context) we fall
+# back to the local copy. get_bloomberg_file() raises BloombergGraphError
+# (a RuntimeError) — NOT FileNotFoundError — so the old narrow except never
+# caught it and importing this module raised, which silently aborted the
+# MicroSectors override everywhere off the Graph path. The pipeline's
+# freshness guarantee is enforced separately at the sync entry points
+# (download_bloomberg_from_sharepoint / direct get_bloomberg_file calls), so a
+# path-constant fallback here does not weaken it.
 # ---------------------------------------------------------------------------
 try:
     DATA_FILE = get_bloomberg_file()
-except FileNotFoundError:
+except (FileNotFoundError, BloombergGraphError):
     DATA_FILE = PROJECT_ROOT / "data" / "DASHBOARD" / "bloomberg_daily_file.xlsm"
+    # Graph unavailable -> local fallback. A SILENT fallback to a stale local
+    # copy was the root of the 40-vs-41 / missing-BlueOcean-sheet chase
+    # (2026-06-16). Make staleness LOUD so it can never bite quietly again: warn
+    # with the file's age and point at the canonical refresh.
+    try:
+        import logging as _logging
+        import time as _time
+        _log = _logging.getLogger(__name__)
+        if not DATA_FILE.exists():
+            _log.warning(
+                "Bloomberg daily file: Graph API unavailable AND no local copy at %s. "
+                "Run `python scripts/refresh_bloomberg.py` to pull the current file from prod.",
+                DATA_FILE,
+            )
+        else:
+            _age_h = (_time.time() - DATA_FILE.stat().st_mtime) / 3600.0
+            if _age_h > 12:
+                _log.warning(
+                    "Bloomberg daily file: using a STALE local copy (%.1fh old) because the "
+                    "Graph API is unavailable. Run `python scripts/refresh_bloomberg.py` to pull "
+                    "the current Graph-fetched file from prod before building reports.",
+                    _age_h,
+                )
+            else:
+                _log.info("Bloomberg daily file: local copy is %.1fh old (Graph unavailable).", _age_h)
+    except Exception:
+        pass
 
 # Rules: config/rules/ is git-tracked and NOT hidden by the persistent disk.
 # data/rules/ is the legacy location (hidden on Render by the persistent disk mount).

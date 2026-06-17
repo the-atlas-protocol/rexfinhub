@@ -59,14 +59,18 @@ SUITE_COLORS = {
     "Growth & Income":       "#e8913a",
     "Thematic":              "#d15555",
     "IncomeMax":             "#9b6dc4",
-    "Autocallable":          "#5ea66b",
-    "T-Bill":                "#636e72",
+    "Structured":            "#5ea66b",
+    "MoneyMarket":           "#636e72",
 }
 
+# Canonical suite names per the definition library (Autocallable->Structured,
+# T-Bill->MoneyMarket). The DB's rex_suite now uses these, so the query filter
+# and grouping must match or the Structured suite drops out (the missing-2-charts
+# bug, Ryu 2026-06-16).
 RPS_SUITES = {"Equity Premium Income", "Growth & Income",
-              "Autocallable", "IncomeMax", "Thematic", "T-Bill"}
+              "Structured", "IncomeMax", "Thematic", "MoneyMarket"}
 SUITE_ORDER = ["Equity Premium Income", "Growth & Income", "Thematic",
-               "IncomeMax", "Autocallable", "T-Bill"]
+               "IncomeMax", "Structured", "MoneyMarket"]
 
 TICKER_SUITE = {
     "FEPI US": "Equity Premium Income", "AIPI US": "Equity Premium Income",
@@ -77,8 +81,8 @@ TICKER_SUITE = {
     "LLII US": "Growth & Income", "COII US": "Growth & Income",
     "GIF US": "Growth & Income",  "CWII US": "Growth & Income",
     "PLTI US": "Growth & Income", "HOII US": "Growth & Income",
-    "ATCL US": "Autocallable",    "ULTI US": "IncomeMax",
-    "DRNZ US": "Thematic",        "TLDR US": "T-Bill",
+    "ATCL US": "Structured",      "ULTI US": "IncomeMax",
+    "DRNZ US": "Thematic",        "TLDR US": "MoneyMarket",
 }
 
 SECTION_EYEBROW = (f"font-size:10px;font-weight:700;color:{ACCENT};"
