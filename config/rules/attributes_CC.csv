@@ -449,3 +449,35 @@ FIYY US,,,Traditional,Broad Beta
 WRTH US,,,Traditional,Broad Beta
 QVOL US,,,Traditional,Broad Beta
 AUTG US,,,Synthetic,Commodity
+DIVP US,Large Cap Equity,,Traditional,Broad Beta
+DUBS US,Large Cap Equity,,Traditional,Broad Beta
+EFAA US,MSCI EAFE,,Traditional,International Equity
+EIPI US,Energy/MLPs,,Traditional,Energy
+FYEE US,Large Cap Equity,,Traditional,Broad Beta
+GIAX US,Global Equity,,Traditional,Global Equity
+GINX US,Global Equity,,Traditional,Global Equity
+GOLY US,Gold,,Traditional,Commodity
+GQI US,Large Cap Equity,,Traditional,Broad Beta
+IAUI US,Gold,,Traditional,Commodity
+IDUB US,International Large Cap,,Traditional,International Equity
+JOYT US,Large Cap Equity,,Traditional,Broad Beta
+QQA US,NASDAQ-100,,Traditional,Tech
+QQQH US,NASDAQ-100,,Traditional,Single Stock
+RSPA US,S&P 500 Equal Weight,,Traditional,Broad Beta
+TLTI US,Long-Term Treasuries,,Traditional,Fixed Income
+XRMI US,,,Traditional,Single Stock
+YLDE US,Large Cap Equity,,Traditional,Broad Beta
+CAS US,China A-Shares,,Traditional,Geographic/Sector
+EGGQ US,US Large Cap,,Traditional,Broad Beta
+GRNI US,US Large Cap,,Traditional,Broad Beta
+HIGH US,US Broad Market,,Traditional,Broad Beta
+ICAP US,Infrastructure,,Traditional,Sector
+JUCY US,US Broad Market,,Traditional,Broad Beta
+LITL US,US Small Cap,,Traditional,Sector
+MDST US,Midstream,,Traditional,Sector
+OMAH US,BRK.B,,Traditional,Single Stock
+QUSA US,US Quality,,Traditional,Broad Beta
+RJVI US,US Large Cap,,Traditional,Broad Beta
+THTA US,US Broad Market,,Traditional,Broad Beta
+WEEI US,Energy,,Traditional,Sector
+YLDW US,US Broad Market,,Traditional,Broad Beta
