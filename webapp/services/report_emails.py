@@ -1477,7 +1477,7 @@ def build_li_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     Returns (html, images) where images is always [] (no CID images in v3).
     """
     from webapp.services.report_data import get_li_report
-    data = get_li_report(db)
+    data = get_li_report(db, use_cache=False)  # email: compute from live data, not the stale cache
 
     date_str = _data_date_str(data)
     date_mm_dd = _date_mm_dd(data)
@@ -1501,7 +1501,7 @@ def build_cc_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     Returns (html, images) where images is always [] (no CID images in v3).
     """
     from webapp.services.report_data import get_cc_report
-    data = get_cc_report(db)
+    data = get_cc_report(db, use_cache=False)  # email: compute from live data, not the stale cache
 
     date_str = _data_date_str(data)
     date_mm_dd = _date_mm_dd(data)

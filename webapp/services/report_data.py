@@ -1203,15 +1203,19 @@ def _segment_fund_rows(df: pd.DataFrame, total_aum: float) -> list[dict]:
 # ---------------------------------------------------------------------------
 # L&I Report
 # ---------------------------------------------------------------------------
-def get_li_report(db: Session | None = None) -> dict:
+def get_li_report(db: Session | None = None, use_cache: bool = True) -> dict:
     """Data for Leveraged & Inverse report.
 
-    If db is provided, reads from mkt_report_cache (zero memory).
-    Otherwise computes from files (used during local sync).
+    If db is provided AND use_cache is True, reads from mkt_report_cache
+    (zero memory, for the website). The email builder passes use_cache=False so
+    it computes from LIVE master data — the persisted cache lags reality (stale
+    REX counts, AUM, and 1yr-ago history), which is what produced the 40-vs-41
+    and impossible $81B figures. Mirrors get_flow_report's BUG-03 fix.
     """
-    cached = _read_report_cache(db, "li_report")
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = _read_report_cache(db, "li_report")
+        if cached is not None:
+            return cached
 
     # On Render, never fall through to file-based cache (prevents OOM)
     if _ON_RENDER:
@@ -1519,15 +1523,20 @@ def _fund_rows(df: pd.DataFrame, total_aum: float) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Covered Call Report
 # ---------------------------------------------------------------------------
-def get_cc_report(db: Session | None = None) -> dict:
+def get_cc_report(db: Session | None = None, use_cache: bool = True) -> dict:
     """Data for Covered Call report.
 
-    If db is provided, reads from mkt_report_cache (zero memory).
-    Otherwise computes from files (used during local sync).
+    If db is provided AND use_cache is True, reads from mkt_report_cache
+    (zero memory, for the website). The email builder must pass use_cache=False
+    so it computes from LIVE master data — the persisted cache lags reality
+    (e.g. funds liquidated since the last pipeline run still counted as ACTV),
+    which is what made REX single-stock income read 10 instead of 3 and the
+    issuer/AUM figures stale. Mirrors get_flow_report's BUG-03 fix.
     """
-    cached = _read_report_cache(db, "cc_report")
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = _read_report_cache(db, "cc_report")
+        if cached is not None:
+            return cached
 
     if _ON_RENDER:
         log.warning("CC report: DB cache miss on Render, returning empty")
