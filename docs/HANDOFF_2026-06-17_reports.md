@@ -67,6 +67,20 @@ LI 41/22 ✓ · Weekly 41/3 ✓ · Flow REX total 79 ✓ · Income YieldMax 72.6
 · REX income single-stock 3 ✓ · stock_recs Pending renders + no Delayed ✓ · autocall
 section in autocall not flow ✓.
 
+## SEC SCRAPE RUNNING (background task `b3qzvkrf6`)
+A full SEC EDGAR scrape is running (558 CIKs, since=2024-01-01, etf_only) to refresh
+filing data — the last scrape was 2026-04-16, so today's filings (ProShares foreign,
+new effective dates) weren't in the DB. This is the PREREQUISITE for T-REX D/E and the
+47 filed-but-no-date effective dates. Log: `$CLAUDE_JOB_DIR/tmp/sec_scrape.log` (or the
+task output file). **POST-SCRAPE STEPS (do these when it completes):**
+1. `python scripts/run_sync_rex_products_from_filings.py` (or run_daily's sec step) +
+   re-run apply_bloomberg_post_steps (classify→fund_master→brands→refresh_effective_dates).
+2. `python scripts/refresh_effective_dates.py --apply` — should now fill more dates.
+3. Rebuild T-REX (trex_combined_v9) → check Foreign now includes the new foreign-filed
+   products (E), the filed-effective-date coverage improved (B), IPO refreshed if the
+   yaml/source updated (D).
+4. Then do F (competitors in Foreign + IPO) — see below.
+
 ## REMAINING (the "Do not stop" queue)
 1. **Effective dates 100%** — DATA is 100% (every ACTV fund has inception). Reports
    show real eff date OR Pending. TODO: make every report's effective-date display
