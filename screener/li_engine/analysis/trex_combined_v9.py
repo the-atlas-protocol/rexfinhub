@@ -659,7 +659,10 @@ def _load_race_sources():
 
 
 def _filer_race(keywords, rexp, fs):
-    keys = [_race_strip(k) for k in (keywords or []) if k]
+    # keywords may arrive as a numpy array (from the universe parquet) — never use
+    # truthiness on it (ambiguous). Convert defensively.
+    kw = list(keywords) if keywords is not None and not isinstance(keywords, float) else []
+    keys = [_race_strip(k) for k in kw if k]
     if not keys:
         return []
     rows = {}
@@ -711,7 +714,8 @@ def load_foreign_competition():
         # the Brief's US-ADR exclusion. Ryu wants the .KS/.T/.HK/.XETRA names.
         if str(r.get("market", "")).upper() in ("NYSE", "NASDAQ", "NYSE ARCA", "AMEX"):
             continue
-        kws = list(r.get("name_keywords") or [])
+        _kw = r.get("name_keywords")  # numpy array when sourced from the parquet
+        kws = list(_kw) if _kw is not None and not isinstance(_kw, float) else []
         race = _filer_race(kws, rexp, fs)
         ncomp = len({x["issuer"] for x in race if not x["rex"]})
         out.append({"name": r.get("name", ""), "ticker": r.get("foreign_ticker", ""),
