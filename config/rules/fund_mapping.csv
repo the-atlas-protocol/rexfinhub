@@ -2482,8 +2482,6 @@ TELX US,LI,1,atlas
 DISC US,LI,1,atlas
 LBIX US,LI,1,atlas
 DELC US,LI,1,atlas
-CBIX US,Crypto,1,atlas
-BBIX US,Crypto,1,atlas
 NXPG US,LI,1,atlas
 MCHU US,LI,1,atlas
 NXPX US,LI,1,atlas
@@ -2619,7 +2617,7 @@ SGVA US,LI,1,atlas
 NYNY US,Thematic,1,atlas
 BAY US,Thematic,1,atlas
 BREW US,Thematic,1,atlas
-THOR US,Defined,1,atlas
+THOR US,CC,1,manual-correct
 DRMP US,Defined,1,atlas
 JPFP US,Defined,1,atlas
 KHPI US,CC,1,audit-2026-06-10
@@ -2656,7 +2654,7 @@ AXTL US,LI,1,atlas
 KEYG US,LI,1,atlas
 DQJN US,Defined,1,atlas
 MCHG US,LI,1,atlas
-ACYQ US,Defined,1,atlas
+ACYQ US,CC,1,manual-correct
 DRAL US,LI,1,atlas
 APHG US,LI,1,atlas
 TELG US,LI,1,atlas

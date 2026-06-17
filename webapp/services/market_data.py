@@ -1114,6 +1114,14 @@ def get_category_summary(db: Session, category: str | None, filters: dict | None
         df = df.copy()
         _apply_etn_overrides(df)
 
+    # ACTV-only: a category summary reflects the LIVE market. Without this, the REX
+    # product list counted PEND + liquidated funds (53 instead of the canonical 41
+    # single-stock L&I; 10 instead of 3 income single-stock), so the weekly landscape
+    # never tied out to the L&I/Income reports. (Ryu 2026-06-17)
+    _ms_col = next((c for c in df.columns if c.lower().strip() == "market_status"), None)
+    if _ms_col:
+        df = df[df[_ms_col] == "ACTV"].copy()
+
     # ETF/ETN filter (supports comma-separated multi-select)
     if fund_structure and fund_structure != "all":
         fund_type_col = next((c for c in df.columns if c.lower().strip() == "fund_type"), None)
