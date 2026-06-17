@@ -837,7 +837,8 @@ def _volume_bars(rows: list[dict], header: str = "30-Day Average Daily Volume",
         v = r["vol_30d"]
         bar_pct = (v / max_vol * 100) if max_vol > 0 else 0
         is_rex = r.get("is_rex", False)
-        color = _REX_GREEN if is_rex else "#0984e3"
+        # Ryu 2026-06-16: volume bars GREEN; the REX fund (e.g. ATCL) highlighted BLUE.
+        color = "#0984e3" if is_rex else "#27ae60"
         weight = "font-weight:700;" if is_rex else ""
         ticker = _esc(r["ticker"])
         fmt = _esc(_fmt_vol(v))
@@ -897,7 +898,8 @@ def _flow_share_bar(issuers: list[dict], n: int = 6) -> str:
     for i, iss in enumerate(top):
         share = iss.get("market_share", 0)
         is_rex = iss.get("is_rex", False)
-        color = _REX_GREEN if is_rex else _CHART_COLORS[i % len(_CHART_COLORS)]
+        # Ryu 2026-06-16: REX highlighted BLUE (was green) in every flow chart.
+        color = "#0984e3" if is_rex else _CHART_COLORS[i % len(_CHART_COLORS)]
         name = _esc(iss["issuer"][:18])
         weight = "font-weight:700;" if is_rex else ""
         if share >= 1:
