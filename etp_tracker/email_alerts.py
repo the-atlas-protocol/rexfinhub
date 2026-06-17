@@ -1405,7 +1405,7 @@ def _gather_pipeline_funds(db_session=None) -> list[dict]:
     # (typically same-day after the next classification sweep).
     sql = """
         SELECT ticker, fund_name,
-               COALESCE(NULLIF(issuer_display, ''), '') AS issuer_display,
+               COALESCE(NULLIF(issuer_display, ''), NULLIF(issuer, ''), '') AS issuer_display,
                primary_strategy,
                COALESCE(NULLIF(sub_strategy, ''), '') AS sub_strategy,
                inception_date, market_status,

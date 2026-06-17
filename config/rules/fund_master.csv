@@ -7459,7 +7459,7 @@ VBNB US,VANECK BNB ETF,,Crypto,Plain Beta,Single-Access,,,,,standalone,physical,
 QTUP US,DEFIANCE LONG PURE QUANTUM ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 RACK US,VANECK ETF TRUST -VANECK DATA CENTER SUPPLY CHAIN ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 2660552D US,ROUNDHILL DAILY 2X LONG MEMORY ETF,,Equity,L&I,Long,single,DRAM,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
-AMEM US,AMANA DEVELOPING WORLD ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
+AMEM US,AMANA DEVELOPING WORLD ETF,Amana,Equity,Plain Beta,,,,,,standalone,,,,,,,,,,,Emerging Markets,,,,,manual,faith-based EM equity not income (Ryu 2026-06-17 fix of bad atlas-auto CC label)
 SNK US,GRANITESHARES 2X SHORT SPACEX DAILY ETF,,Equity,L&I,Short,,,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 SPAL US,GRANITESHARES 2X LONG SPACEX DAILY ETF,,Equity,L&I,Long,single,SPCX,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
 XXDC US,TEUCRIUM LEVERAGED XDC NETWORK ETF,,Multi-Asset,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-10,auto: legacy candidate translated (classify_daily)
