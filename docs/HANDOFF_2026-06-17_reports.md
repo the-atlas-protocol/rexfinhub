@@ -67,7 +67,26 @@ LI 41/22 ✓ · Weekly 41/3 ✓ · Flow REX total 79 ✓ · Income YieldMax 72.6
 · REX income single-stock 3 ✓ · stock_recs Pending renders + no Delayed ✓ · autocall
 section in autocall not flow ✓.
 
-## SEC SCRAPE RUNNING (background task `b3qzvkrf6`)
+## SEC SCRAPE OUTCOME (2026-06-17 ~09:40) — ABANDONED, impractical
+The full local scrape was killed: ~176 s/CIK, ~2 of 558 in 5 min, ETA ~27h. Not viable.
+Pulled the VPS's fresher data instead (parquets refreshed). KEY: even the VPS screener
+parquets are 06-15 06:01 and VPS fund_status maxes at eff_date 2026-09-14 — so "today's
+(06-17) ProShares foreign filings" exist in NEITHER local nor VPS yet. They only appear
+after the next PRODUCTION nightly screener run on the VPS. So:
+- **D (IPO stale)**: the *yaml data* (config/ipo_watchlist.yaml valuations/S-1s) is old —
+  needs refreshing from its external source; not a code fix.
+- **E (foreign breadth / today's filings)**: BLOCKED on fresh production data. The CODE to
+  broaden load_foreign() to include filed-foreign underliers (from filed_underliers.parquet,
+  717 rows, keyed by underlier — would need a foreign-vs-US classifier) can be written, but
+  today's ProShares filings need the production screener.
+- **F (competitors in foreign+IPO)**: data ALREADY present — load_ipo_yaml augments with
+  load_pre_ipo_filer_race (filers/total_filings/rex_filed); foreign shows "competitor 2x
+  activity". The ask is to match the AD-HOC BRIEF's format — needs Ryu's spec
+  (see foreign_ipo_brief.py / recommendation_brief.py for the brief layout).
+RECOMMENDATION: let the production nightly run refresh data, then finalize E; get the IPO
+source for D; get Ryu's brief-format spec for F.
+
+## (defunct) SEC SCRAPE RUNNING (background task `b3qzvkrf6`)
 A full SEC EDGAR scrape is running (558 CIKs, since=2024-01-01, etf_only) to refresh
 filing data — the last scrape was 2026-04-16, so today's filings (ProShares foreign,
 new effective dates) weren't in the DB. This is the PREREQUISITE for T-REX D/E and the
