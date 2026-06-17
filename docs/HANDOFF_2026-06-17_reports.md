@@ -3,6 +3,35 @@
 Durable state log so work survives context compaction. Goal: every report number
 ties out, classification self-heals, effective dates 100%, all reports ready to send.
 
+## FINALIZED WORKFLOW — `/refreshdata` (APPROVED 2026-06-17)
+Replace the fixed-clock Bloomberg/report/send timers with ONE on-demand command Ryu
+types after he updates the Bloomberg daily file (SharePoint). Data timing varies, so
+no clock fits — the command is the trigger.
+
+`/refreshdata` runs the consolidated chain ON THE VPS (single source of truth):
+  1. git pull origin main  2. pull Bloomberg daily file from SharePoint
+  3. market sync + MicroSectors override  4. classify (rules + AI middlemen:
+     ai_classify_unmapped, ai_underlier_intel, ai_source_ipo)  5. enrich (fund_master,
+     brands, effective dates, status reconciler)  6. build all 10 reports + preflight
+  7. commit rule deltas (AFTER the pull, so git can't diverge again)
+  → pull previews to local + open in Chrome → status (counts 41/22/79, new funds, gate)
+  → STOP at gate. `/refreshdata send` (or "send") = preflight→open gate→send→close→report.
+
+KEEP automated (external data): SEC scrape 4x/day + fresh-poller 15min, CBOE 03:00,
+db-backup 23:00, 13F quarterly.
+DISABLE 4 timers (become on-demand): bloomberg (17:15/21:00), daily, preflight,
+gate-open. (gate-close stays as the safety.)
+
+WHY it also fixes the git divergence permanently: today's enabled bloomberg-chain
+commits+pushes rule deltas but NEVER pulls origin → drifts behind, pushes fail.
+/refreshdata pulls origin FIRST every run, so local deltas always stack on top.
+One-time: reconcile the current 3-commit VPS divergence (conflict on attributes_LI.csv
+DULL/AIQD: engine says subcat "Index", my edit "Gold/Tech" — both leave Single Stock,
+so 41/22 hold either way).
+
+ARTIFACTS TO BUILD: (1) scripts/run_chain.py (VPS, the one entrypoint, steps 1-7,
+reusable by a future file-watch poller). (2) ~/.claude/skills/refreshdata skill.
+
 ## WHERE THINGS LIVE (critical context)
 - **Active worktree**: `C:\Projects\rexfinhub\.claude\worktrees\fix-reports-2026-06-16`
   (branch `worktree-fix-reports-2026-06-16`). The harness ENFORCES editing in a

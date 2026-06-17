@@ -90,7 +90,8 @@ def _candidates(days: int):
         us = set()
     covered = set()
     for kws in load_foreign_universe()["name_keywords"]:
-        for k in (kws or []):
+        # name_keywords is a numpy array when read from the parquet — no truthiness.
+        for k in (list(kws) if kws is not None and not isinstance(kws, float) else []):
             covered.add(re.sub(r"[^A-Z0-9]", "", str(k).upper()))
     df["tok"] = df["series_name"].apply(T._comp_underlier_of)
 
@@ -134,7 +135,8 @@ def _merge_universe(foreign_rows, dry: bool):
     have = {str(r.get("foreign_ticker", "")).upper() for r in base}
     have_kw = set()
     for r in base:
-        for k in (r.get("name_keywords") or []):
+        _bk = r.get("name_keywords")
+        for k in (list(_bk) if _bk is not None and not isinstance(_bk, float) else []):
             have_kw.add(re.sub(r"[^A-Z0-9]", "", str(k).upper()))
     added = []
     for r in foreign_rows:
