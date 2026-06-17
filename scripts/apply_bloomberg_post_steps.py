@@ -37,6 +37,12 @@ STEPS = [
     # the sweep report email.
     ("classify_daily",           [PY, str(PROJECT_ROOT / "scripts" / "classify_daily.py"),
                                   "--apply"]),
+    # AI middleman (Ryu 2026-06-16): the rule engine queues funds it can't place;
+    # the context-aware LLM classifier catches the ones with a tracked-category
+    # signal (income-vs-bond, thematic, L&I, crypto) that the rules miss, so
+    # upcoming launches are categorized correctly without manual touch. Idempotent
+    # via its journal — only spends tokens on genuinely new funds.
+    ("ai_classify_unmapped",     [PY, str(PROJECT_ROOT / "scripts" / "ai_classify_unmapped.py")]),
     ("apply_fund_master",        [PY, str(PROJECT_ROOT / "scripts" / "apply_fund_master.py")]),
     # CIC-12 fix (2026-06-08): canonical identity must be assigned BEFORE
     # apply_underlier_overrides, which keys off canonical_id. Without this
