@@ -465,12 +465,13 @@ def load_trex_2x_long_pipeline(single_stocks: set | None = None):
     underlier_str = raw_u.where(raw_u != "", raw_u2.where(raw_u2 != "", raw_u3))
     df["underlier_clean"] = underlier_str.apply(_canon)
     df["filing_dt"] = pd.to_datetime(df["initial_filing_date"], errors="coerce")
-    df["eff_dt"] = pd.to_datetime(df["estimated_effective_date"], errors="coerce")
-    # 47/60 filed T-REX 2X have a NULL estimated_effective_date. These are 485APOS
-    # filings that become effective automatically 75 days after filing (SEC Rule
-    # 485(a)). Fill the blanks with that projection so REX Eff is never empty.
-    # Ryu 2026-06-09.
-    df["eff_dt"] = df["eff_dt"].fillna(df["filing_dt"] + pd.Timedelta(days=75))
+    # eff_real = the ACTUAL scraped effective date. This is what the report DISPLAYS
+    # (or an honest "Pending" when null) — Ryu 2026-06-16 rejects showing a guessed
+    # +75-day projection as if it were real.
+    df["eff_real"] = pd.to_datetime(df["estimated_effective_date"], errors="coerce")
+    # eff_dt keeps the 485(a) +75-day projection but is used ONLY internally to drop
+    # dormant shelf filings below — never rendered.
+    df["eff_dt"] = df["eff_real"].fillna(df["filing_dt"] + pd.Timedelta(days=75))
 
     # Drop DORMANT filings from the active pipeline. A scheduled/projected
     # effective date more than 6 months in the past, with the fund still not
@@ -903,7 +904,10 @@ def build():
             score=r.get('underlier_score',0) or 0
             score_html=f'<b style="color:{NAVY};">{score:.1f}</b>' if score>0 else f'<span style="color:{GRAY};">—</span>'
             file_dt=str(r['filing_dt'].date()) if pd.notna(r['filing_dt']) else "—"
-            eff_dt=str(r['eff_dt'].date()) if pd.notna(r['eff_dt']) else "—"
+            # Show the REAL scraped effective date, or an honest "Pending" — never the
+            # +75-day projection (Ryu 2026-06-16).
+            eff_dt=(str(r['eff_real'].date()) if pd.notna(r.get('eff_real'))
+                    else '<span style="color:#e67e22;">Pending</span>')
             fc, ec = _comp_cells(comp, u)
             lv = live.get(u, {})
             if lv.get("top_aum"):
