@@ -85,6 +85,10 @@ STEPS = [
     # rex_products.status and status_cached. Diff still logged to
     # data/.status_reconciler.log.
     ("status_reconciler_apply", [PY, "-m", "webapp.services.status_reconciler", "--apply"]),
+    # Re-stamp time-series enrichment from the now-final master so charts can't lag
+    # the classification post-steps (the mkt_time_series drift bug — 2,625 tickers
+    # stale as of 2026-06-18). Must run AFTER all master enrichment, BEFORE snapshot.
+    ("restamp_time_series",     [PY, str(PROJECT_ROOT / "scripts" / "restamp_time_series.py")]),
     # WS-C1 (2026-06-15): capture the fully-enriched end-of-cycle state into the
     # append-only mkt_daily_snapshot so daily history is never lost to the next
     # sync's snapshot-replace. LAST data step — after all classification +

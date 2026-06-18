@@ -906,6 +906,33 @@ def audit_contract_numbers(db) -> dict:
     return out
 
 
+def audit_timeseries_drift(db) -> dict:
+    """Stage C: the time-series enrichment must match the master (it's re-stamped as the
+    last enrichment post-step). Any drift means charts disagree with the reports — HARD
+    FAIL so the inconsistency can't ship."""
+    out = {"name": "Time-series drift", "status": "pass", "detail": ""}
+    try:
+        from scripts.restamp_time_series import check_drift
+    except Exception as e:  # noqa: BLE001
+        out["status"] = "warn"
+        out["detail"] = f"restamp import failed ({type(e).__name__}); skipped"
+        return out
+    try:
+        drift = check_drift()
+    except Exception as e:  # noqa: BLE001
+        out["status"] = "warn"
+        out["detail"] = f"drift check failed ({type(e).__name__}); skipped"
+        return out
+    if drift:
+        out["status"] = "fail"
+        out["detail"] = (f"{len(drift)} time-series tickers disagree with master "
+                         f"(e.g. {', '.join(d['ticker'] for d in drift[:6])}) — "
+                         "restamp_time_series did not run or failed")
+    else:
+        out["detail"] = "time-series enrichment matches master"
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -933,7 +960,8 @@ def main():
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
-               audit_contract_numbers, audit_ai_semantic_review):
+               audit_contract_numbers, audit_timeseries_drift,
+               audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)
