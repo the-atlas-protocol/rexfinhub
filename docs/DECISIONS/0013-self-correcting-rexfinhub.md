@@ -71,6 +71,20 @@ one chain) instead of a bespoke parallel sequence.
 ### Stage F — prune (proof-of-death) + docs
 Deleted the second market write path with airtight 3-gate evidence (below).
 
+### Autonomy hardening (Stage 5 + wiring the guards)
+- **Heartbeat** (`scripts/healthcheck.py` + `rexfinhub-healthcheck.{service,timer}`):
+  daily self-check that every chain stage ran AND succeeded today and that the DB +
+  Bloomberg file are fresh — one consolidated, rate-limited alert on a silent failure.
+  `run_chain` now appends every step outcome to `data/.pipeline_stages.jsonl` so the
+  chain is observable.
+- **Guards run on their own**: `rexfinhub-reconciler.service` runs `--probe` (ingest-gap
+  detection + alert) before the transitional writer.
+- **Cascade completed for categories**: `ai_classify_unmapped` adds a bounded web-search
+  rung for funds the name+description can't place — finishing rules → description → web
+  for `etp_category`, matching brands.
+- **CI enforces the invariants**: `pr-checks.yml` runs the offline gate/heartbeat tests
+  as a hard step (no failure-swallowing) so the guardrails cannot silently regress.
+
 ## Kill-list (proof-of-death ledger)
 
 | Artifact | Static refs | Runtime use | Equivalent | Verdict |
