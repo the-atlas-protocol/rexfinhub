@@ -213,11 +213,23 @@ def resolve_fact(
             + ", ".join(allowed_values)
             + '. If none fit, return value "".'
         )
+    # For category facts, inject the authoritative per-category MEANING from the
+    # report-rules contract so the cascade resolves toward intent (e.g. "bonds are not
+    # income"), not a bare label — the same source the batch classifier reads. Empty
+    # for other fact kinds or when the contract is unavailable.
+    intent = ""
+    if kind in ("etp_category", "category"):
+        try:
+            from market.contracts import category_intent_text
+            intent = category_intent_text()
+        except Exception:  # noqa: BLE001 — intent is best-effort, never fatal
+            intent = ""
     system = (
         "You are a data-quality resolver for REX Financial's ETP database. "
         f"Determine the '{kind}' for the fund below using the evidence provided"
         + (" and a web search where the evidence is insufficient." if use_web else ".")
         + constraint
+        + intent
         + '\nReturn ONLY valid JSON, no preamble: '
         '{"value":"<answer or empty string>","confidence":"HIGH|MEDIUM|LOW",'
         '"reason":"<=15 words"}. '

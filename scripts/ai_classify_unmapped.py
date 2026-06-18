@@ -32,6 +32,12 @@ if str(PROJECT_ROOT) not in sys.path:
 MODEL = "claude-sonnet-4-6"
 BATCH = 60
 
+# The authoritative per-category MEANING lives in the report-rules contract
+# (config/contracts/report_numbers.yaml). We append it to the prompt at build time so
+# the classifier and the cascade resolver share ONE source of intent. Import is offline-
+# safe: a missing contract yields an empty block and the base TAXONOMY still applies.
+from market.contracts import category_intent_text  # noqa: E402
+
 TAXONOMY = """Classify each ETP into REX's proprietary taxonomy. Assign exactly ONE etp_category:
 - LI = Leveraged & Inverse: daily-reset leveraged (2x/3x) or inverse/short exposure (single stock OR index).
 - CC = Income via OPTIONS: covered-call / option-income / premium-income / autocallable / buffered-income written on EQUITIES. CRITICAL: plain FIXED-INCOME / bond / high-yield-credit / preferred / treasury / municipal / ultra-short funds are NOT CC even though their name says "income" — those are "none". Decide by mechanism: options overlay -> CC; bonds/credit/duration -> none.
@@ -86,9 +92,10 @@ def _classify_batch(client, funds):
     payload = [{"ticker": f["ticker"], "fund_name": f["fund_name"], "issuer": f["issuer"],
                 "asset_class": f["asset_class"],
                 "bloomberg_description": (f.get("fund_description") or "")[:600]} for f in funds]
+    prompt = TAXONOMY + category_intent_text() + "\n\nFUNDS:\n" + json.dumps(payload)
     msg = client.messages.create(
         model=MODEL, max_tokens=8000,
-        messages=[{"role": "user", "content": TAXONOMY + "\n\nFUNDS:\n" + json.dumps(payload)}],
+        messages=[{"role": "user", "content": prompt}],
     )
     txt = msg.content[0].text
     s, e = txt.find("["), txt.rfind("]")
