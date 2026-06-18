@@ -1771,9 +1771,11 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
         + (f'<tr><td style="padding:0 30px 6px;font-size:11px;color:{_GRAY};">'
            f'Upcoming autocallable supply not yet trading — REX ({n_rex}) + competitors '
            f'({n_comp}), from rex_products + fund_status. REX in blue.</td></tr>')
+        # nowrap=False: long competitor fund names must WRAP, not run off the page
+        # (Ryu 2026-06-17 — autocall table letters jumping off the boundary).
         + _table(["Issuer", "Fund", "Status", "Est. Effective"], rows,
                  align=["left", "left", "center", "center"], rex_rows=rex_rows,
-                 col_widths=["16%", "46%", "16%", "22%"], nowrap=True)
+                 col_widths=["15%", "45%", "15%", "25%"], nowrap=False)
     )
 
 
