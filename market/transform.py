@@ -25,7 +25,8 @@ def run_transform(
     Args:
         etp_combined: Joined ETP data (from ingest.read_input)
         rules: Dict of rule DataFrames (from rules.load_all_rules)
-        dim: Derived dim_fund_category (from derive.derive_dim_fund_category)
+        dim: Derived dim_fund_category (legacy market-pipeline-v2 input; the live
+             path is sync_market_data, not this module — see docs Stage F)
 
     Returns:
         {"master": DataFrame, "ts": DataFrame}

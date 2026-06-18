@@ -80,9 +80,18 @@ def main() -> int:
 
     def git_pull():
         # --ff-only: never create a messy merge. After a clean reconcile the VPS has no
-        # unpushed commits at pull time, so this fast-forwards. A non-ff failure is
-        # logged (divergence to reconcile) but doesn't block the run.
+        # unpushed commits at pull time, so this fast-forwards. Stage E: a non-ff
+        # failure now HARD-ABORTS the chain (handled in main) and alerts — we must NOT
+        # build reports on stale code/rules after a divergence (the old behavior
+        # silently continued, risking a build on the wrong commit).
         return _sub(["git", "-C", str(ROOT), "pull", "--ff-only", "origin", "main"])
+
+    def _alert(subject, body):
+        try:
+            from etp_tracker.email_alerts import send_critical_alert
+            send_critical_alert(subject=subject, message=body, subject_prefix="[CHAIN]")
+        except Exception as e:
+            print(f"  (alert failed: {e})")
 
     def bloomberg_sync():
         from webapp.services.graph_files import download_bloomberg_from_sharepoint
@@ -168,13 +177,86 @@ def main() -> int:
               f"{len(list(STAGING_PREVIEWS.glob('*.html')))} previews to outputs/previews/.")
         return 0
 
-    steps = [] if args.skip_pull else [("git_pull", git_pull)]
-    steps += [
+    # Git self-heal (Stage E): pull FIRST and hard-abort on a non-ff divergence —
+    # building reports on stale code/rules is worse than not building. Alert Ryu so
+    # the divergence gets reconciled, then stand down (nothing partial ships).
+    if not args.skip_pull:
+        rc = _step("git_pull", git_pull)
+        if rc != 0:
+            _alert("REX chain stood down — git divergence",
+                   "run_chain: `git pull --ff-only origin main` failed (non-ff divergence or "
+                   "network). The chain ABORTED rather than build on stale code. Reconcile the "
+                   "VPS working tree (git status / git log) and re-run.")
+            print("\n=== run_chain ABORTED at git_pull (non-ff divergence) — see alert ===")
+            return 1
+
+    def _unresolved_items():
+        """The ONLY thing that should reach Ryu (Stage D): facts the self-healing
+        cascade could NOT resolve. Sourced from the issuer review queue (rows with no
+        suggested brand) + today's cascade journal queued entries. Logged-but-fixed
+        items never appear here."""
+        items = []
+        # issuer review queue — truly unresolved = blank suggested_brand
+        q = ROOT / "docs" / "issuer_review_queue.csv"
+        if q.exists():
+            try:
+                import csv
+                with q.open(encoding="utf-8") as fh:
+                    for row in csv.DictReader(fh):
+                        if not (row.get("suggested_brand") or "").strip():
+                            items.append(f"brand? {row.get('ticker','?')} — {row.get('fund_name','')}")
+            except Exception:
+                pass
+        # cascade journal — entries that fell through to the human queue
+        try:
+            from market.resolve import _journal_path
+            jp = _journal_path()
+            if jp.exists():
+                for line in jp.read_text(encoding="utf-8").splitlines():
+                    try:
+                        rec = json.loads(line)
+                        if rec.get("queued"):
+                            items.append(f"{rec.get('kind','?')}? {rec.get('ticker','?')} — {rec.get('fund_name','')}")
+                    except json.JSONDecodeError:
+                        continue
+        except Exception:
+            pass
+        # de-dup, cap
+        seen, out = set(), []
+        for it in items:
+            if it not in seen:
+                seen.add(it); out.append(it)
+        return out[:50]
+
+    def notify():
+        """Stage D — at most ONE message per refresh. Green: 'reports ready' (plus a
+        'needs your call' section only if the cascade left something unresolved). Red:
+        a single 'chain held' note. Everything the cascade auto-fixed is logged, not
+        emailed. Best-effort; never fails the chain."""
+        if RED_MARKER.exists():
+            _alert("REX reports HELD — preflight red",
+                   "run_chain built reports but preflight is RED, so previews were NOT promoted and "
+                   "send is hard-blocked. See data/.preflight_result.json for the failing check.")
+            return 0
+        unresolved = _unresolved_items()
+        body = ("Today's REX reports are built and preflight is green. Review the previews, then "
+                "run the send step when ready.")
+        if unresolved:
+            body += ("\n\nNEEDS YOUR CALL — the self-healing cascade could not resolve these "
+                     f"({len(unresolved)}); everything else was auto-fixed and logged:\n  - "
+                     + "\n  - ".join(unresolved))
+        subject = ("REX reports ready for review"
+                   + (f" — {len(unresolved)} item(s) need your call" if unresolved else ""))
+        _alert(subject, body)
+        return 0
+
+    steps = [
         ("bloomberg_pull_sync", bloomberg_sync),
         ("post_steps_classify_ai_enrich", post_steps),
         ("build_all_reports", build_reports),
         ("preflight", preflight),
         ("promote_or_block", promote),
+        ("notify", lambda: notify()),
     ]
     for label, fn in steps:
         rc = _step(label, fn)

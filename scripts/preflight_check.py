@@ -992,18 +992,24 @@ def main():
     out_html.write_text(summary_html, encoding="utf-8")
     print(f"Summary HTML written: {out_html} ({len(summary_html):,} chars)")
 
-    if args.post_summary:
-        print("\nPosting summary via send_critical_alert (alerts bypass gate + safeguards) ...")
+    if args.post_summary and overall == "fail":
+        # Stage D — silence by default: only email when there's something to ACT on
+        # (a HOLD). On green/warn the routine summary is noise; run_chain sends the
+        # single "reports ready" message instead. The full HTML is always on disk.
+        print("\nPreflight FAIL — posting HOLD summary via send_critical_alert ...")
         try:
             from etp_tracker.email_alerts import send_critical_alert
             ok = send_critical_alert(
-                subject=f"REX Send-Day Summary — {date.today().isoformat()}",
+                subject=f"REX Send-Day HOLD — {date.today().isoformat()}",
                 message=summary_html,
-                subject_prefix="[PREFLIGHT]",  # not [ALERT] — this is routine, not a failure
+                subject_prefix="[PREFLIGHT]",
             )
             print(f"  {'SENT' if ok else 'FAILED'}")
         except Exception as e:
             print(f"  ERROR: {type(e).__name__}: {e}")
+    elif args.post_summary:
+        print(f"\nPreflight {overall.upper()} — summary written to disk, no email "
+              f"(Stage D: green/warn is not emailed; run_chain sends 'reports ready').")
     else:
         print(f"\nDRY-RUN — no email sent. Open the file in a browser to review:")
         print(f"  {out_html}")

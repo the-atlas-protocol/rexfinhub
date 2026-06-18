@@ -8,6 +8,13 @@ definition, change it in **one** place and both update together._
 Goal this serves: every fact has one definition, every report reads it, the answer
 is the same everywhere. See `docs/GOAL.md`.
 
+**Enforcement & repair contract** (ADR 0013): a fact that the deterministic rules
+can't place is resolved by the self-healing cascade (`market/resolve.py`:
+rules → Bloomberg `fund_description` → AI web search → human queue), every rendered
+status routes through `canonical_status()`, and the preflight gate BLOCKS the
+build/send on any fact that is wrong (string scan + AI semantic review). Any fact in
+a report must trace to its single source here + that gate.
+
 ---
 
 ## 1. Two views of the world

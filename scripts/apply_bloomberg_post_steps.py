@@ -91,6 +91,19 @@ STEPS = [
     # reconciliation — so the snapshot reflects the day's final truth. Idempotent
     # per date (last run of the day wins).
     ("snapshot_daily",          [PY, str(PROJECT_ROOT / "scripts" / "snapshot_daily.py")]),
+    # Stage E (approved plan): regenerate the L&I-engine parquets INSIDE the chain
+    # so the L&I / weekly / competitor reports never read days-old data. These six
+    # modules used to run only on the Mon/Fri rexfinhub-parquet-rebuild timer — a
+    # separate clock — which is exactly the "report reads whatever the last scattered
+    # timer produced" staleness this plan removes. Order matches the retired timer
+    # (universe -> timeseries -> filed -> competitor -> candidates -> whitespace).
+    # The leading '-' tolerance is inherent: a non-zero step is logged, not fatal.
+    ("parquet_universe_loader",  [PY, "-m", "screener.li_engine.analysis.universe_loader"]),
+    ("parquet_bbg_timeseries",   [PY, "-m", "screener.li_engine.analysis.bbg_timeseries"]),
+    ("parquet_filed_underliers", [PY, "-m", "screener.li_engine.analysis.filed_underliers"]),
+    ("parquet_competitor_counts",[PY, "-m", "screener.li_engine.analysis.competitor_counts"]),
+    ("parquet_launch_candidates",[PY, "-m", "screener.li_engine.analysis.launch_candidates"]),
+    ("parquet_whitespace_v4",    [PY, "-m", "screener.li_engine.analysis.whitespace_v4"]),
     # Data-as-code (ADR 0011 E4): the engine's rules mutations get committed
     # and pushed daily so git stays the truth and the VPS tree stays clean
     # (the git_tree_clean assertion fired on exactly this drift, 2026-06-10).
