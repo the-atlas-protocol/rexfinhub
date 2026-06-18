@@ -108,7 +108,23 @@ def main() -> int:
                     (new_eff, datetime.utcnow().isoformat(), rid),
                 )
 
+        # Durable fund_status fallback: the 485APOS election backfill writes
+        # fund_status (not fund_extractions), so propagate its election dates onto
+        # rex_products rows still NULL, matched by series_id — closes the gap that
+        # left the filed T-REX 2X products showing "Pending". (Ryu 2026-06-17.)
         if args.apply:
+            _fs = conn.execute(
+                "UPDATE rex_products SET estimated_effective_date = ("
+                "  SELECT fs.effective_date FROM fund_status fs"
+                "  WHERE fs.series_id = rex_products.series_id"
+                "    AND fs.effective_date IS NOT NULL AND TRIM(fs.effective_date) <> ''"
+                "  ORDER BY fs.effective_date LIMIT 1) "
+                "WHERE (estimated_effective_date IS NULL OR TRIM(estimated_effective_date) = '') "
+                "  AND series_id IS NOT NULL AND TRIM(series_id) <> '' "
+                "  AND EXISTS (SELECT 1 FROM fund_status fs WHERE fs.series_id = rex_products.series_id"
+                "              AND fs.effective_date IS NOT NULL AND TRIM(fs.effective_date) <> '')"
+            )
+            print(f"  fund_status fallback: filled {_fs.rowcount or 0} NULL date(s) by series_id")
             conn.commit()
 
         verb = "refreshed" if args.apply else "would refresh"
