@@ -74,6 +74,10 @@ def main() -> int:
           AND (effective_date IS NULL OR effective_date = '')
           AND latest_form LIKE '485A%'
           AND prospectus_link IS NOT NULL AND prospectus_link != ''
+          -- Only chase recent filings: 485APOS older than 2yr that are still PENDING
+          -- are abandoned shelf filings that never went effective — dating them with a
+          -- 2007-era election is meaningless noise. (Ryu 2026-06-17.)
+          AND latest_filing_date >= date('now', '-2 years')
         ORDER BY latest_filing_date DESC
         LIMIT ?
     """, (args.limit,)).fetchall()
