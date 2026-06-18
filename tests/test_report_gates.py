@@ -133,5 +133,42 @@ def test_maintenance_escape_hatch_is_disabled():
     assert pf._maintenance_window_active() is False
 
 
+# ---------------------------------------------------------------------------
+# Send is hard-blocked on a red preflight (the no-wrong-data-ever guarantee)
+# ---------------------------------------------------------------------------
+
+def test_send_blocked_by_red_marker(tmp_path):
+    from scripts.send_all import preflight_blocks_send
+    marker = tmp_path / ".preflight_red"
+    marker.write_text("2026-06-18", encoding="utf-8")
+    blocked, reason = preflight_blocks_send(tmp_path / "missing.json", marker)
+    assert blocked and "marker" in reason
+
+
+def test_send_blocked_by_fail_result(tmp_path):
+    import json
+    from scripts.send_all import preflight_blocks_send
+    rf = tmp_path / ".preflight_result.json"
+    rf.write_text(json.dumps({"overall_status": "fail"}), encoding="utf-8")
+    blocked, reason = preflight_blocks_send(rf, tmp_path / ".preflight_red")
+    assert blocked and "fail" in reason
+
+
+def test_send_allowed_when_green(tmp_path):
+    import json
+    from scripts.send_all import preflight_blocks_send
+    rf = tmp_path / ".preflight_result.json"
+    rf.write_text(json.dumps({"overall_status": "pass"}), encoding="utf-8")
+    blocked, _ = preflight_blocks_send(rf, tmp_path / ".preflight_red")
+    assert blocked is False
+
+
+def test_send_not_blocked_when_no_signal(tmp_path):
+    # absent result + absent marker -> not blocked on its own (marker is authoritative)
+    from scripts.send_all import preflight_blocks_send
+    blocked, _ = preflight_blocks_send(tmp_path / "missing.json", tmp_path / ".preflight_red")
+    assert blocked is False
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))
