@@ -1,23 +1,19 @@
 ticker,issuer_display,source,notes
 TLDR US,REX,is_rex_default,is_rex default -> REX
-BDIV US,AAM,layer1_regex,Matched fund_name: AAM BRENTVIEW DIVIDEND GROWTH ETF
-CLIM US,Climate Global,layer1_regex,Matched fund_name: CLIMATE GLOBAL-CLIMATE RESILIENT REIT INDEX ETF
-CLOC US,AAM,layer1_regex,Matched fund_name: AAM CRESCENT CLO ETF
-ISBG US,IncomeStacked,layer1_regex,Matched fund_name: INCOMESTKD 1X BITCOIN & 1X GOLD PREMIUM ETF
-ISSB US,IncomeStacked,layer1_regex,Matched fund_name: INCOMESTKD 1X US STOCKS & 1X BITCOIN PREMIUM ETF
-KMCA US,PLUS,layer1_regex,Matched fund_name: PLUS KOREA MANUFACTURING CORE ALLIANCE INDEX ETF
-LODI US,AAM,layer1_regex,Matched fund_name: AAM SLC LOW DURATION INCOME ETF
-NYYY US,xETFs,layer1_regex,Matched fund_name: XETFS NVDA DAILY INCOME ETF
-PFLD US,AAM,layer1_regex,Matched fund_name: AAM LOW DURATION PREFERRED AND INCOME SECURITIES ETF
-RJDI US,Carillon,layer1_regex,Matched fund_name: RJ EAGLE GCM DIVIDEND SELECT INCOME ETF
-RJMI US,Carillon,layer1_regex,Matched fund_name: RJ EAGLE MUNICIPAL INCOME ETF
-RJVI US,Carillon,layer1_regex,Matched fund_name: RJ EAGLE VERTICAL INCOME ETF
-SAWG US,AAM,layer1_regex,Matched fund_name: AAM SAWGRASS US LARGE CAP QUALITY GROWTH ETF
-SAWS US,AAM,layer1_regex,Matched fund_name: AAM SAWGRASS US SMALL CAP QUALITY GROWTH ETF
-SCAP US,InfraCap,layer1_regex,Matched fund_name: INFRASTRUCTURE CAPITAL SMALL CAP INCOME ETF
-SPDV US,AAM,layer1_regex,Matched fund_name: AAM S&P 500 HIGH DIVIDEND VALUE ETF
-TIIV US,AAM,layer1_regex,Matched fund_name: AAM TODD INTERNATIONAL INTRINSIC VALUE ETF
-TRFM US,AAM,layer1_regex,Matched fund_name: AAM TRANSFORMERS ETF
-TYYY US,xETFs,layer1_regex,Matched fund_name: XETFS TSLA DAILY INCOME ETF
-VEGN US,US Vegan,layer1_regex,Matched fund_name: US VEGAN CLIMATE ETF
-WCEO US,Hypatia,layer1_regex,Matched fund_name: HYPATIA WOMEN CEO ETF
+AINT US,FinQ,layer1_regex,Matched fund_name: FINQ DOLLAR NEUTRAL US LARGE CAP AI-MANAGED EQUITY ETF
+AIPO US,Defiance,layer1_regex,Matched fund_name: DEFIANCE AI & POWER INFRASTRUCTURE ETF
+AIS US,VistaShares,layer1_regex,Matched fund_name: VISTASHARES ARTIFICIAL INTELLIGENCE SUPERCYCLE ETF
+AIUP US,FinQ,layer1_regex,Matched fund_name: FINQ FIRST US LARGE CAP AI-MANAGED EQUITY ETF
+BOAT US,SonicShares,layer1_regex,Matched fund_name: SONICSHARES GLOBAL SHIPPING ETF
+CCSB US,Carbon Collective,layer1_regex,Matched fund_name: CARBON COLLECTIVE SHORT DURATION GREEN BOND ETF
+CCSO US,Carbon Collective,layer1_regex,Matched fund_name: CARBON COLLECTIVE CLIMATE SOLUTIONS US EQUITY ETF
+CHAT US,Roundhill,layer1_regex,Matched fund_name: ROUNDHILL GENERATIVE AI & TECHNOLOGY ETF
+DADS US,Digital Asset,layer1_regex,Matched fund_name: DIGITAL ASSET DEBT STRATEGY ETF
+DARP US,Grizzle,layer1_regex,Matched fund_name: GRIZZLE GROWTH ETF
+FMKT US,Free Markets,layer1_regex,Matched fund_name: THE FREE MARKETS ETF
+NACP US,Impact Shares,layer1_regex,Matched fund_name: IMPACT SHARES NAACP MINORITY EMPOWERMENT ETF
+NUKX US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS NUCLEAR INCOME ETF
+QTUP US,Defiance,layer1_regex,Matched fund_name: DEFIANCE LONG PURE QUANTUM ETF
+TIME US,Clockwise,layer1_regex,Matched fund_name: CLOCKWISE U.S. CORE EQUITY ETF
+WEPN US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS DEFENSE AND RARE EARTH INCOME ETF
+WOMN US,Impact Shares,layer1_regex,Matched fund_name: IMPACT SHARES WOMEN'S EMPOWERMENT ETF

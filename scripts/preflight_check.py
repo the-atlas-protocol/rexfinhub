@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
 import uuid
 from datetime import date, datetime
@@ -42,27 +44,20 @@ TOKEN_FILE = DATA_DIR / ".preflight_token"
 RESULT_FILE = DATA_DIR / ".preflight_result.json"
 MAINTENANCE_FLAG = DATA_DIR / ".preflight_maintenance"
 EXPECTED_RECIPIENTS = PROJECT_ROOT / "config" / "expected_recipients.json"
-PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
+# Overridable so run_chain can gate a STAGING build before promoting it to the live
+# previews dir (Stage C: stage -> preflight -> promote-on-green).
+PREVIEW_DIR = Path(os.environ.get("REX_PREVIEW_DIR", str(PROJECT_ROOT / "outputs" / "previews")))
 
 
 def _maintenance_window_active() -> bool:
-    """Return True if the operator-flagged maintenance window is active.
+    """Permanently disabled (approved plan, Stage C): the maintenance escape hatch
+    is what let wrong data ship — a WARN-only downgrade meant a real defect previewed
+    and sent silently. There is no longer any way to wave a failing audit through;
+    fix the data (the Stage-B cascade resolves most of it automatically) instead.
 
-    During an active maintenance window, audit_attribution_completeness
-    downgrades threshold-failures from 'fail' to 'warn'. Use only while
-    upstream classification fixes propagate; remove the flag once
-    primary_strategy / issuer_display populate normally.
-
-    Phase 7 Part B Stage 2 (ADR 0010): DB-first read; legacy file fallback.
-    """
-    try:
-        from webapp.services.system_flags import get_flag
-        return get_flag("preflight_maintenance")
-    except ImportError:
-        try:
-            return MAINTENANCE_FLAG.exists()
-        except Exception:
-            return False
+    Kept as a no-op returning False so the existing `if _maintenance_window_active()`
+    branches collapse to their strict (FAIL) path without restructuring every audit."""
+    return False
 
 # Thresholds — alert if exceeded
 BBG_MAX_AGE_HOURS = 12
@@ -363,28 +358,20 @@ def audit_recipients(db) -> dict:
 
 def audit_previews(db) -> dict:
     out = {"name": "Previews on disk", "status": "pass", "detail": "", "files": []}
+    # Filenames MUST match what the autonomous chain writes — run_chain.build_reports
+    # iterates send_all.REPORTS and writes outputs/previews/<key>.html. The gate scans
+    # exactly those names so a green build promotes and a missing report blocks (the
+    # old daily_filing/weekly_report/... names were never written by the chain and made
+    # the gate report everything missing). One preview naming convention, gate-checked.
     expected = [
-        ("daily_filing.html", PREVIEW_DIR / "daily_filing.html"),
-        ("weekly_report.html", PREVIEW_DIR / "weekly_report.html"),
-        ("li_report.html", PREVIEW_DIR / "li_report.html"),
-        ("income_report.html", PREVIEW_DIR / "income_report.html"),
-        ("flow_report.html", PREVIEW_DIR / "flow_report.html"),
-        ("autocall_report.html", PREVIEW_DIR / "autocall_report.html"),
-        ("stock_recs.html",
-         PROJECT_ROOT / "reports" / f"trex_combined_{date.today().isoformat()}.html"),
+        ("daily.html", PREVIEW_DIR / "daily.html"),
+        ("weekly.html", PREVIEW_DIR / "weekly.html"),
+        ("li.html", PREVIEW_DIR / "li.html"),
+        ("income.html", PREVIEW_DIR / "income.html"),
+        ("flow.html", PREVIEW_DIR / "flow.html"),
+        ("autocall.html", PREVIEW_DIR / "autocall.html"),
+        ("stock_recs.html", PREVIEW_DIR / "stock_recs.html"),
     ]
-
-    # Auto-build stock_recs if missing. MUST be trex_combined_v9 (the T-REX Stock
-    # Recommendation System report) — NOT the legacy weekly_v2 "Stock Recs of the
-    # Week", which is what the send path uses (send_all.py:_build_stock_recs) and
-    # which previously left the preview surface showing the wrong/stale report.
-    stock_recs_path = expected[-1][1]
-    if not stock_recs_path.exists():
-        try:
-            from screener.li_engine.analysis.trex_combined_v9 import build as _build_stock_recs
-            _build_stock_recs()
-        except Exception:
-            pass  # If the build fails, the audit will report missing — informative either way.
     missing: list[str] = []
     stale: list[str] = []
     for label, path in expected:
@@ -742,8 +729,8 @@ def audit_report_charts(db) -> dict:
     """
     out = {"name": "Report charts present", "status": "pass", "detail": "", "rows": []}
     checks = [
-        ("li_report.html", PREVIEW_DIR / "li_report.html", 2),
-        ("income_report.html", PREVIEW_DIR / "income_report.html", 2),
+        ("li.html", PREVIEW_DIR / "li.html", 2),
+        ("income.html", PREVIEW_DIR / "income.html", 2),
     ]
     failed: list[str] = []
     for label, path, expected_n in checks:
@@ -766,6 +753,102 @@ def audit_report_charts(db) -> dict:
         out["detail"] = "market-share charts missing/failed: " + "; ".join(failed)
     else:
         out["detail"] = "all expected market-share charts present"
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Audit 10: Forbidden status strings in rendered previews (NEW — hard FAIL)
+# ---------------------------------------------------------------------------
+
+# A status rendered into a cell/badge is the full text content of an HTML element.
+# Matching ">Pending<" (not the bare word) targets rendered status values and avoids
+# false positives in prose. canonical_status() must have mapped these away already.
+_FORBIDDEN_STATUS_RE = re.compile(
+    r">\s*(Pending|Delayed|Target List)\s*<", re.IGNORECASE
+)
+
+
+def audit_status_canonical(db) -> dict:
+    """Stage C: scan every built preview for a non-canonical status that leaked into a
+    rendered cell. canonical_status() is the single source — any 'Pending'/'Delayed'/
+    'Target List' on a surface means a render site bypassed it. Hard FAIL."""
+    out = {"name": "Status canonical", "status": "pass", "detail": "", "hits": []}
+    scanned = 0
+    for path in sorted(PREVIEW_DIR.glob("*.html")) if PREVIEW_DIR.exists() else []:
+        try:
+            html = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        scanned += 1
+        found = {m.group(1).title() for m in _FORBIDDEN_STATUS_RE.finditer(html)}
+        if found:
+            out["hits"].append({"file": path.name, "statuses": sorted(found)})
+    if out["hits"]:
+        out["status"] = "fail"
+        out["detail"] = ("non-canonical status rendered in: "
+                         + "; ".join(f"{h['file']} ({', '.join(h['statuses'])})"
+                                     for h in out["hits"]))
+    else:
+        out["detail"] = f"no forbidden status in {scanned} previews"
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Audit 11: AI semantic review (NEW — judges correctness, not just format)
+# ---------------------------------------------------------------------------
+
+def audit_ai_semantic_review(db) -> dict:
+    """Stage C: an AI reviewer of the assembled KPIs looks for *semantic* defects the
+    mechanical checks can't see — a KPI that disagrees with the real REX lineup, an
+    issuer_display that's a legal entity not a brand, a number that doesn't make sense.
+
+    Degrades gracefully: if the API key isn't configured the audit is a PASS-skip (the
+    cheap deterministic audits still gate). Only HIGH-confidence defects FAIL, so a
+    model hiccup never blocks a clean build."""
+    out = {"name": "AI semantic review", "status": "pass", "detail": "", "defects": []}
+    try:
+        from webapp.services import claude_service
+    except Exception as e:
+        out["detail"] = f"reviewer unavailable ({type(e).__name__}); deterministic gates still apply"
+        return out
+    if not claude_service.is_configured():
+        out["detail"] = "API key not configured; skipped (deterministic gates still apply)"
+        return out
+
+    # Gather the facts to judge: REX lineup count + a sample of issuer_displays.
+    import sqlite3
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    facts: dict = {}
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM mkt_master_data WHERE market_status='ACTV' AND COALESCE(is_rex,0)=1")
+        facts["rex_actv_count"] = cur.fetchone()[0]
+        cur.execute("""SELECT issuer_display, COUNT(*) FROM mkt_master_data
+                       WHERE market_status='ACTV' AND COALESCE(TRIM(issuer_display),'')<>''
+                       GROUP BY issuer_display ORDER BY COUNT(*) DESC LIMIT 60""")
+        facts["issuer_displays"] = [{"brand": r[0], "n": r[1]} for r in cur.fetchall()]
+        con.close()
+    except sqlite3.Error as e:
+        out["detail"] = f"could not gather facts ({e}); skipped"
+        return out
+
+    try:
+        defects = claude_service.review_report_facts(facts)
+    except Exception as e:
+        out["detail"] = f"reviewer call failed ({type(e).__name__}); deterministic gates still apply"
+        return out
+
+    high = [d for d in defects if str(d.get("severity", "")).upper() == "HIGH"]
+    out["defects"] = defects
+    if high:
+        out["status"] = "fail"
+        out["detail"] = "; ".join(f"{d.get('issue','?')}" for d in high[:5])
+    elif defects:
+        out["status"] = "warn"
+        out["detail"] = f"{len(defects)} low/medium observations (non-blocking)"
+    else:
+        out["detail"] = "no semantic defects found"
     return out
 
 
@@ -795,7 +878,8 @@ def main():
     for fn in (audit_bloomberg, audit_classification, audit_ticker_dupes_recent,
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
-               audit_report_charts):
+               audit_report_charts, audit_status_canonical,
+               audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)
@@ -900,18 +984,24 @@ def main():
     out_html.write_text(summary_html, encoding="utf-8")
     print(f"Summary HTML written: {out_html} ({len(summary_html):,} chars)")
 
-    if args.post_summary:
-        print("\nPosting summary via send_critical_alert (alerts bypass gate + safeguards) ...")
+    if args.post_summary and overall == "fail":
+        # Stage D — silence by default: only email when there's something to ACT on
+        # (a HOLD). On green/warn the routine summary is noise; run_chain sends the
+        # single "reports ready" message instead. The full HTML is always on disk.
+        print("\nPreflight FAIL — posting HOLD summary via send_critical_alert ...")
         try:
             from etp_tracker.email_alerts import send_critical_alert
             ok = send_critical_alert(
-                subject=f"REX Send-Day Summary — {date.today().isoformat()}",
+                subject=f"REX Send-Day HOLD — {date.today().isoformat()}",
                 message=summary_html,
-                subject_prefix="[PREFLIGHT]",  # not [ALERT] — this is routine, not a failure
+                subject_prefix="[PREFLIGHT]",
             )
             print(f"  {'SENT' if ok else 'FAILED'}")
         except Exception as e:
             print(f"  ERROR: {type(e).__name__}: {e}")
+    elif args.post_summary:
+        print(f"\nPreflight {overall.upper()} — summary written to disk, no email "
+              f"(Stage D: green/warn is not emailed; run_chain sends 'reports ready').")
     else:
         print(f"\nDRY-RUN — no email sent. Open the file in a browser to review:")
         print(f"  {out_html}")

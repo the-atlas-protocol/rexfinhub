@@ -175,6 +175,157 @@ def analyze_filing(
         return {"error": f"Claude API error: {e}"}
 
 
+def resolve_fact(
+    kind: str,
+    ticker: str,
+    fund_name: str,
+    fund_description: str = "",
+    allowed_values: list[str] | None = None,
+    use_web: bool = False,
+    model: str = MODEL,
+    citation_sink: dict | None = None,
+) -> tuple[str, str, str] | None:
+    """Resolve ONE fact about ONE fund (powers market.resolve rungs 2 & 3).
+
+    rung 2 (use_web=False): place the fact from the Bloomberg `fund_description`
+    (the issuer's own words) — used when the deterministic rules miss.
+    rung 3 (use_web=True): enable the Anthropic web_search server tool so the model
+    can look up names even the description can't place (new underlier, obscure
+    strategy, unknown sponsor). The first source URL is written to citation_sink
+    under "_last_citation" for audit.
+
+    Returns (value, confidence, reason) or None on any failure (so the caller can
+    fall through the cascade). confidence is HIGH | MEDIUM | LOW; value is "" when
+    the model genuinely cannot decide.
+    """
+    api_key = _load_api_key()
+    if not api_key:
+        return None
+    try:
+        import anthropic
+    except ImportError:
+        return None
+
+    constraint = ""
+    if allowed_values:
+        constraint = (
+            "\nThe answer MUST be exactly one of these allowed values: "
+            + ", ".join(allowed_values)
+            + '. If none fit, return value "".'
+        )
+    system = (
+        "You are a data-quality resolver for REX Financial's ETP database. "
+        f"Determine the '{kind}' for the fund below using the evidence provided"
+        + (" and a web search where the evidence is insufficient." if use_web else ".")
+        + constraint
+        + '\nReturn ONLY valid JSON, no preamble: '
+        '{"value":"<answer or empty string>","confidence":"HIGH|MEDIUM|LOW",'
+        '"reason":"<=15 words"}. '
+        "Use HIGH only when the evidence is explicit; MEDIUM when inferred; "
+        "LOW when guessing — a LOW answer will be sent to a human, so prefer LOW "
+        "over a confident guess."
+    )
+    user = f"ticker: {ticker}\nfund_name: {fund_name}\n"
+    if fund_description:
+        user += f"bloomberg_description: {fund_description}\n"
+
+    client = anthropic.Anthropic(api_key=api_key)
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "max_tokens": 600,
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
+    }
+    if use_web:
+        # Anthropic web_search server tool. Capped low to bound cost/latency.
+        kwargs["tools"] = [{
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "max_uses": 3,
+        }]
+
+    try:
+        resp = client.messages.create(**kwargs)
+    except Exception as e:  # noqa: BLE001 — any API error -> decline, cascade falls through
+        log.warning("resolve_fact API call failed: %s", e)
+        return None
+
+    import json
+    import re
+
+    text_parts: list[str] = []
+    first_citation = ""
+    for block in (resp.content or []):
+        btype = getattr(block, "type", None)
+        if btype == "text":
+            text_parts.append(getattr(block, "text", "") or "")
+            # web_search results attach citations to text blocks
+            for cit in (getattr(block, "citations", None) or []):
+                url = getattr(cit, "url", None)
+                if url and not first_citation:
+                    first_citation = url
+    if citation_sink is not None and first_citation:
+        citation_sink["_last_citation"] = first_citation
+
+    blob = "\n".join(text_parts)
+    match = re.search(r"\{.*\}", blob, re.DOTALL)
+    if not match:
+        return None
+    try:
+        parsed = json.loads(match.group())
+    except json.JSONDecodeError:
+        return None
+    value = str(parsed.get("value", "") or "").strip()
+    conf = str(parsed.get("confidence", "LOW") or "LOW").strip().upper()
+    reason = str(parsed.get("reason", "") or "").strip()
+    if conf not in ("HIGH", "MEDIUM", "LOW"):
+        conf = "LOW"
+    return value, conf, reason
+
+
+def review_report_facts(facts: dict) -> list[dict]:
+    """AI semantic review (preflight Stage C). Given the assembled report facts (REX
+    lineup count, issuer_display sample, ...), return a list of defects:
+        [{"issue": "...", "severity": "HIGH|MEDIUM|LOW"}, ...]
+    A HIGH defect blocks the build. Returns [] when the data looks correct. Raises on
+    a hard API failure so the caller can decide (it treats failure as non-blocking)."""
+    api_key = _load_api_key()
+    if not api_key:
+        return []
+    import anthropic
+    import json
+    import re
+
+    client = anthropic.Anthropic(api_key=api_key)
+    system = (
+        "You are a data-quality reviewer for REX Financial's ETP reports. You are given "
+        "FACTS extracted from the freshly-built reports. Find SEMANTIC defects a string "
+        "check would miss:\n"
+        "  - an issuer_display that is a legal/trust entity (e.g. 'Tidal Trust II', "
+        "'... ETF Trust', '... Series Trust') rather than a real brand;\n"
+        "  - a KPI/count that is implausible for the actual REX product lineup;\n"
+        "  - any value that does not make sense in context.\n"
+        'Return ONLY valid JSON: {"defects":[{"issue":"<=20 words","severity":"HIGH|MEDIUM|LOW"}]}. '
+        "Empty list if everything looks correct. Use HIGH only for a clear, shippable error. "
+        "Legitimate brands containing 'Trust' (First Trust, Northern Trust) are NOT defects."
+    )
+    try:
+        resp = client.messages.create(
+            model=SELECTOR_MODEL, max_tokens=1200, system=system,
+            messages=[{"role": "user", "content": json.dumps(facts, default=str)[:20000]}],
+        )
+    except Exception as e:
+        raise RuntimeError(f"review_report_facts API call failed: {e}") from e
+    text = resp.content[0].text if resp.content else ""
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return []
+    try:
+        return json.loads(match.group()).get("defects", []) or []
+    except json.JSONDecodeError:
+        return []
+
+
 def estimate_cost(text_length: int) -> dict[str, float]:
     """Estimate the cost of analyzing a filing.
 

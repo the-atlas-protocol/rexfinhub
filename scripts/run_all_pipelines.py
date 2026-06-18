@@ -21,7 +21,6 @@ Usage:
     python scripts/run_all_pipelines.py --email-only      # 5 PM email dispatch
     python scripts/run_all_pipelines.py --skip-sec        # skip SEC pipeline
     python scripts/run_all_pipelines.py --skip-market     # skip market pipeline
-    python scripts/run_all_pipelines.py --force-market    # force market even if unchanged
 """
 from __future__ import annotations
 
@@ -75,39 +74,10 @@ def run_sec_pipeline() -> bool:
         sys.argv = saved_argv
 
 
-def run_market_pipeline(force: bool = False) -> bool:
-    """Run the market pipeline via subprocess (has its own arg parsing)."""
-    print("\n--- Market Pipeline ---")
-    cmd = [sys.executable, str(PROJECT_ROOT / "scripts" / "run_market_pipeline.py")]
-    if force:
-        cmd.append("--force")
-
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=str(PROJECT_ROOT),
-            capture_output=True,
-            text=True,
-            timeout=1800,  # 30 min max
-        )
-        # Print output (market pipeline prints its own progress)
-        if result.stdout.strip():
-            for line in result.stdout.strip().splitlines():
-                print(f"  {line}")
-        if result.returncode != 0 and result.stderr.strip():
-            print(f"  stderr: {result.stderr.strip()}")
-
-        if result.returncode == 0:
-            return True
-        else:
-            print(f"  Market pipeline exited with code {result.returncode}")
-            return False
-    except subprocess.TimeoutExpired:
-        print("  Market pipeline TIMED OUT (30 min limit)")
-        return False
-    except Exception as e:
-        print(f"  Market pipeline FAILED: {e}")
-        return False
+# run_market_pipeline() was REMOVED in Stage F (approved plan). It shelled out to
+# scripts/run_market_pipeline.py — a second market write path that diverged from
+# sync_market_data and was the origin of the issuer_mapping 'Tidal' brand drift.
+# Market refresh now flows only through run_chain -> sync_market_data.
 
 
 def upload_db() -> bool:
@@ -195,7 +165,6 @@ def main():
     parser.add_argument("--skip-email", action="store_true", help="Skip email digest")
     parser.add_argument("--email-only", action="store_true",
                         help="Email dispatch only (skip all pipelines + upload)")
-    parser.add_argument("--force-market", action="store_true", help="Force market pipeline even if data unchanged")
     parser.add_argument("--edition", choices=["morning", "evening", "daily"], default=None,
                         help="Digest edition (default: daily)")
     args = parser.parse_args()
@@ -230,13 +199,14 @@ def main():
             ok = run_sec_pipeline()
             results["sec"] = "ok" if ok else "FAILED"
 
-        # 2. Market pipeline
-        if args.skip_market:
-            print("\n--- Market Pipeline (SKIPPED) ---")
-            results["market"] = "skipped"
-        else:
-            ok = run_market_pipeline(force=args.force_market)
-            results["market"] = "ok" if ok else "FAILED"
+        # 2. Market pipeline — RETIRED (Stage F, approved plan). The legacy
+        # scripts/run_market_pipeline.py was a SECOND market write path that diverged
+        # from sync_market_data (no MicroSectors override, no post-steps, and the
+        # issuer_mapping brand drift that produced 'Tidal'). Market refresh now goes
+        # exclusively through run_chain -> sync_market_data. This orchestrator is
+        # Windows-legacy; the VPS runs the chain on its own trigger.
+        print("\n--- Market Pipeline (RETIRED — handled by run_chain) ---")
+        results["market"] = "via run_chain"
 
         # 3. Upload DB to Render
         ok = upload_db()

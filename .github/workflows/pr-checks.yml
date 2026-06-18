@@ -44,3 +44,11 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/ -x --tb=short -q 2>/dev/null || echo "No tests found"
+
+      - name: Enforce self-correcting invariants (must pass)
+        # Offline, deterministic tests (no DB / Bloomberg / API key) that lock the
+        # autonomy guarantees from ADR 0013: canonical status, brand fallback, the
+        # resolution cascade, the blocking preflight scan, and the heartbeat. Unlike
+        # the step above, this one does NOT swallow failures — a regression here fails
+        # the PR, so a self-correcting system cannot silently lose its guardrails.
+        run: python -m pytest tests/test_report_gates.py tests/test_stage_a_ingest.py --tb=short -q

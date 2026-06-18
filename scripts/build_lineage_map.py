@@ -36,7 +36,7 @@ NODES = [
     ("src_rules_rex", 0, "Rules CSV: rex_funds.csv (is_rex)", "config/rules/rex_funds.csv"),
     # --- Ingestion ---
     ("ing_read",   1, "market/ingest.read_input", "market/ingest.py"),
-    ("ing_xform",  1, "market/transform (12 steps)", "market/transform.py"),
+    ("ing_xform",  1, "market_sync.sync_market_data (live transform)", "webapp/services/market_sync.py"),
     ("ing_writer", 1, "market/db_writer (full refresh)", "market/db_writer.py"),
     ("ing_ms",     1, "MicroSectors AUM overlay", "market/microsectors.py"),
     ("ing_step3",  1, "step3 485 election parser", "etp_tracker/step3.py:_parse_485a_election"),

@@ -69,8 +69,9 @@ def build_summary_html(audit: dict) -> str:
             '<strong>To fix:</strong> add ticker rows to <code>config/rules/fund_mapping.csv</code> '
             '(<code>ticker,etp_category,is_primary,source</code>); for autocallables also add to '
             '<code>config/rules/attributes_CC.csv</code>; for issuers showing as NULL, add a '
-            '<code>(category, raw_trust, brand)</code> row to <code>config/rules/issuer_mapping.csv</code>. '
-            'Then run <code>python scripts/run_market_pipeline.py</code>.'
+            '<code>(ticker, issuer_display, source, notes)</code> row to '
+            '<code>config/rules/issuer_brand_overrides.csv</code>. '
+            'The next chain run (<code>scripts/run_chain.py</code>) re-derives everything.'
             '</div>'
         )
 

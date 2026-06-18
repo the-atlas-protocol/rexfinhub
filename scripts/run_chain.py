@@ -25,16 +25,31 @@ timer; sending is the explicit `/refreshdata send` step, gated by .send_enabled.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+
+def should_block_promotion(result_file: Path) -> tuple[bool, str]:
+    """Pure predicate (Stage C) — should previews be HELD (not promoted to live)?
+
+    Mirrors send_all.preflight_blocks_send. Blocks on a preflight FAIL; an
+    unreadable/missing result is treated as RED (fail-closed) — we never promote a
+    build we can't prove green. Extracted + unit-tested because preview promotion is
+    the other half of the no-wrong-data guarantee (the send block is the first half)."""
+    try:
+        overall = json.loads(result_file.read_text(encoding="utf-8")).get("overall_status", "fail")
+    except Exception:
+        return True, "fail"
+    return (overall == "fail"), overall
 
 
 def _load_env():
@@ -51,6 +66,21 @@ def _load_env():
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+def _log_stage(label, rc):
+    """Append each step outcome to data/.pipeline_stages.jsonl so the daily heartbeat
+    (scripts/healthcheck.py) can detect a step that silently failed or never ran."""
+    try:
+        f = ROOT / "data" / ".pipeline_stages.jsonl"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "stage": label, "rc": rc,
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+            }) + "\n")
+    except OSError:
+        pass
+
+
 def _step(label, fn):
     print(f"\n=== {label} START ===", flush=True)
     t0 = time.time()
@@ -62,6 +92,7 @@ def _step(label, fn):
         traceback.print_exc()
         rc = 1
     print(f"=== {label} END (rc={rc}, {time.time() - t0:.1f}s) ===", flush=True)
+    _log_stage(label, rc)
     return rc
 
 
@@ -79,9 +110,18 @@ def main() -> int:
 
     def git_pull():
         # --ff-only: never create a messy merge. After a clean reconcile the VPS has no
-        # unpushed commits at pull time, so this fast-forwards. A non-ff failure is
-        # logged (divergence to reconcile) but doesn't block the run.
+        # unpushed commits at pull time, so this fast-forwards. Stage E: a non-ff
+        # failure now HARD-ABORTS the chain (handled in main) and alerts — we must NOT
+        # build reports on stale code/rules after a divergence (the old behavior
+        # silently continued, risking a build on the wrong commit).
         return _sub(["git", "-C", str(ROOT), "pull", "--ff-only", "origin", "main"])
+
+    def _alert(subject, body):
+        try:
+            from etp_tracker.email_alerts import send_critical_alert
+            send_critical_alert(subject=subject, message=body, subject_prefix="[CHAIN]")
+        except Exception as e:
+            print(f"  (alert failed: {e})")
 
     def bloomberg_sync():
         from webapp.services.graph_files import download_bloomberg_from_sharepoint
@@ -100,12 +140,23 @@ def main() -> int:
     def post_steps():
         return _sub([py, str(ROOT / "scripts" / "apply_bloomberg_post_steps.py")])
 
+    # Stage C: build into a STAGING dir, gate it with preflight, and promote to the
+    # live previews dir ONLY when preflight is green. A red build never overwrites the
+    # last-good previews and is hard-blocked from send (send_all reads the result file).
+    LIVE_PREVIEWS = ROOT / "outputs" / "previews"
+    STAGING_PREVIEWS = ROOT / "outputs" / "previews_staging"
+    RED_MARKER = ROOT / "data" / ".preflight_red"
+
     def build_reports():
         from webapp.database import init_db, SessionLocal
         from scripts.send_all import REPORTS
         init_db()
         db = SessionLocal()
-        out = ROOT / "outputs" / "previews"
+        out = STAGING_PREVIEWS
+        # fresh staging dir so a build error can't leave a stale file that gates green
+        import shutil
+        if out.exists():
+            shutil.rmtree(out)
         out.mkdir(parents=True, exist_ok=True)
         today = date.today().isoformat()
         ok, err = [], []
@@ -122,26 +173,128 @@ def main() -> int:
                     print(f"  ERR  {key:16s} {type(e).__name__}: {str(e)[:120]}")
         finally:
             db.close()
-        print(f"  built {len(ok)}/{len(REPORTS)}; errors: {err or 'none'}")
+        print(f"  built {len(ok)}/{len(REPORTS)} into staging; errors: {err or 'none'}")
         return 1 if err else 0
 
     def preflight():
-        return _sub([py, str(ROOT / "scripts" / "preflight_check.py")])
+        # Point preflight at the STAGING build so it gates what we're about to promote.
+        env = dict(os.environ, REX_PREVIEW_DIR=str(STAGING_PREVIEWS))
+        return subprocess.run([py, str(ROOT / "scripts" / "preflight_check.py")],
+                              cwd=str(ROOT), env=env).returncode
 
-    steps = [] if args.skip_pull else [("git_pull", git_pull)]
-    steps += [
+    def promote():
+        """Promote staging -> live only on a green preflight; otherwise hard-block."""
+        import shutil
+        # Read the structured result preflight just wrote (fail-closed via the pure
+        # predicate — an unreadable result is treated as RED).
+        result_file = ROOT / "data" / ".preflight_result.json"
+        blocked, overall = should_block_promotion(result_file)
+        if blocked:
+            RED_MARKER.write_text(date.today().isoformat(), encoding="utf-8")
+            print(f"  PREFLIGHT {overall.upper()} — previews NOT promoted; send is hard-blocked. "
+                  "Last-good previews left intact.")
+            return 1
+        # green (or warn): promote
+        LIVE_PREVIEWS.mkdir(parents=True, exist_ok=True)
+        for f in STAGING_PREVIEWS.glob("*.html"):
+            shutil.copy2(f, LIVE_PREVIEWS / f.name)
+        if RED_MARKER.exists():
+            RED_MARKER.unlink()
+        print(f"  PREFLIGHT {overall.upper()} — promoted "
+              f"{len(list(STAGING_PREVIEWS.glob('*.html')))} previews to outputs/previews/.")
+        return 0
+
+    # Git self-heal (Stage E): pull FIRST and hard-abort on a non-ff divergence —
+    # building reports on stale code/rules is worse than not building. Alert Ryu so
+    # the divergence gets reconciled, then stand down (nothing partial ships).
+    if not args.skip_pull:
+        rc = _step("git_pull", git_pull)
+        if rc != 0:
+            _alert("REX chain stood down — git divergence",
+                   "run_chain: `git pull --ff-only origin main` failed (non-ff divergence or "
+                   "network). The chain ABORTED rather than build on stale code. Reconcile the "
+                   "VPS working tree (git status / git log) and re-run.")
+            print("\n=== run_chain ABORTED at git_pull (non-ff divergence) — see alert ===")
+            return 1
+
+    def _unresolved_items():
+        """The ONLY thing that should reach Ryu (Stage D): facts the self-healing
+        cascade could NOT resolve. Sourced from the issuer review queue (rows with no
+        suggested brand) + today's cascade journal queued entries. Logged-but-fixed
+        items never appear here."""
+        items = []
+        # issuer review queue — truly unresolved = blank suggested_brand
+        q = ROOT / "docs" / "issuer_review_queue.csv"
+        if q.exists():
+            try:
+                import csv
+                with q.open(encoding="utf-8") as fh:
+                    for row in csv.DictReader(fh):
+                        if not (row.get("suggested_brand") or "").strip():
+                            items.append(f"brand? {row.get('ticker','?')} — {row.get('fund_name','')}")
+            except Exception:
+                pass
+        # cascade journal — entries that fell through to the human queue
+        try:
+            from market.resolve import _journal_path
+            jp = _journal_path()
+            if jp.exists():
+                for line in jp.read_text(encoding="utf-8").splitlines():
+                    try:
+                        rec = json.loads(line)
+                        if rec.get("queued"):
+                            items.append(f"{rec.get('kind','?')}? {rec.get('ticker','?')} — {rec.get('fund_name','')}")
+                    except json.JSONDecodeError:
+                        continue
+        except Exception:
+            pass
+        # de-dup, cap
+        seen, out = set(), []
+        for it in items:
+            if it not in seen:
+                seen.add(it); out.append(it)
+        return out[:50]
+
+    def notify():
+        """Stage D — at most ONE message per refresh. Green: 'reports ready' (plus a
+        'needs your call' section only if the cascade left something unresolved). Red:
+        a single 'chain held' note. Everything the cascade auto-fixed is logged, not
+        emailed. Best-effort; never fails the chain."""
+        if RED_MARKER.exists():
+            _alert("REX reports HELD — preflight red",
+                   "run_chain built reports but preflight is RED, so previews were NOT promoted and "
+                   "send is hard-blocked. See data/.preflight_result.json for the failing check.")
+            return 0
+        unresolved = _unresolved_items()
+        body = ("Today's REX reports are built and preflight is green. Review the previews, then "
+                "run the send step when ready.")
+        if unresolved:
+            body += ("\n\nNEEDS YOUR CALL — the self-healing cascade could not resolve these "
+                     f"({len(unresolved)}); everything else was auto-fixed and logged:\n  - "
+                     + "\n  - ".join(unresolved))
+        subject = ("REX reports ready for review"
+                   + (f" — {len(unresolved)} item(s) need your call" if unresolved else ""))
+        _alert(subject, body)
+        return 0
+
+    steps = [
         ("bloomberg_pull_sync", bloomberg_sync),
         ("post_steps_classify_ai_enrich", post_steps),
         ("build_all_reports", build_reports),
         ("preflight", preflight),
+        ("promote_or_block", promote),
+        ("notify", lambda: notify()),
     ]
     for label, fn in steps:
         rc = _step(label, fn)
         worst = max(worst, rc)
 
     print(f"\n=== run_chain COMPLETE (worst rc={worst}) ===")
-    print("Previews in outputs/previews/. Gate stays closed — send is the explicit "
-          "`/refreshdata send` step.")
+    if RED_MARKER.exists():
+        print("Gate RED — preview not promoted, send hard-blocked. Fix the data and re-run.")
+    else:
+        print("Previews promoted to outputs/previews/. Gate stays closed — send is the "
+              "explicit `/refreshdata send` step.")
     return worst
 
 

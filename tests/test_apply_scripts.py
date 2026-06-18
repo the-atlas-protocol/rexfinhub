@@ -62,6 +62,9 @@ def _make_db(path: Path) -> None:
             map_crypto_underlier VARCHAR(200),
             map_defined_category VARCHAR(100),
             map_thematic_category VARCHAR(100),
+            -- market_status is required by apply_issuer_brands' legal-trust leak gate
+            -- (the 'Tidal' defense). Default ACTV so seeded rows exercise the gate.
+            market_status        VARCHAR(10) DEFAULT 'ACTV',
             updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             is_rex               BOOLEAN NOT NULL DEFAULT 0
         )

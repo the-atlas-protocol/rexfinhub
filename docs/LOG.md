@@ -10,6 +10,22 @@ updated: 2026-05-19
 >
 > Each entry: `## YYYY-MM-DD` header; bullet entries; link to PR / ADR / commit where appropriate.
 
+## 2026-06-18
+
+- **Self-correcting, AI-enabled rexfinhub** (ADR 0013, PR #89). Stages A–F of the
+  approved plan: a self-healing resolution cascade (`market/resolve.py`: rules →
+  Bloomberg `fund_description` → AI web search → human queue) so the system answers its
+  own "what is this?"; gates that BLOCK (`run_chain` promotes previews only on a green
+  preflight, `send_all` refuses on red, `preflight_maintenance` escape hatch removed,
+  new forbidden-status scan + AI semantic reviewer); reconcilers downgraded to
+  health-probes that surface ingest gaps as fix-at-source signals
+  (`reconciler.py --probe`, `status_reconciler.py --assert-noop`); silence by default
+  (one "reports ready / needs your call" message per refresh, routine nag emails
+  dropped); parquet rebuild folded into the chain + `watch_bloomberg.py` repointed to
+  `run_chain` + git non-ff self-heal. **Pruned** the second market write path
+  (`scripts/run_market_pipeline.py` + `market/derive.py`) with 3-gate proof-of-death —
+  the `issuer_mapping` brand drift origin ("Tidal").
+
 ## 2026-06-16
 
 - **Definition library built** — `market/definitions.py` + `docs/DEFINITIONS.md` now tie fund classification to ONE source: 9 internal suites + market-status KPI rules + the trust registry. Per `docs/GOAL.md`, this is the single source of truth; suites/statuses/trusts must never be re-derived elsewhere.
