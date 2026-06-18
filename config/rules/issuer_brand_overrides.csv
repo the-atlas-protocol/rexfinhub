@@ -1,201 +1,23 @@
 ticker,issuer_display,source,notes
 TLDR US,REX,is_rex_default,is_rex default -> REX
-ACMM US,Corgi,layer1_regex,Matched fund_name: CORGI ACMR 2X DAILY ETF
-ACTS US,FIS,layer1_regex,Matched fund_name: FIS TACTICAL EQUITY ETF
-ADDS US,Hedgeye,layer1_regex,Matched fund_name: HEDGEYE INDEX ADDS ETF
-ADIV US,Guinness Atkinson,layer1_regex,Matched fund_name: GUINNESS ATKINSON ASIA PACIFIC DIVIDEND BUILDER ETF
-AIMS US,Acuitas,layer1_regex,Matched fund_name: ACUITAS SMALL CAP ACTIVE ETF
-ALAI US,Alger,layer1_regex,Matched fund_name: ALGER AI ENABLERS & ADOPTERS ETF
-AMZA US,InfraCap,layer1_regex,Matched fund_name: INFRACAP MLP ETF
-ARWG US,Archer,layer1_regex,Matched fund_name: ARCHER GROWTH ETF
-ATFV US,Alger,layer1_regex,Matched fund_name: ALGER 35 ETF
-AV US,Corgi,layer1_regex,Matched fund_name: CORGI AEROSPACE & COMMERCIAL AVIATION ETF
-BAFE US,Brown Advisory,layer1_regex,Matched fund_name: BROWN ADVISORY FLEXIBLE EQUITY ETF
-BAIV US,Brown Advisory,layer1_regex,Matched fund_name: BROWN ADVISORY INTERNATIONAL VALUE SELECT ETF
-BASG US,Brown Advisory,layer1_regex,Matched fund_name: BROWN ADVISORY SUSTAINABLE GROWTH ETF
-BASV US,Brown Advisory,layer1_regex,Matched fund_name: BROWN ADVISORY SUSTAINABLE VALUE ETF
-BAY US,Corgi,layer1_regex,Matched fund_name: CORGI BAY AREA BASED ETF
-BBIX US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN VOLATILITY INVERSE ETF
-BCGS US,BanCreek,layer1_regex,Matched fund_name: BANCREEK GLOBAL SELECT ETF
-BCIL US,BanCreek,layer1_regex,Matched fund_name: BANCREEK INTERNATIONAL LARGE CAP ETF
-BCUS US,BanCreek,layer1_regex,Matched fund_name: BANCREEK US LARGE CAP ETF
-BESO US,GSR,layer1_regex,Matched fund_name: GSR CRYPTO CORE3 ETF
-BLCK US,Corgi,layer1_regex,Matched fund_name: CORGI CRYPTO INFRASTRUCTURE ETF
-BLDX US,Impax,layer1_regex,Matched fund_name: IMPAX GLOBAL SUSTAINABLE INFRASTRUCTURE ETF
-BLOX US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS CRYPTO INCOME ETF
-BNDS US,InfraCap,layer1_regex,Matched fund_name: INFRASTRUCTURE CAPITAL BOND INCOME ETF
-BREW US,Corgi,layer1_regex,Matched fund_name: CORGI COFFEE & ENERGY DRINKS ETF
-BRIB US,FIS,layer1_regex,Matched fund_name: FIS BRIGHT PORTFOLIOS CORE BOND ETF
-BRIF US,FIS,layer1_regex,Matched fund_name: FIS BRIGHT PORTFOLIOS FOCUSED EQUITY ETF
-BRNY US,Burney,layer1_regex,Matched fund_name: BURNEY US FACTOR ROTATION ETF
-BTCK US,7RCC,layer1_regex,Matched fund_name: 7RCC SPOT BITCOIN AND CARBON CREDIT FUTURES ETF
-BTF US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN AND ETHER ETF
-BZZ US,Corgi,layer1_regex,Matched fund_name: CORGI DRONES & URBAN AIR MOBILITY ETF
-CBIL US,Corgi,layer1_regex,Matched fund_name: CORGI 3-12 MONTH T-BILL ETF
-CBIX US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN VOLATILITY ETF
-CBOT US,Corgi,layer1_regex,Matched fund_name: CORGI ROBOTS & HUMANOIDS ETF
-CGOV US,Corgi,layer1_regex,Matched fund_name: CORGI 0-3 MONTH T-BILL ETF
-CHYG US,Corgi,layer1_regex,Matched fund_name: CORGI 0-5 YEAR HIGH YIELD CORPORATE BOND ETF
-CIEI US,Corgi,layer1_regex,Matched fund_name: CORGI 3-7 YEAR TREASURY BOND ETF
-CIVG US,Corgi,layer1_regex,Matched fund_name: CORGI 1-5 YEAR INVESTMENT GRADE CORPORATE BOND ETF
-CJUN US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 15% STRUCTURED BUFFER ETF - JUNE SERIES
-CLUB US,Billionaires,layer1_regex,Matched fund_name: BILLIONAIRES CLUB ETF
-CMAG US,Corgi,layer1_regex,Matched fund_name: CORGI MAG 7 ETF
-CMAY US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 15% STRUCTURED BUFFER ETF - MAY SERIES
-CNEQ US,Alger,layer1_regex,Matched fund_name: ALGER CONCENTRATED EQUITY ETF
-CPAG US,F/M,layer1_regex,Matched fund_name: F/M COMPOUNDR U.S. AGGREGATE BOND ETF
-CPHY US,F/M,layer1_regex,Matched fund_name: F/M COMPOUNDR HIGH YIELD BOND ETF
-CQTM US,Corgi,layer1_regex,Matched fund_name: CORGI QUANTUM COMPUTING ETF
-CTJN US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 30% STRUCTURED BUFFER ETF - JUNE SERIES
-CTMA US,Corgi,layer1_regex,Matched fund_name: CORGI U.S. EQUITIES 30% STRUCTURED BUFFER ETF - MAY SERIES
-CUST US,Corgi,layer1_regex,Matched fund_name: CORGI 1-3 YEAR TREASURY BOND ETF
-CXSO US,CoinShares,layer1_regex,Matched fund_name: COINSHARES SOLANA STAKING ETF
-DIME US,CoinShares,layer1_regex,Matched fund_name: COINSHARES ALTCOINS ETF
-DIPR US,Corgi,layer1_regex,Matched fund_name: CORGI SPACE & SATELLITE COMMUNICATIONS ETF
-DIVP US,Cullen,layer1_regex,Matched fund_name: CULLEN ENHANCED EQUITY INCOME ETF
-DIVS US,Guinness Atkinson,layer1_regex,Matched fund_name: GUINNESS ATKINSON DIVIDEND BUILDER ETF
-DOCK US,Corgi,layer1_regex,Matched fund_name: CORGI PORTS RAIL & FREIGHT ETF
-DYFI US,IDX,layer1_regex,Matched fund_name: IDX DYNAMIC FIXED INCOME ETF
-DYTA US,SGI,layer1_regex,Matched fund_name: SGI DIVERSIFIED TACTICAL FUND/THE
-EMJN US,Corgi,layer1_regex,Matched fund_name: CORGI EMERGING MARKETS EQUITIES 15% STRUCTURED BUFFER ETF - JUNE SERIES
-EMMY US,Corgi,layer1_regex,Matched fund_name: CORGI EMERGING MARKETS EQUITIES 15% STRUCTURED BUFFER ETF - MAY SERIES
-EUV US,Corgi,layer1_regex,Matched fund_name: CORGI LITHOGRAPHY & SEMICONDUCTOR PHOTONICS ETF
-EXEQ US,Wedbush,layer1_regex,Matched fund_name: WEDBUSH RETURNONLEADERSHIP US LARGE-CAP ETF
-EYES US,Corgi,layer1_regex,Matched fund_name: CORGI DATA & SURVEILLANCE ETF
-FDRS US,Corgi,layer1_regex,Matched fund_name: CORGI FOUNDER-LED ETF
-FEGE US,First Eagle,layer1_regex,Matched fund_name: FIRST EAGLE GLOBAL EQUITY ETF
-FEMD US,First Eagle,layer1_regex,Matched fund_name: FIRST EAGLE MID CAP EQUITY ETF
-FEOE US,First Eagle,layer1_regex,Matched fund_name: FIRST EAGLE OVERSEAS EQUITY ETF
-FFF US,Founder,layer1_regex,Matched fund_name: FOUNDERS 100 ETF
-FIAX US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS FIXED INCOME ALTERNATIVE ETF
-FRTY US,Alger,layer1_regex,Matched fund_name: ALGER MID CAP 40 ETF
-FTHB US,FIS,layer1_regex,Matched fund_name: FIS FAITH INCOME ETF
-GAID US,Guinness Atkinson,layer1_regex,Matched fund_name: GUINNESS ATKINSON INTERNATIONAL DIVIDEND BUILDER ETF
-GASZ US,Corgi,layer1_regex,Matched fund_name: CORGI NATURAL GAS POWER & TURBINES ETF
-GAUD US,Guinness Atkinson,layer1_regex,Matched fund_name: GUINNESS ATKINSON US DIVIDEND BUILDER ETF
-GIAX US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS GLOBAL EQUITY AND INCOME ETF
-GINX US,SGI,layer1_regex,Matched fund_name: SGI ENHANCED GLOBAL INCOME ETF
-GLAM US,Corgi,layer1_regex,Matched fund_name: CORGI BEAUTY SKINCARE & AESTHETICS ETF
-GLDB US,IDX,layer1_regex,Matched fund_name: IDX ALTERNATIVE FIAT ETF
-GLDN US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS GOLD INCOME ETF
-GNMX US,Corgi,layer1_regex,Matched fund_name: CORGI GENOMICS & PRECISION MEDICINE ETF
-GOAU US,US Global,layer1_regex,Matched fund_name: US GLOBAL GO GOLD & PRECIOUS METAL MINERS ETF
-GOLY US,Strategy Shares,layer1_regex,Matched fund_name: STRATEGY SHARES GOLD ENHANCED YIELD ETF
-GPTZ US,Corgi,layer1_regex,Matched fund_name: CORGI AGI READINESS ETF
-GQQQ US,Astoria,layer1_regex,Matched fund_name: ASTORIA US QUALITY GROWTH KINGS ETF
-HECA US,Hedgeye,layer1_regex,Matched fund_name: HEDGEYE CAPITAL ALLOCATION ETF
-HEFT US,Hedgeye,layer1_regex,Matched fund_name: HEDGEYE FOURTH TURNING ETF
-HELS US,Hedgeye,layer1_regex,Matched fund_name: HEDGEYE 130/30 EQUITY ETF
-HGRO US,Hedgeye,layer1_regex,Matched fund_name: HEDGEYE QUALITY GROWTH ETF
-HJUN US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 100% STRUCTURED BUFFER ETF - JUNE SERIES
-HMAY US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 100% STRUCTURED BUFFER ETF - MAY SERIES
-HNDL US,Strategy Shares,layer1_regex,Matched fund_name: STRATEGY SHARES NASDAQ 7 HANDL ETF
-HOMZ US,Hoya Capital,layer1_regex,Matched fund_name: HOYA CAPITAL HOUSING ETF
-HRSK US,Toews,layer1_regex,Matched fund_name: TOEWS AGILITY SHARES HEDGED RISK ETF
-HULL US,Corgi,layer1_regex,Matched fund_name: CORGI SHIPPING & GLOBAL LOGISTICS ETF
-ICAP US,InfraCap,layer1_regex,Matched fund_name: INFRASTRUCTURE CAPITAL EQUITY INCOME ETF
-ICEE US,Corgi,layer1_regex,Matched fund_name: CORGI DATA CENTER POWER & COOLING ETF
-IDJN US,Corgi,layer1_regex,Matched fund_name: CORGI INTERNATIONAL DEVELOPED EQUITIES 15% STRUCTURED BUFFER ETF - JUNE SERIES
-IDMY US,Corgi,layer1_regex,Matched fund_name: CORGI INTERNATIONAL DEVELOPED EQUITIES 15% STRUCTURED BUFFER ETF - MAY SERIES
-INVN US,Alger,layer1_regex,Matched fund_name: ALGER RUSSELL INNOVATION ETF
-IVEP US,Wedbush,layer1_regex,Matched fund_name: DAN IVES WEDBUSH AI POWER & INFRASTRUCTURE ETF
-IVES US,Wedbush,layer1_regex,Matched fund_name: DAN IVES WEDBUSH AI REVOLUTION ETF
-IVSI US,Applied Finance,layer1_regex,Matched fund_name: APPLIED FINANCE IVS INTERNATIONAL LARGE ETF
-IVSS US,Applied Finance,layer1_regex,Matched fund_name: APPLIED FINANCE IVS US SMID ETF
-IVSX US,Applied Finance,layer1_regex,Matched fund_name: APPLIED FINANCE IVS INTERNATIONAL SMID ETF
-JETS US,US Global,layer1_regex,Matched fund_name: US GLOBAL JETS ETF
-JOUL US,Corgi,layer1_regex,Matched fund_name: CORGI HIGH VOLTAGE GRID EQUIPMENT ETF
-JUNC US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 10% STRUCTURED BUFFER ETF - JUNE SERIES
-KNO US,AXS,layer1_regex,Matched fund_name: AXS KNOWLEDGE LEADERS ETF
-KYC US,Corgi,layer1_regex,Matched fund_name: CORGI DIGITAL BANKING & FINTECH INFRASTRUCTURE ETF
-LATR US,Corgi,layer1_regex,Matched fund_name: CORGI BUY NOW PAY LATER ETF
-LBIX US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN VOLATILITY LEVERAGED ETF
-LCO US,Logiq,layer1_regex,Matched fund_name: LOGIQ CONTRARIAN OPPORTUNITIES ETF
-LDRX US,SGI,layer1_regex,Matched fund_name: SGI ENHANCED MARKET LEADERS ETF
-LFSC US,F/M,layer1_regex,Matched fund_name: F/M EMERALD LIFE SCIENCES INNOVATION ETF
-MANI US,Man,layer1_regex,Matched fund_name: MAN ACTIVE INCOME ETF
-MATE US,Man,layer1_regex,Matched fund_name: MAN ACTIVE TREND ENHANCED ETF
-MAYC US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 10% STRUCTURED BUFFER ETF - MAY SERIES
-MDST US,Westwood,layer1_regex,Matched fund_name: WESTWOOD SALIENT ENHANCED MIDSTREAM INCOME ETF
-MEMA US,Man,layer1_regex,Matched fund_name: MAN ACTIVE EMERGING MARKETS ALTERNATIVE ETF
-MHIG US,Milliman,layer1_regex,Matched fund_name: MILLIMAN HEALTHCARE INFLATION GUARD ETF
-MHIP US,Milliman,layer1_regex,Matched fund_name: MILLIMAN HEALTHCARE INFLATION PLUS ETF
-MHY US,Man,layer1_regex,Matched fund_name: MAN ACTIVE HIGH YIELD ETF
-MRSK US,Toews,layer1_regex,Matched fund_name: TOEWS AGILITY SHARES MANAGED RISK ETF
-NICO US,Hexis,layer1_regex,Matched fund_name: HEXIS ACTIVE NICOTINE ENGAGEMENT ETF
-NWKD US,Corgi,layer1_regex,Matched fund_name: CORGI NUCLEAR ENERGY & INFRASTRUCTURE ETF
-NYNY US,Corgi,layer1_regex,Matched fund_name: CORGI NYC BASED ETF
-OBIL US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 12 MONTH BILL ETF
-ODDZ US,Corgi,layer1_regex,Matched fund_name: CORGI SPORTS BETTING & GAMBLING ETF
-ODTE US,VegaShares,layer1_regex,Matched fund_name: VEGASHARES SPX NDX RTY PREMIUM INCOME ETF
-OEI US,Optimize,layer1_regex,Matched fund_name: OPTIMIZE EQUITY INCOME ETF
-ONEH US,TrueShares,layer1_regex,Matched fund_name: TRUESHARES EQUITY HEDGE ETF
-OPTZ US,Optimize,layer1_regex,Matched fund_name: OPTIMIZE STRATEGY INDEX ETF
-OWN US,Corgi,layer1_regex,Matched fund_name: CORGI INSIDE OWNERSHIP 100 ETF
-PFFR US,InfraCap,layer1_regex,Matched fund_name: INFRACAP REIT PREFERRED ETF
-PLTY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAXTM PLTR OPTION INCOME STRATEGY ETF
-PRAY US,FIS,layer1_regex,Matched fund_name: FIS TRUST - FIS CHRISTIAN STOCK FUND
-PTNT US,Corgi,layer1_regex,Matched fund_name: CORGI IP LICENSING & ROYALTIES ETF
-QJN US,Corgi,layer1_regex,Matched fund_name: CORGI GROWTH & TECHNOLOGY 10% STRUCTURED BUFFER ETF - JUNE SERIES
-QMY US,Corgi,layer1_regex,Matched fund_name: CORGI GROWTH & TECHNOLOGY 10% STRUCTURED BUFFER ETF - MAY SERIES
-QQJN US,Corgi,layer1_regex,Matched fund_name: CORGI GROWTH & TECHNOLOGY 15% STRUCTURED BUFFER ETF - JUNE SERIES
-QQMY US,Corgi,layer1_regex,Matched fund_name: CORGI GROWTH & TECHNOLOGY 15% STRUCTURED BUFFER ETF - MAY SERIES
-QTAC US,Q3,layer1_regex,Matched fund_name: Q3 ALL-SEASON TACTICAL ADVANTAGE ETF
-QVOL US,InfraCap,layer1_regex,Matched fund_name: INFRASTRUCTURE CAPITAL NASDAQ OPTION INCOME ETF
-QVOY US,Q3,layer1_regex,Matched fund_name: Q3 ALL-SEASON ACTIVE ROTATION ETF
-QXQ US,SGI,layer1_regex,Matched fund_name: SGI ENHANCED NASDAQ-100 ETF
-RBIL US,F/M,layer1_regex,Matched fund_name: F/M ULTRASHORT TREASURY INFLATION-PROTECTED SECURITY TIPS ETF
-RCKZ US,Corgi,layer1_regex,Matched fund_name: CORGI AI DATA CENTER REIT & INFRASTRUCTURE ETF
-RIET US,Hoya Capital,layer1_regex,Matched fund_name: HOYA CAPITAL HIGH DIVIDEND YIELD ETF
-ROE US,Astoria,layer1_regex,Matched fund_name: ASTORIA US EQUAL WEIGHT QUALITY KINGS ETF
-ROMO US,Strategy Shares,layer1_regex,Matched fund_name: STRATEGY SHARES NEWFOUND/RESOLVE ROBUST EQUITY MOMENTUM INDEX ETF
-RTHY US,F/M,layer1_regex,Matched fund_name: F/M LONG-TERM TREASURY INFLATION-PROTECTED SECURITY TIPS ETF
-SCJN US,Corgi,layer1_regex,Matched fund_name: CORGI US SMALL-CAP 15% STRUCTURED BUFFER ETF - JUNE SERIES
-SCMY US,Corgi,layer1_regex,Matched fund_name: CORGI U.S. SMALL-CAP 15% STRUCTURED BUFFER ETF - MAY SERIES
-SEA US,US Global,layer1_regex,Matched fund_name: US GLOBAL SEA TO SKY CARGO ETF
-SGLC US,SGI,layer1_regex,Matched fund_name: SGI US LARGE CAP CORE EQUITY ETF
-SGVA US,F/M,layer1_regex,Matched fund_name: F/M ACCUMULATOR ULTRASHORT US TREASURY FUND
-SLVX US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS SILVER INCOME ETF
-SMCC US,Corgi,layer1_regex,Matched fund_name: CORGI SMCI 2X DAILY ETF
-SPIT US,F/M,layer1_regex,Matched fund_name: F/M EMERALD SPECIAL SITUATIONS ETF
-STYL US,Corgi,layer1_regex,Matched fund_name: CORGI LIFESTYLE BRANDS ETF
-TBIL US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 3 MONTH BILL FUND/ETF
-TCPB US,Thrivent,layer1_regex,Matched fund_name: THRIVENT CORE PLUS BOND ETF
-TGLR US,Wedbush,layer1_regex,Matched fund_name: WEDBUSH LAFFER TENGLER NEW ERA VALUE ETF
-THY US,Toews,layer1_regex,Matched fund_name: TOEWS AGILITY SHARES DYNAMIC TACTICAL INCOME ETF
-TILC US,Thrivent,layer1_regex,Matched fund_name: THRIVENT INTERNATIONAL LARGE CAP ETF
-TISC US,Thrivent,layer1_regex,Matched fund_name: THRIVENT INTERNATIONAL SMALL CAP ETF
-TMVE US,Thrivent,layer1_regex,Matched fund_name: THRIVENT MID CAP VALUE ETF
-TSCV US,Thrivent,layer1_regex,Matched fund_name: THRIVENT SMALL CAP VALUE ETF
-TSME US,Thrivent,layer1_regex,Matched fund_name: THRIVENT SMALL-MID CAP EQUITY ETF
-TUSB US,Thrivent,layer1_regex,Matched fund_name: THRIVENT ULTRA SHORT BOND ETF
-UFIV US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 5 YEAR NOTE ETF
-USDX US,SGI,layer1_regex,Matched fund_name: SGI ENHANCED CORE ETF
-USFE US,First Eagle,layer1_regex,Matched fund_name: FIRST EAGLE US EQUITY ETF
-USVN US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 7 YEAR NOTE ETF
-UTEN US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 10 YEAR NOTE ETF
-UTHY US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 30 YEAR BOND ETF
-UTRE US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 3 YEAR NOTE ETF
-UTWO US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 2 YEAR NOTE ETF
-UTWY US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 20 YEAR BOND ETF
-VAIE US,VegaShares,layer1_regex,Matched fund_name: VEGASHARES US EQUITY AUTOCALLABLE INCOME ETF
-VSLU US,Applied Finance,layer1_regex,Matched fund_name: APPLIED FINANCE VALUATION ETF
-WAR US,US Global,layer1_regex,Matched fund_name: US GLOBAL TECHNOLOGY AND AEROSPACE & DEFENSE ETF
-WATS US,Corgi,layer1_regex,Matched fund_name: CORGI BATTERY ENERGY STORAGE SYSTEMS ETF
-WEEI US,Westwood,layer1_regex,Matched fund_name: WESTWOOD SALIENT ENHANCED ENERGY INCOME ETF
-WEEL US,Peerless,layer1_regex,Matched fund_name: PEERLESS OPTION INCOME WHEEL ETF
-WGMI US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN MINING ETF
-WNDR US,Corgi,layer1_regex,Matched fund_name: CORGI TRAVEL & LEISURE ETF
-WR US,Corgi,layer1_regex,Matched fund_name: CORGI U.S. WAR MACHINE ETF
-XA US,Corgi,layer1_regex,Matched fund_name: CORGI AI CYBERSECURITY ETF
-XBIL US,F/M,layer1_regex,Matched fund_name: F/M US TREASURY 6 MONTH BILL ETF
-XRPL US,CoinShares,layer1_regex,Matched fund_name: COINSHARES XRP ETF
-XSPC US,VegaShares,layer1_regex,Matched fund_name: VEGASHARES SPACEX & BEYOND EARTH ETF
-YLDW US,Westwood,layer1_regex,Matched fund_name: WESTWOOD ENHANCED INCOME OPPORTUNITY ETF
-YUNG US,Corgi,layer1_regex,Matched fund_name: CORGI LONGEVITY CONSUMER ETF
-ZHOG US,F/M,layer1_regex,Matched fund_name: F/M OPPORTUNISTIC INCOME ETF
-ZMUN US,F/M,layer1_regex,Matched fund_name: F/M ULTRASHORT TAX-FREE MUNICIPAL ETF
-ZTEN US,F/M,layer1_regex,Matched fund_name: F/M 10-YEAR INVESTMENT GRADE CORPORATE BOND ETF
-ZTOP US,F/M,layer1_regex,Matched fund_name: F/M HIGH YIELD 100 ETF
-ZTRE US,F/M,layer1_regex,Matched fund_name: F/M 3-YEAR INVESTMENT GRADE CORPORATE BOND ETF
-ZTWO US,F/M,layer1_regex,Matched fund_name: F/M 2-YEAR INVESTMENT GRADE CORPORATE BOND ETF
+BDIV US,AAM,layer1_regex,Matched fund_name: AAM BRENTVIEW DIVIDEND GROWTH ETF
+CLIM US,Climate Global,layer1_regex,Matched fund_name: CLIMATE GLOBAL-CLIMATE RESILIENT REIT INDEX ETF
+CLOC US,AAM,layer1_regex,Matched fund_name: AAM CRESCENT CLO ETF
+ISBG US,IncomeStacked,layer1_regex,Matched fund_name: INCOMESTKD 1X BITCOIN & 1X GOLD PREMIUM ETF
+ISSB US,IncomeStacked,layer1_regex,Matched fund_name: INCOMESTKD 1X US STOCKS & 1X BITCOIN PREMIUM ETF
+KMCA US,PLUS,layer1_regex,Matched fund_name: PLUS KOREA MANUFACTURING CORE ALLIANCE INDEX ETF
+LODI US,AAM,layer1_regex,Matched fund_name: AAM SLC LOW DURATION INCOME ETF
+NYYY US,xETFs,layer1_regex,Matched fund_name: XETFS NVDA DAILY INCOME ETF
+PFLD US,AAM,layer1_regex,Matched fund_name: AAM LOW DURATION PREFERRED AND INCOME SECURITIES ETF
+RJDI US,Carillon,layer1_regex,Matched fund_name: RJ EAGLE GCM DIVIDEND SELECT INCOME ETF
+RJMI US,Carillon,layer1_regex,Matched fund_name: RJ EAGLE MUNICIPAL INCOME ETF
+RJVI US,Carillon,layer1_regex,Matched fund_name: RJ EAGLE VERTICAL INCOME ETF
+SAWG US,AAM,layer1_regex,Matched fund_name: AAM SAWGRASS US LARGE CAP QUALITY GROWTH ETF
+SAWS US,AAM,layer1_regex,Matched fund_name: AAM SAWGRASS US SMALL CAP QUALITY GROWTH ETF
+SCAP US,InfraCap,layer1_regex,Matched fund_name: INFRASTRUCTURE CAPITAL SMALL CAP INCOME ETF
+SPDV US,AAM,layer1_regex,Matched fund_name: AAM S&P 500 HIGH DIVIDEND VALUE ETF
+TIIV US,AAM,layer1_regex,Matched fund_name: AAM TODD INTERNATIONAL INTRINSIC VALUE ETF
+TRFM US,AAM,layer1_regex,Matched fund_name: AAM TRANSFORMERS ETF
+TYYY US,xETFs,layer1_regex,Matched fund_name: XETFS TSLA DAILY INCOME ETF
+VEGN US,US Vegan,layer1_regex,Matched fund_name: US VEGAN CLIMATE ETF
+WCEO US,Hypatia,layer1_regex,Matched fund_name: HYPATIA WOMEN CEO ETF
