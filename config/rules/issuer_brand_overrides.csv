@@ -4,6 +4,7 @@ TLDR US,REX,is_rex_default,is_rex default -> REX
 AAAA US,Amplius,layer1_regex,Matched fund_name: AMPLIUS AGGRESSIVE ASSET ALLOCATION ETF
 AAAC US,Columbia,layer1_regex,Matched fund_name: COLUMBIA AAA CLO ETF
 AAAD US,PGIM,layer1_regex,Matched fund_name: PGIM AAA CLO AGGREGATE DURATION ETF
+AAAP US,Pacer,layer1_regex,Matched fund_name: PACER BARINGS CLO MARKET FLEX ETF
 AAAU US,Goldman Sachs,layer1_regex,Matched fund_name: GOLDMAN SACHS PHYSICAL GOLD ETF
 AADR US,AdvisorShares,layer1_regex,Matched fund_name: ADVISORSHARES DORSEY WRIGHT ADR ETF
 AAEQ US,Alpha Architect,layer1_regex,Matched fund_name: ALPHA ARCHITECT US EQUITY 2 ETF
@@ -176,6 +177,7 @@ BKFI US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON ACTIVE CORE BOND E
 BKHY US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON HIGH YIELD ETF
 BKIE US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON INTERNATIONAL EQUITY ETF
 BKLC US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON US LARGE CAP CORE EQUITY ETF
+BKLG US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON US LARGE CAP EQUITY GROWTH ETF
 BKLN US,Invesco,layer1_regex,Matched fund_name: INVESCO SENIOR LOAN ETF
 BKMC US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON US MID CAP CORE EQUITY ETF
 BKMI US,BNY Mellon,layer1_regex,Matched fund_name: BNY MELLON MUNICIPAL INTERMEDIATE ETF
@@ -1722,6 +1724,7 @@ PBE US,Invesco,layer1_regex,Matched fund_name: INVESCO BIOTECHNOLOGY & GENOME ET
 PBJ US,Invesco,layer1_regex,Matched fund_name: INVESCO FOOD & BEVERAGE ETF
 PBL US,PGIM,layer1_regex,Matched fund_name: PGIM PORTFOLIO BALLAST ETF
 PBOT US,Pictet,layer1_regex,Matched fund_name: PICTET AI & AUTOMATION ETF
+PBSC US,Pacer,layer1_regex,Matched fund_name: PACER BARINGS SECURED CREDIT FLEX ETF
 PBTP US,Invesco,layer1_regex,Matched fund_name: INVESCO 0-5 YR US TIPS ETF
 PBUS US,Invesco,layer1_regex,Matched fund_name: INVESCO MSCI USA ETF
 PCEF US,Invesco,layer1_regex,Matched fund_name: INVESCO CEF INCOME COMPOSITE ETF
@@ -2427,6 +2430,7 @@ VIXY US,ProShares,layer1_regex,Matched fund_name: PROSHARES VIX SHORT-TERM FUTUR
 VLLU US,Harbor,layer1_regex,Matched fund_name: HARBOR ALPHAEDGE LARGE CAP VALUE ETF
 VLU US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR S&P 1500 VALUE TILT ETF
 VLUE US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI USA VALUE FACTOR ETF
+VMAX US,Hartford,layer1_regex,Matched fund_name: HARTFORD US VALUE ETF
 VMBS US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORTGAGE-BACKED SECURITIES ETF
 VNAM US,Global X,layer1_regex,Matched fund_name: GLOBAL X MSCI VIETNAM ETF
 VNLA US,Janus Henderson,layer1_regex,Matched fund_name: JANUS HENDERSON SHORT DURATION INCOME ETF
