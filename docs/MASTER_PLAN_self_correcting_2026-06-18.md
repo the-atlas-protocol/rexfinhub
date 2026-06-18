@@ -1,5 +1,34 @@
 # Master Plan — the self-correcting rexfinhub (2026-06-18)
 
+> ## EXECUTION STATUS (updated 2026-06-18 PM)
+>
+> Built, verified, committed on branch `worktree-fix-reports-2026-06-16` (NOT pushed to
+> main — held for Ryu's review):
+> - **Phase 2** ✅ rules contract + loader (`config/contracts/report_numbers.yaml`,
+>   `market/contracts.py`); 6 tests; counts tie out 41/22/3/8/79 on the live DB.
+> - **Phase 3** ✅ AI classifier + cascade resolver read category intent from the contract.
+> - **Phase 4** ✅ LI/CC/flow reports filter through one contract universe (LI 701, CC 384
+>   unchanged; latent dedup bug closed). All 10 previews rebuilt + opened in Chrome.
+> - **Phase 5** ✅ preflight `audit_contract_numbers` hard-blocks any number that drifts.
+> - **Phase 6** ✅ launches/closures explain themselves (`analyze_daily_delta.py`); REX
+>   flagged for confirm, competitors auto-report. 6 tests.
+> - **Phase 1a** ✅ already enforced — `audit_bloomberg` fails preflight on a stale file.
+> - **Phase 1b** ✅ `restore_drill.py` (verified PASS on the dev DB).
+> - **Phase 8a** ✅ `restamp_time_series.py` (fixed 2,625 drifted tickers/97,125 rows → 0);
+>   wired into the chain + preflight `audit_timeseries_drift` guard.
+>
+> Blocked / gated (NOT done, by design):
+> - **Phase 0 go-live** + fresh-data report run — needs Ryu's explicit VPS authorization.
+> - **Push to main / Render deploy** — held for Ryu's review of the previews.
+> - **Phase 8b** — legacy-column removal BLOCKED: `strategy_confidence` is still read by the
+>   downloads/export path; `underlier_type` name is live in the underliers subsystem. Fails
+>   proof-of-death → not removed. Needs the export repointed first.
+> - **Phase 7** (provenance into DB, reconciler-writer retirement) + **Phase 9** (offsite
+>   backup leg, journal backup, 13F recovery) — need a prod API key and/or VPS access to
+>   build AND verify honestly; designs are ready, deferred rather than shipped unverified.
+
+
+
 > The single plan that encompasses everything we discussed: take the already-built
 > autonomous system live, write the rules down where the computer can read them, wire
 > those rules into the three places that matter, make launches explain themselves, and
