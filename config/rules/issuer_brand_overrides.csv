@@ -1,2 +1,19 @@
 ticker,issuer_display,source,notes
 TLDR US,REX,is_rex_default,is_rex default -> REX
+AINT US,FinQ,layer1_regex,Matched fund_name: FINQ DOLLAR NEUTRAL US LARGE CAP AI-MANAGED EQUITY ETF
+AIPO US,Defiance,layer1_regex,Matched fund_name: DEFIANCE AI & POWER INFRASTRUCTURE ETF
+AIS US,VistaShares,layer1_regex,Matched fund_name: VISTASHARES ARTIFICIAL INTELLIGENCE SUPERCYCLE ETF
+AIUP US,FinQ,layer1_regex,Matched fund_name: FINQ FIRST US LARGE CAP AI-MANAGED EQUITY ETF
+BOAT US,SonicShares,layer1_regex,Matched fund_name: SONICSHARES GLOBAL SHIPPING ETF
+CCSB US,Carbon Collective,layer1_regex,Matched fund_name: CARBON COLLECTIVE SHORT DURATION GREEN BOND ETF
+CCSO US,Carbon Collective,layer1_regex,Matched fund_name: CARBON COLLECTIVE CLIMATE SOLUTIONS US EQUITY ETF
+CHAT US,Roundhill,layer1_regex,Matched fund_name: ROUNDHILL GENERATIVE AI & TECHNOLOGY ETF
+DADS US,Digital Asset,layer1_regex,Matched fund_name: DIGITAL ASSET DEBT STRATEGY ETF
+DARP US,Grizzle,layer1_regex,Matched fund_name: GRIZZLE GROWTH ETF
+FMKT US,Free Markets,layer1_regex,Matched fund_name: THE FREE MARKETS ETF
+NACP US,Impact Shares,layer1_regex,Matched fund_name: IMPACT SHARES NAACP MINORITY EMPOWERMENT ETF
+NUKX US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS NUCLEAR INCOME ETF
+QTUP US,Defiance,layer1_regex,Matched fund_name: DEFIANCE LONG PURE QUANTUM ETF
+TIME US,Clockwise,layer1_regex,Matched fund_name: CLOCKWISE U.S. CORE EQUITY ETF
+WEPN US,Nicholas,layer1_regex,Matched fund_name: NICHOLAS DEFENSE AND RARE EARTH INCOME ETF
+WOMN US,Impact Shares,layer1_regex,Matched fund_name: IMPACT SHARES WOMEN'S EMPOWERMENT ETF
