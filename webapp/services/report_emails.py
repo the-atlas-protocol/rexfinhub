@@ -1729,7 +1729,9 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
         comp = db.execute(_text(
             "SELECT fund_name, status, COALESCE(effective_date,'') AS eff "
             "FROM fund_status WHERE UPPER(fund_name) LIKE '%AUTOCALL%' "
-            "  AND UPPER(fund_name) NOT LIKE '%REX%' "
+            # Exclude REX's OWN funds as a word, not a substring — '%REX%' wrongly
+            # dropped 'KraneShares InspeREX ...'. (Ryu 2026-06-17.)
+            "  AND UPPER(fund_name) NOT LIKE 'REX %' AND UPPER(fund_name) NOT LIKE 'T-REX%' "
             "  AND UPPER(status) IN ('PENDING','DELAYED')"
         )).fetchall()
     except Exception:
@@ -1750,9 +1752,16 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
     # REX first, then soonest estimated-effective date.
     items.sort(key=lambda x: (not x[4], x[3] or "9999-99-99"))
 
+    def _trunc(s, n=52):
+        s = str(s)
+        if len(s) <= n:
+            return s
+        cut = s[:n].rsplit(" ", 1)[0]
+        return (cut or s[:n]) + "…"
+
     rows, rex_rows = [], set()
     for i, (iss, name, status, eff, is_rex) in enumerate(items):
-        rows.append([_esc(iss[:20]), _esc(name[:50]), _esc(status), _esc(eff or "—")])
+        rows.append([_esc(_trunc(iss, 20)), _esc(_trunc(name, 52)), _esc(status), _esc(eff or "—")])
         if is_rex:
             rex_rows.add(i)
     n_rex = sum(1 for it in items if it[4])

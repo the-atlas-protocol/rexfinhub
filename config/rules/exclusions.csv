@@ -142,3 +142,23 @@ DFAL US,,"auto-llm-other: Core equity market ETF with no leverage, options, or t
 BD US,,auto-llm-other: Core plus bond ETF without leverage or options-income mechanics; standard fixed income strategy.
 ACOM US,,auto-llm-other: Active commodity ETF with standard commodity exposure; no leverage or options-income structure.
 GISC US,,auto-llm-other: Securitized income ETF suggests credit/income focus but lacks explicit options-income or covered call mechanics to qualify as CC.
+BNDY US,,horizon_core_bond_plain_fixed_income_not_option_income
+BREE US,,mfs_em_equity_plain_equity_not_income
+MEMA US,,man_em_alternative_not_option_income
+NMB US,,simplify_muni_bond_plain_fixed_income_not_income
+AVTM US,,avantis_total_equity_plain_equity
+BRES US,,burney_us_equity_select_plain_equity
+GARY US,,mango_growth_plain_equity
+ARWG US,,archer_growth_plain_equity
+BAIV US,,brown_advisory_intl_value_plain_equity
+ACTS US,,fis_tactical_equity_plain_equity
+FEMD US,,first_eagle_midcap_equity_plain_equity
+PVEX US,,trueshares_convequity_plain_equity
+TYA US,,simplify_intermediate_treasury_futures_fixed_income
+HEDG US,,equable_hedged_equity_collar_not_income
+HEQT US,,simplify_hedged_equity_collar_not_income
+JHDG US,,jhancock_hedged_equity_collar_not_income
+DVVY US,,dividend_equity_not_option_income
+GAID US,,dividend_equity_not_option_income
+GAUD US,,dividend_equity_not_option_income
+IDVY US,,dividend_equity_not_option_income
