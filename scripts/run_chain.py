@@ -260,14 +260,27 @@ def main() -> int:
         'needs your call' section only if the cascade left something unresolved). Red:
         a single 'chain held' note. Everything the cascade auto-fixed is logged, not
         emailed. Best-effort; never fails the chain."""
+        # Explain what changed since last run (launches/closures). A REX launch moves a
+        # tracked number and trips the gate red — this is the WHY that accompanies it.
+        delta_text = ""
+        try:
+            from scripts.analyze_daily_delta import analyze, format_delta
+            delta_text = format_delta(analyze())
+        except Exception:  # noqa: BLE001 — best-effort; never fail the chain on this
+            delta_text = ""
+
         if RED_MARKER.exists():
-            _alert("REX reports HELD — preflight red",
-                   "run_chain built reports but preflight is RED, so previews were NOT promoted and "
-                   "send is hard-blocked. See data/.preflight_result.json for the failing check.")
+            body = ("run_chain built reports but preflight is RED, so previews were NOT promoted and "
+                    "send is hard-blocked. See data/.preflight_result.json for the failing check.")
+            if delta_text:
+                body += "\n\n" + delta_text
+            _alert("REX reports HELD — preflight red", body)
             return 0
         unresolved = _unresolved_items()
         body = ("Today's REX reports are built and preflight is green. Review the previews, then "
                 "run the send step when ready.")
+        if delta_text:
+            body += "\n\n" + delta_text
         if unresolved:
             body += ("\n\nNEEDS YOUR CALL — the self-healing cascade could not resolve these "
                      f"({len(unresolved)}); everything else was auto-fixed and logged:\n  - "
