@@ -170,5 +170,34 @@ def test_send_not_blocked_when_no_signal(tmp_path):
     assert blocked is False
 
 
+# ---------------------------------------------------------------------------
+# Previews promote ONLY on green (the other half of no-wrong-data)
+# ---------------------------------------------------------------------------
+
+def test_promotion_blocked_on_fail(tmp_path):
+    import json
+    from scripts.run_chain import should_block_promotion
+    rf = tmp_path / ".preflight_result.json"
+    rf.write_text(json.dumps({"overall_status": "fail"}), encoding="utf-8")
+    blocked, overall = should_block_promotion(rf)
+    assert blocked is True and overall == "fail"
+
+
+def test_promotion_allowed_on_green(tmp_path):
+    import json
+    from scripts.run_chain import should_block_promotion
+    rf = tmp_path / ".preflight_result.json"
+    rf.write_text(json.dumps({"overall_status": "pass"}), encoding="utf-8")
+    blocked, overall = should_block_promotion(rf)
+    assert blocked is False and overall == "pass"
+
+
+def test_promotion_fails_closed_when_unreadable(tmp_path):
+    # a build we can't prove green is NEVER promoted
+    from scripts.run_chain import should_block_promotion
+    blocked, overall = should_block_promotion(tmp_path / "missing.json")
+    assert blocked is True and overall == "fail"
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

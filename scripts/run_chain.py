@@ -38,6 +38,20 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+def should_block_promotion(result_file: Path) -> tuple[bool, str]:
+    """Pure predicate (Stage C) — should previews be HELD (not promoted to live)?
+
+    Mirrors send_all.preflight_blocks_send. Blocks on a preflight FAIL; an
+    unreadable/missing result is treated as RED (fail-closed) — we never promote a
+    build we can't prove green. Extracted + unit-tested because preview promotion is
+    the other half of the no-wrong-data guarantee (the send block is the first half)."""
+    try:
+        overall = json.loads(result_file.read_text(encoding="utf-8")).get("overall_status", "fail")
+    except Exception:
+        return True, "fail"
+    return (overall == "fail"), overall
+
+
 def _load_env():
     """Load config/.env into os.environ (so AI steps get ANTHROPIC_API_KEY even when
     invoked outside the systemd unit). Tolerates non KEY=VALUE lines."""
@@ -171,16 +185,13 @@ def main() -> int:
     def promote():
         """Promote staging -> live only on a green preflight; otherwise hard-block."""
         import shutil
-        # Read the structured result preflight just wrote.
+        # Read the structured result preflight just wrote (fail-closed via the pure
+        # predicate — an unreadable result is treated as RED).
         result_file = ROOT / "data" / ".preflight_result.json"
-        overall = "fail"
-        try:
-            overall = json.loads(result_file.read_text(encoding="utf-8")).get("overall_status", "fail")
-        except Exception as e:
-            print(f"  preflight result unreadable ({e}); treating as RED")
-        if overall == "fail":
+        blocked, overall = should_block_promotion(result_file)
+        if blocked:
             RED_MARKER.write_text(date.today().isoformat(), encoding="utf-8")
-            print("  PREFLIGHT RED — previews NOT promoted; send is hard-blocked. "
+            print(f"  PREFLIGHT {overall.upper()} — previews NOT promoted; send is hard-blocked. "
                   "Last-good previews left intact.")
             return 1
         # green (or warn): promote
