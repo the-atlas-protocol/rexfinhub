@@ -181,7 +181,7 @@ def check_postconditions(
                    OR issuer_display LIKE '%ETF Series%' OR issuer_display LIKE '%Managers Trust%'
                    OR issuer_display LIKE '%Fund Inc%' OR issuer_display LIKE '%Series Portfolio%'
                    OR issuer_display LIKE '%Trust I%' OR issuer_display LIKE '%Trust/%'
-                   OR issuer_display LIKE '%Funds Series%' OR issuer_display LIKE '%/%')
+                   OR issuer_display LIKE '%Funds Series%' OR issuer_display LIKE '% / %')
             GROUP BY issuer_display ORDER BY COUNT(*) DESC
             """
         )

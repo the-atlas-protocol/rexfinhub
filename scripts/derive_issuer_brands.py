@@ -209,6 +209,13 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^EQUABLE\b", "Equable"),
     (r"^BILLIONAIRES?\b", "Billionaires"),
     (r"^MAN\b", "Man"),  # 'MAN ETF Series Trust' — anchored, won't hit 'MANAGED'
+    (r"^INCOMESTKD|^INCOMESTACKED", "IncomeStacked"),
+    (r"^AAM\b", "AAM"),
+    (r"^XETFS?\b", "xETFs"),
+    (r"^CLIMATE\s+GLOBAL", "Climate Global"),
+    (r"^PLUS\s+KOREA", "PLUS"),
+    (r"^US\s+VEGAN|^VEGAN\b", "US Vegan"),
+    (r"^RJ\s+EAGLE", "Carillon"),
 ]
 
 # Compile once for speed
@@ -249,7 +256,16 @@ def main() -> int:
         SELECT ticker, fund_name, issuer, etp_category, COALESCE(is_rex, 0)
         FROM mkt_master_data
         WHERE market_status IN ('ACTV', 'PEND')
-          AND (issuer_display IS NULL OR issuer_display = '' OR issuer_display = issuer)
+          AND (issuer_display IS NULL OR issuer_display = '' OR issuer_display = issuer
+               -- Also reprocess legal-trust LEAKS where issuer_display was set to a
+               -- legal entity (!= issuer), so new brand patterns can correct them.
+               -- (Ryu 2026-06-17.) First Trust / Northern Trust are real brands.
+               OR (issuer_display NOT IN ('First Trust', 'Northern Trust') AND (
+                    issuer_display LIKE '%ETF Trust%' OR issuer_display LIKE '%Series Trust%'
+                    OR issuer_display LIKE '%Series Solutions%' OR issuer_display LIKE '%Fund Inc%'
+                    OR issuer_display LIKE '%Trust I%' OR issuer_display LIKE '% / %'
+                    OR issuer_display LIKE '%Managers Trust%' OR issuer_display LIKE '%Series Portfolio%'
+                    OR issuer_display LIKE '%Funds Trust%')))
         ORDER BY ticker
         """
     )
