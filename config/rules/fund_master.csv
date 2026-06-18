@@ -7543,3 +7543,4 @@ APHG US,LEVERAGE SHARES 2X LONG APH DAILY ETF,,Equity,L&I,Long,single,APH,,,stan
 TELG US,LEVERAGE SHARES 2X LONG TEL DAILY ETF,,Equity,L&I,Long,single,TEL,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-16,auto: legacy candidate translated (classify_daily)
 TSEG US,LEVERAGE SHARES 2X LONG TSEM DAILY ETF,,Equity,L&I,Long,single,TSEM,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-16,auto: legacy candidate translated (classify_daily)
 FREI US,FIDELITY REAL ESTATE INCOME FUND - ETF CLASS,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-17,auto: legacy candidate translated (classify_daily)
+XSHP US,KURV SPACEX ENHANCED INCOME ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-17,auto: legacy candidate translated (classify_daily)
