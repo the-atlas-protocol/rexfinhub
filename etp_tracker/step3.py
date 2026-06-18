@@ -128,21 +128,32 @@ def _parse_485a_election(txt: str, filing_date) -> tuple[str, str]:
         anchor = low.find("proposed that this filing")
     if anchor < 0:
         anchor = low.find("become effective")
-    window = txt[anchor:anchor + 4000] if anchor >= 0 else txt[:20000]
-    s = window
-    for g, r in (("☒", "[X]"), ("☑", "[X]"), ("■", "[X]"),
-                 ("☐", "[ ]"), ("&#9746;", "[X]"), ("&#9745;", "[X]"),
-                 ("&#9632;", "[X]"), ("&#9744;", "[ ]"), ("&#9633;", "[ ]")):
-        s = s.replace(g, r)
-    text = re.sub(r"\s+", " ", _htmllib.unescape(re.sub(r"<[^>]+>", " ", s)))
+    # 8000-char window: some filers (KraneShares) put the elected date ~5.4k past
+    # the anchor. (Ryu 2026-06-17, scraping-methodology pass.)
+    window = txt[anchor:anchor + 8000] if anchor >= 0 else txt[:24000]
+    # 1) strip tags + unescape entities FIRST so hex (&#x2612;) and decimal (&#9746;)
+    #    entities + Wingdings PUA (&#61560;) become their unicode chars.
+    raw = _htmllib.unescape(re.sub(r"<[^>]+>", " ", window))
+    # 2) decode every CHECKED glyph (ballot-x, square, checkmarks, Wingdings PUA
+    #    0xF078, thorn) to [X]. We only need the CHECKED marker, not the empties.
+    for g in ("☒", "☑", "■", "✓", "✔", "✅",
+              "", "", "þ"):
+        raw = raw.replace(g, "[X]")
+    # 3) normalize bracket/paren checkbox delimiters: [ X ] ( X ) (X) -> [X]; [ ] () -> [ ]
+    raw = re.sub(r"[\[\(]\s*[xX]\s*[\]\)]", "[X]", raw)
+    raw = re.sub(r"\[\s+\]", "[ ]", raw)
+    raw = re.sub(r"\(\s*\)", "[ ]", raw)
+    text = re.sub(r"\s+", " ", raw)
 
     def _checked(pre: str) -> bool:
-        tail = pre[-12:].upper()
-        return "[X]" in tail or re.search(r"(?<![A-Z\[])X\s*$", tail) is not None
+        tail = pre[-16:].upper()
+        return "[X]" in tail or re.search(r"(?<![A-Z0-9\[])X\s*$", tail) is not None
 
-    # Most specific first: an explicitly elected calendar date.
-    for m in re.finditer(r"on\s+([A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4})", text):
-        if _checked(text[max(0, m.start() - 14):m.start()]):
+    # Most specific first: an explicitly elected calendar date (case-insensitive,
+    # tolerate "on or about <date>").
+    for m in re.finditer(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})",
+                         text, re.IGNORECASE):
+        if _checked(text[max(0, m.start() - 16):m.start()]):
             d = _parse_date_string(m.group(1))
             if d:
                 return d, "ELECTION"
@@ -150,7 +161,7 @@ def _parse_485a_election(txt: str, filing_date) -> tuple[str, str]:
                       (r"60\s*days?\s+after\s+filing", 60),
                       (r"75\s*days?\s+after\s+filing", 75)):
         for m in re.finditer(pat, text, re.IGNORECASE):
-            if _checked(text[max(0, m.start() - 14):m.start()]):
+            if _checked(text[max(0, m.start() - 16):m.start()]):
                 return (fdt + pd.Timedelta(days=days)).strftime("%Y-%m-%d"), "ELECTION"
     return "", ""
 
