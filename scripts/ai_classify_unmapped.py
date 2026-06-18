@@ -139,12 +139,14 @@ def main() -> int:
         counts[r["etp_category"]] = counts.get(r["etp_category"], 0) + 1
     print(f"  classified {len(results)} | applying {len(apply)} {counts} | LOW (review) {len(low)}")
 
-    # Cascade rung 3 (ADR 0013): for funds even the name+description couldn't place
-    # (returned 'none'/LOW), SEARCH THE WEB before giving up — completing the
-    # rules -> description -> web cascade for categories, not just brands. Bounded +
-    # journaled + offline-safe (skips when no key). Only genuinely-stuck funds, capped.
-    _placed = {r["ticker"] for r in apply}
-    stuck = [f for f in funds if f["ticker"] not in _placed][:15]
+    # Cascade rung 3 (ADR 0013): for funds even the name+description couldn't place,
+    # SEARCH THE WEB before giving up — completing rules -> description -> web for
+    # categories, not just brands. Bounded + journaled + offline-safe (skips when no
+    # key). Only GENUINELY-stuck funds: a fund the batch confidently placed (incl. a
+    # confident 'none' = a bond / broad-equity we don't track) is DECIDED — don't burn
+    # a web search on it. Stuck = not returned at all, or returned only LOW-confidence.
+    _decided = {r["ticker"] for r in results if r.get("confidence") in ("HIGH", "MEDIUM")}
+    stuck = [f for f in funds if f["ticker"] not in _decided][:15]
     if stuck:
         try:
             from market.resolve import Cascade, make_web_search_rung, FactRequest
