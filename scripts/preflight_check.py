@@ -852,6 +852,60 @@ def audit_ai_semantic_review(db) -> dict:
     return out
 
 
+def audit_contract_numbers(db) -> dict:
+    """Stage C: every headline number must equal its contract expected value.
+
+    Reads the report-rules contract (config/contracts/report_numbers.yaml) and recomputes
+    each number from the live master via the ONE filter (apply_report_filter), then compares
+    to the declared `expected`. A mismatch is a HARD FAIL — a number that drifted from its
+    rule must not ship. (Phase 6 will let a launch/closure explain an expected change; until
+    then any drift blocks, which is the safe default.)"""
+    out = {"name": "Contract numbers", "status": "pass", "detail": "", "mismatches": []}
+    try:
+        from market import contracts
+        from webapp.services.report_data import _load_from_db
+    except Exception as e:  # noqa: BLE001
+        out["status"] = "warn"
+        out["detail"] = f"contract/report_data import failed ({type(e).__name__}); skipped"
+        return out
+    if db is None:
+        out["status"] = "warn"
+        out["detail"] = "no DB session; contract numbers not checked"
+        return out
+    try:
+        master = _load_from_db(db)["master"]
+    except Exception as e:  # noqa: BLE001
+        out["status"] = "warn"
+        out["detail"] = f"could not load master ({type(e).__name__}); skipped"
+        return out
+
+    checked = 0
+    for rid, expected in contracts.expected_values().items():
+        got = contracts.count_for_rule(master, rid)
+        checked += 1
+        if got != expected:
+            out["mismatches"].append({"rule": rid, "expected": expected, "got": got})
+        # member-level check where the contract pins exact members (e.g. NVII/TSII/WMTI)
+        members = contracts.get_rule(rid).get("expected_members")
+        if members:
+            sel = contracts.apply_report_filter(master, rid)
+            actual = sorted(str(t).replace(" US", "").strip() for t in sel.get("ticker_clean", []))
+            if actual != sorted(members):
+                out["mismatches"].append({"rule": rid, "expected_members": sorted(members),
+                                          "got_members": actual})
+
+    if out["mismatches"]:
+        out["status"] = "fail"
+        out["detail"] = "; ".join(
+            (f"{m['rule']}: expected {m['expected']} got {m['got']}" if "expected" in m
+             else f"{m['rule']}: members {m['got_members']} != {m['expected_members']}")
+            for m in out["mismatches"]
+        )
+    else:
+        out["detail"] = f"all {checked} contract numbers tie out"
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -879,7 +933,7 @@ def main():
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
-               audit_ai_semantic_review):
+               audit_contract_numbers, audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)
