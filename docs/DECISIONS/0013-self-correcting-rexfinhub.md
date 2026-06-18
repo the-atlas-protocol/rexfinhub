@@ -91,7 +91,7 @@ Deleted the second market write path with airtight 3-gate evidence (below).
 |---|---|---|---|---|
 | `scripts/run_market_pipeline.py` | only `run_all_pipelines.py` (Windows-legacy) + 1 HTML string | not a VPS systemd unit; prod = `sync_market_data`/`run_chain` | `sync_market_data` supersedes (adds MS override + post-steps it lacked) | **DELETED** |
 | `market/derive.py` (`derive_dim_fund_category` + the `issuer_mapping` brand branch) | only `run_market_pipeline.py` | dead after the above | live brand path is `derive_issuer_brands` | **DELETED** |
-| `market/transform.py::run_transform` | only `run_market_pipeline.py` | dead after the above | n/a | left in place (large module; flagged dead) |
+| `market/transform.py` (`run_transform` + 12 step fns) | only `run_market_pipeline.py` | dead after the above; no test/import | live transform is `sync_market_data` | **DELETED** (lineage `ing_xform` node corrected to `sync_market_data`) |
 | `issuer_mapping.csv` (brand use) | was read only by `derive_dim_fund_category` | neutralized by the deletions above | `issuer_brand_overrides.csv` | brand drift origin removed |
 | `trex_combined_v2`–`v8` | — | — | — | already archived (`archive/retired-2026-06-16/`) |
 
@@ -102,8 +102,6 @@ Deleted the second market write path with airtight 3-gate evidence (below).
 - **Timer retirement** (Stage E): `systemctl disable rexfinhub-parquet-rebuild.timer`
   (folded into the chain) and `rexfinhub-classification-sweep.timer` once the chain
   proves green — VPS ops, see RUNBOOK.
-- `market/transform.py` is now dead (only the deleted path used it); delete in a focused
-  follow-up.
 
 ## Consequences
 

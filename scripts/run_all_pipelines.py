@@ -21,7 +21,6 @@ Usage:
     python scripts/run_all_pipelines.py --email-only      # 5 PM email dispatch
     python scripts/run_all_pipelines.py --skip-sec        # skip SEC pipeline
     python scripts/run_all_pipelines.py --skip-market     # skip market pipeline
-    python scripts/run_all_pipelines.py --force-market    # force market even if unchanged
 """
 from __future__ import annotations
 
@@ -166,7 +165,6 @@ def main():
     parser.add_argument("--skip-email", action="store_true", help="Skip email digest")
     parser.add_argument("--email-only", action="store_true",
                         help="Email dispatch only (skip all pipelines + upload)")
-    parser.add_argument("--force-market", action="store_true", help="Force market pipeline even if data unchanged")
     parser.add_argument("--edition", choices=["morning", "evening", "daily"], default=None,
                         help="Digest edition (default: daily)")
     args = parser.parse_args()
