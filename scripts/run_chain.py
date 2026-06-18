@@ -25,6 +25,7 @@ timer; sending is the explicit `/refreshdata send` step, gated by .send_enabled.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -100,12 +101,23 @@ def main() -> int:
     def post_steps():
         return _sub([py, str(ROOT / "scripts" / "apply_bloomberg_post_steps.py")])
 
+    # Stage C: build into a STAGING dir, gate it with preflight, and promote to the
+    # live previews dir ONLY when preflight is green. A red build never overwrites the
+    # last-good previews and is hard-blocked from send (send_all reads the result file).
+    LIVE_PREVIEWS = ROOT / "outputs" / "previews"
+    STAGING_PREVIEWS = ROOT / "outputs" / "previews_staging"
+    RED_MARKER = ROOT / "data" / ".preflight_red"
+
     def build_reports():
         from webapp.database import init_db, SessionLocal
         from scripts.send_all import REPORTS
         init_db()
         db = SessionLocal()
-        out = ROOT / "outputs" / "previews"
+        out = STAGING_PREVIEWS
+        # fresh staging dir so a build error can't leave a stale file that gates green
+        import shutil
+        if out.exists():
+            shutil.rmtree(out)
         out.mkdir(parents=True, exist_ok=True)
         today = date.today().isoformat()
         ok, err = [], []
@@ -122,11 +134,39 @@ def main() -> int:
                     print(f"  ERR  {key:16s} {type(e).__name__}: {str(e)[:120]}")
         finally:
             db.close()
-        print(f"  built {len(ok)}/{len(REPORTS)}; errors: {err or 'none'}")
+        print(f"  built {len(ok)}/{len(REPORTS)} into staging; errors: {err or 'none'}")
         return 1 if err else 0
 
     def preflight():
-        return _sub([py, str(ROOT / "scripts" / "preflight_check.py")])
+        # Point preflight at the STAGING build so it gates what we're about to promote.
+        env = dict(os.environ, REX_PREVIEW_DIR=str(STAGING_PREVIEWS))
+        return subprocess.run([py, str(ROOT / "scripts" / "preflight_check.py")],
+                              cwd=str(ROOT), env=env).returncode
+
+    def promote():
+        """Promote staging -> live only on a green preflight; otherwise hard-block."""
+        import shutil
+        # Read the structured result preflight just wrote.
+        result_file = ROOT / "data" / ".preflight_result.json"
+        overall = "fail"
+        try:
+            overall = json.loads(result_file.read_text(encoding="utf-8")).get("overall_status", "fail")
+        except Exception as e:
+            print(f"  preflight result unreadable ({e}); treating as RED")
+        if overall == "fail":
+            RED_MARKER.write_text(date.today().isoformat(), encoding="utf-8")
+            print("  PREFLIGHT RED — previews NOT promoted; send is hard-blocked. "
+                  "Last-good previews left intact.")
+            return 1
+        # green (or warn): promote
+        LIVE_PREVIEWS.mkdir(parents=True, exist_ok=True)
+        for f in STAGING_PREVIEWS.glob("*.html"):
+            shutil.copy2(f, LIVE_PREVIEWS / f.name)
+        if RED_MARKER.exists():
+            RED_MARKER.unlink()
+        print(f"  PREFLIGHT {overall.upper()} — promoted "
+              f"{len(list(STAGING_PREVIEWS.glob('*.html')))} previews to outputs/previews/.")
+        return 0
 
     steps = [] if args.skip_pull else [("git_pull", git_pull)]
     steps += [
@@ -134,14 +174,18 @@ def main() -> int:
         ("post_steps_classify_ai_enrich", post_steps),
         ("build_all_reports", build_reports),
         ("preflight", preflight),
+        ("promote_or_block", promote),
     ]
     for label, fn in steps:
         rc = _step(label, fn)
         worst = max(worst, rc)
 
     print(f"\n=== run_chain COMPLETE (worst rc={worst}) ===")
-    print("Previews in outputs/previews/. Gate stays closed — send is the explicit "
-          "`/refreshdata send` step.")
+    if RED_MARKER.exists():
+        print("Gate RED — preview not promoted, send hard-blocked. Fix the data and re-run.")
+    else:
+        print("Previews promoted to outputs/previews/. Gate stays closed — send is the "
+              "explicit `/refreshdata send` step.")
     return worst
 
 

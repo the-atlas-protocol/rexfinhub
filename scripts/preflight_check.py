@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
 import uuid
 from datetime import date, datetime
@@ -42,27 +44,20 @@ TOKEN_FILE = DATA_DIR / ".preflight_token"
 RESULT_FILE = DATA_DIR / ".preflight_result.json"
 MAINTENANCE_FLAG = DATA_DIR / ".preflight_maintenance"
 EXPECTED_RECIPIENTS = PROJECT_ROOT / "config" / "expected_recipients.json"
-PREVIEW_DIR = PROJECT_ROOT / "outputs" / "previews"
+# Overridable so run_chain can gate a STAGING build before promoting it to the live
+# previews dir (Stage C: stage -> preflight -> promote-on-green).
+PREVIEW_DIR = Path(os.environ.get("REX_PREVIEW_DIR", str(PROJECT_ROOT / "outputs" / "previews")))
 
 
 def _maintenance_window_active() -> bool:
-    """Return True if the operator-flagged maintenance window is active.
+    """Permanently disabled (approved plan, Stage C): the maintenance escape hatch
+    is what let wrong data ship — a WARN-only downgrade meant a real defect previewed
+    and sent silently. There is no longer any way to wave a failing audit through;
+    fix the data (the Stage-B cascade resolves most of it automatically) instead.
 
-    During an active maintenance window, audit_attribution_completeness
-    downgrades threshold-failures from 'fail' to 'warn'. Use only while
-    upstream classification fixes propagate; remove the flag once
-    primary_strategy / issuer_display populate normally.
-
-    Phase 7 Part B Stage 2 (ADR 0010): DB-first read; legacy file fallback.
-    """
-    try:
-        from webapp.services.system_flags import get_flag
-        return get_flag("preflight_maintenance")
-    except ImportError:
-        try:
-            return MAINTENANCE_FLAG.exists()
-        except Exception:
-            return False
+    Kept as a no-op returning False so the existing `if _maintenance_window_active()`
+    branches collapse to their strict (FAIL) path without restructuring every audit."""
+    return False
 
 # Thresholds — alert if exceeded
 BBG_MAX_AGE_HOURS = 12
@@ -770,6 +765,102 @@ def audit_report_charts(db) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Audit 10: Forbidden status strings in rendered previews (NEW — hard FAIL)
+# ---------------------------------------------------------------------------
+
+# A status rendered into a cell/badge is the full text content of an HTML element.
+# Matching ">Pending<" (not the bare word) targets rendered status values and avoids
+# false positives in prose. canonical_status() must have mapped these away already.
+_FORBIDDEN_STATUS_RE = re.compile(
+    r">\s*(Pending|Delayed|Target List)\s*<", re.IGNORECASE
+)
+
+
+def audit_status_canonical(db) -> dict:
+    """Stage C: scan every built preview for a non-canonical status that leaked into a
+    rendered cell. canonical_status() is the single source — any 'Pending'/'Delayed'/
+    'Target List' on a surface means a render site bypassed it. Hard FAIL."""
+    out = {"name": "Status canonical", "status": "pass", "detail": "", "hits": []}
+    scanned = 0
+    for path in sorted(PREVIEW_DIR.glob("*.html")) if PREVIEW_DIR.exists() else []:
+        try:
+            html = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        scanned += 1
+        found = {m.group(1).title() for m in _FORBIDDEN_STATUS_RE.finditer(html)}
+        if found:
+            out["hits"].append({"file": path.name, "statuses": sorted(found)})
+    if out["hits"]:
+        out["status"] = "fail"
+        out["detail"] = ("non-canonical status rendered in: "
+                         + "; ".join(f"{h['file']} ({', '.join(h['statuses'])})"
+                                     for h in out["hits"]))
+    else:
+        out["detail"] = f"no forbidden status in {scanned} previews"
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Audit 11: AI semantic review (NEW — judges correctness, not just format)
+# ---------------------------------------------------------------------------
+
+def audit_ai_semantic_review(db) -> dict:
+    """Stage C: an AI reviewer of the assembled KPIs looks for *semantic* defects the
+    mechanical checks can't see — a KPI that disagrees with the real REX lineup, an
+    issuer_display that's a legal entity not a brand, a number that doesn't make sense.
+
+    Degrades gracefully: if the API key isn't configured the audit is a PASS-skip (the
+    cheap deterministic audits still gate). Only HIGH-confidence defects FAIL, so a
+    model hiccup never blocks a clean build."""
+    out = {"name": "AI semantic review", "status": "pass", "detail": "", "defects": []}
+    try:
+        from webapp.services import claude_service
+    except Exception as e:
+        out["detail"] = f"reviewer unavailable ({type(e).__name__}); deterministic gates still apply"
+        return out
+    if not claude_service.is_configured():
+        out["detail"] = "API key not configured; skipped (deterministic gates still apply)"
+        return out
+
+    # Gather the facts to judge: REX lineup count + a sample of issuer_displays.
+    import sqlite3
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    facts: dict = {}
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM mkt_master_data WHERE market_status='ACTV' AND COALESCE(is_rex,0)=1")
+        facts["rex_actv_count"] = cur.fetchone()[0]
+        cur.execute("""SELECT issuer_display, COUNT(*) FROM mkt_master_data
+                       WHERE market_status='ACTV' AND COALESCE(TRIM(issuer_display),'')<>''
+                       GROUP BY issuer_display ORDER BY COUNT(*) DESC LIMIT 60""")
+        facts["issuer_displays"] = [{"brand": r[0], "n": r[1]} for r in cur.fetchall()]
+        con.close()
+    except sqlite3.Error as e:
+        out["detail"] = f"could not gather facts ({e}); skipped"
+        return out
+
+    try:
+        defects = claude_service.review_report_facts(facts)
+    except Exception as e:
+        out["detail"] = f"reviewer call failed ({type(e).__name__}); deterministic gates still apply"
+        return out
+
+    high = [d for d in defects if str(d.get("severity", "")).upper() == "HIGH"]
+    out["defects"] = defects
+    if high:
+        out["status"] = "fail"
+        out["detail"] = "; ".join(f"{d.get('issue','?')}" for d in high[:5])
+    elif defects:
+        out["status"] = "warn"
+        out["detail"] = f"{len(defects)} low/medium observations (non-blocking)"
+    else:
+        out["detail"] = "no semantic defects found"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -795,7 +886,8 @@ def main():
     for fn in (audit_bloomberg, audit_classification, audit_ticker_dupes_recent,
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
-               audit_report_charts):
+               audit_report_charts, audit_status_canonical,
+               audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)

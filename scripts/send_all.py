@@ -375,6 +375,25 @@ def main():
                   f"token={decision.get('token','?')[:8]} recorded={decision.get('recorded_et','?')}")
         print(f"Decision: GO (token {decision.get('token','?')[:8]}, recorded {decision.get('recorded_et','?')})")
 
+    # Stage C — hard-block any real send when the latest preflight is RED. This couples
+    # the send checkpoint to a green build for BOTH the autonomous (--use-decision) and
+    # the manual (--send) paths; previously only --use-decision was gated. A test send
+    # (--to) or dry-run is allowed through so the operator can still preview.
+    if args.send and not args.to:
+        result_file = PROJECT_ROOT / "data" / ".preflight_result.json"
+        red_marker = PROJECT_ROOT / "data" / ".preflight_red"
+        overall = None
+        try:
+            overall = json.loads(result_file.read_text(encoding="utf-8")).get("overall_status")
+        except Exception:
+            overall = None
+        if red_marker.exists() or overall == "fail":
+            _ts = _now_et()
+            reason = "preflight_red marker present" if red_marker.exists() else "preflight overall_status=fail"
+            print(f"ABORT: send refused — {reason} at {_ts} ET. Fix the data and re-run the chain.")
+            _gate_log("read", "blocked_red_preflight", "send_all.py", reason)
+            return 2
+
     dry_run = not args.send
     bundle_keys = BUNDLES[args.bundle]
 

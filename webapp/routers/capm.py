@@ -358,13 +358,14 @@ def _build_unified_row(
     inception_date = rex.inception_date or rex.official_listed_date
 
     # Status — rex.status is most accurate for in-flight; mkt gives us live
-    # exchange status for trading funds.
+    # exchange status for trading funds. EVERY status shown to a user MUST route
+    # through canonical_status() (single source) — no inline maps that can leak a
+    # raw 'Pending'/'Delayed' (Ryu: those must NEVER reach a surface). Stage A.
+    from market.definitions import canonical_status
     if rex.status:
-        status_display = rex.status
+        status_display = canonical_status(rex.status)
     elif mkt and mkt.market_status:
-        status_display = {
-            "ACTV": "Listed", "PEND": "Pending", "LIQU": "Delisted",
-        }.get(mkt.market_status, mkt.market_status)
+        status_display = canonical_status(mkt.market_status)
     elif rex.inception_date:
         status_display = "Listed"
     else:

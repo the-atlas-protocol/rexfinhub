@@ -39,6 +39,9 @@ TAXONOMY = """Classify each ETP into REX's proprietary taxonomy. Assign exactly 
 - Defined = defined-outcome / buffer / floor / cap / target-outcome structured payoffs.
 - Thematic = thematic EQUITY basket (AI, drones, nuclear, space, uranium, defense, etc.), plain-beta (not leveraged).
 - none = anything else: broad equity, fixed income/bonds, money market, commodity spot, multi-asset, currency.
+When a `bloomberg_description` is present, decide from the MECHANISM it states (the issuer's own
+words) — it is stronger evidence than the fund name. Only fall back to the name when the description
+is absent or uninformative.
 Return STRICT JSON array, one object per fund: {"ticker","etp_category":"LI|CC|Crypto|Defined|Thematic|none","confidence":"HIGH|MEDIUM|LOW","reason":"<=15 words"}."""
 
 
@@ -59,7 +62,8 @@ def _candidates(db):
     from sqlalchemy import text
     _seen = _already_seen()
     rows = db.execute(text("""
-        SELECT ticker, fund_name, COALESCE(issuer,''), COALESCE(asset_class,''), market_status
+        SELECT ticker, fund_name, COALESCE(issuer,''), COALESCE(asset_class,''), market_status,
+               COALESCE(fund_description,'')
         FROM mkt_master_data
         WHERE COALESCE(etp_category,'')='' AND market_status IN ('ACTV','PEND')
           AND ( market_status='PEND'
@@ -70,12 +74,18 @@ def _candidates(db):
              OR UPPER(fund_name) LIKE '%COVERED CALL%' OR UPPER(fund_name) LIKE '%CRYPTO%' )
         ORDER BY market_status, fund_name
     """)).fetchall()
-    return [{"ticker": r[0], "fund_name": r[1], "issuer": r[2], "asset_class": r[3], "status": r[4]}
+    return [{"ticker": r[0], "fund_name": r[1], "issuer": r[2], "asset_class": r[3],
+             "status": r[4], "fund_description": r[5]}
             for r in rows if r[0] not in _seen]
 
 
 def _classify_batch(client, funds):
-    payload = [{"ticker": f["ticker"], "fund_name": f["fund_name"], "issuer": f["issuer"], "asset_class": f["asset_class"]} for f in funds]
+    # Stage B rung 2: include the Bloomberg fund_description (the issuer's own words)
+    # so the option-income-vs-bond / thematic / L&I / crypto decision is made on the
+    # mechanism the description states, not just the fund name. Truncated to bound cost.
+    payload = [{"ticker": f["ticker"], "fund_name": f["fund_name"], "issuer": f["issuer"],
+                "asset_class": f["asset_class"],
+                "bloomberg_description": (f.get("fund_description") or "")[:600]} for f in funds]
     msg = client.messages.create(
         model=MODEL, max_tokens=8000,
         messages=[{"role": "user", "content": TAXONOMY + "\n\nFUNDS:\n" + json.dumps(payload)}],

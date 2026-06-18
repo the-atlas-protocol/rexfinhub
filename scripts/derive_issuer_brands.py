@@ -247,6 +247,50 @@ def match_brand(fund_name: str) -> str | None:
     return None
 
 
+# Leading filler words that are never the brand.
+_FALLBACK_STOPWORDS = {"THE", "A", "AN", "OF", "US", "U.S.", "USA", "2X", "3X"}
+
+
+def name_fallback_brand(fund_name: str) -> str | None:
+    """Deterministic last-resort brand: the first significant word(s) of the fund
+    name. A brand ALWAYS resolves (issuer_display is never left NULL); the legal-trust
+    leak gate (apply_issuer_brands.check_postconditions) catches anything wrong so it
+    gets a real pattern/override instead of shipping. Per the approved plan, Stage B.
+
+    'CORGI AI Power ETF' -> 'Corgi'; 'The Free Markets ETF' -> 'Free'. Returns None
+    only for an empty/garbage name (caller then leaves it for the human queue)."""
+    raw = (fund_name or "").strip()
+    raw = raw.replace("™", "").replace("(TM)", "").replace("(R)", "").replace("®", "")
+    if not raw:
+        return None
+    for token in raw.split():
+        word = token.strip(".,&/-")
+        if not word:
+            continue
+        if word.upper() in _FALLBACK_STOPWORDS:
+            continue
+        # need at least 2 alphabetic chars to be a plausible brand word
+        if sum(c.isalpha() for c in word) < 2:
+            continue
+        # Preserve all-caps acronyms (AXS, AAM); title-case ordinary words.
+        return word if word.isupper() else word.capitalize()
+    return None
+
+
+def _build_brand_cascade():
+    """Return a description->web Cascade for brand resolution, or None when the AI
+    layer is unavailable (no anthropic / no API key) so we stay fully offline-safe.
+    The deterministic regex + name-fallback run regardless of this."""
+    try:
+        from webapp.services import claude_service
+        if not claude_service.is_configured():
+            return None
+        from market.resolve import Cascade, make_description_rung, make_web_search_rung
+        return Cascade([make_description_rung(), make_web_search_rung()])
+    except Exception:
+        return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Derive issuer_display from fund_name regex (Layer 1)."
@@ -263,7 +307,8 @@ def main() -> int:
     cur = con.cursor()
     cur.execute(
         """
-        SELECT ticker, fund_name, issuer, etp_category, COALESCE(is_rex, 0)
+        SELECT ticker, fund_name, issuer, etp_category, COALESCE(is_rex, 0),
+               COALESCE(fund_description, '')
         FROM mkt_master_data
         WHERE market_status IN ('ACTV', 'PEND')
           AND (issuer_display IS NULL OR issuer_display = '' OR issuer_display = issuer
@@ -292,21 +337,53 @@ def main() -> int:
     l1_hits: list[dict] = []
     residue: list[dict] = []
 
-    for ticker, fund_name, issuer, etp_category, is_rex in rows:
-        brand = match_brand(fund_name or "")
+    # Optional AI rungs (description -> web). Only built when anthropic + a key are
+    # available; otherwise the cascade is regex -> name-fallback (fully offline-safe).
+    _brand_cascade = _build_brand_cascade()
+
+    for ticker, fund_name, issuer, etp_category, is_rex, fund_description in rows:
+        regex_brand = match_brand(fund_name or "")
+        brand = regex_brand
+        source = "layer1_regex"
+        notes = f"Matched fund_name: {(fund_name or '').strip()}"
         if not brand and is_rex:
             # Every is_rex fund is a REX product; sub-brands (T-REX, MicroSectors,
             # REX-Osprey) are already caught by regex, so a remaining is_rex miss is
             # a plain REX fund (e.g. TLDR, The Laddered T-Bill ETF — name has no
             # brand keyword). Default it to REX rather than leave issuer_display NULL.
-            brand = "REX"
+            brand, source, notes = "REX", "is_rex_default", "is_rex default -> REX"
+        if not brand and _brand_cascade is not None:
+            # rung 2/3: read the Bloomberg description / web search before guessing.
+            from market.resolve import FactRequest
+            res = _brand_cascade.resolve(FactRequest(
+                kind="issuer_brand", ticker=ticker, fund_name=fund_name or "",
+                fund_description=fund_description or ""))
+            if res is not None and res.accepted:
+                brand, source = res.value, res.source
+                notes = f"rung{res.rung}: {res.reason}" + (f" [{res.citation}]" if res.citation else "")
+        if not brand:
+            # rung ~3.5: deterministic name fallback so issuer_display is NEVER NULL.
+            # The leak gate flags it if wrong -> gets a real pattern/override later.
+            fb = name_fallback_brand(fund_name or "")
+            if fb:
+                brand, source, notes = fb, "name_fallback", f"first significant word of: {(fund_name or '').strip()}"
         if brand:
             l1_hits.append({
                 "ticker": ticker,
                 "issuer_display": brand,
-                "source": "layer1_regex" if match_brand(fund_name or "") else "is_rex_default",
-                "notes": f"Matched fund_name: {(fund_name or '').strip()}" if match_brand(fund_name or "") else "is_rex default -> REX",
+                "source": source,
+                "notes": notes,
             })
+            # name_fallback / AI rows are still surfaced (not alerted) so Ryu CAN
+            # curate them — but they don't block and issuer_display is populated.
+            if source != "layer1_regex":
+                residue.append({
+                    "ticker": ticker,
+                    "fund_name": fund_name,
+                    "etp_category": etp_category,
+                    "current_issuer": issuer,
+                    "suggested_brand": brand,
+                })
         else:
             residue.append({
                 "ticker": ticker,
