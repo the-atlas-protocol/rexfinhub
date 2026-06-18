@@ -1313,11 +1313,11 @@ def get_li_report(db: Session | None = None, use_cache: bool = True) -> dict:
 
     # Filter to LI tickers (ETFs + ETNs, ACTV only — was missing the ACTV filter
     # pre-2026-06-08, which over-counted by 13 funds / $9.6B from delisted+pending REX
-    # products. See report_emails BUG-01 for context).
-    li_mask = (master["etp_category"] == "LI") & (master["fund_type"].isin(["ETF", "ETN"]))
-    if "market_status" in master.columns:
-        li_mask = li_mask & (master["market_status"] == "ACTV")
-    li = master[li_mask].copy()
+    # products. See report_emails BUG-01 for context). The universe + ticker dedup now
+    # come from the ONE report-rules contract (config/contracts/report_numbers.yaml) so
+    # the LI/CC/flow reports can't filter the same idea three different ways.
+    from market.contracts import apply_report_filter
+    li = apply_report_filter(master, "li_universe_actv")
     if li.empty:
         return {"available": True, "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
                 "kpis": {}, "providers": [], "top10": [], "bottom10": [],
@@ -1638,15 +1638,10 @@ def get_cc_report(db: Session | None = None, use_cache: bool = True) -> dict:
     # twice. That inflated the market KPIs (359 vs 337, $192B vs $188B),
     # broke segment AUM (Index $110B vs $180B), and double-counted REX flow
     # so AIPI's per-row flow appeared larger than NVII's true single-row flow.
-    # Mirror the canonical filter used in get_flow_report() + dedupe by ticker.
-    cc_mask = master["etp_category"] == "CC"
-    if "market_status" in master.columns:
-        cc_mask = cc_mask & (master["market_status"] == "ACTV")
-    if "fund_type" in master.columns:
-        cc_mask = cc_mask & (master["fund_type"].isin(["ETF", "ETN"]))
-    cc = master[cc_mask].copy()
-    if "ticker_clean" in cc.columns:
-        cc = cc.drop_duplicates(subset=["ticker_clean"], keep="first")
+    # The universe + ticker dedup come from the ONE report-rules contract so the
+    # LI/CC/flow reports filter the same idea identically (config/contracts/report_numbers.yaml).
+    from market.contracts import apply_report_filter
+    cc = apply_report_filter(master, "cc_universe_actv")
     if cc.empty:
         return {"available": True, "data_as_of": cache["data_as_of"], "data_as_of_short": cache.get("data_as_of_short", ""),
                 "kpis": {}, "rex_funds": [], "top_flow_segments": {},
@@ -2270,22 +2265,15 @@ def get_flow_report(db: Session | None = None, use_cache: bool = True) -> dict:
     data_aum = cache.get("data_aum", pd.DataFrame())
     rex_tickers = cache["rex_tickers"]
 
-    # --- Active ETP mask (ETFs + ETNs, excludes open-end funds / SICAVs) ---
-    active_etf_mask = pd.Series(True, index=master.index)
-    if "market_status" in master.columns:
-        active_etf_mask = active_etf_mask & (master["market_status"] == "ACTV")
-    if "fund_type" in master.columns:
-        active_etf_mask = active_etf_mask & (master["fund_type"].isin(["ETF", "ETN"]))
-
-    active_df = master[active_etf_mask]
-
-    # Deduplicate by ticker for grand KPIs (multi-category tickers appear N times).
-    # Mirror SQL ``COUNT(DISTINCT ticker_clean)`` semantics: rows with empty
-    # ticker_clean are excluded (they are not "distinct tickers"). Otherwise
-    # they would collapse into a single phantom row that miscounts the
-    # universe (BUG-P0-001, 2026-06-08 — canonical truth is the SQL form).
-    active_df = active_df[active_df["ticker_clean"].astype(str).str.len() > 0]
-    active_deduped = active_df.drop_duplicates(subset=["ticker_clean"], keep="first")
+    # --- Active ETP universe (ETFs + ETNs, deduped by ticker) ---
+    # From the ONE report-rules contract so the flow grand KPIs use the exact same
+    # universe definition as the LI/CC reports. `active_etf_mask` (pre-dedup) is reused
+    # by the per-suite loop below; `active_deduped` mirrors the prior canonical SQL
+    # ``COUNT(DISTINCT ticker_clean)`` semantics (empty ticker_clean excluded;
+    # BUG-P0-001, 2026-06-08) — both now sourced once from the contract.
+    from market.contracts import report_mask, apply_report_filter
+    active_etf_mask = report_mask(master, "active_etf_universe")
+    active_deduped = apply_report_filter(master, "active_etf_universe")
 
     # --- Grand KPIs (ALL active ETPs) ---
     grand_aum = float(active_deduped["aum"].sum())

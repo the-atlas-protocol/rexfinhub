@@ -80,12 +80,22 @@ def category_intent_text() -> str:
 # Readers 2 & 3 — the numbers (gate + reports)
 # ---------------------------------------------------------------------------
 def numbers() -> dict:
-    """{rule_id: {label, expected, filter, ...}}."""
+    """{rule_id: {label, expected, filter, ...}} — headline figures with expected values."""
     return load_contract().get("numbers", {}) or {}
 
 
+def universes() -> dict:
+    """{rule_id: {label, filter, ...}} — the broad report bodies (no fixed expected)."""
+    return load_contract().get("universes", {}) or {}
+
+
+def _all_rules() -> dict:
+    """Every filterable rule: headline numbers ∪ universes."""
+    return {**numbers(), **universes()}
+
+
 def get_rule(rule_id: str) -> dict:
-    rule = numbers().get(rule_id)
+    rule = _all_rules().get(rule_id)
     if rule is None:
         raise KeyError(f"unknown report rule_id: {rule_id!r}")
     return rule
@@ -96,18 +106,12 @@ def expected_values() -> dict:
     return {rid: r["expected"] for rid, r in numbers().items() if "expected" in r}
 
 
-def apply_report_filter(df, rule_id: str):
-    """Return the subset of `df` (a master DataFrame) matching the rule's filter.
-
-    Builds the mask from the rule's structured `filter` block and applies dedup. This
-    is the ONE place a headline number's membership is computed — reports and the gate
-    both call it, so the three old hand-written filters can't diverge again.
-    """
+def _build_mask(df, filt: dict):
+    """Boolean row-mask for a structured filter block (no dedup). The one place the
+    field→column logic lives, so every consumer matches identically."""
     import pandas as pd  # lazy — keeps module import-light
 
-    filt = get_rule(rule_id).get("filter", {}) or {}
     mask = pd.Series(True, index=df.index)
-
     if filt.get("is_rex"):
         mask &= df["is_rex"].fillna(0).astype(bool) if "is_rex" in df.columns else False
     if "etp_category" in filt and "etp_category" in df.columns:
@@ -122,9 +126,23 @@ def apply_report_filter(df, rule_id: str):
         mask &= df["category_display"].astype(str).str.contains(
             filt["category_display_contains"], case=False, na=False, regex=False
         )
+    return mask
 
-    out = df[mask].copy()
 
+def report_mask(df, rule_id: str):
+    """The boolean row-mask for a rule (pre-dedup) — for callers that need to intersect
+    membership with other masks (e.g. the flow report's per-suite loop)."""
+    return _build_mask(df, get_rule(rule_id).get("filter", {}) or {})
+
+
+def apply_report_filter(df, rule_id: str):
+    """Return the subset of `df` (a master DataFrame) matching the rule's filter + dedup.
+
+    The ONE place a number's membership is computed — reports and the gate both call it,
+    so the three old hand-written filters can't diverge again.
+    """
+    filt = get_rule(rule_id).get("filter", {}) or {}
+    out = df[_build_mask(df, filt)].copy()
     dedup_col = filt.get("dedup_by")
     if dedup_col and dedup_col in out.columns:
         out = out[out[dedup_col].astype(str).str.len() > 0]

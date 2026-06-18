@@ -158,3 +158,37 @@ numbers:
       is_rex: true
       market_status: ACTV
       dedup_by: ticker_clean
+
+
+# -----------------------------------------------------------------------------
+# PART 4 — UNIVERSES: the broad report bodies (no fixed `expected` — they grow).
+# These replace the three hand-written report filters in report_data.py so the LI,
+# CC, and flow reports compute their universe ONE way (and always dedup by ticker).
+# -----------------------------------------------------------------------------
+universes:
+
+  li_universe_actv:
+    label: All live L&I ETPs (every issuer)
+    means: The full live L&I universe the L&I report is built on.
+    filter:
+      etp_category: LI
+      market_status: ACTV
+      fund_type: [ETF, ETN]
+      dedup_by: ticker_clean
+
+  cc_universe_actv:
+    label: All live income ETPs (every issuer)
+    means: The full live option-income universe the income report is built on.
+    filter:
+      etp_category: CC
+      market_status: ACTV
+      fund_type: [ETF, ETN]
+      dedup_by: ticker_clean
+
+  active_etf_universe:
+    label: All live ETF/ETN ETPs (every category, every issuer)
+    means: The full live ETF/ETN universe the flow report's grand KPIs are built on.
+    filter:
+      market_status: ACTV
+      fund_type: [ETF, ETN]
+      dedup_by: ticker_clean
