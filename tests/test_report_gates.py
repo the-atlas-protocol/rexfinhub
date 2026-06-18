@@ -199,5 +199,25 @@ def test_promotion_fails_closed_when_unreadable(tmp_path):
     assert blocked is True and overall == "fail"
 
 
+# ---------------------------------------------------------------------------
+# Preview filenames the gate checks MUST be ones the chain actually writes
+# (regression guard for the daily.html vs daily_filing.html mismatch that would
+#  otherwise make preflight report everything missing and block every promotion)
+# ---------------------------------------------------------------------------
+
+def test_preflight_preview_names_are_chain_outputs():
+    import inspect
+    import scripts.preflight_check as pf
+    from scripts.send_all import REPORTS
+    chain_outputs = {f"{k}.html" for k in REPORTS}  # run_chain writes <key>.html
+    src = inspect.getsource(pf.audit_previews)
+    # every <name>.html the audit checks must be a file the chain produces
+    import re as _re
+    names = set(_re.findall(r'"([a-z_]+\.html)"', src))
+    assert names, "audit_previews lists no preview names"
+    missing = names - chain_outputs
+    assert not missing, f"preflight checks previews the chain never writes: {missing}"
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

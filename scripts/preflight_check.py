@@ -358,28 +358,20 @@ def audit_recipients(db) -> dict:
 
 def audit_previews(db) -> dict:
     out = {"name": "Previews on disk", "status": "pass", "detail": "", "files": []}
+    # Filenames MUST match what the autonomous chain writes — run_chain.build_reports
+    # iterates send_all.REPORTS and writes outputs/previews/<key>.html. The gate scans
+    # exactly those names so a green build promotes and a missing report blocks (the
+    # old daily_filing/weekly_report/... names were never written by the chain and made
+    # the gate report everything missing). One preview naming convention, gate-checked.
     expected = [
-        ("daily_filing.html", PREVIEW_DIR / "daily_filing.html"),
-        ("weekly_report.html", PREVIEW_DIR / "weekly_report.html"),
-        ("li_report.html", PREVIEW_DIR / "li_report.html"),
-        ("income_report.html", PREVIEW_DIR / "income_report.html"),
-        ("flow_report.html", PREVIEW_DIR / "flow_report.html"),
-        ("autocall_report.html", PREVIEW_DIR / "autocall_report.html"),
-        ("stock_recs.html",
-         PROJECT_ROOT / "reports" / f"trex_combined_{date.today().isoformat()}.html"),
+        ("daily.html", PREVIEW_DIR / "daily.html"),
+        ("weekly.html", PREVIEW_DIR / "weekly.html"),
+        ("li.html", PREVIEW_DIR / "li.html"),
+        ("income.html", PREVIEW_DIR / "income.html"),
+        ("flow.html", PREVIEW_DIR / "flow.html"),
+        ("autocall.html", PREVIEW_DIR / "autocall.html"),
+        ("stock_recs.html", PREVIEW_DIR / "stock_recs.html"),
     ]
-
-    # Auto-build stock_recs if missing. MUST be trex_combined_v9 (the T-REX Stock
-    # Recommendation System report) — NOT the legacy weekly_v2 "Stock Recs of the
-    # Week", which is what the send path uses (send_all.py:_build_stock_recs) and
-    # which previously left the preview surface showing the wrong/stale report.
-    stock_recs_path = expected[-1][1]
-    if not stock_recs_path.exists():
-        try:
-            from screener.li_engine.analysis.trex_combined_v9 import build as _build_stock_recs
-            _build_stock_recs()
-        except Exception:
-            pass  # If the build fails, the audit will report missing — informative either way.
     missing: list[str] = []
     stale: list[str] = []
     for label, path in expected:
@@ -737,8 +729,8 @@ def audit_report_charts(db) -> dict:
     """
     out = {"name": "Report charts present", "status": "pass", "detail": "", "rows": []}
     checks = [
-        ("li_report.html", PREVIEW_DIR / "li_report.html", 2),
-        ("income_report.html", PREVIEW_DIR / "income_report.html", 2),
+        ("li.html", PREVIEW_DIR / "li.html", 2),
+        ("income.html", PREVIEW_DIR / "income.html", 2),
     ]
     failed: list[str] = []
     for label, path, expected_n in checks:
