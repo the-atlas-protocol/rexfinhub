@@ -216,6 +216,16 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^PLUS\s+KOREA", "PLUS"),
     (r"^US\s+VEGAN|^VEGAN\b", "US Vegan"),
     (r"^RJ\s+EAGLE", "Carillon"),
+    # White-label (Tidal/Listed-trust) brands that issuer_mapping wrongly nicknamed
+    # to the sponsor 'Tidal'. The brand is the first word(s) of the fund name. (Ryu 2026-06-17.)
+    (r"^SONICSHARES?\b", "SonicShares"),
+    (r"^FINQ\b", "FinQ"),
+    (r"^CARBON\s+COLLECTIVE\b", "Carbon Collective"),
+    (r"^GRIZZLE\b", "Grizzle"),
+    (r"^CLOCKWISE\b", "Clockwise"),
+    (r"^IMPACT\s+SHARES?\b", "Impact Shares"),
+    (r"^(?:THE\s+)?FREE\s+MARKETS?\b", "Free Markets"),
+    (r"^DIGITAL\s+ASSET\b", "Digital Asset"),
 ]
 
 # Compile once for speed
@@ -265,7 +275,11 @@ def main() -> int:
                     OR issuer_display LIKE '%Series Solutions%' OR issuer_display LIKE '%Fund Inc%'
                     OR issuer_display LIKE '%Trust I%' OR issuer_display LIKE '% / %'
                     OR issuer_display LIKE '%Managers Trust%' OR issuer_display LIKE '%Series Portfolio%'
-                    OR issuer_display LIKE '%Funds Trust%')))
+                    OR issuer_display LIKE '%Funds Trust%'
+                    -- White-label SPONSOR nicknames (issuer_mapping mapped many distinct
+                    -- brands onto one sponsor). Re-derive the real brand from the name.
+                    OR issuer_display IN ('Tidal', 'Tidal Financial Group', 'Listed',
+                                          'Exchange Listed Funds', 'Tidal ETF Services'))))
         ORDER BY ticker
         """
     )

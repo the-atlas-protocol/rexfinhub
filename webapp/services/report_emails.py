@@ -1762,7 +1762,9 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
 
     rows, rex_rows = [], set()
     for i, (iss, name, status, eff, is_rex) in enumerate(items):
-        rows.append([_esc(_trunc(iss, 20)), _esc(_trunc(name, 52)), _esc(status), _esc(eff or "—")])
+        # _table already HTML-escapes each cell — do NOT pre-escape here or names with
+        # '&' (S&P) render as '&amp;amp;'. (Ryu 2026-06-17.)
+        rows.append([_trunc(iss, 20), _trunc(name, 52), status, eff or "—"])
         if is_rex:
             rex_rows.add(i)
     n_rex = sum(1 for it in items if it[4])

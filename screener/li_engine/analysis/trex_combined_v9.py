@@ -1463,7 +1463,7 @@ def build():
   {f'<div style="font-size:11px;color:{TEAL};margin-top:6px;font-weight:600;">{bucket_signal}</div>' if bucket_signal else ''}
 </td></tr>
 
-{_section_header('1 · Bloomberg Pending Funds', RED, 'Non-REX L&I products in Bloomberg PEND state with a FUTURE inception date — genuinely upcoming launches only. Undated and past-dated PEND rows are excluded.')}
+{_section_header('1 · Upcoming Competitor Launches', RED, 'Non-REX L&I products filed with a FUTURE inception date — genuinely upcoming launches only. Undated and past-dated rows are excluded.')}
 <tr><td style="padding:6px 30px 8px;">{imminent_html}</td></tr>
 
 {_section_header('Recent Competitor L&I Filings — New Series, Last 60 Days (≤2X)', ORANGE, 'Non-REX 485APOS for new L&I series (deduped by series name — re-filings of the same series suppressed). 3X+ products excluded. Top 50 most recent.')}
