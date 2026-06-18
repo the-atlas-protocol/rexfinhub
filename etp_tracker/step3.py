@@ -107,8 +107,13 @@ _ELECTION_PATTERNS = [
 def _parse_485a_election(txt: str, filing_date) -> tuple[str, str]:
     """Parse the cover-page effectiveness election of a 485APOS.
 
-    Returns (effective_date 'YYYY-MM-DD' or '', confidence) where confidence
-    is 'ELECTION' on a successful parse. filing_date may be a date or ISO str.
+    Returns (effective_date 'YYYY-MM-DD' or '', 'ELECTION'). The election sits in an
+    HTML <table> well past the SGML header (~13k chars in), each option in its own
+    cell — so the old "checkbox within 80 chars of the phrase in the first 8k chars"
+    parser never matched. We now (1) locate the block by anchor (no fixed window),
+    (2) strip HTML + decode checkbox glyphs to [X]/[ ], (3) read the marker that
+    immediately precedes each option clause. (Ryu 2026-06-17: the 'Pending' T-REX
+    rows are real 75-day elections we simply failed to extract.)
     """
     if not isinstance(txt, str) or not txt.strip() or filing_date is None:
         return "", ""
@@ -116,22 +121,37 @@ def _parse_485a_election(txt: str, filing_date) -> tuple[str, str]:
         fdt = pd.to_datetime(str(filing_date))
     except Exception:
         return "", ""
-    # The election block lives on the cover page — scan only the front matter.
-    head = re.sub(r"\s+", " ", txt[:8000])
-    for rx, kind in _ELECTION_PATTERNS:
-        m = rx.search(head)
-        if not m:
-            continue
-        if kind == "immediate":
-            return fdt.strftime("%Y-%m-%d"), "ELECTION"
-        if kind == "days60":
-            return (fdt + pd.Timedelta(days=60)).strftime("%Y-%m-%d"), "ELECTION"
-        if kind == "days75":
-            return (fdt + pd.Timedelta(days=75)).strftime("%Y-%m-%d"), "ELECTION"
-        if kind in ("date_b", "date_a2"):
+    import html as _htmllib
+    low = txt.lower()
+    anchor = low.find("will become effective")
+    if anchor < 0:
+        anchor = low.find("proposed that this filing")
+    if anchor < 0:
+        anchor = low.find("become effective")
+    window = txt[anchor:anchor + 4000] if anchor >= 0 else txt[:20000]
+    s = window
+    for g, r in (("☒", "[X]"), ("☑", "[X]"), ("■", "[X]"),
+                 ("☐", "[ ]"), ("&#9746;", "[X]"), ("&#9745;", "[X]"),
+                 ("&#9632;", "[X]"), ("&#9744;", "[ ]"), ("&#9633;", "[ ]")):
+        s = s.replace(g, r)
+    text = re.sub(r"\s+", " ", _htmllib.unescape(re.sub(r"<[^>]+>", " ", s)))
+
+    def _checked(pre: str) -> bool:
+        tail = pre[-12:].upper()
+        return "[X]" in tail or re.search(r"(?<![A-Z\[])X\s*$", tail) is not None
+
+    # Most specific first: an explicitly elected calendar date.
+    for m in re.finditer(r"on\s+([A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4})", text):
+        if _checked(text[max(0, m.start() - 14):m.start()]):
             d = _parse_date_string(m.group(1))
             if d:
                 return d, "ELECTION"
+    for pat, days in ((r"immediately upon filing", 0),
+                      (r"60\s*days?\s+after\s+filing", 60),
+                      (r"75\s*days?\s+after\s+filing", 75)):
+        for m in re.finditer(pat, text, re.IGNORECASE):
+            if _checked(text[max(0, m.start() - 14):m.start()]):
+                return (fdt + pd.Timedelta(days=days)).strftime("%Y-%m-%d"), "ELECTION"
     return "", ""
 
 

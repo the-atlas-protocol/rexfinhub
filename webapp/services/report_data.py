@@ -320,11 +320,16 @@ def _load_from_db(db: Session) -> dict[str, Any]:
     except Exception as e:
         log.warning("MicroSectors override failed (non-fatal): %s", e)
 
-    # Never leave issuer_display blank — fall back to the legal issuer name so no
-    # report row shows an empty issuer cell. (Ryu 2026-06-17: blank issuers in daily.)
-    if "issuer_display" in master.columns and "issuer" in master.columns:
-        _blank = master["issuer_display"].isna() | (master["issuer_display"].astype(str).str.strip() == "")
-        master.loc[_blank, "issuer_display"] = master.loc[_blank, "issuer"]
+    # Never leave issuer_display blank — fall back to the legal issuer, then to the
+    # fund name as an absolute last resort, so NO report row ever shows an empty
+    # issuer cell. (Ryu 2026-06-17: every fund must have an issuer attached.)
+    if "issuer_display" in master.columns:
+        if "issuer" in master.columns:
+            _blank = master["issuer_display"].isna() | (master["issuer_display"].astype(str).str.strip() == "")
+            master.loc[_blank, "issuer_display"] = master.loc[_blank, "issuer"]
+        if "fund_name" in master.columns:
+            _blank = master["issuer_display"].isna() | (master["issuer_display"].astype(str).str.strip() == "")
+            master.loc[_blank, "issuer_display"] = master.loc[_blank, "fund_name"]
 
     # Canonically (re)derive rex_suite from the fund itself rather than trusting
     # whatever is stored in the column. The stored rex_suite drifts (a new T-REX
