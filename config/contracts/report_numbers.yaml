@@ -1,0 +1,160 @@
+# =============================================================================
+# REPORT RULES — the rules the code reads (canonical)
+# =============================================================================
+# Promoted from report_numbers.draft.yaml after Ryu approved the numbers + wording
+# (2026-06-18). THREE readers consume this one file:
+#   1. the AI classifier   (market/contracts.category_intent_text)  -> labels funds
+#   2. the safety check     (scripts/preflight_check)                -> blocks bad numbers
+#   3. the reports          (market/contracts.apply_report_filter)   -> one filter, not three
+#
+# Each "number" has BOTH plain-English fields (means / looks_wrong_if — for humans and
+# for the AI/gate prompts) AND a structured `filter` block (for the code to build the
+# exact mask). If the two ever disagree, the plain English is the intent of record.
+#
+# category_display exact strings live in market/config.py (CAT_LI_SS etc.):
+#   "Leverage & Inverse - Single Stock" / "... - Index/Basket/ETF Based"
+#   "Income - Single Stock"             / "Income - Index/Basket/ETF Based"
+# =============================================================================
+
+version: 1
+scope: "L&I + Income headline numbers (narrow first; expand later)"
+
+
+# -----------------------------------------------------------------------------
+# PART 1 — DEFINITIONS: what each label MEANS (feeds the AI classifier prompt)
+# -----------------------------------------------------------------------------
+definitions:
+
+  LI:
+    name: Leveraged & Inverse
+    means: >
+      A fund that gives daily-reset 2x or 3x leverage, OR inverse/short exposure.
+    is_not: >
+      A 130/30 long-short fund, an ultrashort-treasury fund, or anything that is not
+      daily-reset leverage. These are NOT L&I.
+    looks_wrong_if: >
+      There is no leverage multiple (2x/3x) and no inverse/short language in the fund
+      name or description.
+
+  CC:
+    name: Income (covered-call / option income)
+    means: >
+      A fund that makes income using an OPTIONS strategy — covered calls, option-income,
+      or autocallable.
+    is_not: >
+      Plain bond / treasury / muni / CLO income, plain dividend-equity, or a hedged-equity
+      collar. These pay income but have NO options strategy, so they are NOT CC. (A separate
+      dividend-income bucket would be a deliberate definition change, not a silent reclass.)
+    looks_wrong_if: >
+      The description is about bonds, treasuries, dividends, or "fixed income" with no
+      mention of options, calls, puts, or premium.
+
+
+# -----------------------------------------------------------------------------
+# PART 2 — SHARED RULES (stated once; referenced by numbers)
+# -----------------------------------------------------------------------------
+shared_rules:
+  active_only: >
+    "Current" counts use live (ACTV) funds only. PEND = not launched yet (exclude).
+    LIQU / DLST = closed (exclude from current counts).
+  aum_closed_is_zero: >
+    AUM uses live funds. A closed fund shows $0 today but keeps its real history. Past a
+    fund's delist date, its AUM is 0 from that point on.
+  microsectors_true_aum: >
+    MicroSectors ETNs use the TRUE AUM from the override sheet, never Bloomberg's inflated
+    issuance number (Bloomberg overstates ~5-10x).
+  brand_not_legal_entity: >
+    The issuer shown must be a real brand, never a legal entity. A name containing "Trust"
+    is wrong UNLESS it is First Trust or Northern Trust.
+
+
+# -----------------------------------------------------------------------------
+# PART 3 — NUMBERS: each headline figure, its rule, expected value, failure signature
+# -----------------------------------------------------------------------------
+# filter fields (all optional; omitted = no constraint):
+#   is_rex: true                       -> is_rex truthy
+#   etp_category: LI|CC|...            -> etp_category ==
+#   market_status: ACTV               -> market_status ==
+#   fund_type: [ETF, ETN]             -> fund_type in list
+#   category_display_contains: "..."  -> category_display substring (the single/index axis)
+#   suite: MicroSectors               -> rex_suite ==
+#   dedup_by: ticker_clean            -> drop_duplicates on this column
+# -----------------------------------------------------------------------------
+numbers:
+
+  trex_single_stock_li_actv:
+    label: T-REX single-stock L&I (live)
+    means: How many of REX's live single-stock leveraged/inverse ETPs there are.
+    expected: 41
+    looks_wrong_if: >
+      The count jumps with no new launch; a not-yet-launched (PEND) or delisted fund is
+      counted; or an index/basket fund slips in.
+    uses_shared: [active_only]
+    filter:
+      is_rex: true
+      etp_category: LI
+      market_status: ACTV
+      fund_type: [ETF, ETN]
+      category_display_contains: "Single Stock"
+      dedup_by: ticker_clean
+
+  microsectors_index_li_actv:
+    label: MicroSectors index L&I (live)
+    means: How many live MicroSectors index/basket leveraged/inverse ETNs there are.
+    expected: 22
+    looks_wrong_if: >
+      A single-stock fund is counted here; AUM uses Bloomberg's inflated number instead of
+      the override; a closed ETN still counts.
+    uses_shared: [active_only, microsectors_true_aum]
+    filter:
+      suite: MicroSectors
+      etp_category: LI
+      market_status: ACTV
+      category_display_contains: "Index"
+      dedup_by: ticker_clean
+
+  rex_income_single_stock_actv:
+    label: REX income single-stock (live)
+    means: REX's live single-stock option-income funds.
+    expected: 3
+    expected_members: [NVII, TSII, WMTI]
+    looks_wrong_if: >
+      A bond or plain-dividend fund is counted as income; the list isn't exactly
+      NVII / TSII / WMTI; a pending fund is included.
+    uses_shared: [active_only]
+    filter:
+      is_rex: true
+      etp_category: CC
+      market_status: ACTV
+      fund_type: [ETF, ETN]
+      category_display_contains: "Single Stock"
+      dedup_by: ticker_clean
+
+  rex_income_index_actv:
+    label: REX income index (live)
+    means: REX's live index/basket option-income funds.
+    expected: 8
+    looks_wrong_if: >
+      A single-stock income fund is counted here; a fixed-income (bond) fund is miscounted
+      as option-income.
+    uses_shared: [active_only]
+    filter:
+      is_rex: true
+      etp_category: CC
+      market_status: ACTV
+      fund_type: [ETF, ETN]
+      category_display_contains: "Index"
+      dedup_by: ticker_clean
+
+  rex_total_actv:
+    label: REX total live ETPs (all suites)
+    means: Every live REX product across all suites.
+    expected: 79
+    looks_wrong_if: >
+      Pending or closed funds are counted; the number doesn't equal the sum of the per-suite
+      live counts.
+    uses_shared: [active_only]
+    filter:
+      is_rex: true
+      market_status: ACTV
+      dedup_by: ticker_clean
