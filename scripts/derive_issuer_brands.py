@@ -41,7 +41,7 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     # --- Single-stock / Leveraged & Inverse boutiques ---
     (r"^DEFIANCE\b", "Defiance"),
     (r"^GRANITESHARES?\b", "GraniteShares"),
-    (r"^YIELDMAX\b", "YieldMax"),
+    (r"^YIELDMAX", "YieldMax"),  # no \b: matches YIELDMAXTM / YIELDMAX(TM) glued forms
     (r"^ROUNDHILL\b", "Roundhill"),
     (r"^DIREXION\b", "Direxion"),
     (r"^MICROSECTORS?\b", "MicroSectors"),
@@ -157,6 +157,58 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^INSPIRE\b", "Inspire"),
     (r"^TRINITY\b", "Trinity"),
     (r"^AAAA\s+US\b", "Amplius"),   # explicit: AAAA is Amplius
+    # --- 2026-06-17 (Ryu QA): brands that previously fell through to the legal
+    #     trust name (issuer_display showed 'Tidal Trust II' etc.). First-word
+    #     patterns from the leak audit. The brand is the first word(s) of the fund
+    #     name even when the legal trust is a white-label (Tidal/Listed/Exchange). ---
+    (r"^CORGI\b", "Corgi"),
+    (r"^COINSHARES?\b", "CoinShares"),
+    (r"^VEGASHARES?\b", "VegaShares"),
+    (r"^THRIVENT\b", "Thrivent"),
+    (r"^GUINNESS\b", "Guinness Atkinson"),
+    (r"^MILLIMAN\b", "Milliman"),
+    (r"^HOYA\b", "Hoya Capital"),
+    (r"^HEDGEYE\b", "Hedgeye"),
+    (r"^ACUITAS\b", "Acuitas"),
+    (r"^TOEWS\b", "Toews"),
+    (r"^HYPATIA\b", "Hypatia"),
+    (r"^IMPAX\b", "Impax"),
+    (r"^WESTWOOD\b", "Westwood"),
+    (r"^ALGER\b", "Alger"),
+    (r"^FOUNDERS?\b", "Founder"),
+    (r"^APPLIED\s+FINANCE\b", "Applied Finance"),
+    (r"^FIRST\s+EAGLE\b", "First Eagle"),
+    (r"^WEDBUSH\b|^DAN\s+IVES\b", "Wedbush"),
+    (r"^AXS\b", "AXS"),
+    (r"^ASTORIA\b", "Astoria"),
+    (r"^BANCREEK\b", "BanCreek"),
+    (r"^SPEAR\b", "Spear"),
+    (r"^FORTUNA\b", "Fortuna"),
+    (r"^STRATEGY\s+SHARES?\b", "Strategy Shares"),
+    (r"^CARILLON\b", "Carillon"),
+    (r"^ARCHER\b", "Archer"),
+    (r"^CULLEN\b", "Cullen"),
+    (r"^SGI\b", "SGI"),
+    (r"^NICHOLAS\b", "Nicholas"),
+    (r"^PEERLESS\b", "Peerless"),
+    (r"^US\s+GLOBAL\b|^USCF\b", "US Global"),
+    (r"^7RCC\b", "7RCC"),
+    (r"^INFRASTRUCTURE\s+CAPITAL\b|^INFRACAP\b", "InfraCap"),
+    (r"^OPTIMIZE\b", "Optimize"),
+    (r"^Q3\b", "Q3"),
+    (r"^HEXIS\b", "Hexis"),
+    (r"^GSR\b", "GSR"),
+    (r"^LOGIQ\b", "Logiq"),
+    (r"^IDX\b", "IDX"),
+    (r"^F/M\b|^F\s*&\s*M\b", "F/M"),
+    (r"^FIS\b", "FIS"),
+    (r"^BROWN\s+ADVISORY\b", "Brown Advisory"),
+    (r"^TRUESHARES?\b", "TrueShares"),
+    (r"^BURNEY\b", "Burney"),
+    (r"^MANGO\b", "Mango"),
+    (r"^EQUABLE\b", "Equable"),
+    (r"^BILLIONAIRES?\b", "Billionaires"),
+    (r"^MAN\b", "Man"),  # 'MAN ETF Series Trust' — anchored, won't hit 'MANAGED'
 ]
 
 # Compile once for speed
@@ -169,6 +221,9 @@ _COMPILED: list[tuple[re.Pattern, str]] = [
 def match_brand(fund_name: str) -> str | None:
     """Return the first matching brand or None."""
     name_upper = (fund_name or "").upper().strip()
+    # Strip trademark glyphs that glue onto a brand word and break \b matches
+    # (e.g. 'YIELDMAX™ PLTR' / 'YIELDMAX(TM) ...'). (Ryu 2026-06-17.)
+    name_upper = name_upper.replace("™", "").replace("(TM)", "").replace("(R)", "").replace("®", "")
     for pattern, brand in _COMPILED:
         if pattern.search(name_upper):
             return brand

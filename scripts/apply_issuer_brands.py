@@ -163,6 +163,40 @@ def check_postconditions(
         except sqlite3.Error as exc:
             warnings.append(f"Postcondition DB check failed: {exc}")
 
+    # Legal-trust leak gate (Ryu 2026-06-17): NO ACTV report may display a legal
+    # entity (…ETF Trust / Series Trust / Fund Inc / Trust II / Trust/Subadvisor)
+    # as the issuer. The only legitimate brands containing 'Trust' are First Trust
+    # and Northern Trust (allowlisted). Anything else here means a missing brand
+    # pattern/override — surface it loudly so it gets fixed, not shipped.
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute(
+            """
+            SELECT issuer_display, COUNT(*) FROM mkt_master_data
+            WHERE market_status='ACTV' AND COALESCE(TRIM(issuer_display),'') <> ''
+              AND issuer_display NOT IN ('First Trust','Northern Trust')
+              AND (issuer_display LIKE '%ETF Trust%' OR issuer_display LIKE '%Series Trust%'
+                   OR issuer_display LIKE '%Funds Trust%' OR issuer_display LIKE '%Fund Trust%'
+                   OR issuer_display LIKE '%ETF Series%' OR issuer_display LIKE '%Managers Trust%'
+                   OR issuer_display LIKE '%Fund Inc%' OR issuer_display LIKE '%Series Portfolio%'
+                   OR issuer_display LIKE '%Trust I%' OR issuer_display LIKE '%Trust/%'
+                   OR issuer_display LIKE '%Funds Series%' OR issuer_display LIKE '%/%')
+            GROUP BY issuer_display ORDER BY COUNT(*) DESC
+            """
+        )
+        leaks = cur.fetchall()
+        con.close()
+        if leaks:
+            total = sum(c for _, c in leaks)
+            top = ", ".join(f"{v!r}={c}" for v, c in leaks[:8])
+            warnings.append(
+                f"LEGAL-TRUST LEAK GATE: {total} ACTV funds show a legal entity as "
+                f"issuer (missing brand pattern/override): {top}"
+            )
+    except sqlite3.Error as exc:
+        warnings.append(f"Legal-trust gate check failed: {exc}")
+
     return warnings
 
 
