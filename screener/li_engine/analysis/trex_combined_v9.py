@@ -235,6 +235,12 @@ _COMP_ISSUER_PATS = [
     (re.compile(r"AMPLIFY", re.I), "Amplify"),
     (re.compile(r"\bCORGI\b", re.I), "Corgi"),
     (re.compile(r"\bKODEX\b", re.I), "Kodex"),
+    (re.compile(r"WEDBUSH", re.I), "Wedbush"),
+    (re.compile(r"\bPACER\b", re.I), "Pacer"),
+    (re.compile(r"VEGASHARES", re.I), "VegaShares"),
+    (re.compile(r"KRANESHARES", re.I), "KraneShares"),
+    (re.compile(r"NESTYIELD", re.I), "NestYield"),
+    (re.compile(r"\bSIMPLIFY\b", re.I), "Simplify"),
 ]
 # L&I detection + REX exclusion for the competitor universe.
 _LI_NAME_RE = re.compile(r"(\d(?:\.\d)?x|leverag|inverse|\bbull\b|\bbear\b|ultra(?:pro)?|daily\s+target)", re.I)
