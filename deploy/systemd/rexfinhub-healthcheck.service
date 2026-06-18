@@ -1,0 +1,22 @@
+[Unit]
+Description=REX FinHub daily heartbeat — detect silent stage/timer failures + stale data
+After=network-online.target
+Wants=network-online.target
+# Heartbeat failures must page (the silent-failure incidents are exactly what this guards).
+OnFailure=rexfinhub-alert@%n.service
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+EnvironmentFile=/home/jarvis/rexfinhub/config/.env
+Environment=TZ=America/New_York
+# --alert: email ONE consolidated alert if unhealthy (rate-limited to once/day inside
+# the script, so this never becomes clutter). Non-zero exit also trips OnFailure above.
+ExecStart=/home/jarvis/venv/bin/python scripts/healthcheck.py --alert
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

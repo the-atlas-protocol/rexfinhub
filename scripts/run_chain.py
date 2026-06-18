@@ -30,7 +30,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,6 +52,21 @@ def _load_env():
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+def _log_stage(label, rc):
+    """Append each step outcome to data/.pipeline_stages.jsonl so the daily heartbeat
+    (scripts/healthcheck.py) can detect a step that silently failed or never ran."""
+    try:
+        f = ROOT / "data" / ".pipeline_stages.jsonl"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "stage": label, "rc": rc,
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+            }) + "\n")
+    except OSError:
+        pass
+
+
 def _step(label, fn):
     print(f"\n=== {label} START ===", flush=True)
     t0 = time.time()
@@ -63,6 +78,7 @@ def _step(label, fn):
         traceback.print_exc()
         rc = 1
     print(f"=== {label} END (rc={rc}, {time.time() - t0:.1f}s) ===", flush=True)
+    _log_stage(label, rc)
     return rc
 
 

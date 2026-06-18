@@ -139,6 +139,33 @@ def main() -> int:
         counts[r["etp_category"]] = counts.get(r["etp_category"], 0) + 1
     print(f"  classified {len(results)} | applying {len(apply)} {counts} | LOW (review) {len(low)}")
 
+    # Cascade rung 3 (ADR 0013): for funds even the name+description couldn't place
+    # (returned 'none'/LOW), SEARCH THE WEB before giving up — completing the
+    # rules -> description -> web cascade for categories, not just brands. Bounded +
+    # journaled + offline-safe (skips when no key). Only genuinely-stuck funds, capped.
+    _placed = {r["ticker"] for r in apply}
+    stuck = [f for f in funds if f["ticker"] not in _placed][:15]
+    if stuck:
+        try:
+            from market.resolve import Cascade, make_web_search_rung, FactRequest
+            from webapp.services import claude_service
+            if claude_service.is_configured():
+                web = Cascade([make_web_search_rung(allowed_values=["LI", "CC", "Crypto", "Defined", "Thematic", "none"])])
+                webhits = 0
+                for f in stuck:
+                    res = web.resolve(FactRequest(
+                        kind="etp_category", ticker=f["ticker"], fund_name=f["fund_name"],
+                        fund_description=f.get("fund_description", "")))
+                    if res and res.accepted and res.value not in ("none", ""):
+                        apply.append({"ticker": f["ticker"], "etp_category": res.value,
+                                      "confidence": res.confidence, "reason": f"web: {res.reason}",
+                                      "source": "ai_web_search"})
+                        webhits += 1
+                if webhits:
+                    print(f"  web-search rung resolved {webhits}/{len(stuck)} stuck funds")
+        except Exception as e:
+            print(f"  web-search rung skipped: {e}", file=sys.stderr)
+
     if args.dry_run:
         db.close()
         return 0

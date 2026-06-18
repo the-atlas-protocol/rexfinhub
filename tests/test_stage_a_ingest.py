@@ -87,5 +87,53 @@ def test_is_promotion_ordering():
     assert sr._is_promotion(sr.STATUS_LISTED, sr.STATUS_FILED) is False
 
 
+# ---------------------------------------------------------------------------
+# Heartbeat — silent-failure detection
+# ---------------------------------------------------------------------------
+
+import scripts.healthcheck as hc
+from datetime import date
+
+
+def _stages_all_green(today):
+    return [
+        {"stage": "bloomberg_pull_sync", "rc": 0, "timestamp": f"{today}T05:00:00"},
+        {"stage": "post_steps_classify_ai_enrich", "rc": 0, "timestamp": f"{today}T05:01:00"},
+        {"stage": "build_all_reports", "rc": 0, "timestamp": f"{today}T05:02:00"},
+        {"stage": "preflight", "overall_status": "pass", "timestamp": f"{today}T05:03:00"},
+        {"stage": "promote_or_block", "rc": 0, "timestamp": f"{today}T05:04:00"},
+    ]
+
+
+def test_heartbeat_all_green():
+    today = date(2026, 6, 18)
+    healthy, issues = hc.evaluate_health(_stages_all_green(today.isoformat()), hc.EXPECTED_STAGES, today)
+    assert healthy and issues == []
+
+
+def test_heartbeat_missing_stage_is_silent_failure():
+    today = date(2026, 6, 18)
+    recs = _stages_all_green(today.isoformat())[:-1]  # drop promote_or_block
+    healthy, issues = hc.evaluate_health(recs, hc.EXPECTED_STAGES, today)
+    assert not healthy
+    assert any("promote_or_block" in i for i in issues)
+
+
+def test_heartbeat_failed_stage_flagged():
+    today = date(2026, 6, 18)
+    recs = _stages_all_green(today.isoformat())
+    recs[2] = {"stage": "build_all_reports", "rc": 1, "timestamp": f"{today}T05:02:00"}
+    healthy, issues = hc.evaluate_health(recs, hc.EXPECTED_STAGES, today)
+    assert not healthy
+    assert any("build_all_reports" in i and "FAILED" in i for i in issues)
+
+
+def test_heartbeat_yesterdays_success_does_not_count():
+    today = date(2026, 6, 18)
+    recs = _stages_all_green("2026-06-17")  # all from yesterday
+    healthy, issues = hc.evaluate_health(recs, hc.EXPECTED_STAGES, today)
+    assert not healthy and len(issues) == len(hc.EXPECTED_STAGES)
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))
