@@ -1709,53 +1709,62 @@ def build_flow_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
     return html, []
 
 
-def _pending_autocall_section(db) -> str:
-    """A small table of autocallable products that are PEND (filed/expected) but
-    not yet trading — surfaces the upcoming launch pipeline at the bottom of the
-    flow report. Empty string if none or no db."""
+def _pending_autocall_section(db, accent: str = _NAVY) -> str:
+    """Upcoming autocallable launches — PENDING / FILED / DELAYED, not yet trading —
+    REX + every competitor, so ATCL partners see the full incoming supply. Rebuilt
+    2026-06-17 to (a) match the report style via _table and (b) pull the WHOLE upcoming
+    universe from rex_products (REX, authoritative status+dates) + fund_status
+    (competitors PENDING/DELAYED), instead of only mkt_master_data PEND-by-name
+    (which missed ~14 of ~17). Empty string if none or no db."""
     if db is None:
         return ""
     try:
         from sqlalchemy import text as _text
-        # Estimated effective dates live in rex_products/fund_status, joined by a
-        # cleaned ticker; LEFT JOIN so a fund with no filed date still shows.
-        rows = db.execute(_text(
-            "SELECT m.ticker, m.fund_name, COALESCE(m.issuer_display, m.issuer, '') AS iss, "
-            "       COALESCE((SELECT fs.effective_date FROM fund_status fs "
-            "                 WHERE REPLACE(fs.ticker,' US','')=REPLACE(m.ticker,' US','') "
-            "                   AND fs.effective_date IS NOT NULL LIMIT 1), '') AS eff "
-            "FROM mkt_master_data m "
-            "WHERE m.market_status='PEND' "
-            "  AND (m.cc_category='Autocallable' OR UPPER(m.fund_name) LIKE '%AUTOCALL%') "
-            "ORDER BY m.fund_name"
+        rex = db.execute(_text(
+            "SELECT name, status, "
+            "       COALESCE(NULLIF(estimated_effective_date,''), NULLIF(official_listed_date,''), '') AS eff "
+            "FROM rex_products WHERE UPPER(name) LIKE '%AUTOCALL%' "
+            "  AND status IN ('Filed','Delayed','Under Consideration','Target List')"
+        )).fetchall()
+        comp = db.execute(_text(
+            "SELECT fund_name, status, COALESCE(effective_date,'') AS eff "
+            "FROM fund_status WHERE UPPER(fund_name) LIKE '%AUTOCALL%' "
+            "  AND UPPER(fund_name) NOT LIKE '%REX%' "
+            "  AND UPPER(status) IN ('PENDING','DELAYED')"
         )).fetchall()
     except Exception:
         return ""
-    if not rows:
+    try:
+        from screener.li_engine.analysis.trex_combined_v9 import _comp_issuer_of
+    except Exception:
+        _comp_issuer_of = lambda n: None  # noqa: E731
+
+    items = []  # (issuer, fund, status, eff, is_rex)
+    for name, status, eff in rex:
+        items.append(("REX", str(name), str(status), str(eff)[:10], True))
+    for name, status, eff in comp:
+        iss = _comp_issuer_of(name) or (str(name).split()[0] if name else "—")
+        items.append((iss, str(name), str(status).title(), str(eff)[:10], False))
+    if not items:
         return ""
-    trs = ""
-    for tk, name, iss, eff in rows:
-        is_rex = str(iss).upper().startswith("REX")
-        tk_disp = str(tk).replace(" US", "")
-        wt = "font-weight:700;color:#0984e3;" if is_rex else ""
-        trs += (
-            f'<tr>'
-            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;{wt}">{_esc(tk_disp)}</td>'
-            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;{wt}">{_esc(str(name)[:46])}</td>'
-            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;color:#636e72;">{_esc(str(iss)[:22])}</td>'
-            f'<td style="padding:6px 10px;border-bottom:1px solid #eee;color:#636e72;">{_esc(str(eff)[:10] or "—")}</td>'
-            f'</tr>'
-        )
+    # REX first, then soonest estimated-effective date.
+    items.sort(key=lambda x: (not x[4], x[3] or "9999-99-99"))
+
+    rows, rex_rows = [], set()
+    for i, (iss, name, status, eff, is_rex) in enumerate(items):
+        rows.append([_esc(iss[:20]), _esc(name[:50]), _esc(status), _esc(eff or "—")])
+        if is_rex:
+            rex_rows.add(i)
+    n_rex = sum(1 for it in items if it[4])
+    n_comp = len(items) - n_rex
     return (
-        f'<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">'
-        f'<tr><td style="padding:10px 0 6px;font-size:13px;font-weight:700;'
-        f'letter-spacing:0.5px;color:{_NAVY};">PENDING &amp; FILED AUTOCALLABLE LAUNCHES '
-        f'<span style="font-weight:400;color:#636e72;">({len(rows)})</span></td></tr></table>'
-        f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;">'
-        f'<tr style="color:#636e72;font-size:11px;text-transform:uppercase;">'
-        f'<td style="padding:4px 10px;">Ticker</td><td style="padding:4px 10px;">Fund</td>'
-        f'<td style="padding:4px 10px;">Issuer</td><td style="padding:4px 10px;">Est. Effective</td></tr>'
-        f'{trs}</table>'
+        _section_title(f"Pending &amp; Filed Autocallable Launches ({len(items)})", accent)
+        + (f'<tr><td style="padding:0 30px 6px;font-size:11px;color:{_GRAY};">'
+           f'Upcoming autocallable supply not yet trading — REX ({n_rex}) + competitors '
+           f'({n_comp}), from rex_products + fund_status. REX in blue.</td></tr>')
+        + _table(["Issuer", "Fund", "Status", "Est. Effective"], rows,
+                 align=["left", "left", "center", "center"], rex_rows=rex_rows,
+                 col_widths=["16%", "46%", "16%", "22%"], nowrap=True)
     )
 
 
@@ -2139,7 +2148,7 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
 
     # Pending & filed autocallable launches — upcoming supply (moved here from the
     # flow report, where it didn't belong; Ryu 2026-06-17).
-    body += _pending_autocall_section(db)
+    body += _pending_autocall_section(db, suite_color)
 
     # External report (ships to RBC/CAIS): drop the "REX Financial Intelligence
     # Hub" branding line. Keep AUM T-1 and ETN methodology notes.
