@@ -142,3 +142,7 @@ DFAL US,,"auto-llm-other: Core equity market ETF with no leverage, options, or t
 BD US,,auto-llm-other: Core plus bond ETF without leverage or options-income mechanics; standard fixed income strategy.
 ACOM US,,auto-llm-other: Active commodity ETF with standard commodity exposure; no leverage or options-income structure.
 GISC US,,auto-llm-other: Securitized income ETF suggests credit/income focus but lacks explicit options-income or covered call mechanics to qualify as CC.
+BNDY US,,horizon_core_bond_plain_fixed_income_not_option_income
+BREE US,,mfs_em_equity_plain_equity_not_income
+MEMA US,,man_em_alternative_not_option_income
+NMB US,,simplify_muni_bond_plain_fixed_income_not_income

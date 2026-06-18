@@ -28,7 +28,6 @@ BIGY US,CC,1,manual
 BITK US,CC,1,manual
 BITY US,CC,1,manual
 BLOX US,CC,1,manual
-BNDY US,CC,1,manual
 BPI US,CC,1,manual
 BRKC US,CC,1,manual
 BRKW US,CC,1,manual
@@ -156,7 +155,6 @@ NFLP US,CC,1,manual
 NFLW US,CC,1,manual
 NFLY US,CC,1,manual
 NIHI US,CC,1,manual
-NMB US,CC,1,manual
 NUGY US,CC,1,manual
 NVDW US,CC,1,manual
 NVDY US,CC,1,manual
@@ -2555,7 +2553,6 @@ BCGD US,CC,1,atlas
 BCGS US,CC,1,atlas
 BCSM US,CC,1,atlas
 BLDX US,Thematic,1,atlas
-BREE US,CC,1,atlas
 BRES US,CC,1,atlas
 CLIM US,Thematic,1,atlas
 DFMC US,CC,1,atlas
@@ -2591,7 +2588,6 @@ IVSX US,CC,1,atlas
 JIDE US,CC,1,atlas
 KCOP US,Thematic,1,atlas
 LCO US,CC,1,atlas
-MEMA US,CC,1,atlas
 SMLS US,Defined,1,atlas
 DISK US,Thematic,1,atlas
 LAZR US,Thematic,1,atlas

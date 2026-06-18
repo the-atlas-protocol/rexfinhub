@@ -38,11 +38,17 @@ USER_AGENT = "REX-ETP-Tracker/2.0 relasmar@rexfin.com"
 def _doc_text(client: SECClient, url: str) -> str:
     if not url:
         return ""
+    # Many prospectus_link values point at the EDGAR filing INDEX page
+    # (...-index.htm), which has no cover-page election — the election lives in the
+    # full submission text. Resolve -index.htm -> .txt so the parser sees it. This
+    # recovers rows that previously logged as "parse failures". (Ryu 2026-06-17.)
+    if url.endswith("-index.htm"):
+        url = url[: -len("-index.htm")] + ".txt"
     try:
         raw = client.fetch_text(url)
     except Exception:
         return ""
-    return re.sub(r"<[^>]+>", " ", raw or "")
+    return raw or ""
 
 
 def main() -> int:
