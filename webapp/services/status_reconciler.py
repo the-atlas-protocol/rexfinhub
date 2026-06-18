@@ -250,6 +250,10 @@ def main() -> int:
                     help="Actually write transitions. Default: dry-run.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Explicit no-op — dry-run is the default unless --apply.")
+    ap.add_argument("--assert-noop", action="store_true",
+                    help="Stage A guard: derive status read-only and FAIL (exit 2) if any "
+                         "transition would be applied — i.e. assert status was already "
+                         "written correctly at the source. Escalates once. No writes.")
     ap.add_argument("--only-canonical-id", default=None,
                     help="Reconcile only the given canonical_id (debugging).")
     args = ap.parse_args()
@@ -311,6 +315,36 @@ def main() -> int:
             for cid, cur, new, ev in transitions[:10]:
                 cur_disp = cur or "(none)"
                 print(f"  {cid[:8]}... {cur_disp:20s} -> {new:20s}")
+
+        # --- Stage A: assert-noop guard --------------------------------------
+        # Status should already be correct as written at the source. Count the
+        # transitions that WOULD actually be applied (promotions + narrow
+        # correction-demotions; conservative skipped demotions don't count). Any
+        # such transition means status was NOT correct at source -> fail loudly.
+        if args.assert_noop:
+            actionable = [
+                (cid, cur, new, ev) for (cid, cur, new, ev) in transitions
+                if cur is None or _is_promotion(cur, new) or _is_correction_demotion(cur, new, ev)
+            ]
+            if actionable:
+                print(f"\nASSERT-NOOP FAILED: {len(actionable)} status transition(s) the "
+                      f"source should already have produced:")
+                for cid, cur, new, ev in actionable[:10]:
+                    print(f"  {cid[:8]}... {(cur or '(none)'):20s} -> {new}")
+                try:
+                    from etp_tracker.email_alerts import send_critical_alert
+                    body = "; ".join(f"{cid[:8]} {cur or '(none)'}->{new}"
+                                     for cid, cur, new, _ in actionable[:20])
+                    send_critical_alert(
+                        subject=f"REX status not correct at source — {len(actionable)} drift(s)",
+                        message=("status_reconciler --assert-noop found transitions the ingest "
+                                 "should have produced. Fix status derivation at the source. " + body),
+                        subject_prefix="[STATUS]")
+                except Exception as e:
+                    log.warning("assert-noop escalation failed: %s", e)
+                return 2
+            print("\nASSERT-NOOP OK: status already correct at source (0 transitions).")
+            return 0
 
         # Append log
         LOG_PATH.parent.mkdir(parents=True, exist_ok=True)

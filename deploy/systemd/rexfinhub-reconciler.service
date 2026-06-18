@@ -11,6 +11,17 @@ EnvironmentFile=/home/jarvis/rexfinhub/config/.env
 # Pin process timezone to ET (audit fix R7).
 Environment=TZ=America/New_York
 Environment=SEC_CACHE_DIR=/home/jarvis/rexfinhub/cache/sec
+# Stage A (ADR 0013): run the read-only ingest-health PROBE first — it surfaces (and
+# alerts once on) any filing the live atom watcher missed, so the scrape gets fixed at
+# the source. The leading '-' tolerates its non-zero "gap found" exit so the writer
+# still runs as the transitional safety net below. Once the probe is clean for N days,
+# drop the writer line (proof-of-death) and this becomes probe-only.
+ExecStart=-/home/jarvis/venv/bin/python -m etp_tracker.reconciler --probe
+# Symmetric status guard (Stage A): assert status was already correct at the source —
+# read-only, exits non-zero + alerts once if any transition would apply. The '-'
+# tolerates that exit so the writer still runs. When this is a no-op for N days the
+# status writer (status_reconciler_apply in the chain) can be retired too.
+ExecStart=-/home/jarvis/venv/bin/python -m webapp.services.status_reconciler --assert-noop
 ExecStart=/home/jarvis/venv/bin/python -m etp_tracker.reconciler
 TimeoutStartSec=600
 StandardOutput=journal

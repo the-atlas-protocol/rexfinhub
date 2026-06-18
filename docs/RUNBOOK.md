@@ -196,6 +196,31 @@ Rare. Only when the VPS `/home` crosses ~85% (`df -h /home` — the disk is 38 G
 
 Last run 2026-06-03: 85% → 73%, freed ~5 GB (19 staging files + 3 zero-byte backups).
 
+### autonomous-operation (ADR 0013)
+
+The self-correcting loop is autonomous once these one-time VPS steps are done (the code
+is merged; systemd just needs to be told). Run from `/home/jarvis/rexfinhub`:
+
+```bash
+# 1. Enable the daily heartbeat (catches silent stage/timer failures + stale data)
+sudo cp deploy/systemd/rexfinhub-healthcheck.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now rexfinhub-healthcheck.timer
+
+# 2. Retire the timers now folded INTO the chain (run_chain regenerates parquets;
+#    classification runs in the chain). Their .service units stay for manual catch-up.
+sudo systemctl disable --now rexfinhub-parquet-rebuild.timer
+sudo systemctl disable --now rexfinhub-classification-sweep.timer   # after a green chain run
+
+# 3. Prove the SEC ingest is clean before retiring the reconciler's WRITER path:
+python -m etp_tracker.reconciler --probe   # exits 0 + "clean" for N days => safe to retire
+```
+
+What reaches you now (silence by default): ONE "reports ready / needs your call" per
+refresh, a HOLD only when preflight is red, and a consolidated alert only on a real
+ingest gap or a heartbeat failure. Everything the cascade auto-fixes is logged, not
+emailed. Send still requires your explicit word and is hard-blocked on a red preflight.
+
 ### known-gaps
 
 - GAP-01: No single `/admin/dashboard` showing live status (gate state, last preflight outcome, secret-expiry warnings) in one view. `/admin/system-state` (Phase 7B) covers flags + preflight runs + events; a fully unified dashboard is still missing.

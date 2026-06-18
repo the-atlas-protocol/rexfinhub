@@ -91,6 +91,26 @@ class ReconcileResult:
     skipped_weekend: bool = False
 
 
+@dataclass
+class ProbeResult:
+    """Read-only ingest-health probe for one day (Stage A: reconciler-as-probe).
+
+    A non-empty `missed` means the live atom watcher (Tier 1) did NOT capture
+    filings the SEC's authoritative daily index lists — i.e. an ingest-quality
+    problem to FIX AT THE SOURCE (watcher downtime, a burst that overflowed the
+    rolling feed, a parse error), not something to silently backfill forever."""
+    target_date: date
+    fetched: int = 0
+    parsed: int = 0
+    accepted: int = 0
+    missed: list = field(default_factory=list)   # list[IndexRow] in the index but not in our DB
+    skipped_weekend: bool = False
+
+    @property
+    def missed_count(self) -> int:
+        return len(self.missed)
+
+
 # ---------------------------------------------------------------------------
 # Index URL + parsing
 # ---------------------------------------------------------------------------
@@ -203,6 +223,112 @@ def parse_form_index(text: str) -> list[IndexRow]:
 
 
 # ---------------------------------------------------------------------------
+# Pure diff helpers (shared by the writer and the read-only probe; unit-tested)
+# ---------------------------------------------------------------------------
+
+def accepted_from_index(rows: list[IndexRow]) -> list[IndexRow]:
+    """Keep only the fund-relevant forms (mirrors atom_watcher's FORM_QUERIES)."""
+    return [r for r in rows if r.form_type in ACCEPTED_FORMS]
+
+
+def diff_missed(accepted_rows: list[IndexRow],
+                existing_accessions: Iterable[str]) -> list[IndexRow]:
+    """Pure: the accepted index rows whose accession is NOT already in our DB.
+
+    This is the ingest gap — what the live scrape failed to capture. Pure so the
+    gap computation is testable without the SEC or a DB."""
+    existing = set(existing_accessions)
+    return [r for r in accepted_rows if r.accession_number not in existing]
+
+
+def _load_existing_accessions(db, accessions: list[str]) -> set[str]:
+    """Batch-load which of `accessions` already exist in filing_alerts."""
+    from sqlalchemy import select
+    from webapp.models import FilingAlert
+    existing: set[str] = set()
+    CHUNK = 500
+    for i in range(0, len(accessions), CHUNK):
+        chunk = accessions[i: i + CHUNK]
+        rows = db.execute(
+            select(FilingAlert.accession_number).where(
+                FilingAlert.accession_number.in_(chunk)
+            )
+        ).all()
+        existing.update(row[0] for row in rows)
+    return existing
+
+
+def _fetch_index_rows(target_date: date):
+    """Fetch + parse the SEC daily form index for a date. Returns (rows, fetched)
+    or (None, 0) on a weekend / fetch failure / empty index."""
+    from .sec_client import SECClient
+    if target_date.weekday() >= 5:
+        return None, 0
+    url = index_url_for(target_date)
+    client = SECClient(user_agent=USER_AGENT)
+    try:
+        text = client.fetch_text(url)
+    except Exception as e:
+        log.warning("_fetch_index_rows: fetch failed for %s: %s", target_date, e)
+        return None, 0
+    if not text or ("form.idx" in text.lower() and len(text) < 100):
+        return None, 0
+    return parse_form_index(text), 1
+
+
+# ---------------------------------------------------------------------------
+# Read-only ingest-health probe (the reconciler's end-state role)
+# ---------------------------------------------------------------------------
+
+def probe_day(db, target_date: date) -> ProbeResult:
+    """Read-only: compute how many index filings the live atom watcher missed for a
+    day, WITHOUT writing anything. The signal that the scrape needs fixing at the
+    source (Stage A). reconcile_day is the transitional writer; this is the audit."""
+    result = ProbeResult(target_date=target_date)
+    if target_date.weekday() >= 5:
+        result.skipped_weekend = True
+        return result
+    rows, fetched = _fetch_index_rows(target_date)
+    result.fetched = fetched
+    if not rows:
+        return result
+    result.parsed = len(rows)
+    accepted = accepted_from_index(rows)
+    result.accepted = len(accepted)
+    existing = _load_existing_accessions(db, [r.accession_number for r in accepted])
+    result.missed = diff_missed(accepted, existing)
+    log.info("probe_day: %s parsed=%d accepted=%d missed=%d",
+             target_date, result.parsed, result.accepted, result.missed_count)
+    return result
+
+
+def probe_recent(days_back: int = 3) -> tuple[int, list]:
+    """Read-only probe over the last N days + today. Returns (total_missed, missed_rows).
+
+    Use this to PROVE the live ingest captures everything (total_missed == 0 for N
+    consecutive days) before retiring the writer path entirely (proof-of-death)."""
+    from webapp.database import init_db, SessionLocal
+    init_db()
+    today = date.today()
+    total_missed = 0
+    all_missed: list = []
+    db = SessionLocal()
+    try:
+        for offset in range(days_back, -1, -1):
+            target = today - timedelta(days=offset)
+            try:
+                r = probe_day(db, target)
+            except Exception as e:
+                log.exception("probe_day failed for %s: %s", target, e)
+                continue
+            total_missed += r.missed_count
+            all_missed.extend(r.missed)
+    finally:
+        db.close()
+    return total_missed, all_missed
+
+
+# ---------------------------------------------------------------------------
 # Core reconcile
 # ---------------------------------------------------------------------------
 
@@ -216,10 +342,8 @@ def reconcile_day(db, target_date: date) -> ReconcileResult:
     Returns:
         ReconcileResult with fetched/parsed/matched/new_inserted counts.
     """
-    from sqlalchemy import select
     from webapp.models import FilingAlert
     from datetime import date as _date
-    from .sec_client import SECClient
 
     result = ReconcileResult(target_date=target_date)
 
@@ -230,27 +354,17 @@ def reconcile_day(db, target_date: date) -> ReconcileResult:
         result.skipped_weekend = True
         return result
 
-    url = index_url_for(target_date)
-    log.info("reconcile_day: fetching %s", url)
-
-    client = SECClient(user_agent=USER_AGENT)
-    try:
-        text = client.fetch_text(url)
-    except Exception as e:
-        log.warning("reconcile_day: fetch failed for %s: %s", target_date, e)
-        return result
-
-    if not text or "form.idx" in text.lower() and len(text) < 100:
+    log.info("reconcile_day: fetching %s", index_url_for(target_date))
+    rows, fetched = _fetch_index_rows(target_date)
+    result.fetched = fetched
+    if not rows:
         log.info("reconcile_day: empty or missing index for %s", target_date)
         return result
 
-    result.fetched = 1
-
-    rows = parse_form_index(text)
     result.parsed = len(rows)
 
     # Filter to forms we care about
-    accepted_rows = [r for r in rows if r.form_type in ACCEPTED_FORMS]
+    accepted_rows = accepted_from_index(rows)
     if not accepted_rows:
         log.info(
             "reconcile_day: %s parsed=%d accepted=0 new=0",
@@ -258,21 +372,11 @@ def reconcile_day(db, target_date: date) -> ReconcileResult:
         )
         return result
 
-    # Pre-load existing accessions in one query
+    # Pre-load existing accessions, then diff (shared pure helper with the probe).
     accessions = [r.accession_number for r in accepted_rows]
-    existing: set[str] = set()
-    # Chunk the IN clause to be safe on very long days
-    CHUNK = 500
-    for i in range(0, len(accessions), CHUNK):
-        chunk = accessions[i: i + CHUNK]
-        rows_existing = db.execute(
-            select(FilingAlert.accession_number).where(
-                FilingAlert.accession_number.in_(chunk)
-            )
-        ).all()
-        existing.update(row[0] for row in rows_existing)
-
+    existing = _load_existing_accessions(db, accessions)
     result.matched = len(existing)
+    missed_rows = diff_missed(accepted_rows, existing)
 
     # Rows in a single index all share target_date; try to parse the
     # row's date_filed (format is typically 'YYYYMMDD' or 'YYYY-MM-DD')
@@ -289,10 +393,7 @@ def reconcile_day(db, target_date: date) -> ReconcileResult:
             return target_date
 
     batch_count = 0
-    for row in accepted_rows:
-        if row.accession_number in existing:
-            continue
-
+    for row in missed_rows:
         alert = FilingAlert(
             trust_id=None,  # Tier 2 will resolve
             cik=row.cik or None,
@@ -609,17 +710,73 @@ def backfill_missing_cik(db, dry_run: bool = False) -> BackfillCikStats:
 # CLI entrypoint
 # ---------------------------------------------------------------------------
 
+def _escalate_ingest_gap(total_missed: int, sample: list) -> None:
+    """Fire ONE consolidated alert when the live atom watcher missed filings (Stage A:
+    surface the ingest gap as a health signal to FIX AT SOURCE, instead of silently
+    backfilling). Rate-limited to once per day via a marker so it never becomes clutter."""
+    if total_missed <= 0:
+        return
+    from pathlib import Path as _P
+    marker = _P(__file__).resolve().parent.parent / "data" / ".ingest_gap_alerted"
+    today_s = date.today().isoformat()
+    try:
+        if marker.exists() and marker.read_text(encoding="utf-8").strip() == today_s:
+            return  # already alerted today
+    except OSError:
+        pass
+    names = ", ".join(
+        f"{getattr(r, 'form_type', '?')} {getattr(r, 'company_name', '') or getattr(r, 'accession_number', '')}"
+        for r in sample[:10])
+    msg = (f"Ingest health: the live SEC atom watcher MISSED {total_missed} filing(s) that the "
+           f"authoritative daily index lists. The reconciler backfilled them, but a miss means "
+           f"the scrape needs fixing at the source (watcher downtime / burst overflow / parse error). "
+           f"Examples: {names}")
+    try:
+        from etp_tracker.email_alerts import send_critical_alert
+        send_critical_alert(subject=f"REX ingest gap — {total_missed} filings missed by atom watcher",
+                            message=msg, subject_prefix="[INGEST]")
+    except Exception as e:
+        log.warning("ingest-gap escalation failed: %s", e)
+    try:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(today_s, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def run_probe(days_back: int = 3) -> int:
+    """Read-only ingest-health probe (no writes). Returns the missed-filing count so
+    a caller / CI / the proof-of-death workflow can assert it is 0 for N days before
+    the writer path is retired. Escalates once if a gap exists."""
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    total_missed, missed = probe_recent(days_back=days_back)
+    log.info("ingest_probe days_back=%d total_missed=%d", days_back, total_missed)
+    if total_missed:
+        for r in missed[:20]:
+            log.info("  MISSED %s %s %s", r.form_type, r.accession_number, r.company_name)
+        _escalate_ingest_gap(total_missed, missed)
+    else:
+        log.info("ingest_probe: clean — live scrape captured every index filing")
+    return total_missed
+
+
 def run_recent(days_back: int = 3, dry_run: bool = False) -> None:
     """Reconcile the last N calendar days (default 3) + run REX lifecycle steps.
 
     Pipeline:
-        1. SEC daily-index reconcile (fills filing_alerts gaps)
+        1. SEC daily-index reconcile (fills filing_alerts gaps) + ingest-gap escalation
         2. backfill_missing_cik() on rex_products
         3. match_rex_products() — read-only match-rate audit
         4. promote_pend_to_actv() on mkt_master_data
 
     Idempotent: running twice does not duplicate filing_alerts rows (UNIQUE
     constraint on accession_number) and PEND->ACTV is one-way.
+
+    Stage A note: step 1 still WRITES (transitional safety net so no filing is lost),
+    but every miss is now surfaced as a health signal via _escalate_ingest_gap so the
+    root cause gets fixed at the source. Once `run_probe` reports 0 misses for N days,
+    the writer can be retired and this becomes probe-only (proof-of-death).
     """
     logging.basicConfig(
         level=logging.INFO,
@@ -704,14 +861,22 @@ def run_recent(days_back: int = 3, dry_run: bool = False) -> None:
         promote_stats.promoted, backfill_stats.backfilled,
     )
 
+    # Stage A: every reconciler-inserted filing is one the live atom watcher missed.
+    # Surface it as a single health signal so the scrape gets fixed at the source.
+    if not dry_run:
+        _escalate_ingest_gap(totals["new"], [])
 
-def _parse_argv(argv: list[str]) -> tuple[int, bool]:
-    """Parse legacy positional + new flag form. Returns (days, dry_run)."""
+
+def _parse_argv(argv: list[str]) -> tuple[int, bool, bool]:
+    """Parse legacy positional + new flag form. Returns (days, dry_run, probe)."""
     days = 3
     dry_run = False
+    probe = False
     for arg in argv[1:]:
         if arg == "--dry-run":
             dry_run = True
+        elif arg == "--probe":
+            probe = True
         elif arg.startswith("--days="):
             try:
                 days = int(arg.split("=", 1)[1])
@@ -720,9 +885,13 @@ def _parse_argv(argv: list[str]) -> tuple[int, bool]:
         elif arg.isdigit():
             # Legacy positional: `python -m etp_tracker.reconciler 7`
             days = int(arg)
-    return days, dry_run
+    return days, dry_run, probe
 
 
 if __name__ == "__main__":
-    days, dry_run = _parse_argv(sys.argv)
+    days, dry_run, probe = _parse_argv(sys.argv)
+    if probe:
+        # Read-only ingest-health probe: exit non-zero when the live scrape missed
+        # filings, so CI / the proof-of-death workflow can gate on a clean ingest.
+        sys.exit(1 if run_probe(days_back=days) else 0)
     run_recent(days_back=days, dry_run=dry_run)

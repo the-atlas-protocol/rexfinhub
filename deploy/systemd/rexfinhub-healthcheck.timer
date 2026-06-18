@@ -1,0 +1,12 @@
+[Unit]
+Description=REX FinHub daily heartbeat (weekdays 20:00 ET — after the build/send window)
+
+[Timer]
+# VPS timezone is America/New_York. Runs at 20:00, after the chain build + the
+# 19:30 daily send window, so a missing/failed stage for the day is caught the
+# same evening rather than discovered via a wrong report the next morning.
+OnCalendar=Mon..Fri 20:00:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

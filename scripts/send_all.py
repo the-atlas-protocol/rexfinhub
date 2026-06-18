@@ -200,6 +200,25 @@ def _now_et() -> str:
         return datetime.now().isoformat(timespec="seconds")
 
 
+def preflight_blocks_send(result_file: Path, red_marker: Path) -> tuple[bool, str]:
+    """Pure predicate (Stage C) — should a real send be HARD-BLOCKED?
+
+    Blocks when the chain left a red marker OR the latest preflight result is a FAIL.
+    A missing/unreadable result file does NOT block on its own (the marker is the
+    authoritative red signal; absence of a result means preflight simply hasn't run in
+    this flow, e.g. a one-off test). Extracted + unit-tested because this is the single
+    guarantee that wrong data never reaches a recipient."""
+    if red_marker.exists():
+        return True, "preflight_red marker present"
+    try:
+        overall = json.loads(result_file.read_text(encoding="utf-8")).get("overall_status")
+    except Exception:
+        overall = None
+    if overall == "fail":
+        return True, "preflight overall_status=fail"
+    return False, ""
+
+
 def open_gate(actor: str = "send_all.py", note: str = ""):
     GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     GATE_FILE.write_text("true", encoding="utf-8")
@@ -374,6 +393,21 @@ def main():
         _gate_log("read", "go_authorized", "send_all.py --use-decision",
                   f"token={decision.get('token','?')[:8]} recorded={decision.get('recorded_et','?')}")
         print(f"Decision: GO (token {decision.get('token','?')[:8]}, recorded {decision.get('recorded_et','?')})")
+
+    # Stage C — hard-block any real send when the latest preflight is RED. This couples
+    # the send checkpoint to a green build for BOTH the autonomous (--use-decision) and
+    # the manual (--send) paths; previously only --use-decision was gated. A test send
+    # (--to) or dry-run is allowed through so the operator can still preview.
+    if args.send and not args.to:
+        blocked, reason = preflight_blocks_send(
+            PROJECT_ROOT / "data" / ".preflight_result.json",
+            PROJECT_ROOT / "data" / ".preflight_red",
+        )
+        if blocked:
+            _ts = _now_et()
+            print(f"ABORT: send refused — {reason} at {_ts} ET. Fix the data and re-run the chain.")
+            _gate_log("read", "blocked_red_preflight", "send_all.py", reason)
+            return 2
 
     dry_run = not args.send
     bundle_keys = BUNDLES[args.bundle]

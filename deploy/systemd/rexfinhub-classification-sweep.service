@@ -21,7 +21,12 @@ ExecStart=-/home/jarvis/venv/bin/python scripts/classify_daily.py --apply
 # Stamp this morning's decisions onto mkt_master_data immediately (don't
 # wait for the 17:15 chain) — idempotent, seconds.
 ExecStart=-/home/jarvis/venv/bin/python scripts/apply_fund_master.py
-ExecStart=/home/jarvis/venv/bin/python scripts/classification_sweep.py --post-summary
+# Stage D (approved plan) — silence by default: classification still runs, but the
+# routine "here are the gaps" email is dropped (--post-summary removed). The
+# self-healing cascade auto-resolves most gaps and logs them; only the chain's single
+# "reports ready / needs your call" message reaches Ryu. Run without --post-summary so
+# the sweep still records gaps to disk/queue without emailing.
+ExecStart=/home/jarvis/venv/bin/python scripts/classification_sweep.py
 TimeoutStartSec=300
 StandardOutput=journal
 StandardError=journal
