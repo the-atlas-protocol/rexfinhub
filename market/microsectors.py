@@ -127,7 +127,12 @@ def read_overrides(xl: pd.ExcelFile) -> dict[str, dict]:
             aum_series = aum_daily[ticker].dropna()
             if not aum_series.empty:
                 ov["aum"] = aum_series.iloc[-1] / 1e6
-                ov.update(_monthly_aum_history(aum_series))
+                # Dead/matured ETNs (FNGA, ...) carry stale 2024-era issuance whose
+                # _monthly_aum_history anchors to the ticker's OWN last date and bleeds
+                # a false multi-$B bump onto recent months in the time-series chart.
+                # Emit only the current value for them, no synthetic history. (Ryu 2026-06-17.)
+                if ticker not in _DEAD_TICKERS:
+                    ov.update(_monthly_aum_history(aum_series))
 
         # Flows from shares + prices
         if ticker in shares_daily.columns and ticker in prices_daily.columns:

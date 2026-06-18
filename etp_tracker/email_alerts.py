@@ -1251,7 +1251,7 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
             pending_items.append(
                 f'<tr><td style="{_row_rex}">'
                 f'<div style="font-weight:600;margin-bottom:2px;">'
-                f'{trust_label} <span style="font-weight:400;color:{_GRAY};font-size:10px;">PENDING</span>'
+                f'{trust_label} <span style="font-weight:400;color:{_GRAY};font-size:10px;">FILED</span>'
                 f'{cat_tags}</div>'
                 f'<div style="font-size:11px;color:{_GRAY};">{summary}</div>'
                 f'</td></tr>'
@@ -2475,7 +2475,7 @@ def _render_morning_brief_html(data: dict, dashboard_url: str = "") -> str:
       <td width="3%"></td>
       <td width="31%" style="padding:10px 6px;background:{_LIGHT};border-radius:8px;text-align:center;">
         <div style="font-size:18px;font-weight:700;color:{_ORANGE};">{pending_count}</div>
-        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Pending</div>
+        <div style="font-size:9px;color:{_GRAY};text-transform:uppercase;">Filed</div>
       </td>
       <td width="3%"></td>
       <td width="31%" style="padding:10px 6px;background:{_LIGHT};border-radius:8px;text-align:center;">

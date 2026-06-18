@@ -287,10 +287,28 @@ def main() -> int:
         else:
             not_found += 1
 
+    # Re-stamp mkt_time_series.issuer_display from the (now-canonical) master so the
+    # market-share / competitive-landscape CHARTS — which group by mkt_time_series.
+    # issuer_display, NOT mkt_master_data — show the brand, not the legal trust.
+    # (Ryu 2026-06-17: charts still showed 'Tidal Trust II' after the master fix.)
+    ts_updated = 0
+    try:
+        ts = cur.execute(
+            "UPDATE mkt_time_series SET issuer_display = ("
+            "  SELECT m.issuer_display FROM mkt_master_data m WHERE m.ticker = mkt_time_series.ticker) "
+            "WHERE EXISTS (SELECT 1 FROM mkt_master_data m WHERE m.ticker = mkt_time_series.ticker "
+            "              AND COALESCE(TRIM(m.issuer_display),'') <> '' "
+            "              AND COALESCE(m.issuer_display,'') <> COALESCE(mkt_time_series.issuer_display,''))"
+        )
+        ts_updated = ts.rowcount or 0
+    except sqlite3.Error as exc:
+        print(f"WARN: mkt_time_series issuer re-stamp skipped: {exc}")
+
     con.commit()
     con.close()
 
-    print(f"Applied:   {updated:,} rows updated in mkt_master_data")
+    print(f"Applied:   {updated:,} rows updated in mkt_master_data; "
+          f"{ts_updated:,} mkt_time_series rows re-stamped")
     print(f"No-ops:    {noop:,} rows already had correct issuer_display")
     print(f"Not found: {not_found:,} tickers in CSV but not in DB "
           "(possibly liquidated or delisted)")

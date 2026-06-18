@@ -208,7 +208,8 @@ def _form_status(form: str | None, eff_date: date | None, today: date) -> str:
     - 485BPOS = registration effective, but only once its stated effective date
       has arrived. A future-dated BPOS is still 'Filed' (registered, not yet
       effective), NOT 'Effective'.
-    - 485BXT = delays a pending amendment to a stated future date -> 'Delayed'.
+    - 485BXT = delays a pending amendment to a stated future date. It is still on
+      file and not yet effective, so it is 'Filed' (Ryu: no 'Delayed' status).
     - 485APOS (or anything else) = on file / in review -> 'Filed'.
 
     Listing (-> 'Listed') requires an 8-A12B + ticker + first trade and is never
@@ -219,7 +220,7 @@ def _form_status(form: str | None, eff_date: date | None, today: date) -> str:
             return "Effective"
         return "Filed"
     if form == "485BXT":
-        return "Delayed"
+        return "Filed"
     return "Filed"
 
 

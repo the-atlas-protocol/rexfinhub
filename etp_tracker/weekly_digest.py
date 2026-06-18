@@ -306,7 +306,7 @@ def _render_filing_activity(filing_data: dict) -> str:
       <td width="1%"></td>
       <td width="24%" style="{_KPI_BOX}">
         <div style="font-size:24px;font-weight:700;color:{_ORANGE};">{pending}</div>
-        <div style="{_KPI_LABEL}">Pending</div>
+        <div style="{_KPI_LABEL}">Filed</div>
       </td>
     </tr>
   </table>

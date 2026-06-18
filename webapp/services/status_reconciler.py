@@ -52,15 +52,19 @@ STATUS_SUSPENDED = "suspended"
 # (Track 5A): the reconciler keeps this in sync so the pipeline page, flow
 # report, and templates — which still read rex_products.status — stay
 # consistent with status_history.
+# Ryu (repeated): the ONLY statuses the DB may store / a report may show are
+# Filed, Effective, Listed, Liquidated, Delisted, and Under Consideration (pipeline
+# ideas). A 485BXT "delay" is still Filed; a target-list idea is Under Consideration;
+# suspended collapses to Delisted. NO 'Delayed', 'Target List', 'Suspended', 'Pending'.
 _CAPM_CASE_STATUS = {
     "under_consideration": "Under Consideration",
-    "target_list": "Target List",
+    "target_list": "Under Consideration",
     "filed": "Filed",
-    "delayed": "Delayed",
+    "delayed": "Filed",
     "effective": "Effective",
     "listed": "Listed",
     "delisted": "Delisted",
-    "suspended": "Suspended",
+    "suspended": "Delisted",
 }
 
 

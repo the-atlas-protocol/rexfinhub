@@ -182,18 +182,11 @@ def _tk(t):
 
 
 def _collapse_status(row) -> str:
-    # The only valid lifecycle states are Filed / Effective / Live / Delisted
-    # (Ryu 2026-06-17 — no "Delayed", no "Listed"). Map the underlying reconciler
-    # states onto those four: a 485BXT "Delayed" and the pre-filing pipeline states
-    # are all "Filed" (not yet effective); "Listed"/trading is "Live".
-    raw = _safe_str(row.get("status"), "").strip()
-    raw = {
-        "Delayed": "Filed", "Under Consideration": "Filed", "Target List": "Filed",
-        "Listed": "Live",
-    }.get(raw, raw)
-    if raw in ("Filed", "Effective", "Live", "Delisted"):
-        return raw
-    return "Filed"
+    # Single source: market.definitions.canonical_status. The ONLY allowed states are
+    # Filed / Effective / Listed / Liquidated / Delisted / Under Consideration — no
+    # 'Delayed', 'Pending', or 'Live'. (Ryu 2026-06-17.)
+    from market.definitions import canonical_status
+    return canonical_status(row.get("status"))
 
 
 # -------------------- DATA LOADERS --------------------
@@ -210,7 +203,7 @@ def load_rex_position():
     )
     pos = {}
     for u, r in agg.iterrows():
-        if r["actv"] > 0:   pos[u] = ("Live", GREEN)
+        if r["actv"] > 0:   pos[u] = ("Listed", GREEN)
         elif r["filed"] > 0: pos[u] = ("Filed", BLUE)
         else:               pos[u] = ("—", GRAY)  # "Not in" w/ red was useless color (Ryu 2026-06-09)
     return pos
@@ -1098,11 +1091,11 @@ def build():
             # Show the REAL scraped effective date, or an honest "Pending" — never the
             # +75-day projection (Ryu 2026-06-16).
             eff_dt=(str(r['eff_real'].date()) if pd.notna(r.get('eff_real'))
-                    else '<span style="color:#e67e22;">Pending</span>')
+                    else '<span style="color:#7f8c8d;">—</span>')
             fc, ec = _comp_cells(comp, u)
             lv = live.get(u, {})
             if lv.get("top_aum"):
-                _exists = "Inverse exists" if (r["_is_inv"] and lv.get("has_inv")) else "Live"
+                _exists = "Inverse exists" if (r["_is_inv"] and lv.get("has_inv")) else "Listed"
                 live_html = (f'<span style="color:{ORANGE if r["_dead_inv"] else NAVY};font-weight:600;">'
                              f'{_exists} · {_fmt_aum_m(lv["top_aum"])}</span>')
                 live_cell = (live_html, "right")

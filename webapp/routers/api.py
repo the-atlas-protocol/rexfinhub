@@ -192,13 +192,15 @@ def list_funds(
     query = query.order_by(FundStatus.latest_filing_date.desc().nullslast()).limit(limit)
     rows = db.execute(query).all()
 
+    from market.definitions import canonical_status
     return [
         {
             "id": r.FundStatus.id,
             "trust_name": r.trust_name,
             "fund_name": r.FundStatus.fund_name,
             "ticker": r.FundStatus.ticker,
-            "status": r.FundStatus.status,
+            "status": canonical_status(r.FundStatus.status),
+            "status_raw": r.FundStatus.status,
             "status_reason": r.FundStatus.status_reason,
             "effective_date": str(r.FundStatus.effective_date) if r.FundStatus.effective_date else None,
             "latest_form": r.FundStatus.latest_form,

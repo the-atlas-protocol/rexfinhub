@@ -1741,12 +1741,13 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
     except Exception:
         _comp_issuer_of = lambda n: None  # noqa: E731
 
+    from market.definitions import canonical_status
     items = []  # (issuer, fund, status, eff, is_rex)
     for name, status, eff in rex:
-        items.append(("REX", str(name), str(status), str(eff)[:10], True))
+        items.append(("REX", str(name), canonical_status(status), str(eff)[:10], True))
     for name, status, eff in comp:
         iss = _comp_issuer_of(name) or (str(name).split()[0] if name else "—")
-        items.append((iss, str(name), str(status).title(), str(eff)[:10], False))
+        items.append((iss, str(name), canonical_status(status), str(eff)[:10], False))
     if not items:
         return ""
     # REX first, then soonest estimated-effective date.
@@ -1767,7 +1768,7 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
     n_rex = sum(1 for it in items if it[4])
     n_comp = len(items) - n_rex
     return (
-        _section_title(f"Pending &amp; Filed Autocallable Launches ({len(items)})", accent)
+        _section_title(f"Upcoming Autocallable Launches ({len(items)})", accent)
         + (f'<tr><td style="padding:0 30px 6px;font-size:11px;color:{_GRAY};">'
            f'Upcoming autocallable supply not yet trading — REX ({n_rex}) + competitors '
            f'({n_comp}), from rex_products + fund_status. REX in blue.</td></tr>')

@@ -228,19 +228,15 @@ def match_filings(
                 source = "db_name"
 
         if fund_info:
-            status = fund_info.get("status", "UNKNOWN")
+            from market.definitions import canonical_status
+            status = canonical_status(fund_info.get("status", ""))  # never Pending/Delayed
             eff_date = fund_info.get("effective_date")
-            if status == "EFFECTIVE":
+            if status == "Effective":
                 df.at[idx, "filing_status"] = "REX Filed - Effective"
-            elif status == "PENDING":
-                if eff_date:
-                    df.at[idx, "filing_status"] = f"REX Filed - Pending ({eff_date})"
-                else:
-                    df.at[idx, "filing_status"] = "REX Filed - Pending"
-            elif status == "DELAYED":
-                df.at[idx, "filing_status"] = "REX Filed - Delayed"
+            elif eff_date:
+                df.at[idx, "filing_status"] = f"REX Filed ({eff_date})"
             else:
-                df.at[idx, "filing_status"] = f"REX Filed - {status}"
+                df.at[idx, "filing_status"] = "REX Filed"
         elif rex_ticker:
             # etp_data has a REX fund but no DB entry
             df.at[idx, "filing_status"] = "REX Filed"

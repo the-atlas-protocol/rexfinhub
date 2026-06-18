@@ -222,6 +222,33 @@ def counts_in_live_kpi(status: str | None) -> bool:
     return status_role(status) == "live"
 
 
+# Canonical DISPLAY status — the ONLY statuses allowed in ANY report (Ryu, repeated):
+# Filed, Effective, Listed, Liquidated, Delisted, and Under Consideration (pipeline
+# ideas only). NO 'Pending', NO 'Delayed', nothing else. Every status string shown to
+# a user MUST route through canonical_status().
+ALLOWED_DISPLAY_STATUSES: frozenset[str] = frozenset(
+    {"Filed", "Effective", "Listed", "Liquidated", "Delisted", "Under Consideration"}
+)
+_STATUS_DISPLAY: dict[str, str] = {
+    "PENDING": "Filed", "PEND": "Filed", "FILED": "Filed",
+    "DELAYED": "Filed", "DELAY": "Filed", "DELAYING": "Filed", "DELAYING AMENDMENT": "Filed",
+    "EFFECTIVE": "Effective", "EFF": "Effective",
+    "LISTED": "Listed", "ACTV": "Listed", "ACTIVE": "Listed", "LIVE": "Listed", "TRADING": "Listed",
+    "LIQU": "Liquidated", "LIQUIDATED": "Liquidated",
+    "DLST": "Delisted", "DELISTED": "Delisted", "ACQU": "Delisted", "INAC": "Delisted",
+    "EXPD": "Delisted", "TKCH": "Delisted", "UNLS": "Delisted", "PRNA": "Delisted",
+    "UNDER CONSIDERATION": "Under Consideration", "UNDERCONSIDERATION": "Under Consideration",
+    "TARGET LIST": "Under Consideration", "TARGET": "Under Consideration", "IDEA": "Under Consideration",
+}
+
+
+def canonical_status(status: str | None) -> str:
+    """Map any raw status (fund_status PENDING/DELAYED, market_status ACTV/LIQU/DLST, or
+    a rex_products status) to the ONE allowed display set above. Unknown -> 'Filed' (the
+    safe pre-trading default). 'Pending'/'Delayed' must NEVER reach a report."""
+    return _STATUS_DISPLAY.get((status or "").upper().strip(), "Filed")
+
+
 def present_value(status: str | None, raw: float | None) -> float | None:
     """Present-day contribution of a fund to an AUM/flow KPI.
       live   -> its real value
