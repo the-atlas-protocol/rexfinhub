@@ -164,3 +164,6 @@ GAUD US,,dividend_equity_not_option_income
 IDVY US,,dividend_equity_not_option_income
 HELS US,,hedgeye_130_30_longshort_not_daily_reset_leverage
 SGVA US,,fm_accumulator_ultrashort_treasury_not_li
+AAAP US,,auto-llm-other: CLO market flex bond ETF with no options-income or leverage mechanics; credit strategy via direct holdings.
+PBSC US,,auto-llm-other: Secured credit bond ETF with no options-income or leverage; fixed income credit strategy via direct holdings.
+BKLG US,,auto-llm-other: Large cap equity growth ETF with no leverage or special strategy; standard growth factor exposure.
