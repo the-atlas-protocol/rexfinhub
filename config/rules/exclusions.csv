@@ -167,3 +167,7 @@ SGVA US,,fm_accumulator_ultrashort_treasury_not_li
 AAAP US,,auto-llm-other: CLO market flex bond ETF with no options-income or leverage mechanics; credit strategy via direct holdings.
 PBSC US,,auto-llm-other: Secured credit bond ETF with no options-income or leverage; fixed income credit strategy via direct holdings.
 BKLG US,,auto-llm-other: Large cap equity growth ETF with no leverage or special strategy; standard growth factor exposure.
+VPAC US,,auto-llm-other: Active credit ETF with no options-income mechanics; standard fixed income strategy.
+AMOR US,,auto-llm-other: Mortgage-backed securities ETF; traditional fixed income with no options-income strategy.
+RANK US,,"auto-llm-other: Analyst-rating-based equity selection ETF; no leverage, options, or defined return structure."
+AMHI US,,auto-llm-other: Municipal high-income bond ETF; fixed income strategy without options-income mechanics.

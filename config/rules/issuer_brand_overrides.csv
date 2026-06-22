@@ -691,6 +691,10 @@ ZIG US,ACQUIRERS,name_fallback,first significant word of: THE ACQUIRERS FUND ETF
 ZINC US,ZACKS,name_fallback,first significant word of: ZACKS INCOME ETF
 ZTAX US,X-SQUARE,name_fallback,first significant word of: X-SQUARE MUNICIPAL INCOME ETF
 2578189D US,Goldman Sachs,layer1_regex,Matched fund_name: GOLDMAN SACHS ACCESS US TREASURY BOND ETF
+2664314D US,ANFIELD,name_fallback,first significant word of: ANFIELD ENHANCED MARKET ETF/NEW
+2664318D US,REGENTS,name_fallback,first significant word of: REGENTS PARK S&P 500 HEDGED ETF/NEW
+2664319D US,ANFIELD,name_fallback,first significant word of: ANFIELD US EQUITY SECTOR ROTATION ETF/NEW
+2664321D US,ANFIELD,name_fallback,first significant word of: ANFIELD DYNAMIC FIXED INCOME ETF/NEW
 AAAA US,Amplius,layer1_regex,Matched fund_name: AMPLIUS AGGRESSIVE ASSET ALLOCATION ETF
 AAAC US,Columbia,layer1_regex,Matched fund_name: COLUMBIA AAA CLO ETF
 AAAD US,PGIM,layer1_regex,Matched fund_name: PGIM AAA CLO AGGREGATE DURATION ETF
@@ -720,6 +724,7 @@ ADIV US,Guinness Atkinson,layer1_regex,Matched fund_name: GUINNESS ATKINSON ASIA
 ADME US,Aptus,layer1_regex,Matched fund_name: APTUS DRAWDOWN MANAGED EQUITY ETF
 ADPV US,Adaptiv,layer1_regex,Matched fund_name: ADAPTIV SELECT ETF
 ADVE US,Matthews,layer1_regex,Matched fund_name: MATTHEWS ASIA DIVIDEND ACTIVE ETF
+AEHG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG AEHR DAILY ETF
 AFK US,VanEck,layer1_regex,Matched fund_name: VANECK AFRICA INDEX ETF
 AFLG US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST ACTIVE FACTOR LARGE CAP ETF
 AFMC US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST ACTIVE FACTOR MID CAP ETF
@@ -752,6 +757,8 @@ ALLW US,State Street,layer1_regex,Matched fund_name: STATE STREET BRIDGEWATER AL
 ALTL US,Pacer,layer1_regex,Matched fund_name: PACER LUNT LARGE CAP ALTERNATOR ETF
 ALTY US,Global X,layer1_regex,Matched fund_name: GLOBAL X ALTERNATIVE INCOME ETF
 AMDY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAX AMD OPTION INCOME STRATEGY ETF
+AMHI US,American Beacon,layer1_regex,Matched fund_name: AMERICAN BEACON ABERDEEN MUNICIPAL HIGH INCOME ETF
+AMOR US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES PIONEER MORTGAGE BACKED SECURITIES ETF
 AMUB US,ETRACS,layer1_regex,Matched fund_name: ETRACS ALERIAN MLP INDEX ETN SERIES B
 AMUN US,abrdn,layer1_regex,Matched fund_name: ABRDN ULTRA SHORT MUNICIPAL INCOME ACTIVE ETF
 AMZA US,InfraCap,layer1_regex,Matched fund_name: INFRACAP MLP ETF
@@ -774,6 +781,8 @@ ASHR US,Xtrackers,layer1_regex,Matched fund_name: XTRACKERS HARVEST CSI 300 CHIN
 ASHS US,Xtrackers,layer1_regex,Matched fund_name: XTRACKERS HARVEST CSI 500 CHINA A-SHARES SMALL CAP ETF
 ASIA US,Matthews,layer1_regex,Matched fund_name: MATTHEWS PACIFIC TIGER ACTIVE ETF
 ASMF US,Virtus,layer1_regex,Matched fund_name: VIRTUS ALPHASIMPLEX MANAGED FUTURES ETF
+ASMZ US,Corgi,layer1_regex,Matched fund_name: CORGI ASML 2X DAILY ETF
+ASTG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG ASTS DAILY ETF
 ATFV US,Alger,layer1_regex,Matched fund_name: ALGER 35 ETF
 ATMP US,iPath,layer1_regex,Matched fund_name: IPATH SELECT MLP ETN
 AUAU US,Global X,layer1_regex,Matched fund_name: GLOBAL X GOLD MINERS ETF
@@ -1005,6 +1014,7 @@ CCSB US,Carbon Collective,layer1_regex,Matched fund_name: CARBON COLLECTIVE SHOR
 CCSO US,Carbon Collective,layer1_regex,Matched fund_name: CARBON COLLECTIVE CLIMATE SOLUTIONS US EQUITY ETF
 CDC US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES US EQ INCOME ENHANCED VOLATILITY WTD ETF
 CDL US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES US LARGE CAP HIGH DIV VOLATILITY WTD ETF
+CDNG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG CDNS DAILY ETF
 CDX US,Simplify,layer1_regex,Matched fund_name: SIMPLIFY HIGH YIELD ETF
 CEFA US,Global X,layer1_regex,Matched fund_name: GLOBAL X S&P CATHOLIC VALUES DEVELOPED EX-US ETF
 CEMB US,iShares,layer1_regex,Matched fund_name: ISHARES J.P. MORGAN EM CORPORATE BOND ETF
@@ -1288,6 +1298,7 @@ EFV US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI EAFE VALUE ETF
 EGLE US,Global X,layer1_regex,Matched fund_name: GLOBAL X S&P 500 US REVENUE LEADERS ETF
 EGUS US,iShares,layer1_regex,Matched fund_name: ISHARES ESG AWARE MSCI USA GROWTH ETF
 EIDO US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI INDONESIA ETF
+EINC US,VanEck,layer1_regex,Matched fund_name: VANECK ENERGY INCOME ETF
 EIRL US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI IRELAND ETF
 EIS US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI ISRAEL ETF
 ELCV US,Eventide,layer1_regex,Matched fund_name: EVENTIDE HIGH DIVIDEND ETF
@@ -1323,6 +1334,7 @@ EMXF US,iShares,layer1_regex,Matched fund_name: ISHARES ESG ADVANCED MSCI EM ETF
 ENDW US,Cambria,layer1_regex,Matched fund_name: CAMBRIA ENDOWMENT STYLE ETF
 ENHU US,iShares,layer1_regex,Matched fund_name: ISHARES ENHANCED LARGE CAP CORE ACTIVE ETF
 ENOR US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI NORWAY ETF
+ENTL US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG ENTG DAILY ETF
 ENZL US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI NEW ZEALAND ETF
 EPEM US,Harbor,layer1_regex,Matched fund_name: HARBOR EMERGING MARKETS EQUITY ETF
 EPHE US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI PHILIPPINES ETF
@@ -1581,6 +1593,7 @@ FNDX US,Schwab,layer1_regex,Matched fund_name: SCHWAB FUNDAMENTAL U.S. LARGE COM
 FNK US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST MID CAP VALUE ALPHADEX FUND
 FNX US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST MID CAP CORE ALPHADEX FUND
 FNY US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST MID CAP GROWTH ALPHADEX FUND
+FOMG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG FORM DAILY ETF
 FOTO US,Tuttle,layer1_regex,Matched fund_name: TUTTLE CAPITAL PURE PLAY PHOTONICS ETF
 FOWF US,Pacer,layer1_regex,Matched fund_name: PACER SOLACTIVE WHITNEY FUTURE OF WARFARE ETF
 FOXY US,Simplify,layer1_regex,Matched fund_name: SIMPLIFY CURRENCY STRATEGY ETF
@@ -1589,6 +1602,7 @@ FPE US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST PREFERRED SECURIT
 FPEI US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST INSTITUTIONAL PREFERRED SECURITIES AND INCOME ETF
 FPFD US,Fidelity,layer1_regex,Matched fund_name: FIDELITY PREFERRED SECURITIES & INCOME ETF
 FPRO US,Fidelity,layer1_regex,Matched fund_name: FIDELITY REAL ESTATE INVESTMENT ETF
+FPSX US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG FPS DAILY ETF
 FPWR US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST EIP POWER SOLUTIONS ETF
 FQAL US,Fidelity,layer1_regex,Matched fund_name: FIDELITY QUALITY FACTOR ETF
 FREI US,Fidelity,layer1_regex,Matched fund_name: FIDELITY REAL ESTATE INCOME FUND - ETF CLASS
@@ -1706,6 +1720,7 @@ GEOA US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE GEO ALPHA OPPORTUN
 GEQ US,Cambria,layer1_regex,Matched fund_name: CAMBRIA GLOBAL EW 2 ETF
 GEW US,Cambria,layer1_regex,Matched fund_name: CAMBRIA GLOBAL EW ETF
 GFLW US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES FREE CASH FLOW GROWTH ETF
+GFSG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG GFS DAILY ETF
 GGOV US,iShares,layer1_regex,Matched fund_name: ISHARES GLOBAL GOVERNMENT BOND USD HEDGED ACTIVE ETF
 GGUS US,Goldman Sachs,layer1_regex,Matched fund_name: GOLDMAN SACHS MARKETBETA RUSSELL 1000 GROWTH EQUITY ETF
 GHYB US,Goldman Sachs,layer1_regex,Matched fund_name: GOLDMAN SACHS ACCESS HIGH YIELD CORPORATE BOND ETF
@@ -1852,6 +1867,7 @@ HNDL US,Strategy Shares,layer1_regex,Matched fund_name: STRATEGY SHARES NASDAQ 7
 HOLD US,Harbor,layer1_regex,Matched fund_name: HARBOR ALPHA LAYERING ETF
 HOMZ US,Hoya Capital,layer1_regex,Matched fund_name: HOYA CAPITAL HOUSING ETF
 HOOY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAX HOOD OPTION INCOME STRATEGY ETF
+HPEL US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG HPE DAILY ETF
 HQGO US,Hartford,layer1_regex,Matched fund_name: HARTFORD US QUALITY GROWTH ETF
 HRSK US,Toews,layer1_regex,Matched fund_name: TOEWS AGILITY SHARES HEDGED RISK ETF
 HSCZ US,iShares,layer1_regex,Matched fund_name: ISHARES CURRENCY HEDGED MSCI EAFE SMALL-CAP ETF
@@ -2417,6 +2433,7 @@ MSTY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAX MSTR OPTION INCOME STR
 MTBA US,Simplify,layer1_regex,Matched fund_name: SIMPLIFY MBS ETF
 MTGP US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE MORTGAGE PLUS BOND FUND
 MTRA US,Invesco,layer1_regex,Matched fund_name: INVESCO INTERNATIONAL GROWTH FOCUS ETF
+MTSG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG MTSI DAILY ETF
 MTUM US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI USA MOMENTUM FACTOR ETF
 MUB US,iShares,layer1_regex,Matched fund_name: ISHARES NATIONAL MUNI BOND ETF
 MULT US,Franklin Templeton,layer1_regex,Matched fund_name: FRANKLIN MULTISECTOR INCOME ETF
@@ -2772,6 +2789,7 @@ QWLD US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR MSCI WORL
 QXQ US,SGI,layer1_regex,Matched fund_name: SGI ENHANCED NASDAQ-100 ETF
 RAAX US,VanEck,layer1_regex,Matched fund_name: VANECK REAL ASSETS ETF
 RAFE US,PIMCO,layer1_regex,Matched fund_name: PIMCO RAFI ESG US ETF
+RANK US,Defiance,layer1_regex,Matched fund_name: DEFIANCE KSM TIPRANKS ANALYST ETF
 RAVI US,FlexShares,layer1_regex,Matched fund_name: FLEXSHARES ULTRA-SHORT INCOME FUND
 RAYJ US,Rayliant,layer1_regex,Matched fund_name: RAYLIANT SMDAM JAPAN EQUITY ETF
 RBIL US,F/M,layer1_regex,Matched fund_name: F/M ULTRASHORT TREASURY INFLATION-PROTECTED SECURITY TIPS ETF
@@ -2998,6 +3016,7 @@ SMOG US,VanEck,layer1_regex,Matched fund_name: VANECK LOW CARBON ENERGY ETF
 SMOT US,VanEck,layer1_regex,Matched fund_name: VANECK MORNINGSTAR SMID MOAT ETF
 SMOX US,Horizon Kinetics,layer1_regex,Matched fund_name: HORIZON SMALL/MID CAP CORE EQUITY ETF
 SMRF US,ALPS,layer1_regex,Matched fund_name: ALPS NAUTILUS SMR NUCLEAR & TECHNOLOGY ETF
+SMTG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG SMTC DAILY ETF
 SMTH US,ALPS,layer1_regex,Matched fund_name: ALPS SMITH CORE PLUS BOND ETF
 SNOY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAX SNOW OPTION INCOME STRATEGY ETF
 SNPD US,Xtrackers,layer1_regex,Matched fund_name: XTRACKERS S&P DIVIDEND ARISTOCRATS SCREENED ETF
@@ -3360,7 +3379,9 @@ VOOV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD S&P 500 VALUE ETF
 VOT US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MID-CAP GROWTH ETF
 VOTE US,TCW,layer1_regex,Matched fund_name: TCW TRANSFORM 500 ETF
 VOX US,Vanguard,layer1_regex,Matched fund_name: VANGUARD COMMUNICATION SERVICES ETF
+VPAC US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES PIONEER ACTIVE CREDIT ETF
 VPC US,Virtus,layer1_regex,Matched fund_name: VIRTUS PRIVATE CREDIT STRATEGY ETF
+VPEP US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES PIONEER EQUITY PREMIUM INCOME ETF
 VPL US,Vanguard,layer1_regex,Matched fund_name: VANGUARD FTSE PACIFIC ETF
 VPLS US,Vanguard,layer1_regex,Matched fund_name: VANGUARD CORE-PLUS BOND ETF
 VPU US,Vanguard,layer1_regex,Matched fund_name: VANGUARD UTILITIES ETF
