@@ -81,7 +81,12 @@ def _candidates(days: int):
                     AND f.registrant NOT LIKE '%ETF Opportunities%'""", (cutoff,))
     if df.empty:
         return []
-    df = df[df["series_name"].fillna("").apply(T.is_li_product)]
+    # Use the broad L&I *name* detector, not is_li_product(): the strict regex
+    # requires a trailing ETF/ETN token, so bare competitor series like
+    # "ProShares Ultra Dongshan Precision" (single-stock foreign filings, no
+    # ETF suffix in the series name) were silently dropped before reaching the
+    # AI classifier. _LI_NAME_RE matches bare Ultra/UltraPro/leveraged/inverse.
+    df = df[df["series_name"].fillna("").apply(lambda s: bool(T._LI_NAME_RE.search(s)))]
     df = df[~df["series_name"].fillna("").apply(T.is_high_leverage)]
     df = df.drop_duplicates("series_name")
     try:
