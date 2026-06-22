@@ -76,6 +76,13 @@ STEPS = [
     # to one extraction, so funds filing repeated 485BXT extensions drift
     # stale otherwise.
     ("refresh_effective_dates", [PY, str(PROJECT_ROOT / "scripts" / "refresh_effective_dates.py"), "--apply"]),
+    # ADR 0014: the ONE authoritative effective date (fund_extractions.effective_date,
+    # parsed at ingestion) propagates to BOTH derived stores — fund_status (which the
+    # T-REX report + the six competitor sections READ) and rex_products — by series_id,
+    # latest 485 wins. This closes the dead-letter route that left every competitor
+    # effective date NULL. Runs AFTER sec/classify, BEFORE the reconciler so the
+    # reconciler consumes the fresh dates. Idempotent; never invents a date.
+    ("propagate_effective_dates", [PY, str(PROJECT_ROOT / "scripts" / "propagate_effective_dates.py"), "--apply"]),
     # Phase 5 Stage 5 (Track 5A): status_reconciler in --apply mode. The
     # dry-run review (2026-05-20) validated the diff and fixed two bugs — the
     # ETN blind spot and demote-on-absent-evidence. The reconciler now
