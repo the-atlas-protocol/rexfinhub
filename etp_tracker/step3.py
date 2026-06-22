@@ -16,7 +16,47 @@ from .manifest import (
 from .ixbrl import extract_ixbrl_facts
 from .config import EXTRACTION_STRATEGIES, DEFAULT_EXTRACTION_STRATEGY
 
+import sys as _sys
+from pathlib import Path as _Path
+# ADR 0014: the entity-aware ballot-box parser (scripts/robust_election.py) is the
+# single authoritative election parser at ingestion. It replaces the lossy glyph->
+# [X] substitution of _parse_485a_election, which could mark a whole cover page
+# "checked" on Wingdings-per-char filings and grab the wrong election.
+_SCRIPTS_DIR = _Path(__file__).resolve().parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in _sys.path:
+    _sys.path.insert(0, str(_SCRIPTS_DIR))
+from robust_election import parse_election_robust  # noqa: E402
+
 log = logging.getLogger(__name__)
+
+
+# --- ADR 0014: effective-date validation (reject impossible dates, never guess) --
+def _validate_effective_date(date_str: str, form: str, filing_date) -> tuple[bool, str]:
+    """Return (ok, reason). A parsed date is only accepted when form-plausible.
+
+    Rules (ADR 0014): 2015 <= year <= 2031 for every form; for 485-family forms the
+    date must be >= filing_date - 400d (a date far before the filing is a parse error,
+    not a truth). On reject we return ok=False with a reason for the caller to LOG.
+    """
+    if not date_str:
+        return False, "empty"
+    try:
+        dt = pd.to_datetime(str(date_str))
+    except Exception:
+        return False, f"unparseable:{date_str}"
+    if pd.isna(dt):
+        return False, f"unparseable:{date_str}"
+    if not (2015 <= dt.year <= 2031):
+        return False, f"year-out-of-range:{dt.year}"
+    fu = (form or "").upper()
+    if fu.startswith("485"):
+        try:
+            fdt = pd.to_datetime(str(filing_date))
+            if not pd.isna(fdt) and dt < (fdt - pd.Timedelta(days=400)):
+                return False, f"before-filing-minus-400d:{date_str}<{filing_date}"
+        except Exception:
+            pass
+    return True, "ok"
 
 # 2026-05-11 audit-fix-R3: extended deny-list to plug SYMBOL/TICKER truncations
 # (SYM, SYMBO, TICKE, etc.) plus other column-header / English fragments that
@@ -458,23 +498,41 @@ def _extract_full(client: SECClient, txt_url: str, form: str,
             eff_confidence = "IXBRL"
             strategy_name = "full+ixbrl"
 
-    # 485APOS cover-page election — the authoritative scheduled-effective
-    # source for a pending filing (Hub_Trex A1). Trumps the phrase cascade;
+    # ADR 0014: 485APOS cover-page election via the entity-aware ballot-box parser
+    # (parse_election_robust). It reads the document raw checkbox entities and only
+    # accepts a date whose immediately-preceding box is genuinely checked — replacing
+    # the lossy _parse_485a_election glyph substitution. Trumps the phrase cascade;
     # iXBRL prospectus_date still wins when present (actual document date).
     if form.upper().startswith("485A") and eff_confidence != "IXBRL" and txt_text:
-        ed_el, conf_el = _parse_485a_election(txt_text, filing_dt)
+        ed_el, conf_el = parse_election_robust(txt_text, filing_dt)
         if ed_el:
-            eff_date_col = ed_el
-            eff_confidence = conf_el
+            ok, why = _validate_effective_date(ed_el, form, filing_dt)
+            if ok:
+                eff_date_col = ed_el
+                eff_confidence = "ELECTION" if conf_el.startswith("ELECTION") else conf_el
+            else:
+                log.warning("ADR0014 reject election date %s for %s (%s): %s",
+                            ed_el, accession, form, why)
+        else:
+            # No silent NULL: a genuinely-unelected 485APOS is logged, not hidden.
+            log.info("ADR0014 no election parsed for %s (%s): %s",
+                     accession, form, conf_el)
 
     # Regex cascade — still runs for the delaying-amendment flag, but the
     # date only applies when neither iXBRL nor the election already decided.
+    # ADR 0014: every cascade date is validated form-correctly before it lands;
+    # a rejected date leaves the prior value (NULL stays NULL truthfully).
     if txt_text:
         ed_txt, conf_txt, delay_txt = _find_effective_date_in_text(txt_text)
         if (eff_confidence not in ("IXBRL", "ELECTION")
                 and ed_txt and (not eff_date_col or conf_txt == "HIGH")):
-            eff_date_col = ed_txt
-            eff_confidence = conf_txt
+            ok, why = _validate_effective_date(ed_txt, form, filing_dt)
+            if ok:
+                eff_date_col = ed_txt
+                eff_confidence = conf_txt
+            else:
+                log.warning("ADR0014 reject cascade date %s for %s (%s): %s",
+                            ed_txt, accession, form, why)
         delaying = delay_txt
 
     # Collect body texts for ticker search and fund name matching
@@ -518,6 +576,17 @@ def _extract_full(client: SECClient, txt_url: str, form: str,
                     eff_date_col = ed_p
                     eff_confidence = conf_p
                 delaying = delaying or d_p
+
+    # ADR 0014 final gate: whatever source set eff_date_col (HEADER / IXBRL / html /
+    # pdf / cascade / election), validate it form-correctly. A rejected date drops to
+    # NULL truthfully and is logged — never a silent wrong date.
+    if eff_date_col:
+        _ok, _why = _validate_effective_date(eff_date_col, form, filing_dt)
+        if not _ok:
+            log.warning("ADR0014 drop final eff date %s for %s (%s, src=%s): %s",
+                        eff_date_col, accession, form, eff_confidence, _why)
+            eff_date_col = ""
+            eff_confidence = ""
 
     # Build output rows
     rows: list[dict] = []
