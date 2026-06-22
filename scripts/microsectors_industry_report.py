@@ -69,7 +69,7 @@ bo_lookup = dict(zip(bo["us_clean"], pd.to_numeric(bo["us_1w_vol"], errors="coer
 conn = sqlite3.connect(str(PROJECT_ROOT / "data" / "etp_tracker.db"))
 li = pd.read_sql_query("""
     SELECT ticker, fund_name, COALESCE(issuer_nickname, issuer) AS issuer,
-           aum, fund_flow_1week, total_return_1week, is_singlestock
+           aum, fund_flow_1week, total_return_1week, is_singlestock, category_display
     FROM mkt_master_data
     WHERE primary_category='LI' AND market_status='ACTV'
 """, conn)
@@ -77,7 +77,7 @@ li["aum"] = pd.to_numeric(li["aum"], errors="coerce").fillna(0)
 for c in ["fund_flow_1week","total_return_1week"]:
     li[c] = pd.to_numeric(li[c], errors="coerce")
 li["issuer"] = li["issuer"].str.strip().replace({"REX": "T-REX"})
-li["is_ss"] = li["is_singlestock"].notna()
+li["is_ss"] = li["category_display"].astype(str).str.contains("Single Stock", case=False, na=False)  # our system, not Bloomberg is_singlestock
 li["vol_1w"] = li["ticker"].apply(lambda t: bo_lookup.get(str(t).upper().strip(), 0))
 
 # Override AUM for MicroSectors ETNs using microsector_aum sheet (authoritative source)
