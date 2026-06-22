@@ -736,7 +736,7 @@ def load_preipo_competition():
     data = load_ipo_yaml()
     rexp, fs = _load_race_sources()
     out = []
-    for r in (data.get("high_profile") or []):
+    for r in (data.get("high_profile_pre_ipo") or []):
         company = r.get("company") or r.get("ticker") or ""
         if not company:
             continue
