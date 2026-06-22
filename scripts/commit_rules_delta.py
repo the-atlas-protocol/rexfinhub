@@ -36,6 +36,9 @@ RULES_PATHS = [
     "config/rules/rex_suite_mapping.csv",
     "config/rules/rex_funds.csv",
     "config/rules/_queues_report.json",
+    "config/rules/issuer_brand_overrides.csv",
+    "config/rules/issuer_canonicalization.csv",
+    "config/rules/underlier_overrides.csv",
     "docs/issuer_review_queue.csv",
 ]
 
