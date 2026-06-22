@@ -1413,11 +1413,11 @@ def _build_report_email(data: dict, report_type: str, title: str,
     if is_li:
         ss_cat = "Leverage & Inverse - Single Stock"
         idx_cat = "Leverage & Inverse - Index/Basket/ETF Based"
-        ss_label, idx_label = "L&I Single Underlier", "L&I Index/ETF"
+        ss_label, idx_label = "L&I Single Stock", "L&I Index/ETF"
     else:
         ss_cat = "Income - Single Stock"
         idx_cat = "Income - Index/Basket/ETF Based"
-        ss_label, idx_label = "Income Single Underlier", "Income Index/ETF"
+        ss_label, idx_label = "Income Single Stock", "Income Index/ETF"
 
     # Key Highlights box (right after header, before any sections)
     if highlights:
@@ -1426,7 +1426,7 @@ def _build_report_email(data: dict, report_type: str, title: str,
     # ====================================================================
     # SINGLE STOCK SEGMENT
     # ====================================================================
-    ss_seg = _section_title("Single Underlier", _NAVY)
+    ss_seg = _section_title("Single Stock", _NAVY)
     ss_seg += _market_position_card(ss_cat, ss_label, data.get("ss_kpis"))
     ss_seg += _segment_charts(ss_cat, ss_label)
     ss_rex = data.get("ss_rex_funds", [])
