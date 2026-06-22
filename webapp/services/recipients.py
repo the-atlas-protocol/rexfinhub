@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 log = logging.getLogger(__name__)
 
 # Valid list types for email recipients
-VALID_LIST_TYPES = {"daily", "weekly", "li", "income", "flow", "autocall", "private", "intelligence", "screener", "pipeline", "stock_recs", "portfolio_suite", "blue_ocean"}
+VALID_LIST_TYPES = {"daily", "weekly", "li", "income", "flow", "autocall", "private", "intelligence", "screener", "pipeline", "stock_recs", "portfolio_suite", "blue_ocean", "microsectors"}
 
 
 def get_recipients(db: Session, list_type: str) -> list[str]:
