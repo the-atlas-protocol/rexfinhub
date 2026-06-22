@@ -28,6 +28,7 @@ Usage:
 """
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from datetime import datetime
@@ -519,6 +520,21 @@ def _join_rex_suite(df: pd.DataFrame) -> None:
 # ---------------------------------------------------------------------------
 # Build q_aum_time_series (unpivot)
 # ---------------------------------------------------------------------------
+def _resolve_as_of() -> "datetime.date":
+    """The as-of date to stamp on the time-series: REXFIN_ASOF_DATE (YYYY-MM-DD) if set,
+    else today. Lets a late refresh record the data for the market date it represents
+    rather than the run date. Invalid values fall back to today (loudly)."""
+    raw = os.environ.get("REXFIN_ASOF_DATE", "").strip()
+    if raw:
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            import logging
+            logging.getLogger(__name__).warning(
+                "REXFIN_ASOF_DATE=%r is not YYYY-MM-DD; using today instead", raw)
+    return datetime.now().date()
+
+
 def _unpivot_aum(master_df: pd.DataFrame) -> pd.DataFrame:
     """
     Unpivot AUM columns (t_w4.aum, t_w4.aum_1 .. t_w4.aum_36) into long format.
@@ -553,8 +569,12 @@ def _unpivot_aum(master_df: pd.DataFrame) -> pd.DataFrame:
 
     ts["months_ago"] = ts["aum_col"].apply(_months_ago)
 
-    # Compute date: as_of_date minus months_ago months
-    as_of = pd.Timestamp(datetime.now().date())
+    # Compute date: as_of_date minus months_ago months.
+    # The as-of date is normally today's run date, but a refresh can lag the market date
+    # it represents (e.g. forgot to refresh; data is Friday's close). REXFIN_ASOF_DATE
+    # (YYYY-MM-DD) overrides so the data is stamped for the date it is actually FOR, not
+    # the day the pipeline happens to run — otherwise late refreshes silently backstamp.
+    as_of = pd.Timestamp(_resolve_as_of())
     ts["as_of_date"] = as_of
     ts["date"] = ts["months_ago"].apply(
         lambda m: as_of - pd.DateOffset(months=m)

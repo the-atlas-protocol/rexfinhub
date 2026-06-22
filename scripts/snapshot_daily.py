@@ -19,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import sqlite3
 import sys
 from datetime import datetime, timezone, timedelta
@@ -99,7 +100,10 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    snap_date = args.date or _et_today()
+    # Stamp for the market date the data is FOR, not the run date: explicit --date wins,
+    # else REXFIN_ASOF_DATE (the one knob shared with data_engine's time-series as_of),
+    # else today ET. Keeps the snapshot consistent with mkt_time_series.as_of_date.
+    snap_date = args.date or os.environ.get("REXFIN_ASOF_DATE", "").strip() or _et_today()
     conn = sqlite3.connect(args.db)
     try:
         rows, already = capture(conn, snap_date, args.dry_run)
