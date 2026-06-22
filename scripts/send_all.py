@@ -253,9 +253,59 @@ def _resolve_recipients(list_type: str, override_to: str | None) -> list[str]:
 # Single-report send (used inside the atomic batch loop)
 # ---------------------------------------------------------------------------
 
+# --- already-sent guard (Ryu 2026-06-22): a report is sent once per period --------------
+from pathlib import Path as _Path
+_SEND_LOG_DB = str(_Path(__file__).resolve().parent.parent / "data" / "etp_tracker.db")
+
+
+def _et_today():
+    from datetime import datetime, timezone, timedelta
+    return (datetime.now(timezone.utc) - timedelta(hours=4)).date()
+
+
+def _period_key(key):
+    t = _et_today()
+    if key == "daily":
+        return t.isoformat()                       # once per day
+    if key == "blue_ocean":
+        return t.strftime("%Y-%m")                 # once per month
+    iso = t.isocalendar()
+    return "%d-W%02d" % (iso[0], iso[1])           # weekly + the rest: once per ISO week
+
+
+def _send_log_con():
+    import sqlite3
+    con = sqlite3.connect(_SEND_LOG_DB)
+    con.execute("CREATE TABLE IF NOT EXISTS send_log (report_key TEXT, period_key TEXT, "
+                "recipients INTEGER, sent_at TEXT, PRIMARY KEY(report_key, period_key))")
+    return con
+
+
+def _already_sent(key):
+    con = _send_log_con()
+    try:
+        r = con.execute("SELECT sent_at FROM send_log WHERE report_key=? AND period_key=?",
+                        (key, _period_key(key))).fetchone()
+        return r[0] if r else None
+    finally:
+        con.close()
+
+
+def _record_send(key, n):
+    from datetime import datetime, timezone
+    con = _send_log_con()
+    try:
+        con.execute("INSERT OR REPLACE INTO send_log (report_key, period_key, recipients, sent_at) "
+                    "VALUES (?,?,?,?)", (key, _period_key(key), int(n),
+                                         datetime.now(timezone.utc).isoformat()))
+        con.commit()
+    finally:
+        con.close()
+
+
 def _send_one(key: str, db, override_to: str | None, dry_run: bool,
               bypass_gate: bool, allow_self_loop: bool,
-              bypass_rate_limit: bool = False) -> dict:
+              bypass_rate_limit: bool = False, force: bool = False) -> dict:
     """Build + (optionally) send one report. Returns status dict."""
     builder, list_type, critical = REPORTS[key]
     out: dict = {
@@ -271,6 +321,12 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
             out["note"] = f"no recipients for list_type={list_type}"
             return out
         out["recipients"] = recipients
+        if (not dry_run) and (not force):
+            _prev = _already_sent(key)
+            if _prev:
+                out["status"] = "skipped"
+                out["note"] = f"already sent for period {_period_key(key)} at {_prev}; use --force"
+                return out
 
         subject, html = builder(db)
         out["subject"] = subject
@@ -292,6 +348,8 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
             bypass_rate_limit=bypass_rate_limit,
         )
         out["status"] = "sent" if ok else "failed"
+        if ok:
+            _record_send(key, len(recipients))
         if not ok:
             out["note"] = "blocked by safeguard or Graph API rejected (see audit log)"
     except Exception as e:
@@ -308,6 +366,7 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
 def main():
     ap = argparse.ArgumentParser(description="Atomic batch sender for REX reports")
     ap.add_argument("--bundle", required=True, choices=sorted(BUNDLES.keys()))
+    ap.add_argument("--force", action="store_true", help="override the already-sent guard")
     ap.add_argument("--send", action="store_true",
                     help="Actually fire the sends. Without this flag, dry-run only.")
     ap.add_argument("--to",
@@ -460,7 +519,8 @@ def main():
                             dry_run=dry_run,
                             bypass_gate=args.bypass_gate,
                             allow_self_loop=args.allow_self_loop,
-                            bypass_rate_limit=args.bypass_rate_limit)
+                            bypass_rate_limit=args.bypass_rate_limit,
+                            force=args.force)
             results.append(res)
             print(f"  status:    {res['status']}")
             if res["subject"]:
