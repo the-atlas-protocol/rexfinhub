@@ -30,7 +30,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from etp_tracker.sec_client import SECClient  # noqa: E402
-from etp_tracker.step3 import _parse_485a_election  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from robust_election import parse_election_robust as _parse_485a_election  # noqa: E402  # ADR 0014: single authoritative parser
 
 USER_AGENT = "REX-ETP-Tracker/2.0 relasmar@rexfin.com"
 

@@ -62,7 +62,7 @@ import re
 import shutil
 import sys
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime  # ADR 0014: timedelta dropped with the +75d guess
 from pathlib import Path
 from typing import Iterable
 
@@ -92,8 +92,8 @@ _FORM_RANK = {
 }
 
 # Default Rule 485(a) review window for 485APOS filings — used to seed
-# estimated_effective_date when we can't see one in the filing yet.
-RULE_485A_DAYS = 75
+# ADR 0014: the +75d estimation (RULE_485A_DAYS) was DELETED. A missing effective
+# date stays NULL truthfully; it is never fabricated as filing_date + N days.
 
 # REX-name prefixes -- the PRIMARY filter for "is this a REX product?".
 # We used to also accept "filing is from any curated trust" but that pulled in
@@ -502,13 +502,13 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
 
             if existing is None:
                 # ----- Phase 1: INSERT new row -----
+                # ADR 0014: the effective date comes ONLY from the parsed extraction
+                # (fund_extractions.effective_date). No filing_date+N estimation — a
+                # missing date stays NULL truthfully and is propagated/repaired at the
+                # source by propagate_effective_dates.py (latest 485 per series wins).
                 est_eff: date | None = None
                 if ext is not None and ext.effective_date:
                     est_eff = ext.effective_date
-                elif f.form == "485APOS" and f.filing_date:
-                    est_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
-                elif f.form == "485BPOS" and f.filing_date:
-                    est_eff = f.filing_date
                 # Status from the corrected model (date-gated effective; BXT=delayed).
                 new_status = _form_status(f.form, est_eff, today)
 
@@ -584,13 +584,12 @@ def phase1_2_sync_filings(db, since: date, dry_run: bool,
             # which updated the date only when a 485BPOS arrived — left those
             # rows stale. Filings are processed oldest-first, so the most recent
             # one wins. Admin overrides (manually_edited_fields) are respected.
+            # ADR 0014: refresh only from the parsed extraction date; never guess
+            # filing_date+N. A series with no parsed date stays NULL until a real
+            # election/effective date is parsed.
             _new_eff = None
             if ext is not None and ext.effective_date:
                 _new_eff = ext.effective_date
-            elif f.form == "485BPOS" and f.filing_date:
-                _new_eff = f.filing_date
-            elif f.form == "485APOS" and f.filing_date:
-                _new_eff = f.filing_date + timedelta(days=RULE_485A_DAYS)
             if (_new_eff and "estimated_effective_date" not in overrides
                     and str(existing.estimated_effective_date) != str(_new_eff)):
                 stats.effective_date_updates += 1
