@@ -11,15 +11,16 @@ own elected designation (filing_date + N), not an outside estimate.
 """
 from __future__ import annotations
 import re
+import html as _html
 import pandas as pd
 
 CHK = "\x01CHK\x01"
 UNC = "\x01UNC\x01"
 
 _CLAUSES = [
-    (re.compile(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})\s+pursuant\s+to\s+paragraph\s*\(b\)", re.I), "date", None),
-    (re.compile(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})\s+pursuant\s+to\s+paragraph\s*\(a\)\s*\(2\)", re.I), "date", None),
-    (re.compile(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})\s+pursuant\s+to\s+paragraph\s*\(a\)\s*\(1\)", re.I), "date", None),
+    (re.compile(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})\s*,?\s+pursuant\s+to\s+paragraph\s*\(b\)", re.I), "date", None),
+    (re.compile(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})\s*,?\s+pursuant\s+to\s+paragraph\s*\(a\)\s*\(2\)", re.I), "date", None),
+    (re.compile(r"on\s+(?:or\s+about\s+)?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})\s*,?\s+pursuant\s+to\s+paragraph\s*\(a\)\s*\(1\)", re.I), "date", None),
     (re.compile(r"immediately\s+upon\s+filing", re.I), "days", 0),
     (re.compile(r"60\s*days?\s+after\s+filing", re.I), "days", 60),
     (re.compile(r"75\s*days?\s+after\s+filing", re.I), "days", 75),
@@ -59,10 +60,16 @@ def parse_election_robust(txt: str, filing_date) -> tuple[str, str]:
     win = txt[a:a + 6000]
 
     s = re.sub(r"<[^>]+>", " ", win)
+    s = _html.unescape(s)
     s = s.replace("&nbsp;", " ").replace("&#160;", " ")
     s = re.sub(r"\s+", " ", s)
     s = re.sub(r"&#9745;|&#9746;|☑|☒|✓|✔", " " + CHK + " ", s)
     s = re.sub(r"&#9744;|☐", " " + UNC + " ", s)
+    # ASCII checkbox brackets: [X]/[ x ] -> CHK, [ ]/[___] -> UNC. Many filers
+    # (Practus, EA-Series, DWS) use bracket checkboxes, not ballot-box entities;
+    # without this the checked "[X] on <date>" election was read as unchecked.
+    s = re.sub(r"\[\s*[xX]\s*\]", " " + CHK + " ", s)
+    s = re.sub(r"\[(?:\s|_)*\]", " " + UNC + " ", s)
 
     best = None  # (clause_start, kind, value)
     for rx, kind, days in _CLAUSES:
