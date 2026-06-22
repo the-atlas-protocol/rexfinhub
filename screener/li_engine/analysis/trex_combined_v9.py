@@ -737,7 +737,9 @@ def load_preipo_competition():
     data = load_ipo_yaml()
     rexp, fs = _load_race_sources()
     out = []
-    for r in (data.get("high_profile_pre_ipo") or []):
+    # load_ipo_yaml() renames the raw yaml key high_profile_pre_ipo -> high_profile;
+    # reading the raw key here silently iterated [] and rendered Pre-IPO empty. Ryu 2026-06-22.
+    for r in (data.get("high_profile") or []):
         company = r.get("company") or r.get("ticker") or ""
         if not company:
             continue
