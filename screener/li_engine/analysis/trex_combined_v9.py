@@ -249,6 +249,7 @@ _COMP_UND_PATS = [
     re.compile(r"daily\s+([A-Za-z]{2,12})\s+(?:bull|bear)\b", re.I),
     re.compile(r"ultra(?:pro)?\s+(?:short\s+)?([A-Za-z]{2,12})\b", re.I),
     re.compile(r"(?:long|short)\s+([A-Za-z]{2,12})\s+(?:daily|etf)\b", re.I),
+    re.compile(r"([A-Za-z]{2,12})\s+\d(?:\.\d)?x\s+(?:daily|etf)\b", re.I),  # "<UNDERLIER> 2x Daily ETF" (Corgi et al)
     re.compile(r"\[([A-Za-z][A-Za-z ]{1,18})\]"),  # bracketed pre-IPO e.g. [OpenAI]
 ]
 _COMP_UND_STOP = {"ETF","ETN","LONG","SHORT","DAILY","TARGET","BULL","BEAR","INVERSE",
