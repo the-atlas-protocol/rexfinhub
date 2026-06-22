@@ -231,6 +231,11 @@ def _read_microsector_aum(xl: pd.ExcelFile) -> pd.DataFrame:
     data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
     data = data.dropna(subset=["Date"])
     data = data.set_index("Date").sort_index()
+    # Source sheets occasionally carry duplicate date rows (a re-paste of recent days
+    # — 13 dupes seen 2026-06). A duplicate index makes downstream reindex raise, which
+    # silently aborts the ENTIRE override and lets every MicroSectors ETN fall back to
+    # inflated raw Bloomberg AUM. Drop dupes, keeping the last (corrected) occurrence.
+    data = data[~data.index.duplicated(keep="last")]
 
     for col in data.columns:
         data[col] = pd.to_numeric(data[col], errors="coerce")
@@ -274,6 +279,7 @@ def _read_shares_and_prices(xl: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFram
     shares["Date"] = pd.to_datetime(shares["Date"], errors="coerce")
     shares = shares.dropna(subset=["Date"])
     shares = shares.set_index("Date").sort_index()
+    shares = shares[~shares.index.duplicated(keep="last")]  # dupe-date guard (see _read_microsector_aum)
     for col in shares.columns:
         shares[col] = pd.to_numeric(shares[col], errors="coerce")
 
@@ -297,6 +303,7 @@ def _read_shares_and_prices(xl: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFram
     prices["Date"] = pd.to_datetime(prices["Date"], errors="coerce")
     prices = prices.dropna(subset=["Date"])
     prices = prices.set_index("Date").sort_index()
+    prices = prices[~prices.index.duplicated(keep="last")]  # dupe-date guard (see _read_microsector_aum)
     for col in prices.columns:
         prices[col] = pd.to_numeric(prices[col], errors="coerce")
 
@@ -323,6 +330,7 @@ def _read_data_msector_legacy(xl: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFr
     shares["Date"] = pd.to_datetime(shares["Date"], errors="coerce")
     shares = shares.dropna(subset=["Date"])
     shares = shares.set_index("Date").sort_index()
+    shares = shares[~shares.index.duplicated(keep="last")]  # dupe-date guard (see _read_microsector_aum)
     for col in shares.columns:
         shares[col] = pd.to_numeric(shares[col], errors="coerce")
 
@@ -341,6 +349,7 @@ def _read_data_msector_legacy(xl: pd.ExcelFile) -> tuple[pd.DataFrame, pd.DataFr
     prices["Date"] = pd.to_datetime(prices["Date"], errors="coerce")
     prices = prices.dropna(subset=["Date"])
     prices = prices.set_index("Date").sort_index()
+    prices = prices[~prices.index.duplicated(keep="last")]  # dupe-date guard (see _read_microsector_aum)
     for col in prices.columns:
         prices[col] = pd.to_numeric(prices[col], errors="coerce")
 

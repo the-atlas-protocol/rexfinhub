@@ -803,8 +803,9 @@ def audit_ai_semantic_review(db) -> dict:
     issuer_display that's a legal entity not a brand, a number that doesn't make sense.
 
     Degrades gracefully: if the API key isn't configured the audit is a PASS-skip (the
-    cheap deterministic audits still gate). Only HIGH-confidence defects FAIL, so a
-    model hiccup never blocks a clean build."""
+    cheap deterministic audits still gate). ADVISORY ONLY (2026-06-22) — it never
+    fails the gate; findings surface as warnings for Ryu's review. The deterministic
+    checks (contract numbers, microsectors override, status, drift) do the blocking."""
     out = {"name": "AI semantic review", "status": "pass", "detail": "", "defects": []}
     try:
         from webapp.services import claude_service
@@ -841,12 +842,16 @@ def audit_ai_semantic_review(db) -> dict:
 
     high = [d for d in defects if str(d.get("severity", "")).upper() == "HIGH"]
     out["defects"] = defects
+    # ADVISORY (2026-06-22): the AI reviewer judges plausibility without ground truth
+    # and false-blocked a clean run (called the canonical count 79 "low" and the real
+    # 191-fund issuer "Corgi" a test value). It now WARNS only — never fails the gate.
+    # Deterministic checks with ground truth do the blocking; these notes are for Ryu.
     if high:
-        out["status"] = "fail"
-        out["detail"] = "; ".join(f"{d.get('issue','?')}" for d in high[:5])
+        out["status"] = "warn"
+        out["detail"] = "ADVISORY (HIGH — review before send): " + "; ".join(f"{d.get('issue','?')}" for d in high[:5])
     elif defects:
         out["status"] = "warn"
-        out["detail"] = f"{len(defects)} low/medium observations (non-blocking)"
+        out["detail"] = f"ADVISORY — {len(defects)} observation(s), non-blocking"
     else:
         out["detail"] = "no semantic defects found"
     return out
@@ -933,6 +938,60 @@ def audit_timeseries_drift(db) -> dict:
     return out
 
 
+
+def audit_microsectors_override(db) -> dict:
+    """Stage C (Tier-2 structural invariant): the MicroSectors true-AUM override MUST
+    actually apply. For each reliable ETN the DB AUM must equal the override sheet's
+    value (not raw inflated Bloomberg). Catches a silent override failure — e.g. the
+    duplicate-date crash that left FNGU at $2,161M vs its true ~$944M. HARD FAIL."""
+    out = {"name": "MicroSectors override", "status": "pass", "detail": "", "mismatches": []}
+    try:
+        import pandas as pd
+        from market import microsectors as _ms
+        from webapp.services.bbg_file import get_bloomberg_file
+    except Exception as e:
+        out["status"] = "warn"
+        out["detail"] = f"override check unavailable ({type(e).__name__}); skipped"
+        return out
+    try:
+        ov = _ms.read_overrides(pd.ExcelFile(get_bloomberg_file()))
+    except Exception as e:
+        out["status"] = "fail"
+        out["detail"] = f"read_overrides raised ({type(e).__name__}: {e}) — override NOT applied; ETN AUM is raw Bloomberg"
+        return out
+    import sqlite3
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    checked = 0
+    try:
+        con = sqlite3.connect(str(db_path)); cur = con.cursor()
+        for tk, vals in ov.items():
+            if not isinstance(vals, dict):
+                continue
+            exp = vals.get("aum")
+            if exp is None:
+                continue
+            cur.execute("SELECT aum FROM mkt_master_data WHERE ticker=? AND market_status='ACTV'", (tk,))
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                continue
+            checked += 1
+            got = float(row[0])
+            if exp and abs(got - exp) / abs(exp) > 0.02:
+                out["mismatches"].append({"ticker": tk, "override": round(exp, 1), "db": round(got, 1)})
+        con.close()
+    except sqlite3.Error as e:
+        out["status"] = "warn"
+        out["detail"] = f"DB read failed ({e}); skipped"
+        return out
+    if out["mismatches"]:
+        out["status"] = "fail"
+        out["detail"] = "override NOT baked for " + ", ".join(
+            f"{m['ticker']} (db {m['db']} vs override {m['override']})" for m in out["mismatches"][:6])
+    else:
+        out["detail"] = f"all {checked} MicroSectors ETNs match the override"
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -961,7 +1020,7 @@ def main():
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
                audit_contract_numbers, audit_timeseries_drift,
-               audit_ai_semantic_review):
+               audit_microsectors_override, audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)
