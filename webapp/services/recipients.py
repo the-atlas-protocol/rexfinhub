@@ -17,6 +17,17 @@ log = logging.getLogger(__name__)
 VALID_LIST_TYPES = {"daily", "weekly", "li", "income", "flow", "autocall", "private", "intelligence", "screener", "pipeline", "stock_recs", "portfolio_suite", "blue_ocean", "microsectors"}
 
 
+# Recipients pinned to the FRONT of the To line on any list they appear in (Ryu 2026-06-22).
+PRIORITY_FIRST = ("gking@rexfin.com",)
+
+
+def _prioritize(emails):
+    pset = {x.lower() for x in PRIORITY_FIRST}
+    first = [e for x in PRIORITY_FIRST for e in emails if e.lower() == x.lower()]
+    rest = [e for e in emails if e.lower() not in pset]
+    return first + rest
+
+
 def get_recipients(db: Session, list_type: str) -> list[str]:
     """Get active recipients for a specific report type."""
     from webapp.models import EmailRecipient
@@ -29,7 +40,7 @@ def get_recipients(db: Session, list_type: str) -> list[str]:
         EmailRecipient.list_type == list_type,
         EmailRecipient.is_active == True,
     ).all()
-    return [r.email for r in rows]
+    return _prioritize([r.email for r in rows])
 
 
 def get_private_recipients(db: Session) -> list[str]:
@@ -98,7 +109,7 @@ def get_all_recipients_by_list(db: Session) -> dict[str, list[str]]:
     for r in rows:
         if r.list_type in result:
             result[r.list_type].append(r.email)
-    return result
+    return {lt: _prioritize(v) for lt, v in result.items()}
 
 
 def seed_from_text_files(db: Session) -> dict[str, int]:
