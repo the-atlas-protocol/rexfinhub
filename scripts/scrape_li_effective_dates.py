@@ -376,7 +376,10 @@ def main() -> int:
     args = ap.parse_args()
 
     (ROOT / "logs").mkdir(exist_ok=True)
-    conn = sqlite3.connect(str(DB))
+    # busy_timeout: the production atom_watcher/single_filing_worker daemons
+    # hold brief write locks; wait them out (60s) rather than crash 'db is locked'.
+    conn = sqlite3.connect(str(DB), timeout=60)
+    conn.execute("PRAGMA busy_timeout=60000")
     conn.row_factory = sqlite3.Row
     ensure_progress_table(conn)
 
