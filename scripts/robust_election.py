@@ -63,13 +63,22 @@ def parse_election_robust(txt: str, filing_date) -> tuple[str, str]:
     s = _html.unescape(s)
     s = s.replace("&nbsp;", " ").replace("&#160;", " ")
     s = re.sub(r"\s+", " ", s)
+    # de-mangle letter-spaced filings: 'o n'->'on', 'pu rsuant'->'pursuant',
+    # and 'June 5 , 2026'->'June 5, 2026'. Per-character span markup that
+    # survives tag-strip splits these tokens; repairing them lets the checked
+    # 'X on <date> pursuant to (b)' election parse instead of reading NULL.
+    s = re.sub(r"\bo\s+n\b", "on", s)
+    s = re.sub(r"pu\s*rsuant", "pursuant", s)
+    s = re.sub(r"([A-Za-z]+)\s+(\d{1,2})\s*,?\s+(\d{4})", r"\1 \2, \3", s)
     s = re.sub(r"&#9745;|&#9746;|☑|☒|✓|✔", " " + CHK + " ", s)
-    s = re.sub(r"&#9744;|☐", " " + UNC + " ", s)
+    s = re.sub(r"&#9744;|☐|¨", " " + UNC + " ", s)
     # ASCII checkbox brackets: [X]/[ x ] -> CHK, [ ]/[___] -> UNC. Many filers
     # (Practus, EA-Series, DWS) use bracket checkboxes, not ballot-box entities;
     # without this the checked "[X] on <date>" election was read as unchecked.
     s = re.sub(r"\[\s*[xX]\s*\]", " " + CHK + " ", s)
     s = re.sub(r"\[(?:\s|_)*\]", " " + UNC + " ", s)
+    s = re.sub(r"(?<![A-Za-z0-9])[xX]\s+(?=immediately|on\b|on\s|60\s*day|75\s*day|[A-Z][a-z]+\s+\d)", " " + CHK + " ", s)
+    s = re.sub(r"(?<![A-Za-z0-9])o\s+(?=immediately|on\b|60\s*day|75\s*day)", " " + UNC + " ", s)
 
     best = None  # (clause_start, kind, value)
     for rx, kind, days in _CLAUSES:
