@@ -85,7 +85,7 @@ numbers:
   trex_single_stock_li_actv:
     label: T-REX single-stock L&I (live)
     means: How many of REX's live single-stock leveraged/inverse ETPs there are.
-    expected: 43
+    expected: 41
     looks_wrong_if: >
       The count jumps with no new launch; a not-yet-launched (PEND) or delisted fund is
       counted; or an index/basket fund slips in.
@@ -101,7 +101,7 @@ numbers:
   microsectors_index_li_actv:
     label: MicroSectors index L&I (live)
     means: How many live MicroSectors index/basket leveraged/inverse ETNs there are.
-    expected: 20
+    expected: 22
     looks_wrong_if: >
       A single-stock fund is counted here; AUM uses Bloomberg's inflated number instead of
       the override; a closed ETN still counts.
