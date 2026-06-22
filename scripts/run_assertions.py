@@ -837,6 +837,71 @@ def check_no_unknown_databases(conn: sqlite3.Connection) -> tuple:
 # ============================================================================
 
 # Auto-discover assertion functions
+@_make_assertion("effective_date_single_source", "lifecycle")
+def check_effective_date_single_source(conn: sqlite3.Connection) -> tuple:
+    """ADR 0014 tripwire — GUARD, never a fixer. Fails LOUD (never writes a date) if:
+
+      (a) a rex-linked 485APOS filed >7 days ago has NO parsed effective date anywhere
+          in its series 485 family — a genuine ingestion parse MISS to fix at the source
+          (re-ingest with the patched step3). Scoped to filings ingested at/after the
+          robust-parser go-live (ADR 0014, 2026-06-22): the pre-fix backlog is a known
+          gap deferred to the one-time re-scrape and must NOT flap this daily guard.
+          Only REX-tracked series are in scope (a NULL there actually matters).
+      (b) the derived stores DIVERGE from the source: a fund_status / rex_products row is
+          NULL for a series whose latest 485 carries a REAL parsed effective_date (the
+          dead-letter leak propagate_effective_dates.py exists to prevent).
+
+    It surfaces the offender so it is fixed at the source; it does not patch the date.
+    """
+    misses = conn.execute("""
+        SELECT DISTINCT fe.series_id, f.filing_date, f.accession_number
+        FROM fund_extractions fe JOIN filings f ON f.id = fe.filing_id
+        WHERE f.form = '485APOS'
+          AND f.filing_date <= date('now','-7 day')
+          AND f.filing_date >= '2026-06-22'
+          AND fe.series_id IN (SELECT series_id FROM rex_products
+                               WHERE series_id IS NOT NULL AND TRIM(series_id) <> '')
+          AND NOT EXISTS (
+              SELECT 1 FROM fund_extractions fe2 JOIN filings f2 ON f2.id = fe2.filing_id
+              WHERE fe2.series_id = fe.series_id
+                AND f2.form IN ('485APOS','485BXT','485BPOS')
+                AND fe2.effective_date IS NOT NULL AND TRIM(fe2.effective_date) <> '')
+        LIMIT 50
+    """).fetchall()
+
+    leak_fs = conn.execute("""
+        SELECT fs.ticker, fs.series_id FROM fund_status fs
+        WHERE (fs.effective_date IS NULL OR TRIM(fs.effective_date) = '')
+          AND fs.series_id IS NOT NULL AND TRIM(fs.series_id) <> ''
+          AND EXISTS (SELECT 1 FROM fund_extractions fe JOIN filings f ON f.id = fe.filing_id
+                      WHERE fe.series_id = fs.series_id
+                        AND f.form IN ('485APOS','485BXT','485BPOS')
+                        AND fe.effective_date IS NOT NULL AND TRIM(fe.effective_date) <> '')
+        LIMIT 50
+    """).fetchall()
+
+    leak_rp = conn.execute("""
+        SELECT rp.ticker, rp.series_id FROM rex_products rp
+        WHERE (rp.estimated_effective_date IS NULL OR TRIM(rp.estimated_effective_date) = '')
+          AND rp.series_id IS NOT NULL AND TRIM(rp.series_id) <> ''
+          AND EXISTS (SELECT 1 FROM fund_extractions fe JOIN filings f ON f.id = fe.filing_id
+                      WHERE fe.series_id = rp.series_id
+                        AND f.form IN ('485APOS','485BXT','485BPOS')
+                        AND fe.effective_date IS NOT NULL AND TRIM(fe.effective_date) <> '')
+        LIMIT 50
+    """).fetchall()
+
+    n = len(misses) + len(leak_fs) + len(leak_rp)
+    sample = (
+        [{"parse_miss_485APOS": m[0], "filed": str(m[1]), "acc": m[2]} for m in misses[:3]]
+        + [{"dead_letter_fund_status_null": r[0] or r[1]} for r in leak_fs[:2]]
+        + [{"dead_letter_rex_products_null": r[0] or r[1]} for r in leak_rp[:2]]
+    )
+    return (n == 0, n, sample,
+            f"{len(misses)} rex 485APOS parse-miss(es) (>7d, post-go-live) + "
+            f"{len(leak_fs)} fund_status + {len(leak_rp)} rex_products dead-letter leak(s)")
+
+
 ASSERTIONS = [
     fn for fn in [
         check_bloomberg_freshness, check_mkt_data_volatility, check_atom_watcher,
@@ -857,6 +922,8 @@ ASSERTIONS = [
         check_restrictive_flag_age, check_git_tree_clean,
         # Ultimate Fixup (2026-06-15): ADR 0012 single-source + Part II drift detection
         check_status_record_single_source,
+        # ADR 0014 effective-date single-source tripwire
+        check_effective_date_single_source,
         check_rules_dirs_in_sync, check_no_unknown_databases,
     ]
 ]
