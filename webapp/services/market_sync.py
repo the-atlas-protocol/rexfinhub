@@ -441,16 +441,27 @@ def _insert_master_data(db: Session, df: pd.DataFrame, run_id: int) -> int:
             log.warning("_insert_master_data: dropped %d duplicate (ticker,etp_category) rows",
                         before - len(df))
     rows = []
+    skipped_no_name = 0
     for _, row in df.iterrows():
         ticker = _safe_str(row.get("ticker"))
         if not ticker:
+            continue
+
+        # Skip nameless shells: dead old tickers of funds that changed ticker
+        # (e.g. FBSP/NDVG -> YCLO/NUDG/YALL) still appear in Bloomberg with no
+        # fund_name. A nameless ticker is not reportable, so never let it enter
+        # mkt_master_data -- otherwise it reappears as a NULL-name orphan every
+        # sync (null_fund_name preflight blocker, 2026-06-23).
+        fund_name = _safe_str(row.get("fund_name"))
+        if not fund_name:
+            skipped_no_name += 1
             continue
 
         obj = MktMasterData(
             pipeline_run_id=run_id,
             # Base fields
             ticker=ticker,
-            fund_name=_safe_str(row.get("fund_name")),
+            fund_name=fund_name,
             issuer=_safe_str(row.get("issuer")),
             listed_exchange=_safe_str(row.get("listed_exchange")),
             inception_date=_safe_str(row.get("inception_date")),
@@ -543,6 +554,10 @@ def _insert_master_data(db: Session, df: pd.DataFrame, run_id: int) -> int:
             underlier_type=_safe_str(row.get("underlier_type")),
         )
         rows.append(obj)
+
+    if skipped_no_name:
+        log.warning("_insert_master_data: skipped %d row(s) with NULL/empty fund_name "
+                    "(dead old-ticker shells)", skipped_no_name)
 
     # Batch insert
     BATCH = 5000
