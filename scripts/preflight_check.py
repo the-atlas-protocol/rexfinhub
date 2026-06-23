@@ -1037,6 +1037,64 @@ def audit_microsectors_override(db) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Audit 12: External jargon backstop (NEW — hard FAIL; root-cause seatbelt)
+# ---------------------------------------------------------------------------
+
+def audit_external_jargon(db) -> dict:
+    """BACKSTOP for the report-audience intent layer (market/contracts PART 5).
+
+    For every report whose contract audience is EXTERNAL (it leaves the building to
+    a partner), scan its built staging preview for any FORBIDDEN_EXTERNAL_TERMS —
+    internal table/column names like rex_products / fund_status. This is the seatbelt:
+    layer 1 (the contract content_rules) should make such a leak un-authorable; this
+    audit guarantees one can't ship even if it slips through. Hard FAIL, naming the
+    report + the offending term. Matched case-insensitively with word-ish boundaries
+    so prose ("the products page") never false-hits."""
+    out = {"name": "External jargon", "status": "pass", "detail": "", "hits": []}
+    try:
+        from market import contracts
+    except Exception as e:  # noqa: BLE001
+        out["status"] = "warn"
+        out["detail"] = f"contract import failed ({type(e).__name__}); skipped"
+        return out
+
+    terms = contracts.FORBIDDEN_EXTERNAL_TERMS
+    # \b is too loose for snake_case (underscore is a word char), so anchor each term
+    # on non-word boundaries we control: (^|[^\w]) ... ([^\w]|$). Underscores inside the
+    # term are literal, so "rex_products" matches "rex_products" but not "myrex_products".
+    patterns = {
+        t: re.compile(r"(?:^|[^A-Za-z0-9_])" + re.escape(t) + r"(?:[^A-Za-z0-9_]|$)",
+                      re.IGNORECASE)
+        for t in terms
+    }
+
+    external = [k for k in contracts.reports() if contracts.report_audience(k) == "external"]
+    scanned = 0
+    for key in sorted(external):
+        path = PREVIEW_DIR / f"{key}.html"
+        if not path.exists():
+            # audit_previews flags missing files for the daily set; external weeklies
+            # may legitimately be absent on a given run — skip, do not fail.
+            continue
+        try:
+            html = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        scanned += 1
+        for term, rx in patterns.items():
+            if rx.search(html):
+                out["hits"].append({"report": key, "term": term})
+
+    if out["hits"]:
+        out["status"] = "fail"
+        out["detail"] = ("internal jargon in external report(s): "
+                         + "; ".join(f"{h['report']} -> {h['term']}" for h in out["hits"]))
+    else:
+        out["detail"] = f"no forbidden internal terms in {scanned} external preview(s)"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1065,7 +1123,8 @@ def main():
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
                audit_contract_numbers, audit_timeseries_drift,
-               audit_microsectors_override, audit_ai_semantic_review):
+               audit_microsectors_override, audit_external_jargon,
+               audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)
