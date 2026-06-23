@@ -1773,7 +1773,7 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
         _section_title(f"Upcoming Autocallable Launches ({len(items)})", accent)
         + (f'<tr><td style="padding:0 30px 6px;font-size:11px;color:{_GRAY};">'
            f'Upcoming autocallable supply not yet trading — REX ({n_rex}) + competitors '
-           f'({n_comp}), from rex_products + fund_status. REX in blue.</td></tr>')
+           f'({n_comp}). REX in blue.</td></tr>')
         # nowrap=False: long competitor fund names must WRAP, not run off the page
         # (Ryu 2026-06-17 — autocall table letters jumping off the boundary).
         + _table(["Issuer", "Fund", "Status", "Est. Effective"], rows,
@@ -2088,6 +2088,9 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                 return "autocall" in fn
 
             _df_au = _df_au[_df_au.apply(_is_autocall, axis=1)].copy()
+            # Dedup by ticker: a fund can hold >1 mkt_master_data row (e.g. ACYS
+            # classified as both Defined and CC) which otherwise renders twice. (Ryu 2026-06-23)
+            _df_au = _df_au.drop_duplicates(subset=["ticker"], keep="first")
 
             # Pull current closing prices via yfinance (one batch download).
             _tickers = [str(r.get("ticker", "")).split()[0] for _, r in _df_au.iterrows()]
