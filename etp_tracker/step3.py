@@ -631,6 +631,40 @@ def _extract_full(client: SECClient, txt_url: str, form: str,
                 "Extraction Strategy": strategy_name,
             })
             rows.append(row)
+
+        # --- Collision guard (source fix for ticker-bleed) -----------------
+        # The per-series LABEL-WINDOW proximity extractor (and the SGML-order
+        # `used_tickers` dedup above) can still leave the SAME ticker on >1
+        # distinct series in one filing -- e.g. "Archer Investment Series Trust"
+        # (497, 0001162044-26-000543) stamped ARCHX on 4 series (Balanced /
+        # Income / Stock / Dividend Growth) because all four series names sit
+        # within the +/-600 char window of a single "Ticker: ARCHX" label. A
+        # real ticker uniquely identifies ONE series; sharing it across many is
+        # ambiguous, and a wrong ticker pollutes downstream classification +
+        # effective-date data. So: after ALL series in this filing have been
+        # assigned a ticker, if any non-empty ticker maps to >1 distinct series
+        # name, DROP it ("") on every colliding row and log loudly. No ticker is
+        # far better than a wrong shared one -- a genuinely per-series ticker the
+        # parser cannot uniquely resolve must not be guessed.
+        from collections import defaultdict as _dd
+        _sym_to_series: dict = _dd(set)
+        for _r in rows:
+            _sym = (_r.get("Class Symbol") or "").strip().upper()
+            if _sym:
+                _ser = (_r.get("Series Name")
+                        or _r.get("Class Contract Name") or "").strip()
+                _sym_to_series[_sym].add(_ser)
+        for _sym, _series in _sym_to_series.items():
+            if len(_series) > 1:
+                log.warning(
+                    "TICKER-BLEED collision: ticker %s assigned to %d series in "
+                    "filing %s (registrant=%s) -- dropping ticker on all "
+                    "colliding series: %s",
+                    _sym, len(_series), accession, registrant, sorted(_series),
+                )
+                for _r in rows:
+                    if (_r.get("Class Symbol") or "").strip().upper() == _sym:
+                        _r["Class Symbol"] = ""
     else:
         rows.append({
             "Series ID": "", "Series Name": "",
