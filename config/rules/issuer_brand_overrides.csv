@@ -1096,7 +1096,7 @@ CRUX US,Columbia,layer1_regex,Matched fund_name: COLUMBIA CORE BOND ETF
 CRXP US,Columbia,layer1_regex,Matched fund_name: COLUMBIA CORE PLUS BOND ETF
 CSB US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES US SMALL CAP HIGH DIV VOLATILITY WTD ETF
 CSEN US,Cohen & Steers,layer1_regex,Matched fund_name: COHEN & STEERS FUTURE OF ENERGY ACTIVE ETF
-CSHP US,iShares,layer1_regex,Matched fund_name: ISHARES ENHANCED SHORT-TERM BOND ACTIVE ETF
+CSHP US,iShares,layer1_regex,Matched fund_name: ISHARES DYNAMIC SHORT-TERM ACTIVE ETF
 CSIO US,Cohen & Steers,layer1_regex,Matched fund_name: COHEN & STEERS INFRASTRUCTURE OPPORTUNITIES ACTIVE ETF
 CSPF US,Cohen & Steers,layer1_regex,Matched fund_name: COHEN & STEERS PREFERRED AND INCOME OPPORTUNITIES ACTIVE ETF
 CSPX LN,iShares,layer1_regex,Matched fund_name: ISHARES CORE S&P 500 UCITS ETF
