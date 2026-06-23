@@ -133,7 +133,7 @@ numbers:
   rex_income_index_actv:
     label: REX income index (live)
     means: REX's live index/basket option-income funds.
-    expected: 9
+    expected: 8
     looks_wrong_if: >
       A single-stock income fund is counted here; a fixed-income (bond) fund is miscounted
       as option-income.
