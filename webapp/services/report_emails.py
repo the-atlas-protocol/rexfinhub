@@ -2088,9 +2088,6 @@ def build_autocall_email(dashboard_url: str = "", db=None) -> tuple[str, list]:
                 return "autocall" in fn
 
             _df_au = _df_au[_df_au.apply(_is_autocall, axis=1)].copy()
-            # Dedup by ticker: a fund can hold >1 mkt_master_data row (e.g. ACYS
-            # classified as both Defined and CC) which otherwise renders twice. (Ryu 2026-06-23)
-            _df_au = _df_au.drop_duplicates(subset=["ticker"], keep="first")
 
             # Pull current closing prices via yfinance (one batch download).
             _tickers = [str(r.get("ticker", "")).split()[0] for _, r in _df_au.iterrows()]
