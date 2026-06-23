@@ -146,6 +146,21 @@ def main() -> int:
     LIVE_PREVIEWS = ROOT / "outputs" / "previews"
     STAGING_PREVIEWS = ROOT / "outputs" / "previews_staging"
     RED_MARKER = ROOT / "data" / ".preflight_red"
+    # Manifest of baked reports. send_all reuses a baked report ONLY when this
+    # manifest's data_date matches the date the send expects — the freshness guard.
+    BAKED_MANIFEST = ".baked.json"
+
+    def _refresh_data_date() -> str:
+        """The date this refresh is FOR: REXFIN_ASOF_DATE if set, else today.
+        Mirrors data_engine._resolve_as_of so the baked stamp equals the date the
+        send path will check against (send_all uses the same resolution)."""
+        raw = os.environ.get("REXFIN_ASOF_DATE", "").strip()
+        if raw:
+            try:
+                return datetime.strptime(raw, "%Y-%m-%d").date().isoformat()
+            except ValueError:
+                pass
+        return date.today().isoformat()
 
     def build_reports():
         from webapp.database import init_db, SessionLocal
@@ -159,13 +174,24 @@ def main() -> int:
             shutil.rmtree(out)
         out.mkdir(parents=True, exist_ok=True)
         today = date.today().isoformat()
+        data_date = _refresh_data_date()
+        built_at = datetime.now().astimezone().isoformat(timespec="seconds")
+        manifest: dict = {}
         ok, err = [], []
         try:
             for key, (builder, _list, _crit) in REPORTS.items():
                 try:
-                    _subj, html = builder(db)
+                    subj, html = builder(db)
                     (out / f"{key}.html").write_text(html, encoding="utf-8")
                     (out / f"{key}_{today}.html").write_text(html, encoding="utf-8")
+                    # Record the subject + baked filename so the send can reuse it
+                    # verbatim without rebuilding. Only entries written here are reusable.
+                    manifest[key] = {
+                        "subject": subj,
+                        "file": f"{key}.html",
+                        "built_at": built_at,
+                        "data_date": data_date,
+                    }
                     ok.append(key)
                     print(f"  OK   {key:16s} {len(html):>9,d} chars")
                 except Exception as e:
@@ -173,7 +199,11 @@ def main() -> int:
                     print(f"  ERR  {key:16s} {type(e).__name__}: {str(e)[:120]}")
         finally:
             db.close()
-        print(f"  built {len(ok)}/{len(REPORTS)} into staging; errors: {err or 'none'}")
+        # Write the manifest only after the loop. A report that ERRORed has no entry,
+        # so the send can never reuse a half-built/missing bake — it falls back.
+        (out / BAKED_MANIFEST).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        print(f"  built {len(ok)}/{len(REPORTS)} into staging (data_date={data_date}); "
+              f"errors: {err or 'none'}")
         return 1 if err else 0
 
     def preflight():
@@ -198,6 +228,15 @@ def main() -> int:
         LIVE_PREVIEWS.mkdir(parents=True, exist_ok=True)
         for f in STAGING_PREVIEWS.glob("*.html"):
             shutil.copy2(f, LIVE_PREVIEWS / f.name)
+        # Promote the baked manifest too, but only after a green preflight — so the
+        # live manifest send_all reads describes ONLY proven-green reports. If staging
+        # has no manifest (older build), drop any stale live one so send falls back.
+        _stage_manifest = STAGING_PREVIEWS / BAKED_MANIFEST
+        _live_manifest = LIVE_PREVIEWS / BAKED_MANIFEST
+        if _stage_manifest.exists():
+            shutil.copy2(_stage_manifest, _live_manifest)
+        elif _live_manifest.exists():
+            _live_manifest.unlink()
         if RED_MARKER.exists():
             RED_MARKER.unlink()
         print(f"  PREFLIGHT {overall.upper()} — promoted "

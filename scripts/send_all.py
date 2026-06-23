@@ -358,15 +358,95 @@ def _render_report_pdf(html: str):
         return None
 
 
+# --- baked-report reuse (Ryu 2026-06-23): reuse the HTML the chain already baked -----
+# Root fix for slow sends: scripts/run_chain.py bakes every report to
+# outputs/previews/<key>.html (promoted only on a GREEN preflight) and records
+# outputs/previews/.baked.json: {key: {subject, file, built_at, data_date}}.
+# We reuse that baked HTML at send time ONLY when it is provably fresh; on ANY doubt
+# we fall back to rebuilding via the builder. A stale baked file is NEVER sent.
+_LIVE_PREVIEWS = PROJECT_ROOT / "outputs" / "previews"
+_BAKED_MANIFEST = _LIVE_PREVIEWS / ".baked.json"
+
+
+def _expected_data_date() -> str:
+    """The refresh date the send expects: REXFIN_ASOF_DATE if set, else ET today.
+    Must mirror run_chain._refresh_data_date / data_engine._resolve_as_of so a baked
+    stamp from this same refresh matches."""
+    import os
+    raw = os.environ.get("REXFIN_ASOF_DATE", "").strip()
+    if raw:
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").date().isoformat()
+        except ValueError:
+            pass  # invalid -> fall through to today (loud handling lives in data_engine)
+    return _et_today().isoformat()
+
+
+def _rebuild_reason(key: str) -> str:
+    """Human-readable WHY a report is being rebuilt instead of reused. Best-effort —
+    re-derives the first failing freshness condition for the log line. Never raises."""
+    try:
+        if not _BAKED_MANIFEST.exists():
+            return "no manifest"
+        manifest = json.loads(_BAKED_MANIFEST.read_text(encoding="utf-8"))
+        entry = manifest.get(key)
+        if not isinstance(entry, dict):
+            return "no manifest entry"
+        baked = entry.get("data_date")
+        exp = _expected_data_date()
+        if not baked:
+            return "manifest entry undated"
+        if baked != exp:
+            return f"stale data_date {baked} != {exp}"
+        fname = entry.get("file") or f"{key}.html"
+        if not (_LIVE_PREVIEWS / fname).exists():
+            return "baked file missing"
+        if not entry.get("subject"):
+            return "no subject recorded"
+        return "empty baked file"
+    except Exception as e:
+        return f"manifest error: {type(e).__name__}"
+
+
+def _load_baked(key: str):
+    """Return (subject, html) from the baked manifest IFF provably fresh, else None
+    (caller rebuilds). Fail-safe by construction: missing manifest, missing entry,
+    missing file, mismatched/parse-error data_date -> None. Never raises."""
+    try:
+        if not _BAKED_MANIFEST.exists():
+            return None
+        manifest = json.loads(_BAKED_MANIFEST.read_text(encoding="utf-8"))
+        entry = manifest.get(key)
+        if not isinstance(entry, dict):
+            return None
+        baked_date = entry.get("data_date")
+        if not baked_date or baked_date != _expected_data_date():
+            return None  # stale (or undated) bake -> rebuild
+        fname = entry.get("file") or f"{key}.html"
+        html_path = _LIVE_PREVIEWS / fname
+        if not html_path.exists():
+            return None
+        subject = entry.get("subject")
+        if not subject:
+            return None  # no subject recorded -> rebuild rather than guess
+        html = html_path.read_text(encoding="utf-8")
+        if not html.strip():
+            return None  # empty file -> rebuild
+        return subject, html
+    except Exception:
+        return None  # ANY error -> rebuild. Correctness over speed.
+
+
 def _send_one(key: str, db, override_to: str | None, dry_run: bool,
               bypass_gate: bool, allow_self_loop: bool,
-              bypass_rate_limit: bool = False, force: bool = False) -> dict:
+              bypass_rate_limit: bool = False, force: bool = False,
+              force_rebuild: bool = False) -> dict:
     """Build + (optionally) send one report. Returns status dict."""
     builder, list_type, critical = REPORTS[key]
     out: dict = {
         "key": key, "list_type": list_type, "critical": critical,
         "status": "pending", "subject": None, "html_size": 0,
-        "recipients": [], "note": "",
+        "recipients": [], "note": "", "source": None,
     }
 
     try:
@@ -390,7 +470,18 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
                 out["note"] = f"already sent for period {_period_key(key)} at {_prev}; use --force"
                 return out
 
-        subject, html = builder(db)
+        # Prefer the HTML the chain already baked (provably fresh); else rebuild.
+        _baked = None if force_rebuild else _load_baked(key)
+        if _baked is not None:
+            subject, html = _baked
+            out["source"] = "baked"
+            print(f"  [baked]   {key}: reused outputs/previews/{key}.html "
+                  f"(data_date={_expected_data_date()})")
+        else:
+            _reason = "forced" if force_rebuild else _rebuild_reason(key)
+            subject, html = builder(db)
+            out["source"] = "rebuild"
+            print(f"  [rebuild: {_reason}] {key}")
         out["subject"] = subject
         out["html_size"] = len(html)
 
@@ -444,6 +535,10 @@ def main():
     ap = argparse.ArgumentParser(description="Atomic batch sender for REX reports")
     ap.add_argument("--bundle", required=True, choices=sorted(BUNDLES.keys()))
     ap.add_argument("--force", action="store_true", help="override the already-sent guard")
+    ap.add_argument("--force-rebuild", action="store_true",
+                    help="ignore the baked staging HTML and rebuild every report from the "
+                         "DB at send time (the old behavior). Use only to bypass the "
+                         "baked-reuse fast path; freshness is otherwise auto-guarded.")
     ap.add_argument("--send", action="store_true",
                     help="Actually fire the sends. Without this flag, dry-run only.")
     ap.add_argument("--to",
@@ -601,7 +696,8 @@ def main():
                             bypass_gate=args.bypass_gate,
                             allow_self_loop=args.allow_self_loop,
                             bypass_rate_limit=args.bypass_rate_limit,
-                            force=args.force)
+                            force=args.force,
+                            force_rebuild=args.force_rebuild)
             results.append(res)
             print(f"  status:    {res['status']}")
             if res["subject"]:
@@ -635,7 +731,8 @@ def main():
     for r in results:
         marker = {"sent": "OK", "dry_run": "..", "failed": "XX",
                   "error": "ER", "skipped": "--", "pending": "??"}.get(r["status"], "??")
-        print(f"  [{marker}] {r['key']:12s} {r['status']:8s} {r['note']}")
+        _src = f"({r['source']})" if r.get("source") else ""
+        print(f"  [{marker}] {r['key']:12s} {r['status']:8s} {_src:9s} {r['note']}")
     print(f"  Totals: sent={n_sent} dry_run={n_dry} failed={n_failed} skipped={n_skipped}")
     print(f"  Final gate: {gate_state()}")
     return 0 if n_failed == 0 else 2
