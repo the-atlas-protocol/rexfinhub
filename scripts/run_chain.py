@@ -347,7 +347,90 @@ def main() -> int:
     else:
         print("Previews promoted to outputs/previews/. Gate stays closed — send is the "
               "explicit `/refreshdata send` step.")
+
+    _print_readiness_verdict(ROOT, RED_MARKER)
     return worst
+
+
+# ---------------------------------------------------------------------------
+# Final send-readiness verdict (print-only UX — refresh + send read as one flow)
+# ---------------------------------------------------------------------------
+
+# Maps a known preflight audit (matched by substring against the result-JSON key)
+# to the one-line fix Ryu should run. Order matters — first substring match wins.
+_AUDIT_FIXES = [
+    ("recipient_diff",     "recipient list changed — review /recipients; add/remove auto-blesses, "
+                           "or run scripts/manage_recipients.py snapshot"),
+    ("recipient",          "recipient list changed — review /recipients; add/remove auto-blesses, "
+                           "or run scripts/manage_recipients.py snapshot"),
+    ("external_jargon",    "internal DB term leaked into an external report — fix the caption at its render site"),
+    ("duplicate_tickers",  "a ticker is double-classified — fix config/rules/fund_mapping.csv"),
+    ("null_fund_name",     "orphaned old-ticker row — backfill the name or delete the stale row"),
+    ("ticker_dupes",       "ticker bleed in a recent filing — see the step3 collision log"),
+    ("contract_numbers",   "a report count drifted from config/contracts/report_numbers.yaml"),
+    ("timeseries_drift",   "run scripts/restamp_time_series.py"),
+    ("microsectors_override", "MicroSectors override sheet stale/mismatched"),
+]
+
+
+def _readiness_is_red(root: Path, red_marker: Path) -> tuple[bool, dict]:
+    """Pure predicate: RED if the red marker exists OR overall_status == 'fail'.
+    Returns (is_red, parsed_result) — result is {} when unreadable (treated as data)."""
+    result: dict = {}
+    try:
+        result = json.loads((root / "data" / ".preflight_result.json").read_text(encoding="utf-8"))
+    except Exception:
+        result = {}
+    is_red = red_marker.exists() or result.get("overall_status") == "fail"
+    return is_red, result
+
+
+def _fix_for_audit(key: str) -> str | None:
+    for needle, fix in _AUDIT_FIXES:
+        if needle in key:
+            return fix
+    return None
+
+
+def _print_readiness_verdict(root: Path, red_marker: Path) -> None:
+    """Print the LAST thing run_chain says: a scannable send-readiness verdict so
+    /refreshdata and the send step read as one flow. Print-only — no audit/send logic."""
+    BANNER = "=" * 72
+    is_red, result = _readiness_is_red(root, red_marker)
+
+    print("\n" + BANNER)
+    if not is_red:
+        print("READY TO SEND ✅")
+        print(BANNER)
+        print("Send commands (the gate opens automatically on the send command):")
+        print("  /senddaily            daily report          -> etfupdates@")
+        print("  /sendweeklyinternal   7 internal reports     -> REX lists")
+        print("  /sendweeklyexternal   autocall->RBC/CAIS, microsectors->BMO")
+        print("  /sendblueocean        blue ocean (monthly)")
+        print("  /sendalltome          private preview        -> relasmar@")
+        print(BANNER)
+        return
+
+    print("BLOCKED 🚫")
+    print(BANNER)
+    audits = (result.get("audits") or {}) if isinstance(result, dict) else {}
+    failing = {k: v for k, v in audits.items()
+               if isinstance(v, dict) and v.get("status") == "fail"}
+    if not failing:
+        # RED via marker but no failing audit readable (e.g. unreadable result file).
+        print("Preflight is RED (red marker set) but no failing audit could be read from")
+        print("data/.preflight_result.json. Inspect that file, then fix the data and re-run.")
+        print(BANNER)
+        return
+
+    print(f"{len(failing)} failing audit(s) — fix, then re-run /refreshdata:\n")
+    for key, info in failing.items():
+        detail = (info.get("detail") or "").strip()
+        print(f"  [{key}] {detail}" if detail else f"  [{key}]")
+        fix = _fix_for_audit(key)
+        if fix:
+            print(f"      FIX: {fix}")
+    print(BANNER)
 
 
 if __name__ == "__main__":
