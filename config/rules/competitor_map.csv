@@ -22,7 +22,7 @@ NVII US,Growth & Income,Covered call + growth on single-name NVDA (NVIDIA),NVDY 
 PLTI US,Growth & Income,Covered call + growth on single-name PLTR (Palantir),PLTY US|PLTW US,"Single-stock covered-call / option-income ETFs on PLTR (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
 TSII US,Growth & Income,Covered call + growth on single-name TSLA (Tesla),TSLY US|TSLW US|TSYY US,"Single-stock covered-call / option-income ETFs on TSLA (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",
 WMTI US,Growth & Income,Covered call + growth on single-name WMT (Walmart),,"Single-stock covered-call / option-income ETFs on WMT (YieldMax, Roundhill WeeklyPay, GraniteShares YieldBoost, etc.)",No direct single-stock covered-call peer identified for WMT
-ULTI US,IncomeMax,Multi-leg option-overlay weekly income on broad equity basket,QDTE US|SLTY US|ULTY US|XDTE US|YMAG US|YMAX US,Ultra-high-yield option-overlay / 0DTE peers,
+ULTI US,IncomeMax,Multi-leg option-overlay weekly income on broad equity basket,KYLD US|QDTE US|SLTY US|ULTY US|XDTE US|YMAG US|YMAX US,Ultra-high-yield option-overlay / 0DTE peers,
 BERZ US,MicroSectors,3x short ETN on FANG & Innovation (FANG+ adjacent / tech innovation basket),SQQQ US|TECS US|SOXS US,Comparable 3x short leveraged sector ETPs on FANG & Innovation,
 BNKD US,MicroSectors,3x short ETN on US Big Banks (US large-cap money-center banks),FAZ US,Comparable 3x short leveraged sector ETPs on US Big Banks,
 BNKU US,MicroSectors,3x long ETN on US Big Banks (US large-cap money-center banks),FAS US,Comparable 3x long leveraged sector ETPs on US Big Banks,
@@ -95,5 +95,5 @@ TTDU US,T-REX,2x daily long single-stock - Trade Desk,,"Same underlier (TTD), sa
 XRPK US,T-REX,2x daily long single-stock - XRP,UXRP US|XRPT US|XXRP US,"Same underlier (XRP), same direction (long), comparable leveraged single-stock daily-target ETPs",Auto-matched from leveraged single-stock universe (3 peers)
 BMAX US,Thematic,Bitcoin corporate-treasury convertible bonds (MSTR / etc.),ACVT US|ICVT US|MST US|MSTY US|WNTR US,Closest cohort: convertible-bond ETFs and MSTR-overlay income ETFs (no direct peer),
 DRNZ US,Thematic,Drone industry pure-play (defense + commercial),BZZ US|DRNL US|ITA US|JEDI US|PPA US|SHLD US|UAV US|XAR US,"Drone-specific peers (JEDI, UAV) + adjacent defense ETFs",
-DCRU US,T-REX,2x Long Discord (DCRD) single-stock,,"No US 2x DCRD competitor — Discord IPO'd Mar 2026; no leveraged ETF in market yet",DCRU may not be filed yet — placeholder for tracking
-,T-REX,2x Long Discord placeholder,,"No competitor identified",Add when DCRU US ticker assigned
+DCRU US,T-REX,2x Long Discord (DCRD) single-stock,,No US 2x DCRD competitor — Discord IPO'd Mar 2026; no leveraged ETF in market yet,DCRU may not be filed yet — placeholder for tracking
+,T-REX,2x Long Discord placeholder,,No competitor identified,Add when DCRU US ticker assigned
