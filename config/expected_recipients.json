@@ -1,4 +1,7 @@
 {
+  "snapshot_taken_et": "2026-06-22T22:03:34-04:00",
+  "snapshot_source": "manage_recipients.py snapshot",
+  "note": "Reference snapshot for preflight diff alerts. Update via this script when adds/removes are intentional.",
   "recipients_by_list": {
     "autocall": [
       "gking@rexfin.com",
@@ -12,6 +15,15 @@
       "spgroup@caisgroup.com",
       "tranney@rexfin.com"
     ],
+    "blue_ocean": [
+      "gcollett@rexfin.com",
+      "gking@rexfin.com",
+      "laurence.kaplan@bmo.com",
+      "meschmann@rexfin.com",
+      "proddevelopment@rexfin.com",
+      "sacheychek@rexfin.com",
+      "saurabh.kushwaha@bmo.com"
+    ],
     "daily": [
       "etfupdates@rexfin.com"
     ],
@@ -24,6 +36,15 @@
     "li": [
       "etfupdates@rexfin.com"
     ],
+    "microsectors": [
+      "gcollett@rexfin.com",
+      "gking@rexfin.com",
+      "laurence.kaplan@bmo.com",
+      "meschmann@rexfin.com",
+      "proddevelopment@rexfin.com",
+      "sacheychek@rexfin.com",
+      "saurabh.kushwaha@bmo.com"
+    ],
     "portfolio_suite": [
       "gking@rexfin.com",
       "mmcnair@rexfin.com",
@@ -31,6 +52,7 @@
     ],
     "stock_recs": [
       "gcollett@rexfin.com",
+      "gking@rexfin.com",
       "meschmann@rexfin.com",
       "proddevelopment@rexfin.com",
       "sacheychek@rexfin.com"
@@ -39,6 +61,16 @@
       "etfupdates@rexfin.com"
     ]
   },
-  "updated_at": "2026-05-19T18:35",
-  "updated_by": "phase3_session_resync"
+  "totals": {
+    "autocall": 10,
+    "blue_ocean": 7,
+    "daily": 1,
+    "flow": 1,
+    "income": 1,
+    "li": 1,
+    "microsectors": 7,
+    "portfolio_suite": 3,
+    "stock_recs": 5,
+    "weekly": 1
+  }
 }

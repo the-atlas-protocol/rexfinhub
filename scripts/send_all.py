@@ -171,6 +171,8 @@ BUNDLES = {
     "blue_ocean":      ["blue_ocean"],
     "portfolio_suite": ["portfolio_suite"],
     "microsectors":    ["microsectors"],
+    "weekly_internal": ["daily", "weekly", "li", "income", "flow", "stock_recs", "portfolio_suite"],
+    "weekly_external": ["autocall", "microsectors"],
 }
 
 
@@ -220,14 +222,24 @@ def preflight_blocks_send(result_file: Path, red_marker: Path) -> tuple[bool, st
 
 
 def open_gate(actor: str = "send_all.py", note: str = ""):
-    GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    GATE_FILE.write_text("true", encoding="utf-8")
+    # ADR 0010: the DB-backed flag is authoritative; set_flag dual-writes the
+    # legacy file. Writing only the file leaves the DB row stale -> L1 block.
+    try:
+        from webapp.services.system_flags import set_flag
+        set_flag("send_enabled", True, set_by=actor, notes=note)
+    except Exception:
+        GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        GATE_FILE.write_text("true", encoding="utf-8")
     _gate_log("open", "true", actor, note)
 
 
 def close_gate(actor: str = "send_all.py", note: str = ""):
-    GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    GATE_FILE.write_text("false", encoding="utf-8")
+    try:
+        from webapp.services.system_flags import set_flag
+        set_flag("send_enabled", False, set_by=actor, notes=note)
+    except Exception:
+        GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        GATE_FILE.write_text("false", encoding="utf-8")
     _gate_log("close", "false", actor, note)
 
 
