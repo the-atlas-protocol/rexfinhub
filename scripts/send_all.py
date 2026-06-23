@@ -376,7 +376,14 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
             out["note"] = f"no recipients for list_type={list_type}"
             return out
         out["recipients"] = recipients
-        if (not dry_run) and (not force):
+        # A TEST send (override_to / --to set) must NOT participate in the
+        # real-send duplicate guard at all: it never reads the real send_log
+        # (so a prior real send cannot block it) and never writes it (so it
+        # cannot make a later real send read as "already sent"). This decouples
+        # /sendalltome test sends from real sends -- the root of the
+        # --force/duplicate-send mess. Ryu 2026-06-22.
+        is_test_send = override_to is not None
+        if (not dry_run) and (not force) and (not is_test_send):
             _prev = _already_sent(key)
             if _prev:
                 out["status"] = "skipped"
@@ -416,7 +423,9 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
             bypass_rate_limit=bypass_rate_limit,
         )
         out["status"] = "sent" if ok else "failed"
-        if ok:
+        # Only a REAL send writes the duplicate-guard send_log. A test send
+        # (override_to set) must leave the real send_log untouched. Ryu 2026-06-22.
+        if ok and not is_test_send:
             _record_send(key, len(recipients))
         if not ok:
             out["note"] = "blocked by safeguard or Graph API rejected (see audit log)"
