@@ -192,3 +192,65 @@ universes:
       market_status: ACTV
       fund_type: [ETF, ETN]
       dedup_by: ticker_clean
+
+
+# -----------------------------------------------------------------------------
+# PART 5 — REPORTS: who each report is FOR, and the content rules that follow.
+# This is the INTENT layer (layer 1). It encodes a report's AUDIENCE at the place
+# content is authored, so internal plumbing can't be authored into an external send
+# in the first place. The deterministic jargon audit in scripts/preflight_check.py
+# (audit_external_jargon) is only the BACKSTOP — the seatbelt, not the brakes.
+#
+# Root cause it fixes: an autocall email (external, to RBC/CAIS) leaked
+# "from rex_products + fund_status" — internal DB table names — because the report's
+# audience + content principles weren't encoded where the report is built.
+#
+#   audience: external  -> the report LEAVES THE BUILDING (partners read it)
+#   audience: internal  -> REX/etfupdates only (nothing leaves)
+#
+# External reports carry `content_rules` — the principles every external report must
+# satisfy. They are human-readable (for authors + the AI reviewer) and the jargon
+# audit enforces the first one mechanically against FORBIDDEN_EXTERNAL_TERMS.
+# -----------------------------------------------------------------------------
+reports:
+
+  # --- EXTERNAL: partners leave the building -------------------------------
+  autocall:
+    audience: external
+    recipients: [RBC, CAIS]
+    content_rules:
+      - No internal table or DB/column names (rex_products, fund_status, mkt_master_data, etc.).
+      - No methodology-counting captions ("from X + Y") that expose how the data was assembled.
+      - Partner-appropriate tone — describe the data, not the plumbing.
+
+  microsectors:
+    audience: external
+    recipients: [BMO]
+    content_rules:
+      - No internal table or DB/column names (rex_products, fund_status, mkt_master_data, etc.).
+      - No methodology-counting captions ("from X + Y") that expose how the data was assembled.
+      - Partner-appropriate tone — describe the data, not the plumbing.
+
+  blue_ocean:
+    audience: external
+    recipients: [BMO]
+    content_rules:
+      - No internal table or DB/column names (rex_products, fund_status, mkt_master_data, etc.).
+      - No methodology-counting captions ("from X + Y") that expose how the data was assembled.
+      - Partner-appropriate tone — describe the data, not the plumbing.
+
+  # --- INTERNAL: REX / etfupdates only (nothing leaves the building) -------
+  daily:
+    audience: internal
+  weekly:
+    audience: internal
+  li:
+    audience: internal
+  income:
+    audience: internal
+  flow:
+    audience: internal
+  stock_recs:
+    audience: internal
+  portfolio_suite:
+    audience: internal
