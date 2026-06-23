@@ -234,13 +234,29 @@ def open_gate(actor: str = "send_all.py", note: str = ""):
 
 
 def close_gate(actor: str = "send_all.py", note: str = ""):
+    # Verify the gate actually re-locks; a DB lock mid-send can otherwise leave it
+    # silently OPEN (this happened 2026-06-22). Retry, then fail LOUD.
+    import time as _t
+    for _attempt in range(4):
+        try:
+            from webapp.services.system_flags import set_flag, get_flag
+            set_flag("send_enabled", False, set_by=actor, notes=note)
+            if get_flag("send_enabled") is False:
+                _gate_log("close", "false", actor, note)
+                return
+        except Exception:
+            try:
+                GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+                GATE_FILE.write_text("false", encoding="utf-8")
+            except Exception:
+                pass
+        _t.sleep(0.4)
     try:
-        from webapp.services.system_flags import set_flag
-        set_flag("send_enabled", False, set_by=actor, notes=note)
-    except Exception:
-        GATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         GATE_FILE.write_text("false", encoding="utf-8")
-    _gate_log("close", "false", actor, note)
+    except Exception:
+        pass
+    print("  !! WARNING: gate close could not be verified after retries — forced file lock; CHECK THE GATE")
+    _gate_log("close", "false", actor, note + " [close verification FAILED -- forced]")
 
 
 def gate_state() -> str:
