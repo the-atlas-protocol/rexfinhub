@@ -159,6 +159,50 @@ def audit_ticker_dupes_recent(db) -> dict:
     return out
 
 
+def audit_duplicate_tickers(db) -> dict:
+    """Hard gate: no ticker may have >1 row in mkt_master_data.
+
+    A ticker double-classified in fund_mapping.csv (e.g. listed PRIMARY under
+    two etp_categories) produces duplicate mkt_master_data rows, which then
+    render twice in reports (ACYS rendered twice in the autocall 30-Day Volume
+    section, 2026-06-23). This is a structural integrity failure of the master
+    table — fail loudly so the chain promote + sends are gated until the source
+    mapping is fixed, rather than masking it downstream in report builders.
+    """
+    out = {"name": "Duplicate tickers (mkt_master_data)", "status": "pass",
+           "detail": "", "rows": []}
+    import sqlite3
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute("""
+            SELECT ticker, COUNT(*) AS n,
+                   GROUP_CONCAT(DISTINCT etp_category) AS cats
+            FROM mkt_master_data
+            WHERE ticker IS NOT NULL AND ticker != ''
+            GROUP BY ticker
+            HAVING COUNT(*) > 1
+            ORDER BY n DESC, ticker
+        """)
+        dupes = cur.fetchall()
+        con.close()
+        if not dupes:
+            out["detail"] = "no duplicate tickers in mkt_master_data"
+        else:
+            out["status"] = "fail"
+            out["detail"] = (f"{len(dupes)} ticker(s) with >1 row in mkt_master_data "
+                             f"(double-classified at source — fix fund_mapping.csv)")
+            out["rows"] = [
+                {"ticker": t, "row_count": n, "categories": cats}
+                for t, n, cats in dupes[:20]
+            ]
+    except Exception as e:
+        out["status"] = "fail"
+        out["detail"] = f"query error: {type(e).__name__}: {e}"
+    return out
+
+
 def audit_classification(db) -> dict:
     """Three-tier check: etp_category NULL, issuer_display NULL, CC missing from attributes."""
     import sqlite3
@@ -1015,7 +1059,8 @@ def main():
         print(f"WARN: DB session init failed (non-fatal for audits): {e}")
 
     audits = []
-    for fn in (audit_bloomberg, audit_classification, audit_ticker_dupes_recent,
+    for fn in (audit_bloomberg, audit_classification, audit_duplicate_tickers,
+               audit_ticker_dupes_recent,
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
