@@ -153,3 +153,44 @@ def apply_report_filter(df, rule_id: str):
 def count_for_rule(df, rule_id: str) -> int:
     """Headline count for a rule (len of the filtered, de-duped set)."""
     return len(apply_report_filter(df, rule_id))
+
+
+# ---------------------------------------------------------------------------
+# Reader 4 — report AUDIENCE + content rules (intent layer; jargon backstop)
+# ---------------------------------------------------------------------------
+# Internal table/column names that must NEVER appear in an external report. These
+# are the plumbing — a partner reading "from rex_products + fund_status" is the leak
+# this whole layer exists to stop. Lowercased; the audit matches case-insensitively
+# with word-ish boundaries so prose like "the products page" never false-hits.
+FORBIDDEN_EXTERNAL_TERMS = [
+    "rex_products",
+    "fund_status",
+    "mkt_master_data",
+    "mkt_daily_snapshot",
+    "etp_category",
+    "primary_category",
+    "mkt_fund_mapping",
+    "fund_extractions",
+    "send_log",
+    "email_recipients",
+    "reserved_symbols",
+    "filings",
+    "issuer_mapping",
+]
+
+
+def reports() -> dict:
+    """{report_key: {audience, recipients?, content_rules?}} from the contract."""
+    return load_contract().get("reports", {}) or {}
+
+
+def report_audience(key: str) -> str:
+    """'external' | 'internal' for a report key. Defaults to 'internal' when the key
+    is unknown — the SAFE default (an unknown report is treated as not-for-partners,
+    so the jargon audit does not relax for it)."""
+    return (reports().get(key, {}) or {}).get("audience", "internal")
+
+
+def report_content_rules(key: str) -> list:
+    """The list of content principles a report must satisfy (empty for internal)."""
+    return list((reports().get(key, {}) or {}).get("content_rules", []) or [])
