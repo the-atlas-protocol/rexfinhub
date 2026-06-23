@@ -159,6 +159,43 @@ def audit_ticker_dupes_recent(db) -> dict:
     return out
 
 
+def audit_null_fund_name(db) -> dict:
+    """Fail if any mkt_master_data row has a NULL/empty fund_name.
+
+    A row with no fund_name is an orphan -- most often the leftover of an
+    old-ticker row after a ticker change (the new row gets the name, the stale
+    row keeps the ticker but loses its name). Such rows pollute reports and
+    classification. There should be zero; this audit catches any loudly so the
+    next ticker change can't silently leave a nameless row behind."""
+    out = {"name": "NULL fund_name", "status": "pass", "detail": "", "rows": []}
+    import sqlite3
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute("""
+            SELECT ticker, market_status, issuer
+            FROM mkt_master_data
+            WHERE fund_name IS NULL OR TRIM(fund_name) = ''
+            ORDER BY ticker
+        """)
+        bad = cur.fetchall()
+        con.close()
+        if not bad:
+            out["detail"] = "no NULL/empty fund_name rows"
+        else:
+            out["status"] = "fail"
+            out["detail"] = f"{len(bad)} row(s) with NULL/empty fund_name"
+            out["rows"] = [
+                {"ticker": r[0], "market_status": r[1], "issuer": r[2]}
+                for r in bad[:20]
+            ]
+    except Exception as e:
+        out["status"] = "fail"
+        out["detail"] = f"query error: {type(e).__name__}: {e}"
+    return out
+
+
 def audit_duplicate_tickers(db) -> dict:
     """Hard gate: no ticker may have >1 row in mkt_master_data.
 
@@ -1118,7 +1155,7 @@ def main():
 
     audits = []
     for fn in (audit_bloomberg, audit_classification, audit_duplicate_tickers,
-               audit_ticker_dupes_recent,
+               audit_ticker_dupes_recent, audit_null_fund_name,
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
