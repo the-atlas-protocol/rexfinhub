@@ -267,7 +267,7 @@ ms_flow = ms_row["flow_1w"].iloc[0] if not ms_row.empty else 0
 hl = [
     f"Industry net flows of <strong>{signed_money(weekly_flow_m)}</strong> for the week. <strong>{top_in['issuer']}</strong> led inflows ({signed_money(top_in['flow_1w'])}); <strong>{top_out['issuer']}</strong> recorded the largest outflow ({signed_money(top_out['flow_1w'])}).",
     f"MicroSectors closed the week at <strong style='color:{GREEN_DARK};'>{money(ms_aum)}</strong> in assets &mdash; {ms_share_pct:.1f}% of the L&amp;I market &mdash; with net flow of {signed_money(ms_flow)}.",
-    f"Single-underlier products (single stock, crypto, commodity or FX) represent <strong>{split['ss']['n']/n_funds*100:.0f}%</strong> of L&amp;I funds ({split['ss']['n']:,}/{n_funds:,}) but only <strong>{split['ss']['aum']/total_aum_m*100:.0f}%</strong> of AUM. Basket / index / sector products hold the AUM majority at <strong>{money(split['bk']['aum'])}</strong>.",
+    f"Single-stock products represent <strong>{split['ss']['n']/n_funds*100:.0f}%</strong> of L&amp;I funds ({split['ss']['n']:,}/{n_funds:,}) but only <strong>{split['ss']['aum']/total_aum_m*100:.0f}%</strong> of AUM. Basket, index, sector, crypto, commodity and FX products hold the AUM majority at <strong>{money(split['bk']['aum'])}</strong>.",
 ]
 
 # ============ Issuer table — fixed row height ============
@@ -335,7 +335,7 @@ def split_panel(title, n, aum_v, flow_v, share_v, accent_color):
 
 split_html = f"""<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:separate;border-spacing:14px 0;">
 <tr>
-{split_panel("Single-Underlier", split["ss"]["n"], split["ss"]["aum"], split["ss"]["flow"], split["ss"]["share"], BLACK)}
+{split_panel("Single Stock", split["ss"]["n"], split["ss"]["aum"], split["ss"]["flow"], split["ss"]["share"], BLACK)}
 {split_panel("Basket / Index / Sector", split["bk"]["n"], split["bk"]["aum"], split["bk"]["flow"], split["bk"]["share"], GREEN)}
 </tr>
 </table>"""
@@ -484,7 +484,7 @@ Leveraged &amp; Inverse<br/><span style="color:{GREEN};">Industry Report</span>
 {page_header()}
 {section_header("04", "Composition &amp; Weekly Volume")}
 
-<div style="font-family:Georgia,serif;font-size:10pt;color:{GRAY};margin-bottom:14px;text-transform:uppercase;letter-spacing:2.5px;font-weight:600;">Single-Underlier vs Basket Split</div>
+<div style="font-family:Georgia,serif;font-size:10pt;color:{GRAY};margin-bottom:14px;text-transform:uppercase;letter-spacing:2.5px;font-weight:600;">Single Stock vs Basket Split</div>
 {split_html}
 
 <div style="margin-top:30px;">{top_table("Top 10 Weekly Traded Value", vol_rows, "1W Traded Val")}</div>

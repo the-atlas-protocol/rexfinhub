@@ -97,6 +97,7 @@ def send_email(
     html_body: str,
     recipients: list[str],
     images: list[tuple[str, bytes, str]] | None = None,
+    attachments: list[tuple[str, bytes, str]] | None = None,
     bypass_gate: bool = False,
 ) -> bool:
     """Send email via Microsoft Graph API.
@@ -146,11 +147,11 @@ def send_email(
         "saveToSentItems": "true",
     }
 
+    _atts = []
     if images:
         import base64
-        attachments = []
         for cid, png_bytes, filename in images:
-            attachments.append({
+            _atts.append({
                 "@odata.type": "#microsoft.graph.fileAttachment",
                 "name": filename,
                 "contentType": "image/png",
@@ -158,7 +159,17 @@ def send_email(
                 "contentId": cid,
                 "isInline": True,
             })
-        payload["message"]["attachments"] = attachments
+    if attachments:
+        import base64
+        for _fname, _fbytes, _mime in attachments:
+            _atts.append({
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": _fname,
+                "contentType": _mime,
+                "contentBytes": base64.b64encode(_fbytes).decode(),
+            })
+    if _atts:
+        payload["message"]["attachments"] = _atts
 
     headers = {
         "Authorization": f"Bearer {token}",
