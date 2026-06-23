@@ -2052,6 +2052,7 @@ def _send_html_digest(html_body: str, recipients: list[str],
                       edition: str = "daily",
                       subject_override: str = "",
                       images: list[tuple[str, bytes, str]] | None = None,
+                      attachments: list[tuple[str, bytes, str]] | None = None,
                       bypass_gate: bool = False,
                       allow_self_loop: bool = False,
                       bypass_rate_limit: bool = False) -> bool:
@@ -2145,6 +2146,7 @@ def _send_html_digest(html_body: str, recipients: list[str],
         if is_configured():
             ok = send_email(subject=subject, html_body=html_body,
                             recipients=recipients, images=images,
+                            attachments=attachments,
                             bypass_gate=bypass_gate)
             # L8b — Result audit. Forensic trail of what actually got delivered.
             _audit_send(subject, recipients, allowed=bool(ok),

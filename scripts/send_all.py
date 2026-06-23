@@ -303,6 +303,33 @@ def _record_send(key, n):
         con.close()
 
 
+PDF_REPORTS = {"microsectors"}  # reports that ship a Chrome-rendered PDF attachment
+
+
+def _render_report_pdf(html: str):
+    """Render report HTML to PDF bytes via the bundled Chromium (Playwright).
+    Returns None on failure so a render hiccup never blocks the email."""
+    try:
+        import tempfile, os
+        from playwright.sync_api import sync_playwright
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as _f:
+            _f.write(html); _src = _f.name
+        _out = _src[:-5] + ".pdf"
+        with sync_playwright() as _p:
+            _b = _p.chromium.launch()
+            _pg = _b.new_page()
+            _pg.goto("file://" + _src, wait_until="load")
+            _pg.pdf(path=_out, print_background=True, prefer_css_page_size=True)
+            _b.close()
+        _data = open(_out, "rb").read()
+        try: os.unlink(_src); os.unlink(_out)
+        except OSError: pass
+        return _data
+    except Exception as _e:
+        print(f"  WARN: PDF render failed: {_e}")
+        return None
+
+
 def _send_one(key: str, db, override_to: str | None, dry_run: bool,
               bypass_gate: bool, allow_self_loop: bool,
               bypass_rate_limit: bool = False, force: bool = False) -> dict:
@@ -335,7 +362,19 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
         if dry_run:
             out["status"] = "dry_run"
             out["note"] = f"would send {len(html):,} chars to {len(recipients)} recipient(s)"
+            if key in PDF_REPORTS:
+                out["note"] += " (+PDF attachment)"
             return out
+
+        attachments = None
+        if key in PDF_REPORTS:
+            from datetime import date as _date
+            _pdf = _render_report_pdf(html)
+            if _pdf:
+                attachments = [(f"{key}_{_date.today().isoformat()}.pdf", _pdf, "application/pdf")]
+                out["note"] = f"PDF attached ({len(_pdf):,} bytes)"
+            else:
+                out["note"] = "PDF render failed; sent HTML only"
 
         from etp_tracker.email_alerts import _send_html_digest
         ok = _send_html_digest(
@@ -343,6 +382,7 @@ def _send_one(key: str, db, override_to: str | None, dry_run: bool,
             recipients=recipients,
             edition="daily",
             subject_override=subject,
+            attachments=attachments,
             bypass_gate=bypass_gate,
             allow_self_loop=allow_self_loop,
             bypass_rate_limit=bypass_rate_limit,
