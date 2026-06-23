@@ -163,7 +163,7 @@ REPORTS = {
 }
 
 BUNDLES = {
-    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs", "blue_ocean", "microsectors"],
+    "all":             ["daily", "weekly", "li", "income", "flow", "autocall", "stock_recs", "blue_ocean", "microsectors", "portfolio_suite"],
     "daily":           ["daily"],
     "weekly":          ["weekly", "li", "income", "flow"],
     "autocall":        ["autocall"],
@@ -386,6 +386,10 @@ def main():
                          "Verifies the recorded token against data/.preflight_token. "
                          "Used by the scheduled rexfinhub-daily.service for autonomous send-day.")
     args = ap.parse_args()
+    # Builders invoke CLI main()s that re-parse sys.argv (e.g. blue_ocean_report.main).
+    # Neutralize argv now that ours is parsed, so a report build never dies on
+    # "unrecognized arguments" and abort the bundle mid-send. Ryu 2026-06-22.
+    import sys as _sys; _sys.argv = _sys.argv[:1]
 
     # Decision-gate (autonomous send-day flow).
     # Refuse to proceed unless the dashboard recorded a GO and the token matches.
