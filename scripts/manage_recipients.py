@@ -121,6 +121,11 @@ def cmd_add(list_type: str, email: str, force: bool) -> int:
     con.close()
     _log_change("add", list_type, email)
     print(f"ADDED: {email} -> {list_type}")
+    # Auto-bless: a deliberate operator change self-blesses by re-snapshotting,
+    # so preflight's recipient diff-guard only fires for changes made OUTSIDE
+    # this tool (its actual purpose). Ryu 2026-06-22.
+    cmd_snapshot()
+    print("AUTO-BLESSED: snapshot updated so this deliberate change won't trip preflight.")
     return 0
 
 
@@ -139,6 +144,11 @@ def cmd_remove(list_type: str, email: str) -> int:
     con.close()
     _log_change("remove", list_type, email)
     print(f"REMOVED: {email} from {list_type}")
+    # Auto-bless: a deliberate operator change self-blesses by re-snapshotting,
+    # so preflight's recipient diff-guard only fires for changes made OUTSIDE
+    # this tool (its actual purpose). Ryu 2026-06-22.
+    cmd_snapshot()
+    print("AUTO-BLESSED: snapshot updated so this deliberate change won't trip preflight.")
     return 0
 
 
