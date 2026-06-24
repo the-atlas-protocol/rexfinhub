@@ -105,7 +105,13 @@ def set_flag(
 
     now = datetime.utcnow().isoformat()
 
-    # DB upsert
+    # DB upsert. The DB row is authoritative for get_flag, so a DB write that
+    # fails while the file mirror still gets written would SILENTLY DESYNC the
+    # gate (get_flag returns the stale DB value; the file says otherwise) — the
+    # stuck-open / stuck-closed send-gate failure mode. So this is fail-loud:
+    # only "no such table" (legacy/pre-migration, where the file IS the source
+    # of truth) is tolerated; any other DB error raises BEFORE the file mirror
+    # is written, so the two stores can never diverge from a half-completed write.
     try:
         conn = sqlite3.connect(str(DB_PATH))
         try:
@@ -122,7 +128,16 @@ def set_flag(
         finally:
             conn.close()
     except sqlite3.OperationalError as e:
-        log.warning("set_flag DB upsert failed for %s: %s", flag_name, e)
+        if "no such table" in str(e).lower():
+            # Pre-migration: system_flags table not present yet. In that mode the
+            # legacy file is the source of truth, so fall through to the mirror.
+            log.debug("system_flags table absent; file-only mode for %s: %s", flag_name, e)
+        else:
+            # Real DB failure (locked, disk full, corruption). Do NOT write the
+            # file mirror — a one-sided write desyncs the gate. Fail loud.
+            raise RuntimeError(
+                f"set_flag({flag_name!r}={value}) DB write failed and was NOT "
+                f"mirrored to file to avoid gate desync: {e}") from e
 
     # File mirror (legacy compatibility)
     path, _ = FLAG_FILES[flag_name]

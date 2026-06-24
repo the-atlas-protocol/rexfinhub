@@ -29,12 +29,18 @@ def _prioritize(emails):
 
 
 def get_recipients(db: Session, list_type: str) -> list[str]:
-    """Get active recipients for a specific report type."""
+    """Get active recipients for a specific report type.
+
+    Raises ValueError on an unknown list_type. Returning [] here (the old
+    behavior) silently sent to nobody — and worse, callers that fall back to a
+    static file / SMTP_TO on an empty list would MISROUTE. A typo'd or
+    misconfigured list_type is a bug, so fail loud instead of misrouting.
+    """
     from webapp.models import EmailRecipient
 
     if list_type not in VALID_LIST_TYPES:
-        log.warning("Invalid list_type: %s", list_type)
-        return []
+        raise ValueError(
+            f"Unknown list_type {list_type!r}; valid: {sorted(VALID_LIST_TYPES)}")
 
     rows = db.query(EmailRecipient.email).filter(
         EmailRecipient.list_type == list_type,
