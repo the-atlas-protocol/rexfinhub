@@ -68,10 +68,36 @@ POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "60"))
 # which polluted the trusts table with Devon Energy, Lennar Homes, etc.
 # Rare commodity ETPs that DO use S-1 (e.g. Grayscale BTC) are added
 # manually via the admin trust-CRUD panel.
+#
+# BURST-OVERFLOW HARDENING (2026-06-24): the getcurrent feed is hard-capped
+# at 100 entries per query (count>100 is silently ignored by SEC). A broad
+# prefix like type=497 lumps 497 + 497J + 497K together, so during the
+# late-afternoon filing rush its 100-entry window can span < 1 hour and a
+# fund 497K can scroll off the bottom between two 60s polls — permanently
+# missed by Tier 1 (this is exactly how 0001193125-26-279679 / -279682 were
+# lost on 2026-06-23 and had to be backfilled by the reconciler). Fix: poll
+# each high-volume subform on its OWN query so each 100-entry window holds
+# only that subform and therefore covers a much longer wall-clock span
+# (verified live: type=497K spans a full trading day vs type=497's < 1 day
+# crowded window). Dedup is by accession (recent_accessions + DB unique
+# constraint), so the now-overlapping windows never double-ingest.
 FORM_QUERIES = [
     # (atom query type, accepted exact forms)
-    ("485", {"485APOS", "485BPOS", "485BXT", "485B", "485A"}),
+    # 485 family split: 485B-prefix (BPOS/BXT/B) and 485A-prefix (APOS/A)
+    # each get their own window instead of sharing one flooded type=485.
+    ("485B", {"485BPOS", "485BXT", "485B"}),
+    ("485A", {"485APOS", "485A"}),
+    # 497 family split: 497K and 497J are the two highest-volume subforms;
+    # giving each its own query keeps the plain-497 window from crowding them
+    # off. type=497 still returns all three (prefix match) as a backstop, but
+    # the dedicated subform queries are what guarantee the wide window.
+    ("497K", {"497K"}),
+    ("497J", {"497J"}),
     ("497", {"497", "497K", "497J"}),
+    # N-1A and N-2 are low-volume; their windows already span days. (Note:
+    # getcurrent does not surface bare N-1A registrations — those arrive via
+    # the reconciler/EFTS path — but keep them accepted so a future feed
+    # change is captured rather than dropped.)
     ("N-1A", {"N-1A", "N-1A/A"}),
     ("N-2", {"N-2", "N-2/A"}),
 ]
@@ -448,7 +474,7 @@ def insert_new_alerts(entries: Iterable[AtomEntry]) -> tuple[int, int]:
 # ---------------------------------------------------------------------------
 
 def poll_once(session: requests.Session, state: dict) -> PollResult:
-    """Run one polling cycle across all 8 form queries."""
+    """Run one polling cycle across all configured form queries."""
     result = PollResult()
     last_modified_map = state.setdefault("last_modified", {})
     recent_set = set(state.setdefault("recent_accessions", []))
