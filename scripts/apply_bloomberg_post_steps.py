@@ -10,10 +10,16 @@ Steps (in order):
     3. apply_issuer_brands.py      — issuer-display canonicalisation
     4. apply_classification_sweep.py --apply --apply-medium — auto+medium fills
 
-Exit code = max(individual exit codes). A non-zero step does NOT abort the
-chain — every step runs so partial successes still apply.
+Exit code = max(exit codes of the FATAL steps only). A non-zero step never
+aborts the chain — every step runs so partial successes still apply — but
+auxiliary/best-effort steps (AI middlemen, L&I parquet rebuilds, the daily
+git rules-delta push) are ADVISORY: their non-zero is logged, surfaced in the
+end-of-run summary, but does NOT poison the chain exit code. This is what
+makes `run_chain` exit 0 on a healthy run (Phase 0, 2026-06-24): before this,
+a transient git-push failure in commit_rules_delta forced rc=1 every run, so
+the chain's exit code was a dead signal that hid real failures.
 
-Per ADR 0003 (Phase 1 cuts).
+Per ADR 0003 (Phase 1 cuts); advisory split per Revamp Phase 0.
 """
 from __future__ import annotations
 
@@ -121,11 +127,35 @@ STEPS = [
     ("commit_rules_delta",      [PY, str(PROJECT_ROOT / "scripts" / "commit_rules_delta.py")]),
 ]
 
+# ADVISORY steps: best-effort / auxiliary work whose failure must NOT poison the
+# chain exit code. The AI middlemen are idempotent token-spenders that only touch
+# genuinely-new funds; the six parquet rebuilds were ALWAYS tolerant by design (the
+# retired timer used a leading '-'); commit_rules_delta is a git push whose failure
+# (network, branch-protection, repo-moved redirect) is operationally independent of
+# whether the data pipeline ran correctly — the next chain's git_pull --ff-only and
+# the git_tree_clean assertion catch real divergence. Everything NOT listed here is
+# FATAL: a crash in a core data step (classify / fund_master / identity / brands /
+# effective-dates / reconcile / restamp / snapshot) is a real failure and the chain
+# exit code must reflect it.
+ADVISORY_STEPS = frozenset({
+    "ai_classify_unmapped",
+    "ai_underlier_intel",
+    "ai_source_ipo",
+    "parquet_universe_loader",
+    "parquet_bbg_timeseries",
+    "parquet_filed_underliers",
+    "parquet_competitor_counts",
+    "parquet_launch_candidates",
+    "parquet_whitespace_v4",
+    "commit_rules_delta",
+})
+
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    overall_rc = 0
+    fatal_rc = 0
+    advisory_fails: list[str] = []
     for name, cmd in STEPS:
         log.info("=== %s START ===", name)
         t0 = time.time()
@@ -136,10 +166,20 @@ def main() -> int:
             log.error("=== %s CRASHED: %s ===", name, e)
             rc = 1
         elapsed = time.time() - t0
-        log.info("=== %s END (rc=%d, %.1fs) ===", name, rc, elapsed)
-        if rc > overall_rc:
-            overall_rc = rc
-    return overall_rc
+        advisory = name in ADVISORY_STEPS
+        tag = " [ADVISORY]" if advisory else ""
+        log.info("=== %s END (rc=%d, %.1fs)%s ===", name, rc, elapsed, tag)
+        if rc != 0:
+            if advisory:
+                advisory_fails.append(f"{name} (rc={rc})")
+            elif rc > fatal_rc:
+                fatal_rc = rc
+    if advisory_fails:
+        log.warning("advisory steps failed (non-fatal, logged only): %s",
+                    ", ".join(advisory_fails))
+    log.info("post-steps COMPLETE — fatal rc=%d; %d advisory failure(s)",
+             fatal_rc, len(advisory_fails))
+    return fatal_rc
 
 
 if __name__ == "__main__":

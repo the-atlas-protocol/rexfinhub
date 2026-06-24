@@ -923,16 +923,18 @@ def audit_ai_semantic_review(db) -> dict:
 
     high = [d for d in defects if str(d.get("severity", "")).upper() == "HIGH"]
     out["defects"] = defects
-    # ADVISORY (2026-06-22): the AI reviewer judges plausibility without ground truth
-    # and false-blocked a clean run (called the canonical count 79 "low" and the real
-    # 191-fund issuer "Corgi" a test value). It now WARNS only — never fails the gate.
-    # Deterministic checks with ground truth do the blocking; these notes are for Ryu.
+    # INFORMATIONAL ONLY (Phase 0, 2026-06-24): the AI reviewer judges plausibility
+    # without ground truth and cried wolf on every run (called the canonical count 79
+    # "low" and the real 191-fund issuer "Corgi" a test value), pinning overall_status
+    # at WARN forever — so every send rode the autogo_on_warn override and "green" was
+    # unreachable. It now stays PASS: findings are recorded in out["defects"] and the
+    # detail line (surfaced in the summary HTML for Ryu) but never move the gate. The
+    # deterministic checks with ground truth (contract numbers, microsectors, status,
+    # drift) do all the blocking. Restores: green means green.
     if high:
-        out["status"] = "warn"
-        out["detail"] = "ADVISORY (HIGH — review before send): " + "; ".join(f"{d.get('issue','?')}" for d in high[:5])
+        out["detail"] = "INFORMATIONAL (HIGH — review, non-blocking): " + "; ".join(f"{d.get('issue','?')}" for d in high[:5])
     elif defects:
-        out["status"] = "warn"
-        out["detail"] = f"ADVISORY — {len(defects)} observation(s), non-blocking"
+        out["detail"] = f"INFORMATIONAL — {len(defects)} observation(s), non-blocking"
     else:
         out["detail"] = "no semantic defects found"
     return out
