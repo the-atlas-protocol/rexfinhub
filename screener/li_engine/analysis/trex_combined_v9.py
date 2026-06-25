@@ -556,12 +556,31 @@ def load_inverse_gap(single_stocks: set):
     df = df[df["u_clean"].isin(single_stocks)]
     df["is_long"] = df["d"].astype(str).str.lower().str.contains("long", na=False)
     df["is_inv"] = df["d"].astype(str).str.lower().str.contains("short|inv", na=False)
+    # mkt_master_data is the Bloomberg TRADING feed only. A competitor inverse that
+    # is REGISTERED (Effective) or pending but not yet trading is absent from it,
+    # so contested names (WDC/DELL/CRDO/MRVL/COHR...) were silently reported as
+    # clean gaps. fund_status is the SEC registration tracker — consult it too so a
+    # gap means "no inverse anywhere, trading OR registered." Ryu 2026-06-25.
+    fs = _df("SELECT fund_name, status FROM fund_status WHERE fund_name IS NOT NULL")
+    registered_inv = {}   # canon underlier -> (fund_name, status)
+    if not fs.empty:
+        _u_re = re.compile(r"(?:SHORT|INVERSE|ULTRASHORT)\s+([A-Z]{1,6})\b"
+                           r"|\b([A-Z]{1,6})\s+(?:BEAR|SHORT)\b")
+        for _nm, _st in fs.itertuples(index=False):
+            s = str(_nm)
+            if not _INV_RE.search(s) or _REX_NAME_RE.search(s):
+                continue
+            for m in _u_re.finditer(s.upper()):
+                cu = _canon(m.group(1) or m.group(2))
+                if cu in single_stocks and cu not in registered_inv:
+                    registered_inv[cu] = (s, str(_st))
     rows = []
     for u, g in df.groupby("u_clean"):
         # A genuine gap = at least one MEANINGFUL long ($100M+) and ZERO inverse
-        # of any size anywhere on this underlier.
+        # of any size anywhere on this underlier — trading (mkt_master) OR
+        # registered (fund_status).
         n_inv = int(g["is_inv"].sum())
-        if n_inv > 0:
+        if n_inv > 0 or u in registered_inv:
             continue
         longs = g[g["is_long"] & (g["aum"] >= 100)]
         if longs.empty:
