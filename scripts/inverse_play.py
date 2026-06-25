@@ -1,31 +1,20 @@
-"""Inverse launch board — two plays, report-styled HTML tables.
-A) Inverse on a proven long (long is a hit, no inverse exists).
-B) New Foreign pairs (launch Long+Inverse together).
-C) New Pre-IPO pairs (file Long+Inverse together).
+"""Inverse launch board — report-styled HTML tables.
+A) Inverse on a proven long: proven longs ($100M+) with NO live trading inverse,
+   ranked by long AUM. Shows REX long filing status + whether anyone has FILED
+   (not launched) an inverse yet.
+B) Foreign pairs: foreign-listed names (high mcap OR a competitor has filed),
+   ordered by market cap — file long+inverse together.
+C) Pre-IPO pairs: pre-IPO underliers — file long+inverse together.
 """
+import re, sqlite3
 from datetime import date
 from html import escape
 from screener.li_engine.analysis import trex_combined_v9 as t
 
-BLUE, NAVY, GREEN, RED, ORANGE, GRAY = "#2563eb", "#1e293b", "#16a34a", "#dc2626", "#ea580c", "#64748b"
+BLUE, NAVY, GREEN, RED, ORANGE, GRAY, PURPLE = "#2563eb", "#1e293b", "#16a34a", "#dc2626", "#ea580c", "#64748b", "#7c3aed"
 BORDER = "#e2e8f0"
-
-def rex_legs(race):
-    """REX long/inverse status from a filer race (rex rows)."""
-    rx = [r for r in race if r["rex"]]
-    lo = [r for r in rx if r["dir"] == "long"]
-    iv = [r for r in rx if r["dir"] == "inverse"]
-    best = lambda rows: max((r["status"] for r in rows), key=lambda s: {"Effective": 2, "Filed": 1}.get(s, 0)) if rows else None
-    return best(lo), best(iv)
-
-def coverage_badge(long_s, inv_s):
-    if long_s and inv_s:
-        return f'<span style="color:{GREEN};font-weight:700;">BOTH</span>'
-    if long_s and not inv_s:
-        return f'<span style="color:{ORANGE};font-weight:700;">LONG only</span>'
-    if inv_s and not long_s:
-        return f'<span style="color:{ORANGE};font-weight:700;">INVERSE only</span>'
-    return f'<span style="color:{RED};font-weight:700;">NEITHER</span>'
+con = sqlite3.connect("/home/jarvis/rexfinhub/data/etp_tracker.db")
+ss = t._single_stock_set()
 
 def th(cols):
     return ("<tr>" + "".join(
@@ -39,153 +28,168 @@ def tr(cells, i):
 
 def section(title, blurb, color):
     return (f'<h2 style="font-size:16px;color:{color};margin:26px 0 4px;">{title}</h2>'
-            f'<div style="font-size:11px;color:{GRAY};margin-bottom:8px;max-width:920px;">{blurb}</div>')
+            f'<div style="font-size:11px;color:{GRAY};margin-bottom:8px;max-width:980px;">{blurb}</div>')
 
-# ---- A: inverse on a proven long -------------------------------------------
-# Built directly (not via load_inverse_gap, which now strictly drops any name with
-# a registered inverse) so we can show the THREE-TIER inverse status: OPEN (no
-# inverse anywhere) / RACING (competitor inverse filed but PENDING) / TAKEN
-# (competitor inverse Effective/live). Mechanism 1 ranks proven longs by AUM.
-import re, sqlite3
-con = sqlite3.connect("/home/jarvis/rexfinhub/data/etp_tracker.db")
-ss = t._single_stock_set()
-cov = {}
-rex = con.execute("SELECT name, COALESCE(status_cached,status) FROM rex_products WHERE product_suite='T-REX'").fetchall()
+def fmt_cap(c):
+    c = float(c or 0)
+    if c >= 1e9:
+        return f"${c/1e9:,.1f}B"
+    if c >= 1e6:
+        return f"${c/1e6:,.0f}M"
+    return "—"
+
+# ---- REX coverage (status + dates) parsed from product names ----------------
 NRE = re.compile(r"T-REX\s+[\d.]+X\s+(LONG|INVERSE)\s+(.+?)\s+DAILY", re.I)
-for nm, st in rex:
+cov = {}
+for nm, st, ee, ld in con.execute("""SELECT name, COALESCE(status_cached,status),
+        estimated_effective_date, official_listed_date
+        FROM rex_products WHERE product_suite='T-REX'""").fetchall():
     m = NRE.search(str(nm))
     if not m:
         continue
     d = "inverse" if m.group(1).upper() == "INVERSE" else "long"
     u = re.sub(r"\s+", " ", m.group(2).upper().strip())
-    cov.setdefault(u, {"long": None, "inverse": None})
-    cov[u][d] = st
+    cov.setdefault(u, {}).setdefault(d, (str(st).lower(), ee, ld))
 
-# top live long per single-stock underlier ($100M+), from the trading feed
-ml = con.execute("""SELECT map_li_underlier, map_li_direction, COALESCE(issuer_nickname,issuer),
-                           ticker, fund_name, aum
-                    FROM mkt_master_data
-                    WHERE primary_category='LI' AND market_status='ACTV' AND aum IS NOT NULL
-                      AND map_li_underlier IS NOT NULL AND fund_name NOT LIKE '%MICROSECTORS%'""").fetchall()
+def rex_long_html(u):
+    rec = cov.get(u, {}).get("long")
+    if not rec:
+        return f'<span style="color:{GRAY};">—</span>'
+    st, ee, ld = rec
+    if st in ("effective", "listed", "active"):
+        dt = (str(ld) or str(ee) or "")[:10]
+        return f'<span style="color:{GREEN};font-weight:700;">Effective</span> {escape(dt)}'
+    dt = (str(ee) or "")[:10]
+    return f'<span style="color:{BLUE};font-weight:700;">Filed</span> <span style="color:{GRAY};">eff {escape(dt)}</span>'
+
+# ---- live longs + live trading inverses from the Bloomberg trading feed -------
 longs, trading_inv = {}, set()
-for u, d, iss, tk, fn, aum in ml:
+for u, d, iss, tk, aum in con.execute("""SELECT map_li_underlier, map_li_direction,
+        COALESCE(issuer_nickname,issuer), ticker, aum
+        FROM mkt_master_data WHERE primary_category='LI' AND market_status='ACTV'
+          AND aum IS NOT NULL AND map_li_underlier IS NOT NULL
+          AND fund_name NOT LIKE '%MICROSECTORS%'""").fetchall():
     cu = t._canon(u)
     if cu not in ss:
         continue
     dl = str(d).lower()
     if "long" in dl and (aum or 0) >= 100:
         if cu not in longs or aum > longs[cu]["aum"]:
-            longs[cu] = {"aum": float(aum), "issuer": iss, "ticker": tk, "fund": fn}
+            longs[cu] = {"aum": float(aum), "issuer": iss, "ticker": tk}
     if re.search("short|inv", dl):
         trading_inv.add(cu)
-# inverse registrations from fund_status -> {underlier: 'Effective'|'PENDING'|...}
-_u_re = re.compile(r"(?:SHORT|INVERSE|ULTRASHORT)\s+([A-Z]{1,6})\b|\b([A-Z]{1,6})\s+(?:BEAR|SHORT)\b")
-reg_inv = {}
-for fn, fst in con.execute("SELECT fund_name,status FROM fund_status WHERE fund_name IS NOT NULL").fetchall():
+
+# ---- inverse FILINGS (registered, not yet trading) from fund_status ----------
+# direction-adjacent ticker extraction (collision-safe) filtered to single stocks
+_adj = re.compile(r"(?:SHORT|INVERSE|ULTRASHORT)\s+([A-Z]{1,6})\b|\b([A-Z]{1,6})\s+(?:BEAR|SHORT)\b")
+inv_filing = {}  # underlier -> (issuer, status, eff_date)
+for fn, st, eff in con.execute("SELECT fund_name,status,effective_date FROM fund_status WHERE fund_name IS NOT NULL").fetchall():
     s = str(fn)
     if not t._INV_RE.search(s) or t._REX_NAME_RE.search(s):
         continue
-    for m in _u_re.finditer(s.upper()):
+    for m in _adj.finditer(s.upper()):
         cu = t._canon(m.group(1) or m.group(2))
-        if cu in ss:
-            prev = reg_inv.get(cu, ("", ""))
-            # prefer an Effective record over a pending one
-            if "effective" in str(fst).lower() or "effective" not in str(prev[1]).lower():
-                reg_inv[cu] = (s, str(fst))
+        if cu not in ss:
+            continue
+        rec = (t._comp_issuer_of(s) or s.split()[0], t._race_collapse(st), t._race_eff(eff))
+        prev = inv_filing.get(cu)
+        if prev is None or (t._race_rank(rec[1]) > t._race_rank(prev[1])):
+            inv_filing[cu] = rec
 
-def inv_tier(u):
-    if u in trading_inv:
-        return "TAKEN", "trading", ""
-    if u in reg_inv:
-        fn, st = reg_inv[u]
-        return ("TAKEN", st, fn) if "effective" in st.lower() else ("RACING", st, fn)
-    return "OPEN", "", ""
-
-TIER_RANK = {"OPEN": 0, "RACING": 1, "TAKEN": 2}
-arows = []
-for u, L in longs.items():
-    tier, st, fn = inv_tier(u)
-    arows.append((u, L, tier, st, fn))
-arows.sort(key=lambda x: (TIER_RANK[x[2]], -x[1]["aum"]))
-
+# ---- Table A: proven longs with NO live trading inverse, ranked by AUM --------
+arows = sorted(((u, L) for u, L in longs.items() if u not in trading_inv),
+               key=lambda x: -x[1]["aum"])
 rowsA = ""
-for i, (u, L, tier, st, fn) in enumerate(arows[:30]):
-    rex_long = cov.get(u, {}).get("long")
-    tier_html = {
-        "OPEN":   f'<span style="color:{GREEN};font-weight:700;">OPEN — no inverse</span>',
-        "RACING": f'<span style="color:{ORANGE};font-weight:700;">RACING — {escape(fn[:30])} ({escape(st)})</span>',
-        "TAKEN":  f'<span style="color:{GRAY};">TAKEN — {escape((fn or "trading inverse")[:30])}</span>',
-    }[tier]
-    if tier == "OPEN":
-        act = "Launch our inverse" if rex_long else "File inverse — open seat on a proven name"
-        acol = GREEN
-    elif tier == "RACING":
-        act = "Race — file inverse now (competitor pending)"
-        acol = ORANGE
+for i, (u, L) in enumerate(arows[:30]):
+    f = inv_filing.get(u)
+    if f:
+        inv_html = f'<span style="color:{ORANGE};font-weight:700;">{escape(f[1])}</span> · {escape(str(f[0]))[:16]} {escape(str(f[2])[:10])}'
+        act, acol = f"File inverse — race vs {escape(str(f[0]))[:14]}", ORANGE
     else:
-        act = "Seat taken — monitor only"
-        acol = GRAY
+        inv_html = f'<span style="color:{GREEN};font-weight:700;">OPEN — none filed</span>'
+        act, acol = "File inverse — open seat", GREEN
     rowsA += tr([
         f'<b>{escape(u)}</b>',
-        escape(str(L["ticker"])), escape(str(L["issuer"]))[:18],
+        f'{escape(str(L["ticker"]))} · {escape(str(L["issuer"]))[:16]}',
         f'<b style="color:{NAVY};">${L["aum"]:,.0f}M</b>',
-        (f'<span style="color:{BLUE};font-weight:700;">{rex_long}</span>' if rex_long else f'<span style="color:{GRAY};">—</span>'),
-        tier_html,
+        rex_long_html(u),
+        inv_html,
         f'<b style="color:{acol};">{act}</b>',
     ], i)
-nopen = sum(1 for a in arows if a[2] == "OPEN")
-nrace = sum(1 for a in arows if a[2] == "RACING")
-tableA = f'<table style="border-collapse:collapse;width:100%;">{th(["Underlier","Top Long","Long Issuer","Long AUM","REX Long","Inverse Status","Action"])}{rowsA}</table>'
+nopen = sum(1 for u, _ in arows if u not in inv_filing)
+tableA = f'<table style="border-collapse:collapse;width:100%;">{th(["Underlier","Top Live Long","Long AUM","REX Long","Inverse Filed?","Action"])}{rowsA}</table>'
 
-# ---- B: new foreign pairs ---------------------------------------------------
+# ---- B/C helpers -------------------------------------------------------------
+def rex_legs(race):
+    rx = [r for r in race if r["rex"]]
+    best = lambda dirn: next((r["status"] for r in sorted(rx, key=lambda x: -t._race_rank(x["status"])) if r["dir"] == dirn), None)
+    return best("long"), best("inverse")
+
+def cov_badge(ls, iv):
+    if ls and iv: return f'<span style="color:{GREEN};font-weight:700;">BOTH filed</span>'
+    if ls:        return f'<span style="color:{ORANGE};font-weight:700;">LONG only</span>'
+    if iv:        return f'<span style="color:{ORANGE};font-weight:700;">INVERSE only</span>'
+    return f'<span style="color:{RED};font-weight:700;">NEITHER</span>'
+
+def pair_action(ls, iv):
+    if ls and iv: return ("Filed — monitor", GRAY)
+    if ls:        return ("File inverse", ORANGE)
+    if iv:        return ("File long", ORANGE)
+    return ("File both — long + inverse", RED)
+
+# ---- Table B: foreign — high mcap OR competitor filed, ordered by mcap --------
+HIGH = 10e9
 fc = t.load_foreign_competition()
-fb = [x for x in fc if x["race"]]            # only names with an active filer race
-fb.sort(key=lambda x: (-x["ncomp"], -x["cap"]))
+fb = []
+for x in fc:
+    if x["cap"] >= HIGH or x["ncomp"] > 0 or any(r["rex"] for r in x["race"]):
+        fb.append(x)
+fb.sort(key=lambda x: -x["cap"])
 rowsB = ""
-for i, x in enumerate(fb[:20]):
-    ls, isv = rex_legs(x["race"])
+for i, x in enumerate(fb):
+    ls, iv = rex_legs(x["race"])
     comps = sorted({r["issuer"] for r in x["race"] if not r["rex"]})
-    miss = "Launch L+I pair" if not (ls or isv) else ("Add inverse" if ls and not isv else ("Add long" if isv and not ls else "Have both"))
+    act, acol = pair_action(ls, iv)
+    comp_html = (f'<b>{x["ncomp"]}</b> · {escape(", ".join(comps))[:40]}' if comps else f'<span style="color:{GRAY};">none</span>')
     rowsB += tr([
-        f'<b>{escape(x["name"])[:30]}</b>', escape(x["ticker"]),
-        f'${x["cap"]/1e9:,.0f}B', f'<b>{x["ncomp"]}</b> ({escape(", ".join(comps)[:36])})',
-        coverage_badge(ls, isv),
-        f'<b style="color:{RED if not (ls or isv) else ORANGE};">{miss}</b>',
+        f'<b>{escape(str(x["name"]))[:30]}</b>', escape(str(x["market"])),
+        f'<b style="color:{NAVY};">{fmt_cap(x["cap"])}</b>',
+        comp_html, cov_badge(ls, iv),
+        f'<b style="color:{acol};">{act}</b>',
     ], i)
-tableB = f'<table style="border-collapse:collapse;width:100%;">{th(["Foreign Underlier","Ticker","Mkt Cap","Competitors Filing","REX Coverage","Action"])}{rowsB}</table>'
+tableB = f'<table style="border-collapse:collapse;width:100%;">{th(["Foreign Underlier","Market","Mkt Cap","Competitors Filed","REX Coverage","Action"])}{rowsB}</table>'
 
-# ---- C: new pre-IPO pairs ---------------------------------------------------
-pc = t.load_preipo_competition()
-pc = [x for x in pc if x["ncomp"] > 0 or [r for r in x["race"] if r["rex"]]]
-pc.sort(key=lambda x: -(x["valuation_usd"] or 0))
+# ---- Table C: pre-IPO — ordered by valuation ---------------------------------
+pc = sorted(t.load_preipo_competition(), key=lambda x: -(x["valuation_usd"] or 0))
 rowsC = ""
 for i, x in enumerate(pc):
-    ls, isv = rex_legs(x["race"])
+    ls, iv = rex_legs(x["race"])
     comps = sorted({r["issuer"] for r in x["race"] if not r["rex"]})
-    miss = "File L+I pair" if not (ls or isv) else ("Add inverse" if ls and not isv else ("Add long" if isv and not ls else "Have both"))
+    act, acol = pair_action(ls, iv)
+    comp_html = (f'<b>{x["ncomp"]}</b> · {escape(", ".join(comps))[:40]}' if comps else f'<span style="color:{GRAY};">none</span>')
+    val = x["valuation_usd"] or 0
     rowsC += tr([
-        f'<b>{escape(x["company"])[:26]}</b>',
-        f'${(x["valuation_usd"] or 0):,.0f}B',
-        f'<b>{x["ncomp"]}</b> ({escape(", ".join(comps)[:36])})',
-        coverage_badge(ls, isv),
-        f'<b style="color:{RED if not (ls or isv) else ORANGE};">{miss}</b>',
+        f'<b>{escape(str(x["company"]))[:26]}</b>',
+        f'<b style="color:{NAVY};">${val:,.0f}B</b>' if val else "—",
+        comp_html, cov_badge(ls, iv),
+        f'<b style="color:{acol};">{act}</b>',
     ], i)
-tableC = f'<table style="border-collapse:collapse;width:100%;">{th(["Pre-IPO Underlier","Valuation","Competitors Filing","REX Coverage","Action"])}{rowsC}</table>'
+tableC = f'<table style="border-collapse:collapse;width:100%;">{th(["Pre-IPO Underlier","Valuation","Competitors Filed","REX Coverage","Action"])}{rowsC}</table>'
 
 html = f"""<!doctype html><html><head><meta charset="utf-8"><title>T-REX Inverse Launch Board</title></head>
-<body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a;max-width:1100px;margin:24px auto;padding:0 20px;">
-<h1 style="font-size:22px;margin-bottom:2px;">T-REX Inverse Launch Board</h1>
+<body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a;max-width:1120px;margin:24px auto;padding:0 20px;">
+<h1 style="font-size:22px;margin-bottom:2px;">T-REX Inverse &amp; Pairs Launch Board</h1>
 <div style="color:{GRAY};font-size:12px;margin-bottom:6px;">{date.today().strftime('%B %d, %Y')} · two ways to play inverse</div>
-{section("A · Inverse on a Proven Long", "A 2x LONG is already a hit (big AUM) — the long proved the demand, so add the inverse. Ranked OPEN → RACING → TAKEN, then by long AUM. <b style='color:#16a34a;'>OPEN</b> = no inverse exists anywhere (file/launch now). <b style='color:#ea580c;'>RACING</b> = a competitor inverse is FILED but still PENDING (we can still beat it to launch). <b style='color:#64748b;'>TAKEN</b> = a competitor inverse is already Effective/trading (seat gone — monitor only). Inverse-existence now checks the SEC registration tracker, not just the Bloomberg trading feed.", BLUE)}
+{section("A · Inverse on a Proven Long", "A 2x LONG is already a hit (live, $100M+ AUM) and has NO live trading inverse yet — the long proved the demand, so file the inverse. Ranked by long AUM. <b>Inverse Filed?</b> shows whether anyone has REGISTERED an inverse but not launched it: <b style='color:#16a34a;'>OPEN</b> = nobody (clean seat) · <b style='color:#ea580c;'>Filed/Effective</b> = a competitor registered one and we are racing them to launch. Names with an already-trading inverse are excluded.", BLUE)}
 {tableA}
-{section("B · New Foreign Pairs — Launch Long + Inverse Together", "Newest foreign-listed underliers where competitors are racing. Thesis is BOTH directions win, so ship as a pair ASAP. REX Coverage shows what legs we already have — NEITHER (red) = we are behind the race.", "#34495e")}
+{section("B · Foreign Pairs — File Long + Inverse Together", "Foreign-listed underliers, ordered by market cap. Included when market cap is large (≥$10B) OR a competitor has already filed an L&amp;I product on the name (small-cap foreign only earns a slot once someone else files). REX Coverage shows our current legs; file whatever is missing.", "#34495e")}
 {tableB}
-{section("C · New Pre-IPO Pairs — File Long + Inverse Together", "Newest pre-IPO underliers in the filer race. File both legs now; they launch when the name lists. NEITHER = competitors are filing and REX is absent.", "#7c3aed")}
+{section("C · Pre-IPO Pairs — File Long + Inverse Together", "Pre-IPO underliers from the watchlist, ordered by valuation. File both legs now; they launch when the name lists.", PURPLE)}
 {tableC}
 </body></html>"""
 
 out = "/home/jarvis/rexfinhub/outputs/inverse_launch_board.html"
 open(out, "w", encoding="utf-8").write(html)
 print("WROTE", out, len(html), "chars")
-print(f"TableA rows: {rowsA.count('<tr')} (OPEN={nopen} RACING={nrace}) | TableB: {rowsB.count('<tr')} | TableC: {rowsC.count('<tr')}")
+print(f"TableA: {rowsA.count('<tr')} proven-longs-no-live-inverse ({nopen} OPEN) | TableB: {rowsB.count('<tr')} foreign | TableC: {rowsC.count('<tr')} pre-IPO")
 con.close()

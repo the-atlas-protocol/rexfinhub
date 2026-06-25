@@ -113,6 +113,62 @@ SEED_FOREIGN_UNIVERSE = [
     ("SIE.DE",    "Siemens AG",                   "XETRA","Industrials",              200.0, ["SIEMENS", "SIMENS"]),
     ("BESI.AS",   "BE Semiconductor Industries",  "AMS",  "Semiconductors",           12.0, ["BE SEMICONDUCTOR", "BESI"]),
     ("SIVE.ST",   "Sivers Semiconductors AB",     "STO",  "Semiconductors",            0.3, ["SIVERS SEMICONDUCTORS", "SIVERS"]),
+    # Added 2026-06-25 (Ryu) — major foreign-LISTED large caps that were missing.
+    # Caps are approximate seed values (round $B) pending a market-data refresh;
+    # included so the board's foreign universe reflects the real opportunity set.
+    # Japan (.T)
+    ("6146.T",    "Disco Corp",                   "TSE",  "Semiconductors",            8.0, ["DISCO CORP", "DISCO"]),
+    ("6920.T",    "Lasertec Corp",                "TSE",  "Semiconductors",           12.0, ["LASERTEC"]),
+    ("6861.T",    "Keyence Corp",                 "TSE",  "Industrials",             150.0, ["KEYENCE"]),
+    ("8306.T",    "Mitsubishi UFJ Financial",     "TSE",  "Financials",              130.0, ["MITSUBISHI UFJ", "MUFG"]),
+    ("9983.T",    "Fast Retailing",               "TSE",  "Consumer Discretionary",   95.0, ["FAST RETAILING", "UNIQLO"]),
+    ("6098.T",    "Recruit Holdings",             "TSE",  "Industrials",              70.0, ["RECRUIT HOLDINGS"]),
+    ("6501.T",    "Hitachi Ltd",                  "TSE",  "Industrials",             120.0, ["HITACHI"]),
+    ("6981.T",    "Murata Manufacturing",         "TSE",  "Technology",               40.0, ["MURATA"]),
+    ("6723.T",    "Renesas Electronics",          "TSE",  "Semiconductors",           40.0, ["RENESAS"]),
+    ("4063.T",    "Shin-Etsu Chemical",           "TSE",  "Materials",                75.0, ["SHIN ETSU", "SHINETSU"]),
+    ("7267.T",    "Honda Motor",                  "TSE",  "Consumer Discretionary",   45.0, ["HONDA"]),
+    ("7741.T",    "Hoya Corp",                    "TSE",  "Health Care",              50.0, ["HOYA"]),
+    # Korea (.KS)
+    ("373220.KS", "LG Energy Solution",           "KRX",  "Industrials",              70.0, ["LG ENERGY SOLUTION", "LG ENERGY"]),
+    ("207940.KS", "Samsung Biologics",            "KRX",  "Health Care",              50.0, ["SAMSUNG BIOLOGICS"]),
+    ("005490.KS", "POSCO Holdings",               "KRX",  "Materials",                25.0, ["POSCO"]),
+    ("000270.KS", "Kia Corp",                     "KRX",  "Consumer Discretionary",   35.0, ["KIA CORP", "KIA"]),
+    ("035420.KS", "NAVER Corp",                   "KRX",  "Communication Services",   25.0, ["NAVER"]),
+    ("035720.KS", "Kakao Corp",                   "KRX",  "Communication Services",   15.0, ["KAKAO"]),
+    ("006400.KS", "Samsung SDI",                  "KRX",  "Industrials",              18.0, ["SAMSUNG SDI"]),
+    ("005380.KS", "Hyundai Motor Co",             "KRX",  "Consumer Discretionary",   40.0, ["HYUNDAI MOTOR", "HYUNDAI"]),
+    # Taiwan (.TW)
+    ("2317.TW",   "Hon Hai Precision (Foxconn)",  "TWSE", "Technology",               70.0, ["HON HAI", "FOXCONN"]),
+    ("2308.TW",   "Delta Electronics",            "TWSE", "Technology",               55.0, ["DELTA ELECTRONICS"]),
+    ("3711.TW",   "ASE Technology Holding",       "TWSE", "Semiconductors",           25.0, ["ASE TECHNOLOGY", "ASE HOLDING"]),
+    # Europe
+    ("MC.PA",     "LVMH",                         "EPA",  "Consumer Discretionary",  350.0, ["LVMH"]),
+    ("RMS.PA",    "Hermes International",          "EPA",  "Consumer Discretionary",  280.0, ["HERMES"]),
+    ("OR.PA",     "L'Oreal SA",                   "EPA",  "Consumer Staples",        230.0, ["L OREAL", "LOREAL"]),
+    ("AIR.PA",    "Airbus SE",                    "EPA",  "Industrials",             140.0, ["AIRBUS"]),
+    ("SU.PA",     "Schneider Electric SE",        "EPA",  "Industrials",             140.0, ["SCHNEIDER ELECTRIC", "SCHNEIDER"]),
+    ("NESN.SW",   "Nestle SA",                    "SIX",  "Consumer Staples",        250.0, ["NESTLE"]),
+    ("ROG.SW",    "Roche Holding AG",             "SIX",  "Health Care",             230.0, ["ROCHE"]),
+    ("NOVN.SW",   "Novartis AG",                  "SIX",  "Health Care",             220.0, ["NOVARTIS"]),
+    ("IFX.DE",    "Infineon Technologies",        "XETRA","Semiconductors",           50.0, ["INFINEON"]),
+    ("ITX.MC",    "Inditex (Zara)",               "BME",  "Consumer Discretionary",  150.0, ["INDITEX"]),
+    ("PRX.AS",    "Prosus NV",                    "AMS",  "Consumer Discretionary",  120.0, ["PROSUS"]),
+    ("ADYEN.AS",  "Adyen NV",                     "AMS",  "Technology",               50.0, ["ADYEN"]),
+    ("ASM.AS",    "ASM International NV",          "AMS",  "Semiconductors",           30.0, ["ASM INTERNATIONAL", "ASM INTL"]),
+    # China / HK
+    ("3690.HK",   "Meituan",                      "HKEX", "Consumer Discretionary",  110.0, ["MEITUAN"]),
+    ("1810.HK",   "Xiaomi Corp",                  "HKEX", "Technology",              120.0, ["XIAOMI"]),
+    ("300750.SZ", "Contemporary Amperex (CATL)",  "SZSE", "Industrials",             150.0, ["CATL", "CONTEMPORARY AMPEREX"]),
+    ("600519.SS", "Kweichow Moutai",              "SSE",  "Consumer Staples",        280.0, ["KWEICHOW MOUTAI", "MOUTAI"]),
+    ("0981.HK",   "SMIC",                         "HKEX", "Semiconductors",           40.0, ["SMIC", "SEMICONDUCTOR MANUFACTURING INTERNATIONAL"]),
+    ("0941.HK",   "China Mobile Ltd",             "HKEX", "Communication Services",  180.0, ["CHINA MOBILE"]),
+    ("1299.HK",   "AIA Group Ltd",                "HKEX", "Financials",               80.0, ["AIA GROUP"]),
+    # India (.NS)
+    ("RELIANCE.NS","Reliance Industries",         "NSE",  "Energy",                  230.0, ["RELIANCE INDUSTRIES"]),
+    ("TCS.NS",    "Tata Consultancy Services",    "NSE",  "Technology",              170.0, ["TATA CONSULTANCY"]),
+    ("HDFCBANK.NS","HDFC Bank Ltd",               "NSE",  "Financials",              150.0, ["HDFC BANK"]),
+    ("BHARTIARTL.NS","Bharti Airtel Ltd",         "NSE",  "Communication Services",  110.0, ["BHARTI AIRTEL"]),
 ]
 
 # REX-affiliated registrant matches (REX itself + the white-label trust

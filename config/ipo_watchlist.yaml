@@ -1,19 +1,4 @@
 high_profile_pre_ipo:
-- ticker: SpaceX
-  company: SpaceX (incl. xAI segment post-Feb 2026 merger)
-  date: S-1 public May 20, 2026; roadshow Jun 4; price Jun 11
-  valuation: ~$1.8-2.0T target (S-1 disclosed $18.67B 2025 revenue; up to $75B raise)
-  desc: S-1 publicly circulated May 20 after April 1 confidential filing. Starship
-    + Starlink + xAI (merged in Feb 2026 at combined ~$1.25T). Roadshow opens June
-    4; pricing around June 11.
-  valuation_usd: 1800.0
-  valuation_projected_usd: 2000.0
-  last_round_date: '2026-04-01'
-  source_url: https://www.investing.com/analysis/the-trilliondollar-ipo-test-spacex-and-openai-face-public-markets-200680688
-  expected_ipo_window: 2026 Jun (pricing ~Jun 11)
-  s1_filed: true
-  s1_filed_date: '2026-04-01'
-  as_of_date: '2026-06-02'
 - ticker: Anthropic
   company: Anthropic
   date: Filed S-1 confidential (Jun 1, 2026)

@@ -678,17 +678,29 @@ def _load_race_sources():
     return rexp, fs
 
 
+def _name_tokens(s):
+    # whole-word/phrase match space, normalised. Padding lets us test ' KW ' so a
+    # keyword only matches a WHOLE word/phrase — never a substring. Without this,
+    # 'DISCO' matched 'DISCORD' and 'DISCOvery' (Ryu 2026-06-25).
+    return " " + re.sub(r"[^A-Z0-9]+", " ", str(s).upper()).strip() + " "
+
+
+def _name_match(keys, name):
+    nm = _name_tokens(name)
+    return any(k and (" " + k + " ") in nm for k in keys)
+
+
 def _filer_race(keywords, rexp, fs):
     # keywords may arrive as a numpy array (from the universe parquet) — never use
     # truthiness on it (ambiguous). Convert defensively.
     kw = list(keywords) if keywords is not None and not isinstance(keywords, float) else []
-    keys = [_race_strip(k) for k in kw if k]
+    keys = [re.sub(r"[^A-Z0-9]+", " ", str(k).upper()).strip() for k in kw if k]
+    keys = [k for k in keys if k]
     if not keys:
         return []
     rows = {}
     for nm, st, _fd, est_eff, listed in rexp.itertuples(index=False):
-        snm = _race_strip(nm)
-        if not any(k in snm for k in keys):
+        if not _name_match(keys, nm):
             continue
         d = "inverse" if _INV_RE.search(str(nm)) else "long"
         cur = {"issuer": "T-REX", "status": _race_collapse(st), "dir": d,
@@ -699,8 +711,7 @@ def _filer_race(keywords, rexp, fs):
     for nm, st, eff, _filed in fs.itertuples(index=False):
         if not _LI_NAME_RE.search(str(nm)) or _REX_NAME_RE.search(str(nm)):
             continue
-        snm = _race_strip(nm)
-        if not any(k in snm for k in keys):
+        if not _name_match(keys, nm):
             continue
         iss = _comp_issuer_of(nm)
         if not iss:
