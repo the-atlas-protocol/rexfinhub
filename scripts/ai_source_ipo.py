@@ -49,6 +49,19 @@ Be conservative: if you are not reasonably confident a company is still private 
 Return STRICT JSON array, one object per input: {"company","valuation_usd_b","valuation_as_of","s1_filed","s1_filed_date","expected_ipo_window","sector","still_private"}."""
 
 
+def _canon_company(name: str) -> str:
+    """Canonical key for a company name so variants collapse — "Stripe" == "Stripe
+    Inc". Uppercase, strip non-alphanumerics, drop a trailing corp suffix. Used to
+    dedup the watchlist: the sourcer keys by exact string, so an AI-discovered name
+    variant otherwise slips in as a second row (Stripe + Stripe Inc, 2026-06)."""
+    import re
+    s = re.sub(r"[^A-Z0-9]", "", str(name or "").upper())
+    for suf in ("INCORPORATED", "INC", "CORPORATION", "CORP", "LIMITED", "LTD", "LLC", "PLC"):
+        if s.endswith(suf) and len(s) > len(suf) + 2:
+            return s[: -len(suf)]
+    return s
+
+
 def _pre_ipo_from_journals() -> set[str]:
     out = set()
     for j in (PROJECT_ROOT / "logs").glob("ai_underlier_*.jsonl"):
@@ -165,7 +178,19 @@ def main() -> int:
             added += 1
         by_company[c] = entry
 
-    merged = sorted(by_company.values(), key=lambda e: -(e.get("valuation_usd") or 0))
+    # Backstop dedup by canonical company name. by_company is keyed by the exact
+    # company string, so a name variant ("Stripe Inc" vs "Stripe") survives as a
+    # second row. Collapse to one entry per canonical name, keeping the richest
+    # (most-populated) — the hand-curated row beats the sparse AI-sourced variant.
+    _canon = {}
+    for e in by_company.values():
+        k = _canon_company(e.get("company", ""))
+        if not k:
+            continue
+        cur = _canon.get(k)
+        if cur is None or len(e) > len(cur):
+            _canon[k] = e
+    merged = sorted(_canon.values(), key=lambda e: -(e.get("valuation_usd") or 0))
     print(f"  sourced {len(results)} | added {added} updated {updated} retired {retired} "
           f"| watchlist now {len(merged)} -> journal {jn.name}")
 

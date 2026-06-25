@@ -50,9 +50,13 @@ high_profile_pre_ipo:
   valuation_usd: 70.0
   last_round_date: '2025-02-26'
   source_url: https://www.ft.com/content/stripe-tender-offer-valuation-2025
-  expected_ipo_window: Speculative
+  expected_ipo_window: rumored 2025-2026
   s1_filed: false
-  as_of_date: '2026-05-12'
+  as_of_date: '2026-06-24'
+  valuation_as_of: 2024-02
+  s1_filed_date: ''
+  sector: Fintech / Payments
+  source: ai-source-ipo
 - ticker: Databricks
   company: Databricks
   date: Speculative
@@ -99,20 +103,32 @@ high_profile_pre_ipo:
   s1_filed: true
   s1_filed_date: '2025-03-14'
   as_of_date: '2026-05-12'
-- ticker: xAI
-  company: xAI (merged into SpaceX, Feb 2026)
-  date: Merged into SpaceX (Feb 2026)
-  valuation: Merged; SpaceX+xAI combined ~$1.25T at deal close, now part of SpaceX
-    S-1
-  desc: 'All-stock merger with SpaceX closed Feb 2026. xAI segment: $3.2B revenue
-    2025, $2.47B Q1 2026 op loss. Exposure now via SpaceX IPO.'
-  valuation_usd: null
-  last_round_date: '2026-02-03'
-  source_url: https://www.cnbc.com/2026/02/03/musk-xai-spacex-biggest-merger-ever.html
-  expected_ipo_window: Via SpaceX (Jun 2026)
-  s1_filed: true
-  s1_filed_date: '2026-04-01'
-  as_of_date: '2026-06-02'
+- company: VAST Data
+  valuation_usd: 9.1
+  as_of_date: '2026-06-24'
+  valuation_as_of: 2024-05
+  s1_filed: false
+  s1_filed_date: ''
+  expected_ipo_window: no timeline
+  sector: Enterprise Storage / AI Infrastructure
+  source: ai-source-ipo
+- company: Viva Republica (Toss)
+  valuation_usd: 7.4
+  as_of_date: '2026-06-24'
+  valuation_as_of: 2021-06
+  s1_filed: false
+  s1_filed_date: ''
+  expected_ipo_window: rumored 2025-2026
+  sector: Fintech / Neobank
+  source: ai-source-ipo
+- company: X-Energy
+  as_of_date: '2026-06-24'
+  valuation_as_of: unknown
+  s1_filed: false
+  s1_filed_date: ''
+  expected_ipo_window: no timeline
+  sector: Nuclear Energy / SMR
+  source: ai-source-ipo
 recently_priced:
 - ticker: CBRS
   company: Cerebras Systems
