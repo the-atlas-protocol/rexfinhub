@@ -7583,3 +7583,8 @@ ACMM US,CORGI ACMR 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,,,daily,,,,
 SIMX US,CORGI SIMO 2X DAILY ETF,,Equity,L&I,Long,single,SIMO,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-24,auto: legacy candidate translated (classify_daily)
 CAMC US,CORGI CAMT 2X DAILY ETF,,Equity,L&I,Long,single,CAMT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-24,auto: legacy candidate translated (classify_daily)
 ACLZ US,CORGI ACLS 2X DAILY ETF,,Equity,L&I,Long,single,ACLS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-24,auto: legacy candidate translated (classify_daily)
+XQTM US,CORGI QUANTUM COMPUTING 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-25,auto: legacy candidate translated (classify_daily)
+MWHS US,SKYLAR ELECTRICITY FUTURES ETF,,Commodity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-25,auto: outside tracked categories (Electricity futures ETF tracking commodity prices; no leverage or options-income structure evident.)
+QNDX US,STATE STREET SPDR PORTFOLIO NASDAQ 100 ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-06-25,"auto: outside tracked categories (NASDAQ 100 index tracking ETF with no leverage, derivatives, or options mechanics; plain equity index exposure.)"
+HINX US,T-REX 2X LONG SK HYNIX DAILY TARGET ETF,,Equity,L&I,Long,single,SSNLF,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-25,auto: legacy candidate translated (classify_daily)
+DRAL US,DEFIANCE DAILY TARGET 2X LONG DRAM ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-06-25,auto: legacy candidate translated (classify_daily)

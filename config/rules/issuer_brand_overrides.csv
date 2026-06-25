@@ -1859,6 +1859,7 @@ HGRO US,Hedgeye,layer1_regex,Matched fund_name: HEDGEYE QUALITY GROWTH ETF
 HIDE US,Alpha Architect,layer1_regex,Matched fund_name: ALPHA ARCHITECT HIGH INFLATION AND DEFLATION ETF
 HIDV US,AB (AllianceBernstein),layer1_regex,Matched fund_name: AB US HIGH DIVIDEND ETF
 HIMU US,iShares,layer1_regex,Matched fund_name: ISHARES HIGH YIELD MUNI ACTIVE ETF
+HINX US,REX,layer1_regex,Matched fund_name: T-REX 2X LONG SK HYNIX DAILY TARGET ETF
 HIPS US,GraniteShares,layer1_regex,Matched fund_name: GRANITESHARES HIPS US HIGH INCOME ETF
 HISF US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST HIGH INCOME STRATEGIC FOCUS ETF
 HIYY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAX HIMS OPTION INCOME STRATEGY ETF
@@ -2446,6 +2447,7 @@ MUSE US,TCW,layer1_regex,Matched fund_name: TCW MULTISECTOR CREDIT INCOME ETF
 MUSI US,American Century,layer1_regex,Matched fund_name: AMERICAN CENTURY MULTISECTOR INCOME ETF
 MUST US,Columbia,layer1_regex,Matched fund_name: COLUMBIA MULTI-SECTOR MUNICIPAL INCOME ETF
 MVAL US,VanEck,layer1_regex,Matched fund_name: VANECK MORNINGSTAR WIDE MOAT VALUE ETF
+MWHS US,SKYLAR,name_fallback,first significant word of: SKYLAR ELECTRICITY FUTURES ETF
 MXI US,iShares,layer1_regex,Matched fund_name: ISHARES GLOBAL MATERIALS ETF
 MYCF US,State Street,layer1_regex,Matched fund_name: STATE STREET MY2026 CORPORATE BOND ETF
 MYCG US,State Street,layer1_regex,Matched fund_name: STATE STREET MY2027 CORPORATE BOND ETF
@@ -2747,6 +2749,7 @@ QLVE US,FlexShares,layer1_regex,Matched fund_name: FLEXSHARES EMERGING MARKETS Q
 QMID US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE US MIDCAP QUALITY GROWTH FUND
 QMOM US,Alpha Architect,layer1_regex,Matched fund_name: ALPHA ARCHITECT US QUANTITATIVE MOMENTUM ETF
 QMY US,Corgi,layer1_regex,Matched fund_name: CORGI GROWTH & TECHNOLOGY 10% STRUCTURED BUFFER ETF - MAY SERIES
+QNDX US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR PORTFOLIO NASDAQ 100 ETF
 QNXT US,iShares,layer1_regex,Matched fund_name: ISHARES NASDAQ-100 EX TOP 30 ETF
 QOWZ US,Invesco,layer1_regex,Matched fund_name: INVESCO NASDAQ FREE CASH FLOW ACHIEVERS ETF
 QPX US,AdvisorShares,layer1_regex,Matched fund_name: ADVISORSHARES Q DYNAMIC GROWTH ETF
@@ -2774,7 +2777,7 @@ QTEC US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST NASDAQ-100 TECHN
 QTOP US,iShares,layer1_regex,Matched fund_name: ISHARES NASDAQ TOP 30 STOCKS ETF
 QTR US,Global X,layer1_regex,Matched fund_name: GLOBAL X NASDAQ 100 TAIL RISK ETF
 QTUM US,Defiance,layer1_regex,Matched fund_name: DEFIANCE QUANTUM ETF
-QTUP US,Defiance,layer1_regex,Matched fund_name: DEFIANCE LONG PURE QUANTUM ETF
+QTUP US,Defiance,layer1_regex,Matched fund_name: DEFIANCE PURE QUANTUM ETF
 QUAL US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI USA QUALITY FACTOR ETF
 QUS US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR MSCI USA STRATEGICFACTORS ETF
 QVAL US,Alpha Architect,layer1_regex,Matched fund_name: ALPHA ARCHITECT US QUANTITATIVE VALUE ETF
@@ -3510,6 +3513,7 @@ XONE US,BondBloxx,layer1_regex,Matched fund_name: BONDBLOXX BLOOMBERG ONE YEAR T
 XOP US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR S&P OIL & GAS EXPLORATION & PRODUCTION ETF
 XPAY US,Roundhill,layer1_regex,Matched fund_name: ROUNDHILL S&P 500 TARGET 20 MANAGED DISTRIBUTION ETF
 XPH US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR S&P PHARMACEUTICALS ETF
+XQTM US,Corgi,layer1_regex,Matched fund_name: CORGI QUANTUM COMPUTING 2X DAILY ETF
 XRPL US,CoinShares,layer1_regex,Matched fund_name: COINSHARES XRP ETF
 XRT US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR S&P RETAIL ETF
 XSD US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR S&P SEMICONDUCTOR ETF
