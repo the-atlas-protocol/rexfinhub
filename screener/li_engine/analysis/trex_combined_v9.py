@@ -973,12 +973,31 @@ def build():
     else:
         flags = {}
 
+    # Authoritative set of underliers REX has a T-REX product ON FILE (any
+    # direction/status), parsed straight from rex_products names. The
+    # competitor_counts.parquet rex_filed_* flag undercounts badly (11 of REX's
+    # ~109 filed T-REX products as of 2026-06-25), so the "REX Filed" column read
+    # all-N even for names we had filed. This makes the column reflect the real
+    # filing book — so a "Should Enter" candidate we have already filed shows Y
+    # (it's in the 75-day pipeline, not greenfield). Ryu 2026-06-25.
+    _rexfiled_canon = set()
+    try:
+        _rxn = _df("SELECT name FROM rex_products WHERE product_suite='T-REX'")
+        _nre = re.compile(r"T-REX\s+[\d.]+X\s+(?:LONG|INVERSE)\s+(.+?)\s+DAILY", re.I)
+        for _nm in _rxn["name"]:
+            _m = _nre.search(str(_nm))
+            if _m:
+                _rexfiled_canon.add(_canon(re.sub(r"\s+", " ", _m.group(1).strip())))
+    except Exception:
+        pass
+
     if scored.empty:
         no_live = pd.DataFrame()
     else:
         scored["u_clean"] = scored["ticker"].apply(_canon)
         scored["has_live"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_live", False)).fillna(False)
-        scored["has_rex_filing"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_rex_filing", False)).fillna(False)
+        scored["has_rex_filing"] = scored["u_clean"].map(
+            lambda t: bool(flags.get(t,{}).get("has_rex_filing", False)) or (t in _rexfiled_canon))
         scored["has_comp_filing"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_comp_filing", False)).fillna(False)
         no_live = scored[~scored["has_live"]].head(100)
 
