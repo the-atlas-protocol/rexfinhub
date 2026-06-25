@@ -160,6 +160,22 @@ def _merge_universe(foreign_rows, dry: bool):
                      "market_cap_usd": cap, "name_keywords": kws or [r.get("company", "").upper()]})
         have.add(tk)
         added.append(r.get("company") or tk)
+    # Dedup by foreign_ticker (fallback normalized name) BEFORE writing. The seed was
+    # re-appended to the existing universe every run (base = ex + seed), and the
+    # existing parquet already contained the seed — so SK Hynix / Samsung / ASML ...
+    # tripled in the Foreign filer-race section of the T-REX report. The new-AI-row
+    # guard above only protected `foreign_rows`, never this concat. Collapse to one
+    # row per ticker, keep first. ADR vs foreign-listed carry distinct tickers, so
+    # both legitimately survive; only true duplicates are removed.
+    seen, deduped = set(), []
+    for r in base:
+        tk = str(r.get("foreign_ticker", "")).upper().strip()
+        key = tk or re.sub(r"[^A-Z0-9]", "", str(r.get("name", "")).upper())
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(r)
+    base = deduped
     if not dry:
         FOREIGN_UNIVERSE.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(base).to_parquet(FOREIGN_UNIVERSE, index=False)
