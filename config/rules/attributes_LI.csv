@@ -895,7 +895,7 @@ AMPU US,Equity,Single Stock,Long,2.0,AMPX
 AMKL US,Equity,Single Stock,Long,2.0,AMKR
 RSIT US,Equity,Index/Basket/ETF Based,Long,1.0,
 XNDX US,Equity,Single Stock,Long,2.0,XNDU
-RAM US,Equity,Single Stock,Long,2.0,DRAM
+RAM US,Equity,Index/Basket/ETF Based,Long,2.0,DRAM
 CBRG US,Equity,Single Stock,Long,2.0,CBRS
 AMAU US,Equity,Single Stock,Long,2.0,AMAT
 CIEG US,Equity,Single Stock,Long,2.0,CIEN
@@ -978,7 +978,7 @@ MCHU US,Equity,Single Stock,Long,2.0,MCHP
 NXPX US,Equity,Single Stock,Long,2.0,NXPI
 SPCQ US,Equity,Single Stock,Short,2.0,
 SPCU US,Equity,Single Stock,Long,2.0,
-2660552D US,Equity,Single Stock,Long,2.0,DRAM
+2660552D US,Equity,Index/Basket/ETF Based,Long,2.0,DRAM
 SPCH US,Equity,Single Stock,Long,2.0,SPCX
 SSPC US,Equity,Single Stock,Short,2.0,SPCX
 QTMS US,,,Long,1.0,QTUM
