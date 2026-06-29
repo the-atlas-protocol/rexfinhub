@@ -705,6 +705,9 @@ HPEL US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LON
 MTSG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG MTSI DAILY ETF
 SMTG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG SMTC DAILY ETF
 MWHS US,SKYLAR,name_fallback,first significant word of: SKYLAR ELECTRICITY FUTURES ETF
+BWQG US,BWM,name_fallback,first significant word of: BWM QUALITY GROWTH ETF
+JULI US,ALLIANZIM,name_fallback,first significant word of: ALLIANZIM INTERNATIONAL EQUITY BUFFER15 UNCAPPED JUL ETF
+KMEM US,KURV,name_fallback,first significant word of: KURV MEMORY SELECT ETF
 2578189D US,Goldman Sachs,layer1_regex,Matched fund_name: GOLDMAN SACHS ACCESS US TREASURY BOND ETF
 AAAA US,Amplius,layer1_regex,Matched fund_name: AMPLIUS AGGRESSIVE ASSET ALLOCATION ETF
 AAAC US,Columbia,layer1_regex,Matched fund_name: COLUMBIA AAA CLO ETF
@@ -996,7 +999,6 @@ BUL US,Pacer,layer1_regex,Matched fund_name: PACER US CASH COWS GROWTH ETF
 BUXX US,Strive,layer1_regex,Matched fund_name: STRIVE ENHANCED INCOME SHORT MATURITY ETF
 BUYB US,ProShares,layer1_regex,Matched fund_name: PROSHARES S&P 500 BUYBACK ARISTOCRATS ETF
 BUYO US,KraneShares,layer1_regex,Matched fund_name: KRANESHARES MAN BUYOUT BETA INDEX ETF
-BWQG US,BWM,name_fallback,first significant word of: BWM QUALITY GROWTH ETF
 BWX US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR BLOOMBERG INTERNATIONAL TREASURY BOND ETF
 BWZ US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR BLOOMBERG SHORT TERM INTERNATIONAL TREASURY BOND ETF
 BYLD US,iShares,layer1_regex,Matched fund_name: ISHARES YIELD OPTIMIZED BOND ETF
@@ -2246,7 +2248,6 @@ JSI US,Janus Henderson,layer1_regex,Matched fund_name: JANUS HENDERSON SECURITIZ
 JSMD US,Janus Henderson,layer1_regex,Matched fund_name: JANUS HENDERSON SMALL/MID CAP GROWTH ALPHA ETF
 JSML US,Janus Henderson,layer1_regex,Matched fund_name: JANUS HENDERSON SMALL CAP GROWTH ALPHA ETF
 JTNY US,JP Morgan,layer1_regex,Matched fund_name: JPMORGAN NEW YORK TAX FREE BOND ETF
-JULI US,ALLIANZIM,name_fallback,first significant word of: ALLIANZIM INTERNATIONAL EQUITY BUFFER15 UNCAPPED JUL ETF
 JUNC US,Corgi,layer1_regex,Matched fund_name: CORGI US EQUITIES 10% STRUCTURED BUFFER ETF - JUNE SERIES
 JUSA US,JP Morgan,layer1_regex,Matched fund_name: JPMORGAN US RESEARCH ENHANCED LARGE CAP ETF
 JUST US,Goldman Sachs,layer1_regex,Matched fund_name: GOLDMAN SACHS JUST US LARGE CAP EQUITY ETF
@@ -2268,7 +2269,6 @@ KIE US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR S&P INSURA
 KLMN US,Invesco,layer1_regex,Matched fund_name: INVESCO MSCI NORTH AMERICA CLIMATE ETF
 KLMT US,Invesco,layer1_regex,Matched fund_name: INVESCO MSCI GLOBAL CLIMATE 500 ETF
 KMCA US,PLUS,layer1_regex,Matched fund_name: PLUS KOREA MANUFACTURING CORE ALLIANCE INDEX ETF
-KMEM US,KURV,name_fallback,first significant word of: KURV MEMORY SELECT ETF
 KMID US,Virtus,layer1_regex,Matched fund_name: VIRTUS KAR MID-CAP ETF
 KMLM US,KraneShares,layer1_regex,Matched fund_name: KRANESHARES MOUNT LUCAS MANAGED FUTURES INDEX STRATEGY ETF
 KNGZ US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST S&P 500 DIVERSIFIED DIVIDEND ARISTOCRATS ETF
@@ -2313,7 +2313,6 @@ LFEQ US,VanEck,layer1_regex,Matched fund_name: VANECK LONG/FLAT TREND ETF
 LFGY US,YieldMax,layer1_regex,Matched fund_name: YIELDMAX CRYPTO INDUSTRY & TECH PORTFOLIO OPTION INCOME ETF
 LFSC US,F/M,layer1_regex,Matched fund_name: F/M EMERALD LIFE SCIENCES INNOVATION ETF
 LGCF US,Themes,layer1_regex,Matched fund_name: THEMES US CASH FLOW CHAMPIONS ETF
-LGDS US,JP Morgan,layer1_regex,Matched fund_name: JPMORGAN FUNDAMENTAL DATA SCIENCE LARGE GROWTH ETF
 LGLV US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR US LARGE CAP LOW VOLATILITY INDEX ETF
 LGOV US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST LONG DURATION OPPORTUNITIES ETF
 LITP US,Sprott,layer1_regex,Matched fund_name: SPROTT LITHIUM MINERS ETF
@@ -2664,10 +2663,6 @@ PPH US,VanEck,layer1_regex,Matched fund_name: VANECK PHARMACEUTICAL ETF
 PPLT US,abrdn,layer1_regex,Matched fund_name: ABRDN PHYSICAL PLATINUM SHARES ETF
 PQNT US,Pictet,layer1_regex,Matched fund_name: PICTET AI ENHANCED INTERNATIONAL EQUITY ETF
 PQUS US,Pictet,layer1_regex,Matched fund_name: PICTET AI ENHANCED US EQUITY ETF
-PQV US,PGIM,layer1_regex,Matched fund_name: PGIM S&P 500 QUARTERLY BUFFER 5 ETF
-PQX US,PGIM,layer1_regex,Matched fund_name: PGIM S&P 500 QUARTERLY BUFFER 10 ETF
-PQXV US,PGIM,layer1_regex,Matched fund_name: PGIM S&P 500 QUARTERLY BUFFER 15 ETF
-PQXX US,PGIM,layer1_regex,Matched fund_name: PGIM S&P 500 QUARTERLY BUFFER 20 ETF
 PRAB US,State Street,layer1_regex,Matched fund_name: STATE STREET IG PUBLIC & PRIVATE ABS ETF
 PRAY US,FIS,layer1_regex,Matched fund_name: FIS TRUST - FIS CHRISTIAN STOCK FUND
 PRF US,Invesco,layer1_regex,Matched fund_name: INVESCO RAFI US 1000 ETF
@@ -2705,7 +2700,6 @@ PTNT US,Corgi,layer1_regex,Matched fund_name: CORGI IP LICENSING & ROYALTIES ETF
 PTRB US,PGIM,layer1_regex,Matched fund_name: PGIM TOTAL RETURN BOND ETF
 PUI US,Invesco,layer1_regex,Matched fund_name: INVESCO EXCHANGE-TRADED FUND TRUST INVESCO DORSEY WRIGHT UTILITIES MOMENTUM ETF
 PULS US,PGIM,layer1_regex,Matched fund_name: PGIM ULTRA SHORT BOND ETF
-PUR US,Defiance,layer1_regex,Matched fund_name: DEFIANCE DAILY TARGET 2X LONG PURR ETF
 PUSH US,PGIM,layer1_regex,Matched fund_name: PGIM ULTRA SHORT MUNICIPAL BOND ETF
 PVAL US,Putnam,layer1_regex,Matched fund_name: PUTNAM FOCUSED LARGE CAP VALUE ETF
 PVEX US,TrueShares,layer1_regex,Matched fund_name: TRUESHARES CONVEQUITY ETF

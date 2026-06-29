@@ -175,3 +175,4 @@ MWHS US,,auto-llm-other: Electricity futures ETF tracking commodity prices; no l
 QNDX US,,"auto-llm-other: NASDAQ 100 index tracking ETF with no leverage, derivatives, or options mechanics; plain equity index exposure."
 JPRF US,,auto-llm-other: Preferred and fixed income securities fund without options-income strategy.
 BWQG US,,"auto-llm-other: Quality growth equity ETF with no leverage, options mechanics, or thematic focus."
+RMHY US,,auto-llm-other: Risk-managed yield fixed income ETF with adaptive strategy but no explicit options-income or leverage stated; fixed income with active management.
