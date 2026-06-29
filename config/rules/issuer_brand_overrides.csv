@@ -2290,7 +2290,6 @@ KWIN US,KraneShares,layer1_regex,Matched fund_name: KRANESHARES WAHED ALTERNATIV
 KWT US,iShares,layer1_regex,Matched fund_name: ISHARES MSCI KUWAIT ETF
 KXI US,iShares,layer1_regex,Matched fund_name: ISHARES GLOBAL CONSUMER STAPLES ETF
 KYC US,Corgi,layer1_regex,Matched fund_name: CORGI DIGITAL BANKING & FINTECH INFRASTRUCTURE ETF
-LADM US,Pacer,layer1_regex,Matched fund_name: PACER SWAN SOS LADDERED MODERATE ETF
 LALT US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST MULTI-STRATEGY ALTERNATIVE ETF
 LATR US,Corgi,layer1_regex,Matched fund_name: CORGI BUY NOW PAY LATER ETF
 LBIX US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN VOLATILITY LEVERAGED ETF
@@ -2333,7 +2332,6 @@ LQDI US,iShares,layer1_regex,Matched fund_name: ISHARES INFLATION HEDGED CORPORA
 LRGC US,AB (AllianceBernstein),layer1_regex,Matched fund_name: AB US LARGE CAP STRATEGIC EQUITIES ETF
 LRGF US,iShares,layer1_regex,Matched fund_name: ISHARES U.S. EQUITY FACTOR ETF
 LRGG US,Nomura,layer1_regex,Matched fund_name: NOMURA FOCUSED LARGE GROWTH ETF
-LRMB US,Defiance,layer1_regex,Matched fund_name: DEFIANCE DAILY TARGET 2X LONG RMBS ETF
 LSCP US,Natixis,layer1_regex,Matched fund_name: NATIXIS LOOMIS SAYLES DYNAMIC CORE PLUS ETF
 LSEQ US,Harbor,layer1_regex,Matched fund_name: HARBOR LONG-SHORT EQUITY ETF
 LSGR US,Natixis,layer1_regex,Matched fund_name: NATIXIS LOOMIS SAYLES FOCUSED GROWTH ETF
@@ -2755,7 +2753,6 @@ QMID US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE US MIDCAP QUALITY 
 QMOM US,Alpha Architect,layer1_regex,Matched fund_name: ALPHA ARCHITECT US QUANTITATIVE MOMENTUM ETF
 QMY US,Corgi,layer1_regex,Matched fund_name: CORGI GROWTH & TECHNOLOGY 10% STRUCTURED BUFFER ETF - MAY SERIES
 QNDX US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR PORTFOLIO NASDAQ 100 ETF
-QNTU US,Tradr,layer1_regex,Matched fund_name: TRADR 2X LONG QNT DAILY ETF
 QNXT US,iShares,layer1_regex,Matched fund_name: ISHARES NASDAQ-100 EX TOP 30 ETF
 QOWZ US,Invesco,layer1_regex,Matched fund_name: INVESCO NASDAQ FREE CASH FLOW ACHIEVERS ETF
 QPX US,AdvisorShares,layer1_regex,Matched fund_name: ADVISORSHARES Q DYNAMIC GROWTH ETF
@@ -3070,7 +3067,6 @@ SPTL US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR PORTFOLIO
 SPTM US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR PORTFOLIO S&P 1500 COMPOSITE STOCK MARKET ETF
 SPTS US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR PORTFOLIO SHORT TERM TREASURY ETF
 SPTU US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR PORTFOLIO ULTRA SHORT T-BILL ETF
-SPUC US,Simplify,layer1_regex,Matched fund_name: SIMPLIFY US EQUITY INCOME ETF
 SPVM US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 VALUE WITH MOMENTUM ETF
 SPXD US,Xtrackers,layer1_regex,Matched fund_name: XTRACKERS S&P 500 DIVERSIFIED SECTOR WEIGHT ETF
 SPXE US,ProShares,layer1_regex,Matched fund_name: PROSHARES TRUST S&P 500 EX-ENERGY ETF
