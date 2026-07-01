@@ -304,6 +304,14 @@ def _prewarm_caches() -> None:
     race conditions.
     """
     global _caches_ready
+    # Opt-out for lightweight instances (staging / review). The market-dashboard
+    # cache eagerly loads the ~280K-row mkt_time_series; pages that read parquets
+    # or query the DB directly (T-REX System, Screener) don't need it, and on a
+    # RAM-constrained box the eager load can OOM the process at startup.
+    if os.environ.get("SKIP_PREWARM"):
+        _caches_ready = True
+        log.info("SKIP_PREWARM set — skipping cache pre-warm.")
+        return
     import time
     t0 = time.time()
 
