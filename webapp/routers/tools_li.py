@@ -18,6 +18,7 @@ Replaces the PR-1 stub that proxied to ``filings._candidates_impl``.
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,29 @@ router = APIRouter(prefix="/tools/li", tags=["tools-li"])
 templates = Jinja2Templates(directory="webapp/templates")
 
 PARQUET_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "analysis"
+
+# Report-styled lane sections (whitespace / inverse / launch-anyway / foreign /
+# IPO / REX pipeline) are built by the shared builder and cached in-process so a
+# public GET never re-queries the DB on every hit. The fast intraday loop (A1)
+# keeps the underlying parquets/scores fresh; this TTL just debounces render.
+_LANE_TTL_SECONDS = 300
+_LANE_CACHE: dict[str, Any] = {"at": 0.0, "built": None}
+
+
+def _get_lanes(force: bool = False) -> dict:
+    """Return the shared lane build, cached for _LANE_TTL_SECONDS."""
+    now = time.time()
+    cached = _LANE_CACHE.get("built")
+    if not force and cached is not None and (now - _LANE_CACHE["at"]) < _LANE_TTL_SECONDS:
+        return cached
+    try:
+        from screener.li_engine.report import lanes as _lanes
+        built = _lanes.build_all()
+    except Exception as exc:  # never let the lane build take down the page
+        log.warning("lane build failed: %s", exc)
+        built = cached or {}
+    _LANE_CACHE.update(at=now, built=built)
+    return built
 
 
 # ---------------------------------------------------------------------------
@@ -161,62 +185,14 @@ def candidates(request: Request, db: Session = Depends(get_db)):
     kpis.setdefault("top_mention_ticker", top_ticker)
     kpis.setdefault("top_mention_count", top_count)
 
-    # 2. Launch queue -------------------------------------------------------
-    # A3: prefer the new tiered signal_strength column; fall back to the
-    # legacy boolean for older parquet files.
-    launches: list[dict] = []
-    launches_df = _load_parquet("launch_candidates.parquet")
-    if not launches_df.empty:
-        if "signal_strength" in launches_df.columns:
-            from screener.li_engine.analysis.signal_strength import SignalStrength
-            threshold = int(SignalStrength.MODERATE)
-            ranks = launches_df["signal_strength"].map(
-                lambda s: int(SignalStrength.from_name(s)) if isinstance(s, str) else 0
-            )
-            df = launches_df[ranks >= threshold]
-        elif "has_signals" in launches_df.columns:
-            df = launches_df[launches_df["has_signals"] == True]  # noqa: E712
-        else:
-            df = launches_df
-        if "composite_score" in df.columns:
-            df = df.sort_values("composite_score", ascending=False)
-        df = df.head(12)
-        for ticker, row in df.iterrows():
-            launches.append(_build_card(str(ticker), row, is_launch=True))
-
-    # Effective-date projections (per launch ticker)
-    try:
-        eff_dates = load_earliest_competitor_filing_dates() or {}
-    except Exception as exc:
-        log.warning("effective-date load failed: %s", exc)
-        eff_dates = {}
-    for item in launches:
-        info = eff_dates.get(item["ticker"]) or {}
-        item["earliest_filing_date"] = info.get("earliest_filing_date")
-        item["earliest_issuer"] = info.get("earliest_issuer", "")
-        item["closest_effective_date"] = info.get("closest_effective_date")
-        item["projected_effective_date"] = info.get("projected_effective_date")
-        item["projected_basis"] = info.get("projected_basis", "")
-
-    # 3. Filing whitespace --------------------------------------------------
-    whitespace: list[dict] = []
-    whitespace_df = _load_parquet("whitespace_v4.parquet")
-    filed_df = _load_parquet("filed_underliers.parquet")
-    if not whitespace_df.empty:
-        df = whitespace_df
-        if "composite_score" in df.columns:
-            df = df.sort_values("composite_score", ascending=False)
-        df = df.head(12)
-        for ticker, row in df.iterrows():
-            card = _build_card(str(ticker), row, is_launch=False)
-            n_filings = 0
-            if not filed_df.empty and ticker in filed_df.index:
-                try:
-                    n_filings = _safe_int(filed_df.loc[ticker, "n_filings_total"])
-                except Exception:
-                    n_filings = 0
-            card["n_filings_total"] = n_filings
-            whitespace.append(card)
+    # 2. Report-styled candidate lanes (shared builder) --------------------
+    # One builder feeds the page, the downloadable PDFs, and the emailed report.
+    # Order: REX pipeline first, then the four opportunity lanes + foreign/IPO.
+    built = _get_lanes()
+    lane_order = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
+    lane_html = [built[k]["html"] for k in lane_order if isinstance(built.get(k), dict) and built[k].get("html")]
+    _ctx_obj = built.get("_ctx")
+    generated_at = getattr(_ctx_obj, "generated_at", "") if _ctx_obj else ""
 
     # 5. Money flow ---------------------------------------------------------
     money_flow: list[dict] = []
@@ -265,8 +241,8 @@ def candidates(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "kpis": kpis,
-            "launches": launches,
-            "whitespace": whitespace,
+            "lane_html": lane_html,
+            "generated_at": generated_at,
             "money_flow": money_flow,
             "has_money_flow": len(money_flow) > 0,
         },

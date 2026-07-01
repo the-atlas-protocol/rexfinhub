@@ -116,6 +116,15 @@
   .li-flow-pos { color: #059669; font-weight: 700; }
   .li-flow-neg { color: #dc2626; font-weight: 700; }
   .li-flow-table .num-cell { text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+  /* Freshness banner + report-styled lane wrapper */
+  .li-freshness {
+    display: inline-block; margin-top: 6px; font-size: 0.72rem; color: #475569;
+    background: #f1f5f9; border-radius: 10px; padding: 2px 10px;
+  }
+  .li-freshness strong { color: #0f172a; }
+  .li-lane { margin: 0; }
+  .li-lane table { width: 100%; }
 </style>
 {% endblock %}
 
@@ -203,11 +212,12 @@
     <a href="/tools/li/candidates">Tools</a><span class="sep">/</span>
     <span>L&amp;I Candidates</span>
   </div>
-  <h1>L&amp;I Filing &amp; Launch Candidates</h1>
+  <h1>T-REX System — Candidate Lanes</h1>
   <div class="subtitle">
-    Mirror of the weekly recommender email — parquet-backed (whitespace_v4 + launch_candidates +
-    filed_underliers + bbg_timeseries_panel).
+    The full T-REX opportunity map — REX's filed pipeline plus five candidate lanes (whitespace,
+    inverse gap, launch-anyway, foreign-listed, pre-IPO), scored on the frozen v1.0.1 model.
   </div>
+  {% if generated_at %}<div class="li-freshness">Data refreshed: <strong>{{ generated_at }}</strong></div>{% endif %}
 </div>
 
 {# ============================================================ #}
@@ -239,46 +249,15 @@
 </div>
 
 {# ============================================================ #}
-{#  2. LAUNCH QUEUE                                              #}
+{#  2. REPORT-STYLED CANDIDATE LANES (shared builder)           #}
 {# ============================================================ #}
-<div class="li-section">
-  <div class="li-section-title green">Launch Queue — REX Filed, Awaiting Launch</div>
-  <div class="li-section-desc">
-    Stocks where REX has filed but not yet launched, AND no competitor has an active 2x product.
-    Ranked by composite_score. # Filed Competitors = other issuers in the queue on the same underlier.
-  </div>
-
-  {% if launches %}
-    <div class="card-grid">
-      {% for card in launches %}
-        {{ card_block(card, 'launch') }}
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="alert alert-info">No launch candidates with signal data this week.</div>
-  {% endif %}
-</div>
-
-{# ============================================================ #}
-{#  3. FILING WHITESPACE                                         #}
-{# ============================================================ #}
-<div class="li-section">
-  <div class="li-section-title">Filing Whitespace — True Greenfield</div>
-  <div class="li-section-desc">
-    Zero active competitor 2x products + zero REX filings ever + no competitor 485APOS in last 180d.
-    Hot themes (AI, Quantum, Chips, Space, Nuclear) get a score boost. Filer count = total 485APOS filings naming the underlier.
-  </div>
-
-  {% if whitespace %}
-    <div class="card-grid">
-      {% for card in whitespace %}
-        {{ card_block(card, 'whitespace') }}
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="alert alert-info">Whitespace parquet not available.</div>
-  {% endif %}
-</div>
+{% if lane_html %}
+  {% for section in lane_html %}
+    <div class="li-lane">{{ section | safe }}</div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-info">Candidate lanes are rebuilding — check back shortly.</div>
+{% endif %}
 
 {# ============================================================ #}
 {#  4. INLINE EVALUATOR                                          #}

@@ -234,6 +234,10 @@ def load_whitespace(ctx: LaneContext) -> pd.DataFrame:
     return scored[~scored["has_live"]].head(40)
 
 
+def load_pipeline(ctx: LaneContext) -> pd.DataFrame:
+    return tc.load_trex_2x_long_pipeline(ctx.single_stocks)
+
+
 def load_inverse(ctx: LaneContext) -> pd.DataFrame:
     return tc.load_inverse_gap(ctx.single_stocks)
 
@@ -281,6 +285,37 @@ def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
         ]
         body += _tr(cells, bg="#fff" if i % 2 == 0 else LIGHT, aligns=aligns)
     return _section(title, subtitle, headers, body, accent=NAVY, count=len(df), aligns=aligns)
+
+
+def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
+    title = "REX Pipeline — Filed, Awaiting Launch"
+    subtitle = ("T-REX 2X products REX has <b>filed but not yet launched</b> (Filed / Delayed / Under "
+                "Consideration). Dormant shelf filings (&gt;6mo lapsed, unlaunched) are dropped. "
+                "Est. Effective shows the real scraped date or an honest &ldquo;Pending.&rdquo;")
+    headers = ["Fund", "Underlier", "Dir", "Status", "Filed", "Est. Effective", "Score"]
+    aligns = ["left", "left", "left", "left", "center", "center", "right"]
+    if df is None or df.empty:
+        return _empty(title, subtitle, "No filed-not-launched T-REX 2X products right now.", GREEN)
+    body = ""
+    for i, (_, r) in enumerate(df.iterrows()):
+        eff = _rowget(r, "eff_real")
+        try:
+            eff_s = eff.date().isoformat() if (eff is not None and pd.notna(eff)) else "Pending"
+        except Exception:
+            eff_s = "Pending"
+        direction = _s(_rowget(r, "direction"))
+        dir_c = ORANGE if "inv" in direction.lower() else NAVY
+        cells = [
+            f'<b style="font-size:11px;">{escape(_s(_rowget(r, "fund_name")))}</b>',
+            escape(_s(_rowget(r, "underlier_clean")) or _s(_rowget(r, "underlier"))),
+            f'<span style="color:{dir_c};font-weight:600;">{escape(direction or "—")}</span>',
+            escape(_s(_rowget(r, "status_binary")) or _s(_rowget(r, "status"))),
+            _s(_rowget(r, "initial_filing_date"))[:10] or "—",
+            f'<span style="color:{GRAY if eff_s == "Pending" else NAVY};">{eff_s}</span>',
+            _score_badge(_rowget(r, "underlier_score")),
+        ]
+        body += _tr(cells, bg="#f0fdf4" if i % 2 == 0 else "#fff", aligns=aligns, rex=True)
+    return _section(title, subtitle, headers, body, accent=GREEN, count=len(df), aligns=aligns)
 
 
 def render_inverse(df: pd.DataFrame, ctx: LaneContext) -> str:
@@ -403,6 +438,7 @@ class Lane:
 
 
 LANES: list[Lane] = [
+    Lane("pipeline", "REX Pipeline", GREEN, load_pipeline, render_pipeline),
     Lane("whitespace", "Filing Whitespace", NAVY, load_whitespace, render_whitespace),
     Lane("inverse", "Inverse Gap", TEAL, load_inverse, render_inverse),
     Lane("launch_anyway", "Launch Anyway", PURPLE, load_launch_anyway, render_launch_anyway),
