@@ -23,8 +23,10 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from datetime import date
+
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -49,6 +51,7 @@ router = APIRouter(prefix="/tools/li", tags=["tools-li"])
 templates = Jinja2Templates(directory="webapp/templates")
 
 PARQUET_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "analysis"
+TREX_PDF_DIR = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex"
 
 # Report-styled lane sections (whitespace / inverse / launch-anyway / foreign /
 # IPO / REX pipeline) are built by the shared builder and cached in-process so a
@@ -246,6 +249,34 @@ def candidates(request: Request, db: Session = Depends(get_db)):
             "money_flow": money_flow,
             "has_money_flow": len(money_flow) > 0,
         },
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET — downloadable per-lane PDF variants
+# ---------------------------------------------------------------------------
+
+@router.get("/report/{variant}.pdf")
+def download_report(variant: str):
+    """Serve a baked T-REX report variant PDF.
+
+    PDFs are rendered on the VPS by ``scripts/bake_trex_pdfs.py`` (Chromium lives
+    there, not on the Render web server) and uploaded alongside the parquets, so
+    this endpoint just serves the freshest baked file.
+    """
+    from screener.li_engine.report.pdf import VARIANTS
+    if variant not in VARIANTS:
+        return JSONResponse({"error": f"unknown variant {variant!r}"}, status_code=404)
+    path = TREX_PDF_DIR / f"{variant}.pdf"
+    if not path.exists():
+        return JSONResponse(
+            {"error": "report not generated yet — the daily bake hasn't run"},
+            status_code=404,
+        )
+    return FileResponse(
+        str(path),
+        media_type="application/pdf",
+        filename=f"REX_trex_{variant}_{date.today().isoformat()}.pdf",
     )
 
 

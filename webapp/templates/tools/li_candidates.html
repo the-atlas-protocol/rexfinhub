@@ -125,6 +125,21 @@
   .li-freshness strong { color: #0f172a; }
   .li-lane { margin: 0; }
   .li-lane table { width: 100%; }
+
+  /* Download bar — per-lane PDF variants */
+  .li-downloads {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin: var(--sp-3) 0; padding: 10px 12px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  }
+  .li-dl-label { font-size: 0.78rem; font-weight: 700; color: #0f172a; margin-right: 2px; }
+  .li-downloads a {
+    font-size: 0.74rem; font-weight: 600; text-decoration: none;
+    color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe;
+    border-radius: 5px; padding: 4px 10px;
+  }
+  .li-downloads a:hover { background: #dbeafe; }
+  .li-downloads a.primary { color: #fff; background: #2563eb; border-color: #2563eb; }
 </style>
 {% endblock %}
 
@@ -246,6 +261,20 @@
       <br><small>{{ kpis.top_mention_count or 0 }} mentions on ApeWisdom</small>
     </div>
   </div>
+</div>
+
+{# ============================================================ #}
+{#  DOWNLOAD BAR — per-lane PDF variants (baked on the VPS)     #}
+{# ============================================================ #}
+<div class="li-downloads">
+  <span class="li-dl-label">Download report</span>
+  <a class="primary" href="/tools/li/report/all.pdf">Full Map</a>
+  <a href="/tools/li/report/pipeline.pdf">Pipeline</a>
+  <a href="/tools/li/report/whitespace.pdf">Whitespace</a>
+  <a href="/tools/li/report/inverse.pdf">Inverse</a>
+  <a href="/tools/li/report/launch_anyway.pdf">Launch-Anyway</a>
+  <a href="/tools/li/report/foreign.pdf">Foreign</a>
+  <a href="/tools/li/report/ipo.pdf">Pre-IPO</a>
 </div>
 
 {# ============================================================ #}
