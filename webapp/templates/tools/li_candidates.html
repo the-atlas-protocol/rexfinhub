@@ -308,6 +308,26 @@
 </div>
 
 {# ============================================================ #}
+{#  4b. AI INVESTIGATOR — research any unknown name             #}
+{# ============================================================ #}
+<div class="li-section">
+  <div class="li-section-title dark">AI Investigator — Research Any Unknown Name</div>
+  <div class="li-section-desc">
+    Ask about any ticker, company, ETF, or theme we don't track yet. The AI researches it live
+    (web search) and returns a research card — then logs the request for Ryu to decide if it
+    belongs. Nothing is added to the dataset automatically.
+  </div>
+  <div class="evaluator-panel">
+    <form id="investigateForm" class="evaluator-form">
+      <input type="text" name="query" id="investigateQuery"
+             placeholder="e.g. Kalshi, MELI, quantum sensing, Figure AI" autocomplete="off">
+      <button type="submit" id="investigateBtn">Investigate</button>
+    </form>
+    <div id="investigateResults" class="evaluator-results"></div>
+  </div>
+</div>
+
+{# ============================================================ #}
 {#  5. MONEY FLOW                                                #}
 {# ============================================================ #}
 {% if has_money_flow %}
@@ -421,6 +441,47 @@
       .catch(function(err){
         results.innerHTML = '<div class="eval-not-found">Error: ' + escapeHtml(err && err.message || err) + '</div>';
       })
+      .finally(function(){ btn.disabled = false; });
+  });
+})();
+
+// AI Investigator
+(function(){
+  var form  = document.getElementById('investigateForm');
+  var input = document.getElementById('investigateQuery');
+  var btn   = document.getElementById('investigateBtn');
+  var out   = document.getElementById('investigateResults');
+  if (!form) return;
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderCard(res){
+    if (!res || !res.ok){ out.innerHTML = '<div class="eval-not-found">'+esc((res&&res.error)||'no result')+'</div>'; return; }
+    var r = res.result || {}, c = r.card || {}, id = c.identity || {};
+    var cites = (r.citations||[]).map(function(x){ return '<a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.title||x.url)+'</a>'; }).join(' · ');
+    var themes = (c.themes||[]).join(', ');
+    var flags = (c.flags||[]).map(function(f){ return '<li>'+esc(f)+'</li>'; }).join('');
+    out.innerHTML = '<div class="eval-result">' +
+      '<div class="eval-result-head"><span class="eval-result-ticker">'+esc(c.headline||r.query)+'</span>' +
+      (res.cached?'<span style="color:#94a3b8;font-size:0.7rem;">cached</span>':'') +
+      '<span style="margin-left:auto;" class="li-score-pill">'+esc(c.confidence||'')+'</span></div>' +
+      '<div style="font-size:0.78rem;color:#334155;line-height:1.5;">' +
+      '<b>'+esc(id.name||'')+'</b> '+esc(id.ticker||'')+' · '+esc(id.listing||'')+' · '+esc(id.kind||'')+'<br>' +
+      'Mkt cap: '+esc(c.market_cap||'—')+' · Sector: '+esc(c.sector||'—')+' · Themes: '+esc(themes||'—')+'<br>' +
+      'L&amp;I coverage: '+esc(c.li_coverage||'—')+'<br>' +
+      '<b>Read:</b> '+esc(c.leverage_read||'—') +
+      (flags?'<br><b>Flags:</b><ul style="margin:2px 0 0 16px;">'+flags+'</ul>':'') +
+      (cites?'<div style="margin-top:6px;font-size:0.7rem;color:#64748b;">Sources: '+cites+'</div>':'') +
+      '</div></div>';
+  }
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var q = (input.value||'').trim(); if (!q){ out.innerHTML=''; return; }
+    btn.disabled = true;
+    out.innerHTML = '<div class="eval-not-found">Researching… (live web search, ~10–20s)</div>';
+    var fd = new FormData(); fd.append('query', q);
+    fetch('/tools/li/investigate', {method:'POST', body: fd, credentials:'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(renderCard)
+      .catch(function(e){ out.innerHTML = '<div class="eval-not-found">Error: '+esc(e&&e.message||e)+'</div>'; })
       .finally(function(){ btn.disabled = false; });
   });
 })();

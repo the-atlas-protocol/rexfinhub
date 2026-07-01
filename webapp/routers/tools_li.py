@@ -281,6 +281,29 @@ def download_report(variant: str):
 
 
 # ---------------------------------------------------------------------------
+# POST — AI investigator (unknown ticker / company / theme)
+# ---------------------------------------------------------------------------
+
+@router.post("/investigate")
+def investigate(request: Request, query: str = Form(...), kind: str = Form("ticker")):
+    """Agentic web research for a name the system doesn't track.
+
+    Returns a research card and logs the request to the review queue for a
+    human keep/drop decision. Never writes to the dataset.
+    """
+    q = (query or "").strip()
+    if not q:
+        return JSONResponse({"ok": False, "error": "empty query"}, status_code=400)
+    try:
+        from scripts.ai_investigate import investigate as _run
+        out = _run(q, kind=(kind or "ticker").strip() or "ticker", requested_by="web")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("investigate failed: %s", exc)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+    return JSONResponse(out)
+
+
+# ---------------------------------------------------------------------------
 # POST — inline evaluator
 # ---------------------------------------------------------------------------
 
