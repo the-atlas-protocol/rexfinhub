@@ -96,7 +96,8 @@ def _score_badge(score, found: bool = True) -> str:
         return f'<span style="color:{T_CAP};">—</span>'
     s = _f(score)
     c = POS if s >= 60 else (WARN if s >= 35 else T_MUTED)
-    return f'<b style="color:{c};font-variant-numeric:tabular-nums;">{s:.0f}</b>'
+    disp = "&lt;1" if 0 <= s < 1 else f"{s:.0f}"
+    return f'<b style="color:{c};font-variant-numeric:tabular-nums;">{disp}</b>'
 
 
 def _status_pill(status) -> str:

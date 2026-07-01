@@ -535,6 +535,7 @@ def create_app() -> FastAPI:
         sec_notes,
         tools_compare,
         tools_li,
+        tools_screener,
         tools_simulators,
         tools_tickers,
         tools_calendar,
@@ -545,6 +546,7 @@ def create_app() -> FastAPI:
     app.include_router(sec_notes.router)
     app.include_router(tools_compare.router)
     app.include_router(tools_li.router)
+    app.include_router(tools_screener.router)
     app.include_router(tools_simulators.router)
     app.include_router(tools_tickers.router)
     app.include_router(tools_calendar.router)
