@@ -28,12 +28,7 @@ from typing import Any, Callable
 import pandas as pd
 
 from screener.li_engine.analysis import trex_combined_v9 as tc
-from screener.li_engine.analysis.formatters import (
-    fmt_oi,
-    fmt_pct,
-    pretty_themes,
-    resolve_company_line,
-)
+from screener.li_engine.analysis.formatters import resolve_company_line
 
 log = logging.getLogger(__name__)
 
@@ -94,12 +89,6 @@ def _score_badge(score) -> str:
     return f'<b style="color:{c};">{s:.0f}</b>'
 
 
-def _ret(v) -> str:
-    v = _f(v)
-    c = GREEN if v > 0 else (RED if v < 0 else GRAY)
-    return f'<span style="color:{c};">{v * 100:+.0f}%</span>' if v else "—"
-
-
 def _rowget(row, key, default=None):
     try:
         if key in row.index:
@@ -120,7 +109,31 @@ class LaneContext:
     single_stocks: set = field(default_factory=set)
     rex_pos: dict = field(default_factory=dict)
     flags: dict = field(default_factory=dict)
+    score_map: dict = field(default_factory=dict)  # canonical li_engine_daily.final_score by canon ticker
     generated_at: str = ""
+
+    def score_of(self, ticker) -> float:
+        """Canonical 0-100 score for a ticker/underlier (li_engine_daily.final_score)."""
+        return float(self.score_map.get(tc._canon(ticker), 0.0) or 0.0)
+
+
+def _load_score_map() -> dict:
+    """Canonical score per underlier from the latest li_engine_daily run (0-100).
+
+    This is the single source of truth for the displayed score (v1.0.1
+    final_score) — NOT the whitespace parquet's internal composite_score, which
+    is on a different, unbounded scale.
+    """
+    try:
+        led = tc._df("SELECT ticker, final_score FROM li_engine_daily "
+                     "WHERE run_date=(SELECT MAX(run_date) FROM li_engine_daily)")
+        if led is None or led.empty:
+            return {}
+        led["t_canon"] = led["ticker"].apply(tc._canon)
+        return led.groupby("t_canon")["final_score"].max().to_dict()
+    except Exception as e:  # noqa: BLE001
+        log.warning("score_map load failed: %s", e)
+        return {}
 
 
 def _compute_flags(counts: pd.DataFrame) -> dict:
@@ -172,6 +185,7 @@ def build_context() -> LaneContext:
         single_stocks=single_stocks,
         rex_pos=rex_pos,
         flags=flags,
+        score_map=_load_score_map(),
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M ET"),
     )
 
@@ -260,28 +274,24 @@ def load_ipo(ctx: LaneContext) -> list:
 def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Filing Whitespace"
     subtitle = ("Scored single-stock underliers with <b>no live L&amp;I product</b> — REX's clearest "
-                "open lanes, ranked by the frozen v1.0.1 composite score. "
-                "&#9873; = a competitor has already filed here.")
-    headers = ["Ticker", "Company · Sector", "Score", "Mkt Cap", "RVol 90d", "Ret 1Y", "Mentions 24h", "Comp?", "Themes"]
-    aligns = ["left", "left", "right", "right", "right", "right", "right", "center", "left"]
+                "open lanes, ranked by the canonical v1.0.1 score (0&ndash;100).")
+    headers = ["Ticker", "Company · Sector", "Mkt Cap", "Score", "Competitor"]
+    aligns = ["left", "left", "right", "right", "left"]
     if df is None or df.empty:
         return _empty(title, subtitle, "No whitespace candidates in the current scoring run.", NAVY)
     body = ""
     for i, (_, r) in enumerate(df.iterrows()):
         tk = _s(_rowget(r, "ticker"))
-        comp = "&#9873;" if bool(_rowget(r, "has_comp_filing", False)) else ""
-        comp_c = f'<span style="color:{ORANGE};font-weight:700;">{comp}</span>' if comp else "—"
+        has_comp = bool(_rowget(r, "has_comp_filing", False))
+        comp_c = (f'<span style="color:{ORANGE};font-weight:600;">competitor filed</span>'
+                  if has_comp else f'<span style="color:{GRAY};">clean</span>')
         company = escape(resolve_company_line(tk, _s(_rowget(r, "sector"))))
         cells = [
             f'<b>{escape(tk.replace(" US", ""))}</b>',
             f'<span style="font-size:11px;">{company}</span>',
-            _score_badge(_rowget(r, "composite_score")),
-            _cap_usd(_rowget(r, "market_cap")),
-            fmt_pct(_rowget(r, "rvol_90d")),
-            _ret(_rowget(r, "ret_1y")),
-            f'{int(_f(_rowget(r, "mentions_24h")))}' if _f(_rowget(r, "mentions_24h")) else "—",
+            _aum_m(_rowget(r, "market_cap")),   # whitespace market_cap is in $millions
+            _score_badge(ctx.score_of(tk)),     # canonical li_engine_daily.final_score (0-100)
             comp_c,
-            f'<span style="font-size:10px;color:{GRAY};">{escape(pretty_themes(_rowget(r, "themes")))}</span>',
         ]
         body += _tr(cells, bg="#fff" if i % 2 == 0 else LIGHT, aligns=aligns)
     return _section(title, subtitle, headers, body, accent=NAVY, count=len(df), aligns=aligns)
@@ -289,9 +299,9 @@ def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
 
 def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "REX Pipeline — Filed, Awaiting Launch"
-    subtitle = ("T-REX 2X products REX has <b>filed but not yet launched</b> (Filed / Delayed / Under "
-                "Consideration). Dormant shelf filings (&gt;6mo lapsed, unlaunched) are dropped. "
-                "Est. Effective shows the real scraped date or an honest &ldquo;Pending.&rdquo;")
+    subtitle = ("T-REX 2X products REX has <b>filed but not yet launched</b>. Dormant shelf filings "
+                "(&gt;6mo lapsed, unlaunched) are dropped. Status is Filed / Effective only; a filing "
+                "with no scraped effective date yet shows &ldquo;&mdash;&rdquo;.")
     headers = ["Fund", "Underlier", "Dir", "Status", "Filed", "Est. Effective", "Score"]
     aligns = ["left", "left", "left", "left", "center", "center", "right"]
     if df is None or df.empty:
@@ -300,18 +310,20 @@ def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
     for i, (_, r) in enumerate(df.iterrows()):
         eff = _rowget(r, "eff_real")
         try:
-            eff_s = eff.date().isoformat() if (eff is not None and pd.notna(eff)) else "Pending"
+            eff_s = eff.date().isoformat() if (eff is not None and pd.notna(eff)) else "—"
         except Exception:
-            eff_s = "Pending"
+            eff_s = "—"
         direction = _s(_rowget(r, "direction"))
         dir_c = ORANGE if "inv" in direction.lower() else NAVY
+        # Status is strictly Filed / Effective (status_binary collapses Delayed/Under Consideration).
+        status_disp = _s(_rowget(r, "status_binary")) or "Filed"
         cells = [
             f'<b style="font-size:11px;">{escape(_s(_rowget(r, "fund_name")))}</b>',
             escape(_s(_rowget(r, "underlier_clean")) or _s(_rowget(r, "underlier"))),
             f'<span style="color:{dir_c};font-weight:600;">{escape(direction or "—")}</span>',
-            escape(_s(_rowget(r, "status_binary")) or _s(_rowget(r, "status"))),
+            escape(status_disp),
             _s(_rowget(r, "initial_filing_date"))[:10] or "—",
-            f'<span style="color:{GRAY if eff_s == "Pending" else NAVY};">{eff_s}</span>',
+            f'<span style="color:{GRAY if eff_s == "—" else NAVY};">{eff_s}</span>',
             _score_badge(_rowget(r, "underlier_score")),
         ]
         body += _tr(cells, bg="#f0fdf4" if i % 2 == 0 else "#fff", aligns=aligns, rex=True)
@@ -363,9 +375,44 @@ def render_launch_anyway(df: pd.DataFrame, ctx: LaneContext) -> str:
     return _section(title, subtitle, headers, body, accent=PURPLE, count=len(df), aligns=aligns)
 
 
+def _comp_summary(race: list) -> str:
+    """Collapsed competition cell: is a competitor LIVE? else the earliest effective date."""
+    comps = [r for r in race if not r.get("rex")]
+    if not comps:
+        return f'<span style="color:{GRAY};">no competitor filings</span>'
+    live = [r for r in comps if r.get("status") == "Effective"]
+    if live:
+        return f'<span style="color:{GREEN};font-weight:700;">&#9679; competitor live ({len(live)})</span>'
+    dates = sorted(_s(r.get("date")) for r in comps if r.get("date"))
+    if dates:
+        return f'<span style="color:{BLUE};">earliest eff {escape(dates[0])}</span>'
+    return f'<span style="color:{GRAY};">filed &middot; no eff date</span>'
+
+
+def _race_detail_rows(race: list, ncols: int) -> str:
+    """Full filer race as collapsible detail rows (hidden until 'expand competitors')."""
+    if not race:
+        return ""
+    out = ""
+    for r in race:
+        c = GREEN if r.get("status") == "Effective" else BLUE
+        who = f'<b style="color:{BLUE if r.get("rex") else NAVY};">{escape(_s(r.get("issuer")))}</b>'
+        dt = (f' &middot; eff {escape(_s(r.get("date")))}' if r.get("date")
+              else f' &middot; <span style="color:{RED};">no eff date</span>')
+        direction = "Long" if str(r.get("dir")) == "long" else "Inverse"
+        out += (f'<tr class="trex-comp-detail" style="display:none;background:#fafbfc;">'
+                f'<td colspan="{ncols}" style="padding:3px 8px 3px 28px;font-size:10px;'
+                f'border-bottom:1px solid {BORDER};color:{NAVY};">'
+                f'&#8627; {who} &middot; {direction} &middot; '
+                f'<span style="color:{c};font-weight:600;">{escape(_s(r.get("status")))}</span>{dt}</td></tr>')
+    return out
+
+
 def _race_section(items: list, title: str, subtitle: str, headers, aligns,
                   row_cells: Callable[[dict], list], accent: str) -> str:
-    """Shared renderer for the foreign + IPO lanes (row + indented filer race)."""
+    """Shared renderer for foreign + IPO lanes. Each row shows a collapsed competition
+    summary; the full filer race is emitted as hidden detail rows toggled by the
+    page-level expand/collapse-competitors control."""
     ncols = len(headers)
     if not items:
         return _empty(title, subtitle, "No names in this lane right now.", accent)
@@ -373,10 +420,9 @@ def _race_section(items: list, title: str, subtitle: str, headers, aligns,
     for i, it in enumerate(items):
         race = it.get("race") or []
         rex_filed = any(r.get("rex") for r in race)
-        cells = row_cells(it)
-        body += _tr(cells, bg="#f0fdf4" if rex_filed else ("#fff" if i % 2 == 0 else LIGHT),
+        body += _tr(row_cells(it), bg="#f0fdf4" if rex_filed else ("#fff" if i % 2 == 0 else LIGHT),
                     aligns=aligns, rex=rex_filed)
-        body += tc._race_subrows(race, ncols)
+        body += _race_detail_rows(race, ncols)
     return _section(title, subtitle, headers, body, accent=accent, count=len(items), aligns=aligns)
 
 
@@ -385,18 +431,17 @@ def render_foreign(items: list, ctx: LaneContext) -> str:
     subtitle = ("Foreign-<b>listed</b> single stocks (US-ADR names excluded &mdash; those can already be "
                 "made into a US 2x) with their full L&amp;I filer race. Green = REX has filed. "
                 "Filed names first, then open megacap whitespace by market cap.")
-    headers = ["Company", "Ticker", "Market", "Sector", "Mkt Cap", "REX Status", "Comp."]
-    aligns = ["left", "left", "left", "left", "right", "left", "center"]
+    headers = ["Company", "Ticker", "Market", "Mkt Cap", "REX Status", "Competition"]
+    aligns = ["left", "left", "left", "right", "left", "left"]
 
     def cells(it):
         return [
             f'<b>{escape(_s(it.get("name")))}</b>',
             escape(_s(it.get("ticker"))),
             f'<span style="font-size:11px;">{escape(_s(it.get("market")))}</span>',
-            f'<span style="font-size:11px;color:{GRAY};">{escape(_s(it.get("sector")))}</span>',
             _cap_usd(it.get("cap")),
             tc._race_rex_badge(it.get("race") or []),
-            f'{int(it.get("ncomp", 0))}',
+            _comp_summary(it.get("race") or []),
         ]
 
     return _race_section(items, title, subtitle, headers, aligns, cells, accent=BLUE)
@@ -406,8 +451,8 @@ def render_ipo(items: list, ctx: LaneContext) -> str:
     title = "Pre-IPO Targets"
     subtitle = ("Genuinely-private pre-IPO names from the watchlist with their L&amp;I filer race, sourced "
                 "valuation and S-1 status. Green = REX has filed. Ranked by valuation.")
-    headers = ["Company", "Valuation", "As of", "S-1", "REX Status", "Comp."]
-    aligns = ["left", "right", "center", "center", "left", "center"]
+    headers = ["Company", "Valuation", "As of", "S-1", "REX Status", "Competition"]
+    aligns = ["left", "right", "center", "center", "left", "left"]
 
     def cells(it):
         val = it.get("valuation_usd")
@@ -419,7 +464,7 @@ def render_ipo(items: list, ctx: LaneContext) -> str:
             f'<span style="font-size:11px;color:{GRAY};">{escape(_s(it.get("as_of")))}</span>',
             s1,
             tc._race_rex_badge(it.get("race") or []),
-            f'{int(it.get("ncomp", 0))}',
+            _comp_summary(it.get("race") or []),
         ]
 
     return _race_section(items, title, subtitle, headers, aligns, cells, accent=ORANGE)

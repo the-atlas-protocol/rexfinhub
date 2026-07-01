@@ -277,6 +277,18 @@
   <a href="/tools/li/report/ipo.pdf">Pre-IPO</a>
 </div>
 
+{# Expand/collapse the full competitor filer race (foreign + pre-IPO lanes). #}
+<div style="margin:10px 0 2px;">
+  <button type="button" id="compToggleBtn"
+          style="font-size:0.74rem;font-weight:600;color:#1d4ed8;background:#eff6ff;
+                 border:1px solid #bfdbfe;border-radius:5px;padding:4px 10px;cursor:pointer;">
+    &#9656; Expand all competitors
+  </button>
+  <span style="font-size:0.72rem;color:#64748b;margin-left:6px;">
+    Collapsed shows only whether a competitor is live, else the earliest effective date.
+  </span>
+</div>
+
 {# ============================================================ #}
 {#  2. REPORT-STYLED CANDIDATE LANES (shared builder)           #}
 {# ============================================================ #}
@@ -483,6 +495,19 @@
       .then(renderCard)
       .catch(function(e){ out.innerHTML = '<div class="eval-not-found">Error: '+esc(e&&e.message||e)+'</div>'; })
       .finally(function(){ btn.disabled = false; });
+  });
+})();
+
+// Expand / collapse the full competitor filer race
+(function(){
+  var btn = document.getElementById('compToggleBtn');
+  if (!btn) return;
+  var expanded = false;
+  btn.addEventListener('click', function(){
+    expanded = !expanded;
+    var rows = document.querySelectorAll('tr.trex-comp-detail');
+    for (var i=0;i<rows.length;i++){ rows[i].style.display = expanded ? 'table-row' : 'none'; }
+    btn.innerHTML = (expanded ? '▾ Collapse all competitors' : '▸ Expand all competitors');
   });
 })();
 </script>
