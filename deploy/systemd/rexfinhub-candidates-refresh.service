@@ -1,0 +1,18 @@
+[Unit]
+Description=REX FinHub T-REX candidate fast refresh (parquets + scores + PDFs, no Bloomberg pull)
+After=network.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+# Pin process timezone to ET so date math matches the rest of the fleet.
+Environment=TZ=America/New_York
+Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
+ExecStart=/home/jarvis/venv/bin/python scripts/refresh_candidates.py
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

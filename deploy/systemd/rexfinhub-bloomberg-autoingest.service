@@ -1,0 +1,18 @@
+[Unit]
+Description=REX FinHub Bloomberg stable-file auto-ingest (poll SharePoint watermark, ingest when settled)
+After=network.target
+
+[Service]
+Type=oneshot
+User=jarvis
+WorkingDirectory=/home/jarvis/rexfinhub
+Environment=TZ=America/New_York
+Environment="PATH=/home/jarvis/venv/bin:/usr/bin:/bin"
+ExecStart=/home/jarvis/venv/bin/python scripts/bloomberg_autoingest.py
+StandardOutput=journal
+StandardError=journal
+# Long timeout: a poll that decides to ingest runs the full structural chain.
+TimeoutStartSec=1200
+
+[Install]
+WantedBy=multi-user.target

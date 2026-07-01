@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll the Bloomberg SharePoint file every 20 min in the ingest window
+
+[Timer]
+# :10/:30/:50 hourly 16:00-21:50 ET weekdays. A save at any time is caught within
+# ~35 min (one poll + one stability confirmation). Persistent replays a missed slot.
+OnCalendar=Mon-Fri 16..21:10,30,50 America/New_York
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Fire the T-REX candidate fast refresh every 30 min during market hours
+
+[Timer]
+# :20 and :50 each hour, 08:00-20:50 ET, weekdays. Offset to :20/:50 to avoid
+# colliding with fresh-poller (:00/:15/:30/:45) and intraday-refresh (:05) — the
+# same overlap discipline the intraday-refresh timer documents.
+OnCalendar=Mon-Fri 08..20:20,50 America/New_York
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
