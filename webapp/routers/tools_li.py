@@ -52,7 +52,7 @@ templates = Jinja2Templates(directory="webapp/templates")
 
 PARQUET_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "analysis"
 TREX_PDF_DIR = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex"
-LANE_ARTIFACT = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex_lanes.json"
+LANE_ARTIFACT = Path(__file__).resolve().parent.parent.parent / "data" / "analysis" / "trex_lanes.json"
 LANE_ORDER = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
 
 # The lane build (esp. the foreign/pre-IPO filer race) is far too slow to run

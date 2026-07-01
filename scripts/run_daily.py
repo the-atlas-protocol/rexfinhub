@@ -679,6 +679,7 @@ def upload_parquets_to_render():
         "competitor_counts.parquet",
         "filed_underliers.parquet",
         "launch_candidates.parquet",
+        "trex_lanes.json",  # baked T-REX lane HTML for /tools/li/candidates
     ]
 
     analysis_dir = PROJECT_ROOT / "data" / "analysis"
@@ -1102,6 +1103,13 @@ def main():
         except Exception as e:
             errors.append(f"Screener cache upload: {e}")
             print(f"  FAILED: {e}")
+
+        print("\n[9.4/12] Baking T-REX lane artifact (page serves this, not a live build)...")
+        try:
+            subprocess.run([sys.executable, str(PROJECT_ROOT / "scripts" / "bake_trex_lanes.py")],
+                           cwd=str(PROJECT_ROOT), check=False)
+        except Exception as e:
+            print(f"  Lane bake failed (non-fatal): {e}")
 
         print("\n[9.5/12] Uploading analysis parquets to Render (/strategy/* pages)...")
         try:

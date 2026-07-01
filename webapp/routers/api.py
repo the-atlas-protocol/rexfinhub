@@ -1189,6 +1189,7 @@ ALLOWED_PARQUET_NAMES = {
     "competitor_counts.parquet",
     "filed_underliers.parquet",
     "launch_candidates.parquet",
+    "trex_lanes.json",  # baked T-REX lane HTML the /tools/li/candidates page serves
 }
 
 ANALYSIS_DIR = Path("data/analysis")

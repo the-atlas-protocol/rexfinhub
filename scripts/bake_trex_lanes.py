@@ -13,7 +13,9 @@ import json
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-ARTIFACT = PROJECT_ROOT / "outputs" / "trex_lanes.json"
+# Bake into data/analysis/ so the artifact rides the existing parquet-upload path
+# to Render (allowlisted in webapp/routers/api.py + run_daily.upload_parquets_to_render).
+ARTIFACT = PROJECT_ROOT / "data" / "analysis" / "trex_lanes.json"
 LANE_ORDER = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
 
 
