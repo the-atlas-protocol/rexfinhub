@@ -74,6 +74,9 @@ def main() -> int:
             if _run(label, cmd) != 0:
                 failed.append(label)  # log + continue; one bad builder shouldn't skip the rest
 
+        # Bake the T-REX lane artifact (page serves this instead of building live).
+        _run("bake_lanes", [PY, str(PROJECT_ROOT / "scripts" / "bake_trex_lanes.py")])
+
         # Re-bake the downloadable PDFs from the fresh parquets (Chromium is here).
         _run("bake_pdfs", [PY, str(PROJECT_ROOT / "scripts" / "bake_trex_pdfs.py")])
 

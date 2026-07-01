@@ -52,29 +52,53 @@ templates = Jinja2Templates(directory="webapp/templates")
 
 PARQUET_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "analysis"
 TREX_PDF_DIR = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex"
+LANE_ARTIFACT = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex_lanes.json"
+LANE_ORDER = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
 
-# Report-styled lane sections (whitespace / inverse / launch-anyway / foreign /
-# IPO / REX pipeline) are built by the shared builder and cached in-process so a
-# public GET never re-queries the DB on every hit. The fast intraday loop (A1)
-# keeps the underlying parquets/scores fresh; this TTL just debounces render.
+# The lane build (esp. the foreign/pre-IPO filer race) is far too slow to run
+# inside a web request. scripts/bake_trex_lanes.py bakes it to LANE_ARTIFACT
+# off-request (fast loop / schedule); the page serves that artifact. A live build
+# is only a last-resort fallback, cached in-process to bound the damage.
 _LANE_TTL_SECONDS = 300
 _LANE_CACHE: dict[str, Any] = {"at": 0.0, "built": None}
 
 
-def _get_lanes(force: bool = False) -> dict:
-    """Return the shared lane build, cached for _LANE_TTL_SECONDS."""
+def _get_lanes(force: bool = False) -> tuple[list[str], str]:
+    """Return (lane_html_list, generated_at). Prefers the baked artifact; falls
+    back to a live build only if the artifact is missing."""
     now = time.time()
     cached = _LANE_CACHE.get("built")
     if not force and cached is not None and (now - _LANE_CACHE["at"]) < _LANE_TTL_SECONDS:
         return cached
+
+    result: tuple[list[str], str] | None = None
+    # 1) fast path — the baked artifact
     try:
-        from screener.li_engine.report import lanes as _lanes
-        built = _lanes.build_all()
-    except Exception as exc:  # never let the lane build take down the page
-        log.warning("lane build failed: %s", exc)
-        built = cached or {}
-    _LANE_CACHE.update(at=now, built=built)
-    return built
+        if LANE_ARTIFACT.exists():
+            import json
+            data = json.loads(LANE_ARTIFACT.read_text(encoding="utf-8"))
+            lanes = data.get("lanes") or {}
+            html = [lanes[k] for k in LANE_ORDER if lanes.get(k)]
+            if html:
+                result = (html, data.get("generated_at", ""))
+    except Exception as exc:
+        log.warning("baked lanes read failed: %s", exc)
+
+    # 2) fallback — live build (slow; only when no artifact yet)
+    if result is None:
+        try:
+            from screener.li_engine.report import lanes as _lanes
+            built = _lanes.build_all()
+            html = [built[k]["html"] for k in LANE_ORDER
+                    if isinstance(built.get(k), dict) and built[k].get("html")]
+            ctx = built.get("_ctx")
+            result = (html, getattr(ctx, "generated_at", "") if ctx else "")
+        except Exception as exc:
+            log.warning("live lane build failed: %s", exc)
+            result = cached if cached else ([], "")
+
+    _LANE_CACHE.update(at=now, built=result)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -191,11 +215,7 @@ def candidates(request: Request, db: Session = Depends(get_db)):
     # 2. Report-styled candidate lanes (shared builder) --------------------
     # One builder feeds the page, the downloadable PDFs, and the emailed report.
     # Order: REX pipeline first, then the four opportunity lanes + foreign/IPO.
-    built = _get_lanes()
-    lane_order = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
-    lane_html = [built[k]["html"] for k in lane_order if isinstance(built.get(k), dict) and built[k].get("html")]
-    _ctx_obj = built.get("_ctx")
-    generated_at = getattr(_ctx_obj, "generated_at", "") if _ctx_obj else ""
+    lane_html, generated_at = _get_lanes()
 
     # 5. Money flow ---------------------------------------------------------
     money_flow: list[dict] = []
