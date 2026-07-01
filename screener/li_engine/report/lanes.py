@@ -36,6 +36,12 @@ log = logging.getLogger(__name__)
 NAVY, BLUE, GREEN, ORANGE = tc.NAVY, tc.BLUE, tc.GREEN, tc.ORANGE
 RED, GRAY, LIGHT, BORDER, PURPLE, TEAL = tc.RED, tc.GRAY, tc.LIGHT, tc.BORDER, tc.PURPLE, tc.TEAL
 
+# On-brand tokens (STYLE_GUIDE.md T-B tables + palette) — used for the web page AND
+# the PDF so the PDF is literally the same table look.
+T_TEXT = "#0f172a"; T_BODY = "#374151"; T_MUTED = "#64748b"; T_CAP = "#94a3b8"
+T_BORDER = "#e5e7eb"; T_ROWB = "#f1f5f9"; T_LINK = "#2563eb"; T_REXBG = "#f0fdf4"
+POS = "#059669"; NEG = "#DC2626"; WARN = "#d97706"
+
 
 # --------------------------------------------------------------------------- #
 # Small safe helpers
@@ -83,10 +89,25 @@ def _aum_m(v) -> str:
     return f"${v:.0f}M"
 
 
-def _score_badge(score) -> str:
+def _score_badge(score, found: bool = True) -> str:
+    """Canonical 0-100 score, colored by band. '—' when the name isn't scored
+    (e.g. a foreign / pre-IPO underlier absent from the US scoring universe)."""
+    if not found:
+        return f'<span style="color:{T_CAP};">—</span>'
     s = _f(score)
-    c = GREEN if s >= 40 else (ORANGE if s >= 20 else GRAY)
-    return f'<b style="color:{c};">{s:.0f}</b>'
+    c = POS if s >= 60 else (WARN if s >= 35 else T_MUTED)
+    return f'<b style="color:{c};font-variant-numeric:tabular-nums;">{s:.0f}</b>'
+
+
+def _status_pill(status) -> str:
+    """Filed / Effective only, as an on-brand pill (STYLE_GUIDE status pills)."""
+    s = str(status).strip().lower()
+    if s == "effective":
+        bg, fg, label = "#ecfdf5", POS, "Effective"
+    else:
+        bg, fg, label = "#eff6ff", T_LINK, "Filed"
+    return (f'<span style="background:{bg};color:{fg};font-size:11px;font-weight:600;'
+            f'border-radius:4px;padding:2px 8px;">{label}</span>')
 
 
 def _rowget(row, key, default=None):
@@ -195,41 +216,48 @@ def build_context() -> LaneContext:
 # --------------------------------------------------------------------------- #
 def _section(title: str, subtitle: str, headers, body_html: str,
              accent: str = NAVY, count: int | None = None, aligns=None) -> str:
-    cnt = f' <span style="font-size:11px;color:{GRAY};font-weight:400;">({count})</span>' if count is not None else ""
+    cnt = f' <span style="font-size:12px;color:{T_CAP};font-weight:400;">{count}</span>' if count is not None else ""
     aligns = aligns or ["left"] * len(headers)
     thead = "".join(
-        f'<th style="padding:5px 9px;text-align:{a};">{escape(str(h))}</th>'
+        f'<th style="padding:9px 12px;text-align:{a};font-size:12px;font-weight:600;color:{T_BODY};'
+        f'text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid {T_BORDER};white-space:nowrap;">'
+        f'{escape(str(h))}</th>'
         for h, a in zip(headers, aligns)
     )
+    cap = f'<div style="font-size:11px;color:{T_CAP};margin:0 0 8px;">{subtitle}</div>' if subtitle else ""
+    dot = (f'<span style="display:inline-block;width:8px;height:8px;border-radius:2px;'
+           f'background:{accent};margin-right:8px;vertical-align:middle;"></span>')
     return (
-        f'<section style="margin:22px 0;">'
-        f'<h2 style="font-size:15px;color:{accent};margin:0 0 2px;">{escape(title)}{cnt}</h2>'
-        f'<div style="font-size:11px;color:{GRAY};margin:0 0 6px;line-height:1.4;">{subtitle}</div>'
-        f'<table style="border-collapse:collapse;width:100%;font-size:12px;">'
-        f'<thead><tr style="background:{accent};color:#fff;text-align:left;font-size:10px;'
-        f'text-transform:uppercase;letter-spacing:.03em;">{thead}</tr></thead>'
-        f'<tbody>{body_html}</tbody></table></section>'
+        f'<section style="margin:26px 0;">'
+        f'<h2 style="font-size:16px;font-weight:600;color:{T_TEXT};margin:0 0 3px;">{dot}{escape(title)}{cnt}</h2>'
+        f'{cap}'
+        f'<div style="border:1px solid {T_BORDER};border-radius:6px;overflow:hidden;">'
+        f'<table style="border-collapse:collapse;width:100%;background:#fff;">'
+        f'<thead><tr style="background:#fff;text-align:left;">{thead}</tr></thead>'
+        f'<tbody>{body_html}</tbody></table></div></section>'
     )
 
 
-def _empty(title: str, subtitle: str, msg: str, accent: str = NAVY) -> str:
+def _empty(title: str, subtitle: str, msg: str, accent: str = T_LINK) -> str:
+    dot = (f'<span style="display:inline-block;width:8px;height:8px;border-radius:2px;'
+           f'background:{accent};margin-right:8px;vertical-align:middle;"></span>')
     return (
-        f'<section style="margin:22px 0;">'
-        f'<h2 style="font-size:15px;color:{accent};margin:0 0 2px;">{escape(title)}</h2>'
-        f'<div style="font-size:11px;color:{GRAY};margin:0 0 6px;">{subtitle}</div>'
-        f'<div style="font-size:12px;color:{GRAY};font-style:italic;padding:10px 0;">{escape(msg)}</div>'
+        f'<section style="margin:26px 0;">'
+        f'<h2 style="font-size:16px;font-weight:600;color:{T_TEXT};margin:0 0 3px;">{dot}{escape(title)}</h2>'
+        f'<div style="font-size:12px;color:{T_MUTED};padding:10px 0;">{escape(msg)}</div>'
         f'</section>'
     )
 
 
-def _tr(cells, bg="#fff", aligns=None, rex=False) -> str:
+def _tr(cells, aligns=None, rex=False) -> str:
     aligns = aligns or ["left"] * len(cells)
-    bdr = f"border-left:3px solid {GREEN};" if rex else ""
+    bg = T_REXBG if rex else "#fff"
     tds = "".join(
-        f'<td style="padding:4px 9px;text-align:{a};border-bottom:1px solid {BORDER};">{c}</td>'
+        f'<td style="padding:10px 12px;text-align:{a};font-size:13px;color:{T_TEXT};'
+        f'border-bottom:1px solid {T_ROWB};font-variant-numeric:tabular-nums;">{c}</td>'
         for c, a in zip(cells, aligns)
     )
-    return f'<tr style="background:{bg};{bdr}">{tds}</tr>'
+    return f'<tr class="trex-row" style="background:{bg};">{tds}</tr>'
 
 
 # --------------------------------------------------------------------------- #
@@ -273,12 +301,11 @@ def load_ipo(ctx: LaneContext) -> list:
 # --------------------------------------------------------------------------- #
 def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Filing Whitespace"
-    subtitle = ("Scored single-stock underliers with <b>no live L&amp;I product</b> — REX's clearest "
-                "open lanes, ranked by the canonical v1.0.1 score (0&ndash;100).")
+    subtitle = "Scored single stocks with no live L&amp;I product yet."
     headers = ["Ticker", "Company · Sector", "Mkt Cap", "Score", "Competitor"]
     aligns = ["left", "left", "right", "right", "left"]
     if df is None or df.empty:
-        return _empty(title, subtitle, "No whitespace candidates in the current scoring run.", NAVY)
+        return _empty(title, subtitle, "No whitespace candidates in the current scoring run.", T_LINK)
     body = ""
     for i, (_, r) in enumerate(df.iterrows()):
         tk = _s(_rowget(r, "ticker"))
@@ -293,47 +320,47 @@ def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
             _score_badge(ctx.score_of(tk)),     # canonical li_engine_daily.final_score (0-100)
             comp_c,
         ]
-        body += _tr(cells, bg="#fff" if i % 2 == 0 else LIGHT, aligns=aligns)
-    return _section(title, subtitle, headers, body, accent=NAVY, count=len(df), aligns=aligns)
+        body += _tr(cells, aligns=aligns)
+    return _section(title, subtitle, headers, body, accent=T_LINK, count=len(df), aligns=aligns)
 
 
 def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
-    title = "REX Pipeline — Filed, Awaiting Launch"
-    subtitle = ("T-REX 2X products REX has <b>filed but not yet launched</b>. Dormant shelf filings "
-                "(&gt;6mo lapsed, unlaunched) are dropped. Status is Filed / Effective only; a filing "
-                "with no scraped effective date yet shows &ldquo;&mdash;&rdquo;.")
+    title = "REX Pipeline"
+    subtitle = "T-REX 2X we've filed but not yet launched."
     headers = ["Fund", "Underlier", "Dir", "Status", "Filed", "Est. Effective", "Score"]
     aligns = ["left", "left", "left", "left", "center", "center", "right"]
     if df is None or df.empty:
-        return _empty(title, subtitle, "No filed-not-launched T-REX 2X products right now.", GREEN)
+        return _empty(title, subtitle, "No filed-not-launched T-REX 2X products right now.", POS)
     body = ""
-    for i, (_, r) in enumerate(df.iterrows()):
+    for _, r in df.iterrows():
         eff = _rowget(r, "eff_real")
         try:
             eff_s = eff.date().isoformat() if (eff is not None and pd.notna(eff)) else "—"
         except Exception:
             eff_s = "—"
-        direction = _s(_rowget(r, "direction"))
-        dir_c = ORANGE if "inv" in direction.lower() else NAVY
-        # Status is strictly Filed / Effective (status_binary collapses Delayed/Under Consideration).
-        status_disp = _s(_rowget(r, "status_binary")) or "Filed"
+        fund_name = _s(_rowget(r, "fund_name"))
+        # rex_products.direction is NULL — derive Long/Inverse from the fund name.
+        is_inv = bool(tc._INV_RE.search(fund_name))
+        direction = "Inverse" if is_inv else "Long"
+        underlier = _s(_rowget(r, "underlier_clean")) or _s(_rowget(r, "underlier"))
+        # Score is '—' when the underlier isn't in the US scoring universe (foreign / pre-IPO).
+        has_score = tc._canon(underlier) in ctx.score_map
         cells = [
-            f'<b style="font-size:11px;">{escape(_s(_rowget(r, "fund_name")))}</b>',
-            escape(_s(_rowget(r, "underlier_clean")) or _s(_rowget(r, "underlier"))),
-            f'<span style="color:{dir_c};font-weight:600;">{escape(direction or "—")}</span>',
-            escape(status_disp),
-            _s(_rowget(r, "initial_filing_date"))[:10] or "—",
-            f'<span style="color:{GRAY if eff_s == "—" else NAVY};">{eff_s}</span>',
-            _score_badge(_rowget(r, "underlier_score")),
+            f'<span style="font-size:12px;">{escape(fund_name)}</span>',
+            f'<b>{escape(underlier)}</b>',
+            f'<span style="color:{WARN if is_inv else T_BODY};font-weight:600;">{direction}</span>',
+            _status_pill(_rowget(r, "status_binary")),
+            f'<span style="color:{T_MUTED};">{_s(_rowget(r, "initial_filing_date"))[:10] or "—"}</span>',
+            f'<span style="color:{T_MUTED if eff_s == "—" else T_TEXT};">{eff_s}</span>',
+            _score_badge(_rowget(r, "underlier_score"), found=has_score),
         ]
-        body += _tr(cells, bg="#f0fdf4" if i % 2 == 0 else "#fff", aligns=aligns, rex=True)
-    return _section(title, subtitle, headers, body, accent=GREEN, count=len(df), aligns=aligns)
+        body += _tr(cells, aligns=aligns, rex=True)
+    return _section(title, subtitle, headers, body, accent=POS, count=len(df), aligns=aligns)
 
 
 def render_inverse(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Inverse Gap"
-    subtitle = ("Single-stock underliers with a live long (&ge;$100M) and <b>zero inverse</b> of any "
-                "size anywhere — the clearest inverse whitespace, ranked by the top long's AUM.")
+    subtitle = "Live long (&ge;$100M), no inverse anywhere."
     headers = ["Underlier", "# Longs", "Top Long Fund", "Issuer", "Top Long AUM"]
     aligns = ["left", "center", "left", "left", "right"]
     if df is None or df.empty:
@@ -347,14 +374,13 @@ def render_inverse(df: pd.DataFrame, ctx: LaneContext) -> str:
             escape(_s(_rowget(r, "top_issuer"))),
             _aum_m(_rowget(r, "top_aum")),
         ]
-        body += _tr(cells, bg="#fff" if i % 2 == 0 else LIGHT, aligns=aligns)
+        body += _tr(cells, aligns=aligns)
     return _section(title, subtitle, headers, body, accent=TEAL, count=len(df), aligns=aligns)
 
 
 def render_launch_anyway(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Launch Anyway"
-    subtitle = ("Underliers with only <b>1&ndash;2 competitor longs</b>, REX absent, and a top product "
-                "&gt;$100M &mdash; proven demand with room to enter. Ranked by the incumbent's AUM.")
+    subtitle = "1&ndash;2 competitor longs, REX absent, incumbent &gt;$100M."
     headers = ["Underlier", "Long Comp.", "Top Issuer", "Top Fund", "Top AUM", "First Launch", "Age (mo)"]
     aligns = ["left", "center", "left", "left", "right", "center", "right"]
     if df is None or df.empty:
@@ -371,7 +397,7 @@ def render_launch_anyway(df: pd.DataFrame, ctx: LaneContext) -> str:
             _s(_rowget(r, "first_launch")) or "—",
             f'{mo:.0f}' if mo else "—",
         ]
-        body += _tr(cells, bg="#fff" if i % 2 == 0 else LIGHT, aligns=aligns)
+        body += _tr(cells, aligns=aligns)
     return _section(title, subtitle, headers, body, accent=PURPLE, count=len(df), aligns=aligns)
 
 
@@ -420,17 +446,14 @@ def _race_section(items: list, title: str, subtitle: str, headers, aligns,
     for i, it in enumerate(items):
         race = it.get("race") or []
         rex_filed = any(r.get("rex") for r in race)
-        body += _tr(row_cells(it), bg="#f0fdf4" if rex_filed else ("#fff" if i % 2 == 0 else LIGHT),
-                    aligns=aligns, rex=rex_filed)
+        body += _tr(row_cells(it), aligns=aligns, rex=rex_filed)
         body += _race_detail_rows(race, ncols)
     return _section(title, subtitle, headers, body, accent=accent, count=len(items), aligns=aligns)
 
 
 def render_foreign(items: list, ctx: LaneContext) -> str:
     title = "Foreign-Listed"
-    subtitle = ("Foreign-<b>listed</b> single stocks (US-ADR names excluded &mdash; those can already be "
-                "made into a US 2x) with their full L&amp;I filer race. Green = REX has filed. "
-                "Filed names first, then open megacap whitespace by market cap.")
+    subtitle = "Foreign-listed names (US-ADRs excluded) &middot; REX in green."
     headers = ["Company", "Ticker", "Market", "Mkt Cap", "REX Status", "Competition"]
     aligns = ["left", "left", "left", "right", "left", "left"]
 
@@ -449,8 +472,7 @@ def render_foreign(items: list, ctx: LaneContext) -> str:
 
 def render_ipo(items: list, ctx: LaneContext) -> str:
     title = "Pre-IPO Targets"
-    subtitle = ("Genuinely-private pre-IPO names from the watchlist with their L&amp;I filer race, sourced "
-                "valuation and S-1 status. Green = REX has filed. Ranked by valuation.")
+    subtitle = "Private pre-IPO names + their filer race &middot; REX in green."
     headers = ["Company", "Valuation", "As of", "S-1", "REX Status", "Competition"]
     aligns = ["left", "right", "center", "center", "left", "left"]
 
