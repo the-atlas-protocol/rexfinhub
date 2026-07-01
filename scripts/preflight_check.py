@@ -874,6 +874,76 @@ def audit_status_canonical(db) -> dict:
     return out
 
 
+def audit_daemon_freshness(db) -> dict:
+    """Flag long-running daemons running STALE in-memory code.
+
+    `git pull` does NOT restart daemons, so a fix can be committed, pushed, and
+    sitting in the working tree yet never run live until `systemctl restart`.
+    This bit us hard 2026-06-24: single_filing_worker had been up since 2026-06-10,
+    13 days before the ticker-bleed guard landed — so every multi-series filing it
+    enriched kept bleeding tickers and preflight went red on a "fix" that had simply
+    never deployed. This audit would have caught it: for each long-running daemon,
+    compare its start time to the last commit that touched its source modules; if the
+    daemon started BEFORE that commit, it is running stale code — WARN with a restart
+    hint. Self-clears on restart. READ-ONLY (systemctl show + git log; no mutation)."""
+    out = {"name": "Daemon freshness", "status": "pass", "detail": "", "stale": []}
+    import subprocess
+    import time
+    # service -> repo-relative source paths it imports (git log over these decides freshness)
+    DAEMONS = {
+        "rexfinhub-single-filing-worker": [
+            "etp_tracker/single_filing_worker.py", "etp_tracker/single_filing.py",
+            "etp_tracker/step3.py"],
+        "rexfinhub-atom-watcher": [
+            "etp_tracker/atom_watcher.py", "etp_tracker/single_filing.py",
+            "etp_tracker/step3.py"],
+        "rexfinhub-api": ["webapp/"],
+    }
+
+    def _run(cmd):
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=15,
+                              cwd=str(PROJECT_ROOT))
+
+    stale = []
+    checked = 0
+    for svc, sources in DAEMONS.items():
+        try:
+            active = _run(["systemctl", "is-active", svc]).stdout.strip()
+            if active != "active":
+                continue  # not running -> nothing to be stale
+            pid = _run(["systemctl", "show", svc, "-p", "MainPID", "--value"]).stdout.strip()
+            if not pid or pid == "0":
+                continue
+            etimes = _run(["ps", "-o", "etimes=", "-p", pid]).stdout.strip()
+            if not etimes.isdigit():
+                continue
+            start_epoch = time.time() - int(etimes)
+            ct = _run(["git", "log", "-1", "--format=%ct", "--"] + sources).stdout.strip()
+            if not ct.isdigit():
+                continue
+            commit_epoch = int(ct)
+            checked += 1
+            # 1-hour grace: a commit landing minutes around a restart is a boundary
+            # artifact, not a real stale deploy. Only flag a daemon meaningfully behind.
+            if commit_epoch - start_epoch > 3600:
+                age_days = (commit_epoch - start_epoch) / 86400.0
+                stale.append({"service": svc, "stale_days": round(age_days, 1)})
+        except Exception:  # noqa: BLE001 — best-effort; never crash the gate on this
+            continue
+
+    if stale:
+        out["status"] = "warn"
+        out["stale"] = stale
+        out["detail"] = ("daemon(s) running code older than its latest source commit — "
+                         "`systemctl restart` to deploy: "
+                         + "; ".join(f"{s['service']} (~{s['stale_days']}d behind)" for s in stale))
+    elif checked:
+        out["detail"] = f"{checked} daemon(s) running current code"
+    else:
+        out["detail"] = "no daemons checked (systemctl/git unavailable)"
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Audit 11: AI semantic review (NEW — judges correctness, not just format)
 # ---------------------------------------------------------------------------
@@ -923,16 +993,18 @@ def audit_ai_semantic_review(db) -> dict:
 
     high = [d for d in defects if str(d.get("severity", "")).upper() == "HIGH"]
     out["defects"] = defects
-    # ADVISORY (2026-06-22): the AI reviewer judges plausibility without ground truth
-    # and false-blocked a clean run (called the canonical count 79 "low" and the real
-    # 191-fund issuer "Corgi" a test value). It now WARNS only — never fails the gate.
-    # Deterministic checks with ground truth do the blocking; these notes are for Ryu.
+    # INFORMATIONAL ONLY (Phase 0, 2026-06-24): the AI reviewer judges plausibility
+    # without ground truth and cried wolf on every run (called the canonical count 79
+    # "low" and the real 191-fund issuer "Corgi" a test value), pinning overall_status
+    # at WARN forever — so every send rode the autogo_on_warn override and "green" was
+    # unreachable. It now stays PASS: findings are recorded in out["defects"] and the
+    # detail line (surfaced in the summary HTML for Ryu) but never move the gate. The
+    # deterministic checks with ground truth (contract numbers, microsectors, status,
+    # drift) do all the blocking. Restores: green means green.
     if high:
-        out["status"] = "warn"
-        out["detail"] = "ADVISORY (HIGH — review before send): " + "; ".join(f"{d.get('issue','?')}" for d in high[:5])
+        out["detail"] = "INFORMATIONAL (HIGH — review, non-blocking): " + "; ".join(f"{d.get('issue','?')}" for d in high[:5])
     elif defects:
-        out["status"] = "warn"
-        out["detail"] = f"ADVISORY — {len(defects)} observation(s), non-blocking"
+        out["detail"] = f"INFORMATIONAL — {len(defects)} observation(s), non-blocking"
     else:
         out["detail"] = "no semantic defects found"
     return out
@@ -1161,7 +1233,7 @@ def main():
                audit_report_charts, audit_status_canonical,
                audit_contract_numbers, audit_timeseries_drift,
                audit_microsectors_override, audit_external_jargon,
-               audit_ai_semantic_review):
+               audit_daemon_freshness, audit_ai_semantic_review):
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)

@@ -556,12 +556,31 @@ def load_inverse_gap(single_stocks: set):
     df = df[df["u_clean"].isin(single_stocks)]
     df["is_long"] = df["d"].astype(str).str.lower().str.contains("long", na=False)
     df["is_inv"] = df["d"].astype(str).str.lower().str.contains("short|inv", na=False)
+    # mkt_master_data is the Bloomberg TRADING feed only. A competitor inverse that
+    # is REGISTERED (Effective) or pending but not yet trading is absent from it,
+    # so contested names (WDC/DELL/CRDO/MRVL/COHR...) were silently reported as
+    # clean gaps. fund_status is the SEC registration tracker — consult it too so a
+    # gap means "no inverse anywhere, trading OR registered." Ryu 2026-06-25.
+    fs = _df("SELECT fund_name, status FROM fund_status WHERE fund_name IS NOT NULL")
+    registered_inv = {}   # canon underlier -> (fund_name, status)
+    if not fs.empty:
+        _u_re = re.compile(r"(?:SHORT|INVERSE|ULTRASHORT)\s+([A-Z]{1,6})\b"
+                           r"|\b([A-Z]{1,6})\s+(?:BEAR|SHORT)\b")
+        for _nm, _st in fs.itertuples(index=False):
+            s = str(_nm)
+            if not _INV_RE.search(s) or _REX_NAME_RE.search(s):
+                continue
+            for m in _u_re.finditer(s.upper()):
+                cu = _canon(m.group(1) or m.group(2))
+                if cu in single_stocks and cu not in registered_inv:
+                    registered_inv[cu] = (s, str(_st))
     rows = []
     for u, g in df.groupby("u_clean"):
         # A genuine gap = at least one MEANINGFUL long ($100M+) and ZERO inverse
-        # of any size anywhere on this underlier.
+        # of any size anywhere on this underlier — trading (mkt_master) OR
+        # registered (fund_status).
         n_inv = int(g["is_inv"].sum())
-        if n_inv > 0:
+        if n_inv > 0 or u in registered_inv:
             continue
         longs = g[g["is_long"] & (g["aum"] >= 100)]
         if longs.empty:
@@ -973,12 +992,31 @@ def build():
     else:
         flags = {}
 
+    # Authoritative set of underliers REX has a T-REX product ON FILE (any
+    # direction/status), parsed straight from rex_products names. The
+    # competitor_counts.parquet rex_filed_* flag undercounts badly (11 of REX's
+    # ~109 filed T-REX products as of 2026-06-25), so the "REX Filed" column read
+    # all-N even for names we had filed. This makes the column reflect the real
+    # filing book — so a "Should Enter" candidate we have already filed shows Y
+    # (it's in the 75-day pipeline, not greenfield). Ryu 2026-06-25.
+    _rexfiled_canon = set()
+    try:
+        _rxn = _df("SELECT name FROM rex_products WHERE product_suite='T-REX'")
+        _nre = re.compile(r"T-REX\s+[\d.]+X\s+(?:LONG|INVERSE)\s+(.+?)\s+DAILY", re.I)
+        for _nm in _rxn["name"]:
+            _m = _nre.search(str(_nm))
+            if _m:
+                _rexfiled_canon.add(_canon(re.sub(r"\s+", " ", _m.group(1).strip())))
+    except Exception:
+        pass
+
     if scored.empty:
         no_live = pd.DataFrame()
     else:
         scored["u_clean"] = scored["ticker"].apply(_canon)
         scored["has_live"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_live", False)).fillna(False)
-        scored["has_rex_filing"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_rex_filing", False)).fillna(False)
+        scored["has_rex_filing"] = scored["u_clean"].map(
+            lambda t: bool(flags.get(t,{}).get("has_rex_filing", False)) or (t in _rexfiled_canon))
         scored["has_comp_filing"] = scored["u_clean"].map(lambda t: flags.get(t,{}).get("has_comp_filing", False)).fillna(False)
         no_live = scored[~scored["has_live"]].head(100)
 

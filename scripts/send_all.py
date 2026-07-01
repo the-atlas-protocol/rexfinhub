@@ -535,6 +535,12 @@ def main():
     ap = argparse.ArgumentParser(description="Atomic batch sender for REX reports")
     ap.add_argument("--bundle", required=True, choices=sorted(BUNDLES.keys()))
     ap.add_argument("--force", action="store_true", help="override the already-sent guard")
+    ap.add_argument("--force-confirm", action="store_true",
+                    help="Authorise a --force RESEND of already-sent reports in a "
+                         "non-interactive context (ssh/automation). Required because "
+                         "--force alone bypasses the double-send dedup guard; a bare "
+                         "--force on an already-sent report is refused without this. "
+                         "Logged to the gate log. (At a TTY, a typed RESEND works instead.)")
     ap.add_argument("--force-rebuild", action="store_true",
                     help="ignore the baked staging HTML and rebuild every report from the "
                          "DB at send time (the old behavior). Use only to bypass the "
@@ -646,6 +652,40 @@ def main():
 
     dry_run = not args.send
     bundle_keys = BUNDLES[args.bundle]
+
+    # Force-resend guard (lessons_send_safety; 2026-06-22 T-REX double-send). --force
+    # bypasses the already-sent dedup ENTIRELY — the double-send vector. That bypass
+    # must be a DELIBERATE act, never a copy-pasted or diagnostic invocation. So when
+    # --force would actually override an already-sent report on a REAL send, demand
+    # explicit confirmation: a typed RESEND at a TTY, or --force-confirm when
+    # non-interactive (ssh/automation). A bare --force on a not-yet-sent report is a
+    # no-op here (nothing to resend) — only genuine same-period resends are gated.
+    if args.force and args.send and not args.to:
+        already = [(k, _already_sent(k)) for k in bundle_keys if _already_sent(k)]
+        if already:
+            print("\n" + "!" * 72)
+            print("FORCE RESEND — these reports were ALREADY SENT this period:")
+            for k, ts in already:
+                print(f"   - {k:16s} last sent at {ts}")
+            print("--force will RE-SEND them to the REAL list (the double-send vector).")
+            print("!" * 72)
+            import sys as _s
+            if _s.stdin and _s.stdin.isatty():
+                if input("Type RESEND to confirm (anything else aborts): ").strip() != "RESEND":
+                    print("ABORT: force resend not confirmed.")
+                    _gate_log("read", "force_resend_unconfirmed", "send_all.py",
+                              ",".join(k for k, _ in already))
+                    return 2
+            elif not args.force_confirm:
+                print("ABORT: --force would RESEND already-sent reports in a "
+                      "non-interactive context. Re-run with --force-confirm to "
+                      "authorise, or drop --force. (Guards the 2026-06-22 double-send.)")
+                _gate_log("read", "force_resend_refused", "send_all.py",
+                          ",".join(k for k, _ in already))
+                return 2
+            _gate_log("force", "resend_confirmed", "send_all.py",
+                      ",".join(f"{k}@{ts}" for k, ts in already))
+            print("FORCE RESEND CONFIRMED — proceeding.\n")
 
     # Footgun guard: --to is a test-send flag. NEVER touch the production gate
     # for a test send, and force bypass_gate=True so the test fires regardless

@@ -70,10 +70,21 @@ def _load_recipients(project_root: Path | None = None, list_type: str = "daily")
     Args:
         list_type: Which report's recipients to load (daily, weekly, li, income, flow, autocall).
     """
-    # Primary: read from DB
+    # Validate the list_type up front. An unknown list_type is a BUG (typo /
+    # misconfig), not a DB-availability problem — letting it fall through to the
+    # text-file / SMTP_TO fallback below would MISROUTE the send to whoever
+    # SMTP_TO points at. Fail loud here so it can never reach the fallback.
+    from webapp.services.recipients import get_recipients, VALID_LIST_TYPES
+    if list_type not in VALID_LIST_TYPES:
+        raise ValueError(
+            f"Unknown list_type {list_type!r} in _load_recipients; refusing to "
+            f"fall back to SMTP_TO (misroute risk). Valid: {sorted(VALID_LIST_TYPES)}")
+
+    # Primary: read from DB. A genuine DB-availability error (connection, missing
+    # table) still falls back to the text file below — but an unknown list_type
+    # can no longer hide in this except (it was rejected above).
     try:
         from webapp.database import SessionLocal
-        from webapp.services.recipients import get_recipients
         db = SessionLocal()
         try:
             recipients = get_recipients(db, list_type)
