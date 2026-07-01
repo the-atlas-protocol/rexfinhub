@@ -137,6 +137,8 @@
 
 <!-- Filter bar -->
 <div class="screener-filters">
+  <button id="liQuick" onclick="toggleLI()" title="Show only Leverage &amp; Inverse funds"
+    style="font-size:13px;font-weight:700;padding:6px 14px;border:1px solid #2563eb;background:#fff;color:#2563eb;border-radius:6px;cursor:pointer;margin-right:10px;">L&amp;I Only</button>
   <span class="filter-label">Scope:</span>
   <select id="fScope"><option value="all" selected>All ETPs</option><option value="rex">REX Only</option><option value="competitors">Competitors</option></select>
   <span class="filter-label">Category:</span>
@@ -224,7 +226,13 @@ const PRESETS={
   all:{label:"All",cols:COLUMNS.map(c=>c[0])},
 };
 
-let allData=[], visibleCols=new Set(COLUMNS.filter(c=>c[4]).map(c=>c[0])), sortKey="aum", sortAsc=false, currentPage=0, activePreset="performance";
+let allData=[], visibleCols=new Set(COLUMNS.filter(c=>c[4]).map(c=>c[0])), sortKey="aum", sortAsc=false, currentPage=0, activePreset="performance", liOnly=false;
+function toggleLI(){
+  liOnly=!liOnly;
+  var btn=document.getElementById("liQuick");
+  if(btn){ btn.style.background=liOnly?"#2563eb":"#fff"; btn.style.color=liOnly?"#fff":"#2563eb"; }
+  if(liOnly){ selectPreset("li"); } else { currentPage=0; render(); }
+}
 
 // --- Sidebar ---
 function buildPresets(){
@@ -286,6 +294,7 @@ function fmt(v,t){
 // --- Filtering & Sorting ---
 function getFiltered(){
   let d=allData;
+  if(liOnly) d=d.filter(r=>r.etp_category==="LI");
   const cat=document.getElementById("fCategory").value;
   const suite=document.getElementById("fSuite").value;
   const strategy=document.getElementById("fStrategy").value;
@@ -380,6 +389,9 @@ function resetFilters(){
   document.getElementById("fStrategy").value="";
   document.getElementById("fAssetClass").value="";
   document.getElementById("fSearch").value="";
+  liOnly=false;
+  var lb=document.getElementById("liQuick");
+  if(lb){ lb.style.background="#fff"; lb.style.color="#2563eb"; }
   currentPage=0;render();
 }
 
