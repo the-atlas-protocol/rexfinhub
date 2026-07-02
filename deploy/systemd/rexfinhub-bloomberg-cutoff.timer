@@ -1,0 +1,9 @@
+[Unit]
+Description=Fire the Bloomberg ingest cutoff check at 22:05 ET on weekdays
+
+[Timer]
+OnCalendar=Mon-Fri 22:05 America/New_York
+Persistent=true
+
+[Install]
+WantedBy=timers.target

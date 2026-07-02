@@ -281,19 +281,11 @@ def share_timeline_view(request: Request, cat: str = Query(default="")):
 
 
 @router.get("/rex-performance")
-def rex_performance_view(
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    """REX Performance -- interactive screener with column picker and filters."""
-    svc = _svc()
-    available = svc.data_available(db)
-    return templates.TemplateResponse("market/rex_performance.html", {
-        "request": request,
-        "available": available,
-        "active_tab": "rex-performance",
-        "data_as_of": svc.get_data_as_of(db),
-    })
+def rex_performance_view():
+    """The screener moved to Tools > Screener (/tools/screener). Redirect the old
+    URL there (build-prove-retire: keep the route, redirect until fully proven)."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/tools/screener", status_code=307)
 
 
 @router.get("/api/screener-data")

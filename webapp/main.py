@@ -304,6 +304,14 @@ def _prewarm_caches() -> None:
     race conditions.
     """
     global _caches_ready
+    # Opt-out for lightweight instances (staging / review). The market-dashboard
+    # cache eagerly loads the ~280K-row mkt_time_series; pages that read parquets
+    # or query the DB directly (T-REX System, Screener) don't need it, and on a
+    # RAM-constrained box the eager load can OOM the process at startup.
+    if os.environ.get("SKIP_PREWARM"):
+        _caches_ready = True
+        log.info("SKIP_PREWARM set — skipping cache pre-warm.")
+        return
     import time
     t0 = time.time()
 
@@ -535,6 +543,7 @@ def create_app() -> FastAPI:
         sec_notes,
         tools_compare,
         tools_li,
+        tools_screener,
         tools_simulators,
         tools_tickers,
         tools_calendar,
@@ -545,6 +554,7 @@ def create_app() -> FastAPI:
     app.include_router(sec_notes.router)
     app.include_router(tools_compare.router)
     app.include_router(tools_li.router)
+    app.include_router(tools_screener.router)
     app.include_router(tools_simulators.router)
     app.include_router(tools_tickers.router)
     app.include_router(tools_calendar.router)

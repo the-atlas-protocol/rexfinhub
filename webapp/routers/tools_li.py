@@ -18,12 +18,15 @@ Replaces the PR-1 stub that proxied to ``filings._candidates_impl``.
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from datetime import date
+
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -48,6 +51,103 @@ router = APIRouter(prefix="/tools/li", tags=["tools-li"])
 templates = Jinja2Templates(directory="webapp/templates")
 
 PARQUET_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "analysis"
+TREX_PDF_DIR = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex"
+LANE_ARTIFACT = Path(__file__).resolve().parent.parent.parent / "data" / "analysis" / "trex_lanes.json"
+LANE_ORDER = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
+LANE_LABELS = {
+    "pipeline": "REX 2X Queue", "whitespace": "Whitespace", "inverse": "Inverse Gap",
+    "launch_anyway": "Launch-Anyway", "foreign": "Foreign", "ipo": "Pre-IPO",
+}
+
+# The lane build (esp. the foreign/pre-IPO filer race) is far too slow to run
+# inside a web request. scripts/bake_trex_lanes.py bakes it to LANE_ARTIFACT
+# off-request (fast loop / schedule); the page serves that artifact. A live build
+# is only a last-resort fallback, cached in-process to bound the damage.
+_LANE_TTL_SECONDS = 300
+_LANE_CACHE: dict[str, Any] = {"at": 0.0, "built": None}
+
+
+def _lane_items(lane_html_by_key: dict) -> list[dict]:
+    return [{"key": k, "label": LANE_LABELS[k], "html": lane_html_by_key[k]}
+            for k in LANE_ORDER if lane_html_by_key.get(k)]
+
+
+def _get_lanes(force: bool = False) -> tuple[list[dict], str]:
+    """Return (lane_items, generated_at) where lane_items = [{key,label,html}].
+    Prefers the baked artifact; live build only if the artifact is missing."""
+    now = time.time()
+    cached = _LANE_CACHE.get("built")
+    if not force and cached is not None and (now - _LANE_CACHE["at"]) < _LANE_TTL_SECONDS:
+        return cached
+
+    result: tuple[list[dict], str] | None = None
+    # 1) fast path — the baked artifact
+    try:
+        if LANE_ARTIFACT.exists():
+            import json
+            data = json.loads(LANE_ARTIFACT.read_text(encoding="utf-8"))
+            items = _lane_items(data.get("lanes") or {})
+            if items:
+                result = (items, data.get("generated_at", ""))
+    except Exception as exc:
+        log.warning("baked lanes read failed: %s", exc)
+
+    # 2) fallback — live build (slow; only when no artifact yet)
+    if result is None:
+        try:
+            from screener.li_engine.report import lanes as _lanes
+            built = _lanes.build_all()
+            by_key = {k: built[k]["html"] for k in LANE_ORDER
+                      if isinstance(built.get(k), dict) and built[k].get("html")}
+            ctx = built.get("_ctx")
+            result = (_lane_items(by_key), getattr(ctx, "generated_at", "") if ctx else "")
+        except Exception as exc:
+            log.warning("live lane build failed: %s", exc)
+            result = cached if cached else ([], "")
+
+    _LANE_CACHE.update(at=now, built=result)
+    return result
+
+
+_RACES_CACHE: dict = {"at": 0.0, "data": None}
+
+
+def _get_races(force: bool = False) -> tuple[dict, dict]:
+    """(races, scores) from the baked artifact. races: canon underlier -> filer list
+    (who filed L&I + effective dates); scores: canon underlier -> canonical
+    li_engine_daily score. Powers the filer modal + the Score lookup."""
+    now = time.time()
+    cached = _RACES_CACHE.get("data")
+    if not force and cached is not None and (now - _RACES_CACHE["at"]) < _LANE_TTL_SECONDS:
+        return cached
+    races, scores = {}, {}
+    try:
+        if LANE_ARTIFACT.exists():
+            import json
+            data = json.loads(LANE_ARTIFACT.read_text(encoding="utf-8"))
+            races = data.get("races") or {}
+            scores = data.get("scores") or {}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("races artifact read failed: %s", exc)
+    _RACES_CACHE.update(at=now, data=(races, scores))
+    return races, scores
+
+
+def _li_underlier_map() -> dict:
+    """ETP ticker -> canonical single-stock underlier, for L&I products only.
+    Used to turn the raw all-ETP flow panel into per-underlier L&I flow (so index
+    funds like SPY/VOO drop out — they aren't single-stock L&I names)."""
+    try:
+        from screener.li_engine.analysis import trex_combined_v9 as tc
+        df = tc._df("SELECT ticker, map_li_underlier FROM mkt_master_data "
+                    "WHERE primary_category='LI' AND map_li_underlier IS NOT NULL "
+                    "AND map_li_underlier!=''")
+        if df is None or df.empty:
+            return {}
+        return {str(t).split()[0]: tc._canon(u) for t, u in df.itertuples(index=False)}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("li underlier map failed: %s", exc)
+        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -161,62 +261,10 @@ def candidates(request: Request, db: Session = Depends(get_db)):
     kpis.setdefault("top_mention_ticker", top_ticker)
     kpis.setdefault("top_mention_count", top_count)
 
-    # 2. Launch queue -------------------------------------------------------
-    # A3: prefer the new tiered signal_strength column; fall back to the
-    # legacy boolean for older parquet files.
-    launches: list[dict] = []
-    launches_df = _load_parquet("launch_candidates.parquet")
-    if not launches_df.empty:
-        if "signal_strength" in launches_df.columns:
-            from screener.li_engine.analysis.signal_strength import SignalStrength
-            threshold = int(SignalStrength.MODERATE)
-            ranks = launches_df["signal_strength"].map(
-                lambda s: int(SignalStrength.from_name(s)) if isinstance(s, str) else 0
-            )
-            df = launches_df[ranks >= threshold]
-        elif "has_signals" in launches_df.columns:
-            df = launches_df[launches_df["has_signals"] == True]  # noqa: E712
-        else:
-            df = launches_df
-        if "composite_score" in df.columns:
-            df = df.sort_values("composite_score", ascending=False)
-        df = df.head(12)
-        for ticker, row in df.iterrows():
-            launches.append(_build_card(str(ticker), row, is_launch=True))
-
-    # Effective-date projections (per launch ticker)
-    try:
-        eff_dates = load_earliest_competitor_filing_dates() or {}
-    except Exception as exc:
-        log.warning("effective-date load failed: %s", exc)
-        eff_dates = {}
-    for item in launches:
-        info = eff_dates.get(item["ticker"]) or {}
-        item["earliest_filing_date"] = info.get("earliest_filing_date")
-        item["earliest_issuer"] = info.get("earliest_issuer", "")
-        item["closest_effective_date"] = info.get("closest_effective_date")
-        item["projected_effective_date"] = info.get("projected_effective_date")
-        item["projected_basis"] = info.get("projected_basis", "")
-
-    # 3. Filing whitespace --------------------------------------------------
-    whitespace: list[dict] = []
-    whitespace_df = _load_parquet("whitespace_v4.parquet")
-    filed_df = _load_parquet("filed_underliers.parquet")
-    if not whitespace_df.empty:
-        df = whitespace_df
-        if "composite_score" in df.columns:
-            df = df.sort_values("composite_score", ascending=False)
-        df = df.head(12)
-        for ticker, row in df.iterrows():
-            card = _build_card(str(ticker), row, is_launch=False)
-            n_filings = 0
-            if not filed_df.empty and ticker in filed_df.index:
-                try:
-                    n_filings = _safe_int(filed_df.loc[ticker, "n_filings_total"])
-                except Exception:
-                    n_filings = 0
-            card["n_filings_total"] = n_filings
-            whitespace.append(card)
+    # 2. Report-styled candidate lanes (shared builder) --------------------
+    # One builder feeds the page, the downloadable PDFs, and the emailed report.
+    # Order: REX pipeline first, then the four opportunity lanes + foreign/IPO.
+    lane_items, generated_at = _get_lanes()
 
     # 5. Money flow ---------------------------------------------------------
     money_flow: list[dict] = []
@@ -230,32 +278,40 @@ def candidates(request: Request, db: Session = Depends(get_db)):
             cutoff = df["date"].max() - pd.Timedelta(days=28)
             recent = df[df["date"] >= cutoff].copy()
             if "ticker" in recent.columns:
-                recent["underlier"] = recent["ticker"].astype(str).str.split().str[0]
-                agg = recent.groupby("underlier")["value"].agg(
-                    flow_4w="sum",
-                    churn_4w=lambda x: x.abs().sum(),
-                )
-                agg = agg.assign(abs_flow=agg["flow_4w"].abs())
-                agg = agg.sort_values("abs_flow", ascending=False).head(12)
-                for ticker, row in agg.iterrows():
-                    entry = {
-                        "ticker": ticker,
-                        "flow_4w": _safe_float(row.get("flow_4w")),
-                        "churn_4w": _safe_float(row.get("churn_4w")),
-                        "competitor_long": 0,
-                        "competitor_short": 0,
-                    }
-                    if not comp_df.empty and ticker in comp_df.index:
-                        crow = comp_df.loc[ticker]
-                        entry["competitor_long"] = _safe_int(
-                            crow.get("competitor_active_long", 0)
-                            if hasattr(crow, "get") else 0
-                        )
-                        entry["competitor_short"] = _safe_int(
-                            crow.get("competitor_active_short", 0)
-                            if hasattr(crow, "get") else 0
-                        )
-                    money_flow.append(entry)
+                # The panel ticker is an ETP, not an underlier. Map each L&I ETP to the
+                # single stock it tracks and aggregate; non-L&I ETPs (SPY/VOO/IVV/index
+                # funds) have no mapping and drop out — this is flow into L&I products
+                # BY the single stock they track, the only flow relevant to filing.
+                li_map = _li_underlier_map()
+                recent["etp"] = recent["ticker"].astype(str).str.split().str[0]
+                recent["underlier"] = recent["etp"].map(li_map)
+                recent = recent.dropna(subset=["underlier"])
+                if not recent.empty:
+                    agg = recent.groupby("underlier")["value"].agg(
+                        flow_4w="sum",
+                        churn_4w=lambda x: x.abs().sum(),
+                    )
+                    agg = agg.assign(abs_flow=agg["flow_4w"].abs())
+                    agg = agg.sort_values("abs_flow", ascending=False).head(12)
+                    for underlier, row in agg.iterrows():
+                        entry = {
+                            "ticker": underlier,
+                            "flow_4w": _safe_float(row.get("flow_4w")),
+                            "churn_4w": _safe_float(row.get("churn_4w")),
+                            "competitor_long": 0,
+                            "competitor_short": 0,
+                        }
+                        if not comp_df.empty and underlier in comp_df.index:
+                            crow = comp_df.loc[underlier]
+                            entry["competitor_long"] = _safe_int(
+                                crow.get("competitor_active_long", 0)
+                                if hasattr(crow, "get") else 0
+                            )
+                            entry["competitor_short"] = _safe_int(
+                                crow.get("competitor_active_short", 0)
+                                if hasattr(crow, "get") else 0
+                            )
+                        money_flow.append(entry)
         except Exception as exc:
             log.warning("money flow load failed: %s", exc)
             money_flow = []
@@ -265,12 +321,86 @@ def candidates(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "kpis": kpis,
-            "launches": launches,
-            "whitespace": whitespace,
+            "lane_items": lane_items,
+            "generated_at": generated_at,
             "money_flow": money_flow,
             "has_money_flow": len(money_flow) > 0,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# GET — downloadable per-lane PDF variants
+# ---------------------------------------------------------------------------
+
+@router.get("/report/{variant}.pdf")
+def download_report(variant: str):
+    """Serve a baked T-REX report variant PDF.
+
+    PDFs are rendered on the VPS by ``scripts/bake_trex_pdfs.py`` (Chromium lives
+    there, not on the Render web server) and uploaded alongside the parquets, so
+    this endpoint just serves the freshest baked file.
+    """
+    from screener.li_engine.report.pdf import VARIANTS
+    if variant not in VARIANTS:
+        return JSONResponse({"error": f"unknown variant {variant!r}"}, status_code=404)
+    path = TREX_PDF_DIR / f"{variant}.pdf"
+    if not path.exists():
+        return JSONResponse(
+            {"error": "report not generated yet — the daily bake hasn't run"},
+            status_code=404,
+        )
+    return FileResponse(
+        str(path),
+        media_type="application/pdf",
+        filename=f"REX_trex_{variant}_{date.today().isoformat()}.pdf",
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET — lane-native filer race (drill-down modal)
+# ---------------------------------------------------------------------------
+
+@router.get("/underlier/{code}.json")
+def underlier_race(code: str):
+    """Who has filed L&I on this underlier (REX + competitors, status, effective
+    date) + the canonical score. Reads the baked lane artifact — the lane's OWN
+    filer-race data, not the Bloomberg-live /operations modal (which is empty for
+    whitespace / filed-but-not-listed / foreign / pre-IPO names)."""
+    from screener.li_engine.analysis import trex_combined_v9 as tc
+    key = tc._canon(code)
+    races, scores = _get_races()
+    race = races.get(key) or []
+    score = scores.get(key)
+    return JSONResponse({
+        "code": key,
+        "score": score,
+        "race": race,
+        "found": bool(race) or score is not None,
+    })
+
+
+# ---------------------------------------------------------------------------
+# POST — AI investigator (unknown ticker / company / theme)
+# ---------------------------------------------------------------------------
+
+@router.post("/investigate")
+def investigate(request: Request, query: str = Form(...), kind: str = Form("ticker")):
+    """Agentic web research for a name the system doesn't track.
+
+    Returns a research card and logs the request to the review queue for a
+    human keep/drop decision. Never writes to the dataset.
+    """
+    q = (query or "").strip()
+    if not q:
+        return JSONResponse({"ok": False, "error": "empty query"}, status_code=400)
+    try:
+        from scripts.ai_investigate import investigate as _run
+        out = _run(q, kind=(kind or "ticker").strip() or "ticker", requested_by="web")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("investigate failed: %s", exc)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+    return JSONResponse(out)
 
 
 # ---------------------------------------------------------------------------
@@ -279,64 +409,71 @@ def candidates(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/candidates/evaluate")
 def evaluate(request: Request, tickers: str = Form(...)):
-    """Inline evaluator — replaces the standalone /filings/evaluator POST.
-
-    Accepts a comma-separated list of tickers, looks each up in the engine's
-    parquets (whitespace_v4 first, then launch_candidates), and returns the
-    composite score, percentile, top weighted-driver contributions, and
-    theme metadata as JSON.
+    """Score lookup for any name. Returns the CANONICAL li_engine_daily score (which
+    covers the full 6.5k single-stock universe, not just the 1.3k whitespace parquet),
+    the filer race (who has filed L&I + effective dates), whitespace drivers when
+    present, and — only for a name absent from all of them — a prompt to Investigate.
     """
+    from screener.li_engine.analysis import trex_combined_v9 as tc
     ticker_list = [t.strip().upper() for t in (tickers or "").split(",") if t.strip()]
     if not ticker_list:
         return JSONResponse({"results": []})
 
     whitespace_df = _load_parquet("whitespace_v4.parquet")
     launches_df = _load_parquet("launch_candidates.parquet")
+    races, scores = _get_races()
 
     results: list[dict] = []
     for tk in ticker_list:
+        canon = tc._canon(tk)
+        score = scores.get(canon)          # canonical 0-100 (li_engine_daily.final_score)
+        race = races.get(canon) or []      # who has filed L&I + effective dates
+
         row = None
         source = None
         if not whitespace_df.empty and tk in whitespace_df.index:
-            row = whitespace_df.loc[tk]
-            source = "whitespace"
+            row, source = whitespace_df.loc[tk], "whitespace"
         elif not launches_df.empty and tk in launches_df.index:
-            row = launches_df.loc[tk]
-            source = "launches"
+            row, source = launches_df.loc[tk], "launches"
 
-        if row is None:
+        # A name is "found" if it has ANY signal: canonical score, a filer race, or
+        # a whitespace/launch row. Only a true unknown falls through to Investigate.
+        if score is None and not race and row is None:
             results.append({
                 "ticker": tk,
                 "found": False,
-                "message": "No engine data — ticker not in whitespace or launch candidates.",
+                "message": f"{tk} isn't in the engine, filings, or watchlists — "
+                           f"use Investigate to research it.",
             })
             continue
 
-        # Top drivers — largest |weight * z|.
         contributions: list[dict] = []
-        for signal_name, weight in WEIGHTS.items():
-            z_col = f"{signal_name}_z" if f"{signal_name}_z" in row.index else signal_name
-            if z_col in row.index:
-                z = _safe_float(row.get(z_col))
-                contributions.append({
-                    "signal": signal_name,
-                    "z": z,
-                    "weight": weight,
-                    "contribution": z * weight,
-                })
-        contributions.sort(key=lambda c: abs(c["contribution"]), reverse=True)
+        themes, is_hot, sector, mcap = [], False, "", ""
+        if row is not None:
+            for signal_name, weight in WEIGHTS.items():
+                z_col = f"{signal_name}_z" if f"{signal_name}_z" in row.index else signal_name
+                if z_col in row.index:
+                    z = _safe_float(row.get(z_col))
+                    contributions.append({"signal": signal_name, "z": z, "weight": weight,
+                                          "contribution": z * weight})
+            contributions.sort(key=lambda c: abs(c["contribution"]), reverse=True)
+            themes = pretty_themes(row.get("themes", ""))
+            is_hot = bool(_row_get(row, "is_hot_theme", False) or False)
+            sector = _row_get(row, "sector", "") or ""
+            mcap = fmt_mcap(_row_get(row, "market_cap"))
 
         results.append({
             "ticker": tk,
             "found": True,
             "source": source,
-            "composite_score": _safe_float(row.get("composite_score")),
-            "score_pct": _safe_float(row.get("score_pct")),
+            "score": score,                       # canonical 0-100 or null
+            "race": race,                          # filer race with effective dates
+            "in_lane": bool(race) or row is not None,
             "top_drivers": contributions[:5],
-            "themes": pretty_themes(row.get("themes", "")),
-            "is_hot_theme": bool(_row_get(row, "is_hot_theme", False) or False),
-            "sector": _row_get(row, "sector", "") or "",
-            "market_cap": fmt_mcap(_row_get(row, "market_cap")),
+            "themes": themes,
+            "is_hot_theme": is_hot,
+            "sector": sector,
+            "market_cap": mcap,
         })
 
     return JSONResponse({"results": results})

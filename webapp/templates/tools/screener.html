@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Screener — REX Financial Intelligence Hub{% endblock %}
+
+{% block head %}
+<style>
+  .scr-header { margin: var(--sp-4) 0 var(--sp-3); }
+  .scr-header h1 { font-size: 20px; font-weight: 600; color: #0f172a; margin: 0 0 4px; }
+  .scr-header .subtitle { color: #64748b; font-size: 13px; }
+
+  /* KPI row (K-A cards) */
+  .scr-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0 18px; }
+  .scr-kpi { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; border-top: 3px solid var(--c,#2563eb); padding: 14px 18px; }
+  .scr-kpi .num { font-size: 24px; font-weight: 700; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .scr-kpi .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin-top: 2px; }
+
+  /* Filter bar */
+  .scr-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .scr-pills { display: inline-flex; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .scr-pill { font-size: 13px; font-weight: 600; color: #64748b; background: #fff; border: 0; border-right: 1px solid #e5e7eb; padding: 7px 14px; cursor: pointer; }
+  .scr-pill:last-child { border-right: 0; }
+  .scr-pill.active { background: #2563eb; color: #fff; }
+  .scr-pill.li.active { background: #2563eb; }
+  .scr-toggle { font-size: 13px; font-weight: 600; color: #64748b; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  .scr-toggle.active { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+  .scr-search { flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; }
+  .scr-count { font-size: 12px; color: #94a3b8; }
+  .scr-csv { font-size: 12px; font-weight: 600; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 7px 12px; cursor: pointer; text-decoration: none; }
+
+  /* T-B table */
+  .scr-table-wrap { border: 1px solid #e5e7eb; border-radius: 6px; overflow: auto; max-height: 72vh; }
+  table.scr { width: 100%; border-collapse: collapse; background: #fff; }
+  table.scr thead th { position: sticky; top: 0; background: #fff; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: .04em; text-align: left; padding: 10px 12px; border-bottom: 2px solid #e5e7eb; white-space: nowrap; cursor: pointer; user-select: none; z-index: 1; }
+  table.scr thead th.num { text-align: right; }
+  table.scr tbody td { font-size: 13px; color: #0f172a; padding: 9px 12px; border-bottom: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.scr tbody td.num { text-align: right; }
+  table.scr tbody tr:hover { background: #f8fafc; }
+  table.scr tbody tr.rex { background: #f0fdf4; }
+  .scr-tk { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #2563eb; text-decoration: none; }
+  .scr-pos { color: #059669; } .scr-neg { color: #dc2626; }
+  .scr-badge { font-size: 11px; font-weight: 600; border-radius: 4px; padding: 1px 7px; background: #eef2ff; color: #3730a3; }
+  .scr-badge.rex { background: #dcfce7; color: #166534; }
+  .scr-dir-long { color: #059669; font-weight: 600; } .scr-dir-inv { color: #d97706; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scr-header">
+  <div class="breadcrumb"><a href="/">Home</a><span class="sep">/</span><a href="/tools/screener">Tools</a><span class="sep">/</span><span>Screener</span></div>
+  <h1>Screener</h1>
+  <div class="subtitle">The full live-fund landscape. One click to isolate Leverage &amp; Inverse. Click any header to sort.</div>
+</div>
+
+<div class="scr-kpis" id="scrKpis">
+  <div class="scr-kpi" style="--c:#2563eb;"><div class="num" id="kpiCount">—</div><div class="lbl">Funds Shown</div></div>
+  <div class="scr-kpi" style="--c:#059669;"><div class="num" id="kpiAum">—</div><div class="lbl">Total AUM</div></div>
+  <div class="scr-kpi" style="--c:#7c3aed;"><div class="num" id="kpiLi">—</div><div class="lbl">L&amp;I Funds</div></div>
+  <div class="scr-kpi" style="--c:#d97706;"><div class="num" id="kpiRex">—</div><div class="lbl">REX Funds</div></div>
+</div>
+
+<div class="scr-filters">
+  <div class="scr-pills" id="catPills">
+    <button class="scr-pill active" data-cat="ALL">All</button>
+    <button class="scr-pill li" data-cat="LI">L&amp;I</button>
+    <button class="scr-pill" data-cat="CC">Income</button>
+    <button class="scr-pill" data-cat="Crypto">Crypto</button>
+    <button class="scr-pill" data-cat="Thematic">Thematic</button>
+    <button class="scr-pill" data-cat="Defined">Defined</button>
+  </div>
+  <button class="scr-toggle" id="rexToggle">REX only</button>
+  <input class="scr-search" id="scrSearch" type="text" placeholder="Search ticker, fund, issuer, underlier…" autocomplete="off">
+  <span class="scr-count" id="scrCount"></span>
+  <a class="scr-csv" id="scrCsv" href="#">Export CSV</a>
+</div>
+
+<div class="scr-table-wrap">
+  <table class="scr" id="scrTable">
+    <thead><tr id="scrHead"></tr></thead>
+    <tbody id="scrBody"></tbody>
+  </table>
+</div>
+
+<script>
+(function(){
+  // Column set — L&I-relevant defaults over the live-fund master.
+  var COLS = [
+    {k:'ticker', l:'Ticker', num:false},
+    {k:'fund_name', l:'Fund', num:false},
+    {k:'issuer_display', l:'Issuer', num:false},
+    {k:'category_display', l:'Category', num:false},
+    {k:'map_li_direction', l:'Dir', num:false},
+    {k:'map_li_leverage_amount', l:'Lev', num:false},
+    {k:'map_li_underlier', l:'Underlier', num:false},
+    {k:'aum', l:'AUM ($M)', num:true},
+    {k:'fund_flow_1week', l:'Flow 1W', num:true},
+    {k:'fund_flow_1month', l:'Flow 1M', num:true},
+    {k:'is_rex', l:'REX', num:false},
+  ];
+  var ALL = [], cat='ALL', rexOnly=false, q='', sortK='aum', sortAsc=false;
+  var $=function(id){return document.getElementById(id);};
+
+  function fmtNum(v){ if(v==null||v==='') return '—'; v=Number(v); if(isNaN(v)) return '—';
+    var s=Math.abs(v)>=1000?('$'+(v/1000).toFixed(2)+'B'):('$'+v.toFixed(0)+'M'); return s; }
+  function fmtFlow(v){ if(v==null||v==='') return '—'; v=Number(v); if(isNaN(v)) return '—';
+    var a=Math.abs(v), s=a>=1000?((v/1000).toFixed(1)+'B'):(v.toFixed(1)+'M');
+    var cls=v>=0?'scr-pos':'scr-neg'; var arrow=v>=0?'▲':'▼'; return '<span class="'+cls+'">'+arrow+' '+s.replace('-','')+'</span>'; }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function isLI(f){ return (f.etp_category==='LI') || /Leverage/i.test(f.category_display||''); }
+  function catOf(f){ return f.etp_category||''; }
+
+  function filtered(){
+    return ALL.filter(function(f){
+      if(cat==='LI' && !isLI(f)) return false;
+      if(cat!=='ALL' && cat!=='LI' && catOf(f)!==cat) return false;
+      if(rexOnly && !f.is_rex) return false;
+      if(q){ var hay=((f.ticker||'')+' '+(f.fund_name||'')+' '+(f.issuer_display||'')+' '+(f.map_li_underlier||'')).toLowerCase();
+        if(hay.indexOf(q)<0) return false; }
+      return true;
+    });
+  }
+  function sortRows(rows){
+    var col=null; COLS.forEach(function(c){if(c.k===sortK)col=c;});
+    return rows.sort(function(a,b){
+      var x=a[sortK], y=b[sortK];
+      if(col&&col.num){ x=Number(x)||-1e18; y=Number(y)||-1e18; }
+      else { x=String(x==null?'':x).toLowerCase(); y=String(y==null?'':y).toLowerCase(); }
+      if(x<y) return sortAsc?-1:1; if(x>y) return sortAsc?1:-1; return 0;
+    });
+  }
+  function cell(f,c){
+    var v=f[c.k];
+    if(c.k==='ticker') return '<a class="scr-tk" href="/stocks/'+esc(String(v).trim())+'">'+esc(String(v).replace(' US',''))+'</a>';
+    if(c.k==='is_rex') return v?'<span class="scr-badge rex">REX</span>':'';
+    if(c.k==='aum') return fmtNum(v);
+    if(c.k==='fund_flow_1week'||c.k==='fund_flow_1month') return fmtFlow(v);
+    if(c.k==='map_li_direction'){ if(!v) return '—'; var lo=String(v).toLowerCase();
+      var cls=/short|inv/.test(lo)?'scr-dir-inv':(/long|lever/.test(lo)?'scr-dir-long':''); return '<span class="'+cls+'">'+esc(v)+'</span>'; }
+    return v==null||v===''?'—':esc(v);
+  }
+  function render(){
+    var rows=sortRows(filtered());
+    var li=ALL.filter(isLI).length, rex=ALL.filter(function(f){return f.is_rex;}).length;
+    var aum=rows.reduce(function(s,f){return s+(Number(f.aum)||0);},0);
+    $('kpiCount').textContent=rows.length.toLocaleString();
+    $('kpiAum').textContent=fmtNum(aum).replace(/<[^>]+>/g,'');
+    $('kpiLi').textContent=li.toLocaleString();
+    $('kpiRex').textContent=rex.toLocaleString();
+    $('scrCount').textContent=rows.length+' of '+ALL.length+' funds';
+    var head=COLS.map(function(c){ var a=c.num?' num':''; var ar=(c.k===sortK)?(sortAsc?' ▲':' ▼'):'';
+      return '<th class="'+(c.num?'num':'')+'" data-k="'+c.k+'">'+c.l+ar+'</th>'; }).join('');
+    $('scrHead').innerHTML=head;
+    var body=rows.slice(0,500).map(function(f){
+      var tds=COLS.map(function(c){ return '<td class="'+(c.num?'num':'')+'">'+cell(f,c)+'</td>'; }).join('');
+      return '<tr class="'+(f.is_rex?'rex':'')+'">'+tds+'</tr>';
+    }).join('');
+    $('scrBody').innerHTML=body || '<tr><td colspan="'+COLS.length+'" style="padding:20px;color:#94a3b8;">No funds match.</td></tr>';
+    // header sort handlers
+    Array.prototype.forEach.call($('scrHead').children,function(th){
+      th.onclick=function(){ var k=th.getAttribute('data-k'); if(k===sortK){sortAsc=!sortAsc;} else {sortK=k;sortAsc=false;} render(); };
+    });
+  }
+  // controls
+  Array.prototype.forEach.call($('catPills').children,function(p){
+    p.onclick=function(){ Array.prototype.forEach.call($('catPills').children,function(x){x.classList.remove('active');});
+      p.classList.add('active'); cat=p.getAttribute('data-cat'); render(); };
+  });
+  $('rexToggle').onclick=function(){ rexOnly=!rexOnly; this.classList.toggle('active',rexOnly); render(); };
+  $('scrSearch').oninput=function(){ q=this.value.trim().toLowerCase(); render(); };
+  $('scrCsv').onclick=function(ev){ ev.preventDefault(); var rows=sortRows(filtered());
+    var head=COLS.map(function(c){return c.l;}).join(',');
+    var lines=rows.map(function(f){return COLS.map(function(c){ var v=f[c.k]; if(c.k==='is_rex')v=v?'REX':''; return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');});
+    var blob=new Blob([head+'\n'+lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='rex_screener.csv'; a.click(); };
+
+  fetch('/market/api/screener-data?scope=all',{credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){ ALL=(d&&d.funds)||[]; render(); })
+    .catch(function(){ $('scrBody').innerHTML='<tr><td colspan="'+COLS.length+'" style="padding:20px;color:#dc2626;">Failed to load fund data.</td></tr>'; });
+})();
+</script>
+{% endblock %}
