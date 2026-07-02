@@ -228,7 +228,7 @@ def _pipeline_products_impl(
     sort: str | None = None,
     dir: str | None = None,
     page: int = 1,
-    per_page: str | int = "all",
+    per_page: str | int = "50",  # comfortable default; "all" still available via the control
     hide_terminal: int = 0,
     show_cold: int | None = None,  # legacy alias — ignored if hide_terminal supplied
     recent_days: int = 14,
