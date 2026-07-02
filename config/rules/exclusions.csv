@@ -178,3 +178,6 @@ BWQG US,,"auto-llm-other: Quality growth equity ETF with no leverage, options me
 RMHY US,,auto-llm-other: Risk-managed yield fixed income ETF with adaptive strategy but no explicit options-income or leverage stated; fixed income with active management.
 FECM US,,auto-llm-other: Municipal bond ETF focused on traditional fixed income yield without options mechanics.
 FESC US,,"auto-llm-other: Small cap equity ETF with no leverage, hedging, or options-income strategy."
+CDPI US,,auto-llm-other: High dividend equity fund emphasizing dividend collection without explicit options-writing mechanics.
+QFF US,,auto-llm-other: Focused equity fund emphasizing quality and growth without options or leverage strategies.
+DRVR US,,"auto-llm-other: Dividend drivers ETF using fundamental screening; equity-income via dividends, not options strategies."
