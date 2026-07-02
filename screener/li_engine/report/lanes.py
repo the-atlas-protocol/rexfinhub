@@ -100,6 +100,19 @@ def _score_badge(score, found: bool = True) -> str:
     return f'<b style="color:{c};font-variant-numeric:tabular-nums;">{disp}</b>'
 
 
+def _ul_link(code, text=None) -> str:
+    """Underlier as a click target → opens the /operations filer modal (who filed on
+    this name). Falls back to the full page if the modal JS isn't present."""
+    c = _s(code).replace(" US", "").strip()
+    label = escape(_s(text) if text is not None else c) or "—"
+    if not c:
+        return label
+    ce = escape(c)
+    return (f'<a href="/operations/pipeline/underlier/{ce}" '
+            f'onclick="return openUnderlierPanel(event,\'{ce}\')" '
+            f'style="color:{T_LINK};text-decoration:none;font-weight:600;">{label}</a>')
+
+
 def _status_pill(status) -> str:
     """Filed / Effective only, as an on-brand pill (STYLE_GUIDE status pills)."""
     s = str(status).strip().lower()
@@ -315,7 +328,7 @@ def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
                   if has_comp else f'<span style="color:{GRAY};">clean</span>')
         company = escape(resolve_company_line(tk, _s(_rowget(r, "sector"))))
         cells = [
-            f'<b>{escape(tk.replace(" US", ""))}</b>',
+            _ul_link(tk),
             f'<span style="font-size:11px;">{company}</span>',
             _aum_m(_rowget(r, "market_cap")),   # whitespace market_cap is in $millions
             _score_badge(ctx.score_of(tk)),     # canonical li_engine_daily.final_score (0-100)
@@ -348,7 +361,7 @@ def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
         has_score = tc._canon(underlier) in ctx.score_map
         cells = [
             f'<span style="font-size:12px;">{escape(fund_name)}</span>',
-            f'<b>{escape(underlier)}</b>',
+            _ul_link(underlier),
             f'<span style="color:{WARN if is_inv else T_BODY};font-weight:600;">{direction}</span>',
             _status_pill(_rowget(r, "status_binary")),
             f'<span style="color:{T_MUTED};">{_s(_rowget(r, "initial_filing_date"))[:10] or "—"}</span>',
@@ -369,7 +382,7 @@ def render_inverse(df: pd.DataFrame, ctx: LaneContext) -> str:
     body = ""
     for i, (_, r) in enumerate(df.iterrows()):
         cells = [
-            f'<b>{escape(_s(_rowget(r, "underlier")))}</b>',
+            _ul_link(_rowget(r, "underlier")),
             f'{int(_f(_rowget(r, "n_long")))}',
             f'<span style="font-size:11px;">{escape(_s(_rowget(r, "top_fund")))}</span>',
             escape(_s(_rowget(r, "top_issuer"))),
@@ -390,7 +403,7 @@ def render_launch_anyway(df: pd.DataFrame, ctx: LaneContext) -> str:
     for i, (_, r) in enumerate(df.iterrows()):
         mo = _f(_rowget(r, "months_old"))
         cells = [
-            f'<b>{escape(_s(_rowget(r, "underlier")))}</b>',
+            _ul_link(_rowget(r, "underlier")),
             f'{int(_f(_rowget(r, "n_long")))}',
             escape(_s(_rowget(r, "top_issuer"))),
             f'<span style="font-size:11px;">{escape(_s(_rowget(r, "top_fund")))}</span>',
@@ -416,30 +429,33 @@ def _comp_summary(race: list) -> str:
     return f'<span style="color:{GRAY};">filed &middot; no eff date</span>'
 
 
-def _race_detail_rows(race: list, ncols: int) -> str:
-    """Full filer race as collapsible detail rows (hidden until 'expand competitors')."""
+def _race_detail_rows(race: list, ncols: int, gid: str) -> str:
+    """Per-underlier filer race as collapsible detail rows (hidden; toggled per-row)."""
+    grp = f"trex-comp-detail grp-{gid}"
     if not race:
-        return ""
+        return (f'<tr class="{grp}" style="display:none;background:#fafbfc;"><td colspan="{ncols}" '
+                f'style="padding:4px 10px 4px 30px;font-size:11px;color:{T_MUTED};border-bottom:1px solid {T_ROWB};">'
+                f'no L&amp;I filings on record yet — open whitespace</td></tr>')
     out = ""
     for r in race:
-        c = GREEN if r.get("status") == "Effective" else BLUE
-        who = f'<b style="color:{BLUE if r.get("rex") else NAVY};">{escape(_s(r.get("issuer")))}</b>'
+        c = POS if r.get("status") == "Effective" else T_LINK
+        who = f'<b style="color:{T_LINK if r.get("rex") else T_TEXT};">{escape(_s(r.get("issuer")))}</b>'
         dt = (f' &middot; eff {escape(_s(r.get("date")))}' if r.get("date")
               else f' &middot; <span style="color:{RED};">no eff date</span>')
         direction = "Long" if str(r.get("dir")) == "long" else "Inverse"
-        out += (f'<tr class="trex-comp-detail" style="display:none;background:#fafbfc;">'
-                f'<td colspan="{ncols}" style="padding:3px 8px 3px 28px;font-size:10px;'
-                f'border-bottom:1px solid {BORDER};color:{NAVY};">'
+        out += (f'<tr class="{grp}" style="display:none;background:#fafbfc;">'
+                f'<td colspan="{ncols}" style="padding:4px 10px 4px 30px;font-size:11px;'
+                f'border-bottom:1px solid {T_ROWB};color:{T_TEXT};">'
                 f'&#8627; {who} &middot; {direction} &middot; '
                 f'<span style="color:{c};font-weight:600;">{escape(_s(r.get("status")))}</span>{dt}</td></tr>')
     return out
 
 
 def _race_section(items: list, title: str, subtitle: str, headers, aligns,
-                  row_cells: Callable[[dict], list], accent: str) -> str:
-    """Shared renderer for foreign + IPO lanes. Each row shows a collapsed competition
-    summary; the full filer race is emitted as hidden detail rows toggled by the
-    page-level expand/collapse-competitors control."""
+                  row_cells: Callable[[dict], list], accent: str, prefix: str) -> str:
+    """Foreign + IPO lanes. Each row is click-to-expand its OWN filer race (per-row),
+    so 'click SK Hynix → see everyone who filed' works. gids are lane-prefixed so the
+    foreign and IPO lanes never collide."""
     ncols = len(headers)
     if not items:
         return _empty(title, subtitle, "No names in this lane right now.", accent)
@@ -447,8 +463,13 @@ def _race_section(items: list, title: str, subtitle: str, headers, aligns,
     for i, it in enumerate(items):
         race = it.get("race") or []
         rex_filed = any(r.get("rex") for r in race)
-        body += _tr(row_cells(it), aligns=aligns, rex=rex_filed)
-        body += _race_detail_rows(race, ncols)
+        gid = f"{prefix}{i}"
+        cells = list(row_cells(it))
+        caret = (f'<span id="cx-{gid}" onclick="trexToggleGroup(\'{gid}\')" title="Show all filers" '
+                 f'style="cursor:pointer;color:{T_LINK};font-weight:700;margin-right:6px;">&#9656;</span>')
+        cells[0] = f'{caret}<span onclick="trexToggleGroup(\'{gid}\')" style="cursor:pointer;">{cells[0]}</span>'
+        body += _tr(cells, aligns=aligns, rex=rex_filed)
+        body += _race_detail_rows(race, ncols, gid)
     return _section(title, subtitle, headers, body, accent=accent, count=len(items), aligns=aligns)
 
 
@@ -468,7 +489,7 @@ def render_foreign(items: list, ctx: LaneContext) -> str:
             _comp_summary(it.get("race") or []),
         ]
 
-    return _race_section(items, title, subtitle, headers, aligns, cells, accent=BLUE)
+    return _race_section(items, title, subtitle, headers, aligns, cells, accent=BLUE, prefix="f")
 
 
 def render_ipo(items: list, ctx: LaneContext) -> str:
@@ -479,7 +500,8 @@ def render_ipo(items: list, ctx: LaneContext) -> str:
 
     def cells(it):
         val = it.get("valuation_usd")
-        val_s = _cap_usd(val) if val else "—"
+        # ipo_watchlist.yaml stores valuation in $billions; _cap_usd expects raw USD.
+        val_s = _cap_usd(_f(val) * 1e9) if val else "—"
         s1 = ('<span style="color:%s;font-weight:700;">S-1</span>' % GREEN) if it.get("s1") else "—"
         return [
             f'<b>{escape(_s(it.get("company")))}</b>',
@@ -490,7 +512,7 @@ def render_ipo(items: list, ctx: LaneContext) -> str:
             _comp_summary(it.get("race") or []),
         ]
 
-    return _race_section(items, title, subtitle, headers, aligns, cells, accent=ORANGE)
+    return _race_section(items, title, subtitle, headers, aligns, cells, accent=ORANGE, prefix="i")
 
 
 # --------------------------------------------------------------------------- #

@@ -201,7 +201,7 @@ const COLUMNS=[
   ["percentage_premium","Prem/Disc","Trading","pct2",false],["average_percent_premium_52week","52W Avg Prem","Trading","pct2",false],
   ["nav_tracking_error","Track Err","Trading","pct2",false],
   ["expense_ratio","Exp Ratio","Costs","pct2",false],["management_fee","Mgmt Fee","Costs","pct2",false],
-  ["is_singlestock","Underlier","L&I Detail",null,false],["map_li_direction","Direction","L&I Detail",null,false],
+  ["is_singlestock","Single-Stock","L&I Detail",null,false],["map_li_direction","Direction","L&I Detail",null,false],
   ["map_li_leverage_amount","Leverage","L&I Detail",null,false],["map_li_underlier","L&I Underlier","L&I Detail",null,false],
   ["map_cc_underlier","CC Underlier","Income Detail",null,false],["cc_type","CC Type","Income Detail",null,false],
   ["cc_category","CC Category","Income Detail",null,false],
@@ -219,7 +219,7 @@ const PRESETS={
   performance:{label:"Performance",cols:["ticker","fund_name","rex_suite","aum","total_return_1day","total_return_1week","total_return_1month","total_return_3month","total_return_ytd","total_return_1year","average_vol_30day","open_interest"]},
   flows:{label:"Flows",cols:["ticker","fund_name","rex_suite","aum","fund_flow_1day","fund_flow_1week","fund_flow_1month","fund_flow_3month","fund_flow_ytd","total_return_1day"]},
   trading:{label:"Trading",cols:["ticker","fund_name","rex_suite","aum","average_vol_30day","open_interest","percent_short_interest","average_bidask_spread","percentage_premium","average_percent_premium_52week","expense_ratio","management_fee"]},
-  li:{label:"L&I",cols:["ticker","fund_name","issuer_display","aum","is_singlestock","map_li_direction","map_li_leverage_amount","total_return_1day","total_return_1month","total_return_ytd","average_vol_30day"]},
+  li:{label:"L&I",cols:["ticker","fund_name","issuer_display","aum","map_li_underlier","map_li_direction","map_li_leverage_amount","is_singlestock","total_return_1day","total_return_1month","total_return_ytd","average_vol_30day"]},
   income:{label:"Income",cols:["ticker","fund_name","issuer_display","aum","map_cc_underlier","cc_type","cc_category","annualized_yield","total_return_1day","total_return_ytd","average_vol_30day"]},
   crypto:{label:"Crypto",cols:["ticker","fund_name","issuer_display","aum","map_crypto_underlier","total_return_1day","total_return_1week","total_return_1month","total_return_ytd","average_vol_30day"]},
   taxonomy:{label:"Taxonomy",cols:["ticker","fund_name","issuer_display","aum","primary_strategy","asset_class","sub_strategy","etp_category","total_return_ytd","total_return_1year"]},
@@ -276,6 +276,11 @@ function toggleCol(k){visibleCols.has(k)?visibleCols.delete(k):visibleCols.add(k
 function selectPreset(n){
   activePreset=n;
   visibleCols=new Set(PRESETS[n].cols);
+  // The L&I view filters to L&I funds too (otherwise it shows 5,449 mostly-non-L&I
+  // rows with blank L&I columns). Selecting any other preset clears that filter.
+  liOnly = (n === "li");
+  var lb=document.getElementById("liQuick");
+  if(lb){ lb.style.background=liOnly?"#2563eb":"#fff"; lb.style.color=liOnly?"#fff":"#2563eb"; }
   buildPresets();buildSidebar();currentPage=0;render();
 }
 

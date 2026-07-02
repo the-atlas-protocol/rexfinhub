@@ -54,6 +54,10 @@ PARQUET_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "analysis
 TREX_PDF_DIR = Path(__file__).resolve().parent.parent.parent / "outputs" / "trex"
 LANE_ARTIFACT = Path(__file__).resolve().parent.parent.parent / "data" / "analysis" / "trex_lanes.json"
 LANE_ORDER = ["pipeline", "whitespace", "inverse", "launch_anyway", "foreign", "ipo"]
+LANE_LABELS = {
+    "pipeline": "REX Pipeline", "whitespace": "Whitespace", "inverse": "Inverse Gap",
+    "launch_anyway": "Launch-Anyway", "foreign": "Foreign", "ipo": "Pre-IPO",
+}
 
 # The lane build (esp. the foreign/pre-IPO filer race) is far too slow to run
 # inside a web request. scripts/bake_trex_lanes.py bakes it to LANE_ARTIFACT
@@ -63,24 +67,28 @@ _LANE_TTL_SECONDS = 300
 _LANE_CACHE: dict[str, Any] = {"at": 0.0, "built": None}
 
 
-def _get_lanes(force: bool = False) -> tuple[list[str], str]:
-    """Return (lane_html_list, generated_at). Prefers the baked artifact; falls
-    back to a live build only if the artifact is missing."""
+def _lane_items(lane_html_by_key: dict) -> list[dict]:
+    return [{"key": k, "label": LANE_LABELS[k], "html": lane_html_by_key[k]}
+            for k in LANE_ORDER if lane_html_by_key.get(k)]
+
+
+def _get_lanes(force: bool = False) -> tuple[list[dict], str]:
+    """Return (lane_items, generated_at) where lane_items = [{key,label,html}].
+    Prefers the baked artifact; live build only if the artifact is missing."""
     now = time.time()
     cached = _LANE_CACHE.get("built")
     if not force and cached is not None and (now - _LANE_CACHE["at"]) < _LANE_TTL_SECONDS:
         return cached
 
-    result: tuple[list[str], str] | None = None
+    result: tuple[list[dict], str] | None = None
     # 1) fast path — the baked artifact
     try:
         if LANE_ARTIFACT.exists():
             import json
             data = json.loads(LANE_ARTIFACT.read_text(encoding="utf-8"))
-            lanes = data.get("lanes") or {}
-            html = [lanes[k] for k in LANE_ORDER if lanes.get(k)]
-            if html:
-                result = (html, data.get("generated_at", ""))
+            items = _lane_items(data.get("lanes") or {})
+            if items:
+                result = (items, data.get("generated_at", ""))
     except Exception as exc:
         log.warning("baked lanes read failed: %s", exc)
 
@@ -89,10 +97,10 @@ def _get_lanes(force: bool = False) -> tuple[list[str], str]:
         try:
             from screener.li_engine.report import lanes as _lanes
             built = _lanes.build_all()
-            html = [built[k]["html"] for k in LANE_ORDER
-                    if isinstance(built.get(k), dict) and built[k].get("html")]
+            by_key = {k: built[k]["html"] for k in LANE_ORDER
+                      if isinstance(built.get(k), dict) and built[k].get("html")}
             ctx = built.get("_ctx")
-            result = (html, getattr(ctx, "generated_at", "") if ctx else "")
+            result = (_lane_items(by_key), getattr(ctx, "generated_at", "") if ctx else "")
         except Exception as exc:
             log.warning("live lane build failed: %s", exc)
             result = cached if cached else ([], "")
@@ -215,7 +223,7 @@ def candidates(request: Request, db: Session = Depends(get_db)):
     # 2. Report-styled candidate lanes (shared builder) --------------------
     # One builder feeds the page, the downloadable PDFs, and the emailed report.
     # Order: REX pipeline first, then the four opportunity lanes + foreign/IPO.
-    lane_html, generated_at = _get_lanes()
+    lane_items, generated_at = _get_lanes()
 
     # 5. Money flow ---------------------------------------------------------
     money_flow: list[dict] = []
@@ -264,7 +272,7 @@ def candidates(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "kpis": kpis,
-            "lane_html": lane_html,
+            "lane_items": lane_items,
             "generated_at": generated_at,
             "money_flow": money_flow,
             "has_money_flow": len(money_flow) > 0,
