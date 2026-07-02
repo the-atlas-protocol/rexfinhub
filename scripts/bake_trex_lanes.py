@@ -30,6 +30,10 @@ def main() -> int:
             for k in LANE_ORDER
             if isinstance(built.get(k), dict) and built[k].get("html")
         },
+        # Drill-down filer race per underlier (who filed L&I + effective dates) and the
+        # canonical li_engine_daily score — powers the on-page filer modal + Score lookup.
+        "races": built.get("_races") or {},
+        "scores": getattr(ctx, "score_map", {}) if ctx else {},
     }
     ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
     tmp = ARTIFACT.with_suffix(".json.tmp")

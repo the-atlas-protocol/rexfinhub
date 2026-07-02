@@ -310,6 +310,58 @@ def load_underlier_competition():
     return out
 
 
+def load_underlier_races():
+    """Map canonical underlier -> itemized filer race [{issuer,status,dir,date,rex}].
+
+    Uses the DISCIPLINED ``_comp_underlier_of`` word-token extractor (not the
+    naive name-substring match ``_filer_race`` uses), so short tickers like MU/SE
+    don't over-match. REX filings are keyed by ``rex_products.underlier`` directly.
+    This backs the T-REX drill-down (who has filed L&I on this name + effective
+    dates) consistently across every lane — the lane's own data, not the
+    Bloomberg-live ``mkt_master_data`` modal (which is empty for whitespace /
+    filed-but-not-listed / foreign names).
+    """
+    from collections import defaultdict
+    acc = defaultdict(dict)  # underlier -> {(issuer, dir): row}
+    # Competitors — disciplined underlier extraction from fund_status.
+    fs = _df("SELECT fund_name, status, effective_date FROM fund_status WHERE fund_name IS NOT NULL")
+    if fs is not None and not fs.empty:
+        for name, status, eff in fs.itertuples(index=False):
+            if not _LI_NAME_RE.search(str(name)) or _REX_NAME_RE.search(str(name)):
+                continue
+            u = _comp_underlier_of(name)
+            iss = _comp_issuer_of(name)
+            if not u or not iss:
+                continue
+            d = "inverse" if _INV_RE.search(str(name)) else "long"
+            cur = {"issuer": iss, "status": _race_collapse(status), "dir": d,
+                   "date": _race_eff(eff), "rex": False}
+            key = (iss, d)
+            if key not in acc[u] or _race_rank(cur["status"]) > _race_rank(acc[u][key]["status"]):
+                acc[u][key] = cur
+    # REX — keyed straight off rex_products.underlier (authoritative).
+    rexp = _df("""SELECT underlier, name, status, estimated_effective_date, official_listed_date
+                  FROM rex_products
+                  WHERE product_suite='T-REX' AND underlier IS NOT NULL AND underlier!=''""")
+    if rexp is not None and not rexp.empty:
+        for und, name, status, est_eff, listed in rexp.itertuples(index=False):
+            u = _canon(und)
+            if not u:
+                continue
+            d = "inverse" if _INV_RE.search(str(name)) else "long"
+            cur = {"issuer": "T-REX", "status": _race_collapse(status), "dir": d,
+                   "date": _race_eff(listed, est_eff), "rex": True}
+            key = ("T-REX", d)
+            if key not in acc[u] or _race_rank(cur["status"]) > _race_rank(acc[u][key]["status"]):
+                acc[u][key] = cur
+    out = {}
+    for u, rows in acc.items():
+        r = list(rows.values())
+        r.sort(key=lambda x: (not x["rex"], -_race_rank(x["status"]), x["date"] or "9999"))
+        out[u] = r
+    return out
+
+
 def load_underlier_live():
     """Map canonical underlier -> {'top_aum': largest live L&I AUM ($M),
     'has_long': bool, 'has_inv': bool}. Used to show whether a live product

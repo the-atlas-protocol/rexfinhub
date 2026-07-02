@@ -101,6 +101,12 @@
 
 <div id="lookupResults"></div>
 
+<p style="font-size:12.5px;color:#64748b;margin:12px 0 0;line-height:1.5;">
+  <b style="color:#0f172a;">What this is:</b> six daily signals of where REX should file its next 2X leveraged/inverse products.
+  Each lane states its intent; click any name for its <b>filer race</b> — who has filed L&amp;I on it (REX + competitors) and their effective dates.
+  Use <b>Score</b> for a name's engine score, <b>Investigate</b> for one we don't track yet.
+</p>
+
 {# ===================== Lane panes ===================== #}
 {% if lane_items %}
   {% for ln in lane_items %}
@@ -115,6 +121,8 @@
 {% if has_money_flow %}
 <div class="lane-pane" data-lane="flow">
   <div class="lane-scroll">
+    <div style="padding:10px 12px 4px;"><b style="font-size:15px;">Money Flow</b>
+      <span style="color:#64748b;font-size:12px;">Intent: 4-week net flow into L&amp;I products by the single stock they track — where leveraged money is moving among filable names (broad-index funds excluded). Click a name for its filer race.</span></div>
     <table class="li-flow-table">
       <thead><tr>
         <th style="width:36px;">#</th><th>Underlier</th>
@@ -149,30 +157,90 @@ function showLane(key){
   window.scrollTo({top:0, behavior:'instant'});
 }
 
-// ---- Per-underlier filer expand (foreign / pre-IPO lanes) ----------------
-function trexToggleGroup(gid){
-  var rows = document.querySelectorAll('tr.grp-' + gid);
-  var open = false;
-  rows.forEach(function(r){ var show = r.style.display==='none'; r.style.display = show ? 'table-row' : 'none'; open = show; });
-  var car = document.getElementById('cx-' + gid);
-  if(car) car.innerHTML = open ? '&#9662;' : '&#9656;';
+// ---- Lane-native filer modal (who filed L&I on this underlier + eff dates) --
+function racePill(r){
+  var dir = r.dir==='inverse' ? 'Inverse' : 'Long';
+  var stc = r.status==='Effective' ? '#059669' : '#2563eb';
+  var dt = r.date ? ('&middot; eff ' + esc(r.date)) : '&middot; <span style="color:#dc2626;">no eff date</span>';
+  return '<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12.5px;">'+
+    '<b style="color:'+(r.rex?'#2563eb':'#0f172a')+';">'+esc(r.issuer)+'</b> &middot; '+dir+
+    ' &middot; <span style="color:'+stc+';font-weight:600;">'+esc(r.status)+'</span> '+dt+'</div>';
 }
-
-// ---- Underlier filer modal (fetch /operations race body) ----------------
+function raceCol(title, list, empty){
+  var inner = list.length ? list.map(racePill).join('') : '<div style="color:#94a3b8;font-style:italic;font-size:12px;padding:6px 0;">'+empty+'</div>';
+  return '<div style="flex:1;min-width:250px;"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:600;margin-bottom:4px;">'+
+    title+' <span style="color:#94a3b8;">'+list.length+'</span></div>'+inner+'</div>';
+}
+function renderRaceModal(code, d){
+  var race = d.race || [];
+  var comp = race.filter(function(r){ return !r.rex; });
+  var compIss = {}; comp.forEach(function(r){ compIss[r.issuer]=1; });
+  var score = (d.score!=null) ? Number(d.score).toFixed(0) : '—';
+  var head = '<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">'+
+    '<h2 style="margin:0;font-size:18px;"><b style="color:#2563eb;">'+esc(code)+'</b> — filer race</h2>'+
+    '<span style="color:#64748b;font-size:12px;">who has filed L&amp;I on this underlier</span></div>';
+  var kpis = '<div style="display:flex;gap:26px;margin-bottom:14px;">'+
+    '<div><div style="font-size:20px;font-weight:700;">'+race.filter(function(r){return r.rex;}).length+'</div><div style="font-size:10px;text-transform:uppercase;color:#94a3b8;">REX filings</div></div>'+
+    '<div><div style="font-size:20px;font-weight:700;">'+Object.keys(compIss).length+'</div><div style="font-size:10px;text-transform:uppercase;color:#94a3b8;">Competitor issuers</div></div>'+
+    '<div><div style="font-size:20px;font-weight:700;">'+score+'</div><div style="font-size:10px;text-transform:uppercase;color:#94a3b8;">Engine score</div></div></div>';
+  var body;
+  if(!race.length){
+    body = '<div style="padding:16px 2px;color:#64748b;font-size:13px;">No L&amp;I filings on record for <b>'+esc(code)+'</b> yet — clean whitespace to file into. Engine score: '+score+'.</div>';
+  } else {
+    var eff = race.filter(function(r){ return r.status==='Effective'; });
+    var filed = race.filter(function(r){ return r.status!=='Effective'; });
+    body = '<div style="display:flex;gap:26px;flex-wrap:wrap;">'+
+      raceCol('Effective / live', eff, 'none effective yet')+
+      raceCol('Filed &middot; awaiting', filed, 'none awaiting')+'</div>';
+  }
+  var close = '<button onclick="closeUnderlierModal()" style="position:absolute;top:10px;right:12px;border:1px solid #e5e7eb;background:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;">Close ×</button>';
+  return '<div style="position:relative;padding:16px 18px;">'+close+head+kpis+body+'</div>';
+}
 function openUnderlierPanel(ev, code){
   if(ev){ if(ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.button===1) return true; ev.preventDefault(); }
   var m = document.getElementById('underlierModal');
   var c = document.getElementById('underlierModalContent');
-  c.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Loading filers for ' + code + '…</div>';
+  c.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Loading filers for ' + esc(code) + '…</div>';
   m.style.display = 'flex';
-  fetch('/operations/pipeline/underlier/' + encodeURIComponent(code) + '?modal=1', {credentials:'same-origin'})
-    .then(function(r){ return r.ok ? r.text() : Promise.reject(r.status); })
-    .then(function(html){ c.innerHTML = html; })
-    .catch(function(){ c.innerHTML = '<div style="padding:30px;color:#64748b;">No filer race available for <b>' + code + '</b>.</div>'; });
+  fetch('/tools/li/underlier/' + encodeURIComponent(code) + '.json', {credentials:'same-origin'})
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(d){ c.innerHTML = renderRaceModal(code, d); })
+    .catch(function(){ c.innerHTML = '<div style="padding:30px;color:#64748b;">Could not load the filer race for <b>' + esc(code) + '</b>.</div>'; });
   return false;
 }
 function closeUnderlierModal(){ document.getElementById('underlierModal').style.display='none'; }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeUnderlierModal(); });
+
+// ---- Client-side column sort for the lane tables -------------------------
+function trexSortTable(th){
+  var table = th.closest('table'); if(!table) return;
+  var idx = Array.prototype.indexOf.call(th.parentNode.children, th);
+  var tbody = table.tBodies[0]; if(!tbody) return;
+  var rows = Array.prototype.slice.call(tbody.rows).filter(function(r){ return !r.classList.contains('trex-comp-detail'); });
+  var asc = th.getAttribute('data-sort') !== 'asc';
+  th.parentNode.querySelectorAll('th').forEach(function(h){ h.removeAttribute('data-sort'); h.style.background=''; });
+  th.setAttribute('data-sort', asc ? 'asc' : 'desc'); th.style.background = '#f1f5f9';
+  var val = function(row){
+    var cell = row.cells[idx]; if(!cell) return '';
+    var t = (cell.innerText||'').trim().replace(/[$,%]/g,'').replace(/,/g,'');
+    var n = parseFloat(t.replace(/[^0-9.\-]/g,''));
+    return (t!=='' && !isNaN(n) && /[0-9]/.test(t)) ? {n:n} : {s:(cell.innerText||'').trim().toLowerCase()};
+  };
+  rows.sort(function(a,b){
+    var va=val(a), vb=val(b);
+    if('n' in va && 'n' in vb) return asc ? va.n-vb.n : vb.n-va.n;
+    var sa=('s' in va)?va.s:String(va.n), sb=('s' in vb)?vb.s:String(vb.n);
+    return asc ? (sa<sb?-1:sa>sb?1:0) : (sa>sb?-1:sa<sb?1:0);
+  });
+  rows.forEach(function(r){ tbody.appendChild(r); });
+}
+function trexWireSort(){
+  document.querySelectorAll('.lane-scroll table thead th').forEach(function(th){
+    th.style.cursor='pointer'; th.title='Sort'; th.onclick=function(){ trexSortTable(th); };
+  });
+}
+document.addEventListener('DOMContentLoaded', trexWireSort);
+trexWireSort();
 
 // ---- Lookup: Score (evaluator) + Investigate (AI) -----------------------
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -189,13 +257,24 @@ function doEval(){
       var rows = (p && p.results) || [];
       if(!rows.length){ lookupOut().innerHTML = '<div class="eval-not-found">No score found.</div>'; return; }
       lookupOut().innerHTML = rows.map(function(r){
-        if(!r.found) return '<div class="eval-result"><div class="eval-result-head"><span class="eval-result-ticker">'+esc(r.ticker)+'</span><span class="eval-not-found">'+esc(r.message||'no data')+'</span></div></div>';
+        if(!r.found) return '<div class="eval-result"><div class="eval-result-head"><span class="eval-result-ticker">'+esc(r.ticker)+'</span>'+
+          '<span class="eval-not-found">'+esc(r.message||'no data')+'</span>'+
+          '<button class="inv-btn" style="margin-left:auto;padding:3px 10px;font-size:12px;" onclick="doInvestigate()">Investigate →</button></div></div>';
+        var score = (r.score!=null) ? Number(r.score).toFixed(0) : '—';
+        var race = r.race || [];
+        var comp = race.filter(function(x){ return !x.rex; });
+        var eff = race.filter(function(x){ return x.date; }).map(function(x){ return x.date; }).sort();
+        var raceLine = race.length
+          ? (race.filter(function(x){return x.rex;}).length+' REX &middot; '+comp.length+' competitor filing(s)'+(eff.length?' &middot; earliest eff '+esc(eff[0]):' &middot; no eff date yet'))
+          : 'no L&amp;I filings yet — clean whitespace';
         var drivers = (r.top_drivers||[]).map(function(d){ var v=Number(d.contribution||0); var cls=v>=0?'eval-driver-pos':'eval-driver-neg';
           return '<div class="eval-driver"><span>'+esc(d.signal)+' (w='+Number(d.weight).toFixed(2)+', z='+Number(d.z).toFixed(2)+')</span><span class="'+cls+'">'+(v>=0?'+':'')+v.toFixed(3)+'</span></div>'; }).join('');
         return '<div class="eval-result"><div class="eval-result-head"><span class="eval-result-ticker">'+esc(r.ticker)+'</span>'+
-          '<span style="color:#64748b;font-size:0.75rem;">'+esc(r.sector||'')+'</span>'+
-          '<span style="margin-left:auto;" class="li-score-pill">score '+Number(r.composite_score).toFixed(2)+' · pct '+Number(r.score_pct).toFixed(1)+'%</span></div>'+
-          '<div style="font-size:0.75rem;color:#475569;margin-bottom:4px;">Top weighted drivers:</div>'+drivers+'</div>';
+          '<span style="color:#64748b;font-size:0.75rem;">'+esc(r.sector||'')+(r.market_cap?' &middot; '+esc(r.market_cap):'')+'</span>'+
+          '<span style="margin-left:auto;" class="li-score-pill">score '+score+' / 100</span>'+
+          '<button class="inv-btn" style="padding:3px 10px;font-size:12px;" onclick="openUnderlierPanel(null,\''+esc(r.ticker)+'\')">Full race →</button></div>'+
+          '<div style="font-size:0.78rem;color:#334155;margin:2px 0 6px;">'+raceLine+'</div>'+
+          (drivers?'<div style="font-size:0.72rem;color:#64748b;margin-bottom:3px;">Top weighted drivers:</div>'+drivers:'')+'</div>';
       }).join('');
     })
     .catch(function(e){ lookupOut().innerHTML = '<div class="eval-not-found">Error: '+esc(e&&e.message||e)+'</div>'; });

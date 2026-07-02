@@ -101,16 +101,27 @@ def _score_badge(score, found: bool = True) -> str:
 
 
 def _ul_link(code, text=None) -> str:
-    """Underlier as a click target → opens the /operations filer modal (who filed on
-    this name). Falls back to the full page if the modal JS isn't present."""
+    """Underlier ticker as a click target → opens the lane-native filer modal (who
+    has filed L&I on this name + effective dates), keyed by the canonical underlier."""
     c = _s(code).replace(" US", "").strip()
     label = escape(_s(text) if text is not None else c) or "—"
     if not c:
         return label
-    ce = escape(c)
-    return (f'<a href="/operations/pipeline/underlier/{ce}" '
-            f'onclick="return openUnderlierPanel(event,\'{ce}\')" '
-            f'style="color:{T_LINK};text-decoration:none;font-weight:600;">{label}</a>')
+    ce = escape(tc._canon(c))
+    return (f'<a href="#" onclick="return openUnderlierPanel(event,\'{ce}\')" '
+            f'style="color:{T_LINK};text-decoration:none;font-weight:600;cursor:pointer;">{label}</a>')
+
+
+def _ul_wrap(code, inner_html: str) -> str:
+    """Wrap already-rendered cell HTML (a company/name cell) in the same filer-modal
+    click target, keyed by the canonical name. Used by the foreign / pre-IPO lanes."""
+    c = _s(code).strip()
+    if not c:
+        return inner_html
+    ce = escape(tc._canon(c))
+    return (f'<a href="#" onclick="return openUnderlierPanel(event,\'{ce}\')" '
+            f'style="color:inherit;text-decoration:none;cursor:pointer;'
+            f'border-bottom:1px dotted {T_LINK};">{inner_html}</a>')
 
 
 def _status_pill(status) -> str:
@@ -315,7 +326,8 @@ def load_ipo(ctx: LaneContext) -> list:
 # --------------------------------------------------------------------------- #
 def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Filing Whitespace"
-    subtitle = "Scored single stocks with no live L&amp;I product yet."
+    subtitle = ("Intent: single stocks with NO live L&amp;I product yet &mdash; pure first-mover "
+                "whitespace, ranked by our engine score. File first. Click a name for the filer race.")
     headers = ["Ticker", "Company · Sector", "Mkt Cap", "Score", "Competitor"]
     aligns = ["left", "left", "right", "right", "left"]
     if df is None or df.empty:
@@ -339,8 +351,9 @@ def render_whitespace(df: pd.DataFrame, ctx: LaneContext) -> str:
 
 
 def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
-    title = "REX Pipeline"
-    subtitle = "T-REX 2X we've filed but not yet launched."
+    title = "REX 2X Queue"
+    subtitle = ("Intent: our own T-REX 2X products already FILED but not yet launched &mdash; "
+                "the live queue, with estimated effective dates. Click a name for the full filer race.")
     headers = ["Fund", "Underlier", "Dir", "Status", "Filed", "Est. Effective", "Score"]
     aligns = ["left", "left", "left", "left", "center", "center", "right"]
     if df is None or df.empty:
@@ -374,7 +387,8 @@ def render_pipeline(df: pd.DataFrame, ctx: LaneContext) -> str:
 
 def render_inverse(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Inverse Gap"
-    subtitle = "Live long (&ge;$100M), no inverse anywhere."
+    subtitle = ("Intent: names with a live LONG L&amp;I (&ge;$100M) but NO inverse anywhere &mdash; "
+                "the open short side to file. Click a name for the filer race.")
     headers = ["Underlier", "# Longs", "Top Long Fund", "Issuer", "Top Long AUM"]
     aligns = ["left", "center", "left", "left", "right"]
     if df is None or df.empty:
@@ -394,7 +408,8 @@ def render_inverse(df: pd.DataFrame, ctx: LaneContext) -> str:
 
 def render_launch_anyway(df: pd.DataFrame, ctx: LaneContext) -> str:
     title = "Launch Anyway"
-    subtitle = "1&ndash;2 competitor longs, REX absent, incumbent &gt;$100M."
+    subtitle = ("Intent: contested names (1&ndash;2 competitor longs, REX absent, incumbent &gt;$100M) "
+                "where the economics still justify a REX launch. Click a name for the filer race.")
     headers = ["Underlier", "Long Comp.", "Top Issuer", "Top Fund", "Top AUM", "First Launch", "Age (mo)"]
     aligns = ["left", "center", "left", "left", "right", "center", "right"]
     if df is None or df.empty:
@@ -429,53 +444,25 @@ def _comp_summary(race: list) -> str:
     return f'<span style="color:{GRAY};">filed &middot; no eff date</span>'
 
 
-def _race_detail_rows(race: list, ncols: int, gid: str) -> str:
-    """Per-underlier filer race as collapsible detail rows (hidden; toggled per-row)."""
-    grp = f"trex-comp-detail grp-{gid}"
-    if not race:
-        return (f'<tr class="{grp}" style="display:none;background:#fafbfc;"><td colspan="{ncols}" '
-                f'style="padding:4px 10px 4px 30px;font-size:11px;color:{T_MUTED};border-bottom:1px solid {T_ROWB};">'
-                f'no L&amp;I filings on record yet — open whitespace</td></tr>')
-    out = ""
-    for r in race:
-        c = POS if r.get("status") == "Effective" else T_LINK
-        who = f'<b style="color:{T_LINK if r.get("rex") else T_TEXT};">{escape(_s(r.get("issuer")))}</b>'
-        dt = (f' &middot; eff {escape(_s(r.get("date")))}' if r.get("date")
-              else f' &middot; <span style="color:{RED};">no eff date</span>')
-        direction = "Long" if str(r.get("dir")) == "long" else "Inverse"
-        out += (f'<tr class="{grp}" style="display:none;background:#fafbfc;">'
-                f'<td colspan="{ncols}" style="padding:4px 10px 4px 30px;font-size:11px;'
-                f'border-bottom:1px solid {T_ROWB};color:{T_TEXT};">'
-                f'&#8627; {who} &middot; {direction} &middot; '
-                f'<span style="color:{c};font-weight:600;">{escape(_s(r.get("status")))}</span>{dt}</td></tr>')
-    return out
-
-
 def _race_section(items: list, title: str, subtitle: str, headers, aligns,
-                  row_cells: Callable[[dict], list], accent: str, prefix: str) -> str:
-    """Foreign + IPO lanes. Each row is click-to-expand its OWN filer race (per-row),
-    so 'click SK Hynix → see everyone who filed' works. gids are lane-prefixed so the
-    foreign and IPO lanes never collide."""
-    ncols = len(headers)
+                  row_cells: Callable[[dict], list], accent: str, name_field: str) -> str:
+    """Foreign + IPO lanes. The name cell is a click target → the lane-native filer
+    modal (who has filed L&I on this name + effective dates), keyed by canonical name."""
     if not items:
         return _empty(title, subtitle, "No names in this lane right now.", accent)
     body = ""
-    for i, it in enumerate(items):
-        race = it.get("race") or []
-        rex_filed = any(r.get("rex") for r in race)
-        gid = f"{prefix}{i}"
+    for it in items:
+        rex_filed = any(r.get("rex") for r in (it.get("race") or []))
         cells = list(row_cells(it))
-        caret = (f'<span id="cx-{gid}" onclick="trexToggleGroup(\'{gid}\')" title="Show all filers" '
-                 f'style="cursor:pointer;color:{T_LINK};font-weight:700;margin-right:6px;">&#9656;</span>')
-        cells[0] = f'{caret}<span onclick="trexToggleGroup(\'{gid}\')" style="cursor:pointer;">{cells[0]}</span>'
+        cells[0] = _ul_wrap(it.get(name_field) or "", cells[0])
         body += _tr(cells, aligns=aligns, rex=rex_filed)
-        body += _race_detail_rows(race, ncols, gid)
     return _section(title, subtitle, headers, body, accent=accent, count=len(items), aligns=aligns)
 
 
 def render_foreign(items: list, ctx: LaneContext) -> str:
     title = "Foreign-Listed"
-    subtitle = "Foreign-listed names (US-ADRs excluded) &middot; REX in green."
+    subtitle = ("Intent: foreign-listed names (US-ADRs excluded) and who's racing to file 2X on them. "
+                "REX-filed rows in green. Click a name for the full filer race + effective dates.")
     headers = ["Company", "Ticker", "Market", "Mkt Cap", "REX Status", "Competition"]
     aligns = ["left", "left", "left", "right", "left", "left"]
 
@@ -489,12 +476,13 @@ def render_foreign(items: list, ctx: LaneContext) -> str:
             _comp_summary(it.get("race") or []),
         ]
 
-    return _race_section(items, title, subtitle, headers, aligns, cells, accent=BLUE, prefix="f")
+    return _race_section(items, title, subtitle, headers, aligns, cells, accent=BLUE, name_field="name")
 
 
 def render_ipo(items: list, ctx: LaneContext) -> str:
     title = "Pre-IPO Targets"
-    subtitle = "Private pre-IPO names + their filer race &middot; REX in green."
+    subtitle = ("Intent: private, pre-IPO names and the filer race forming before they list. "
+                "REX-filed rows in green. Click a name for the full filer race + effective dates.")
     headers = ["Company", "Valuation", "As of", "S-1", "REX Status", "Competition"]
     aligns = ["left", "right", "center", "center", "left", "left"]
 
@@ -512,7 +500,7 @@ def render_ipo(items: list, ctx: LaneContext) -> str:
             _comp_summary(it.get("race") or []),
         ]
 
-    return _race_section(items, title, subtitle, headers, aligns, cells, accent=ORANGE, prefix="i")
+    return _race_section(items, title, subtitle, headers, aligns, cells, accent=ORANGE, name_field="company")
 
 
 # --------------------------------------------------------------------------- #
@@ -528,7 +516,7 @@ class Lane:
 
 
 LANES: list[Lane] = [
-    Lane("pipeline", "REX Pipeline", GREEN, load_pipeline, render_pipeline),
+    Lane("pipeline", "REX 2X Queue", GREEN, load_pipeline, render_pipeline),
     Lane("whitespace", "Filing Whitespace", NAVY, load_whitespace, render_whitespace),
     Lane("inverse", "Inverse Gap", TEAL, load_inverse, render_inverse),
     Lane("launch_anyway", "Launch Anyway", PURPLE, load_launch_anyway, render_launch_anyway),
@@ -554,9 +542,33 @@ def build_lane(key: str, ctx: LaneContext | None = None) -> dict:
     return {"key": ln.key, "title": ln.title, "accent": ln.accent, "data": data, "html": html}
 
 
+def build_races(built: dict) -> dict:
+    """Drill-down race map: canonical code -> filer race [{issuer,status,dir,date,rex}].
+
+    US names come from the disciplined ``load_underlier_races()``; foreign / pre-IPO
+    reuse the race already computed on their lane items, keyed by canonical name. This
+    is what the on-page filer modal reads — the lane's own data (with effective dates),
+    never the Bloomberg-live ``/operations`` modal.
+    """
+    races: dict = {}
+    try:
+        races.update(tc.load_underlier_races())
+    except Exception as e:  # noqa: BLE001
+        log.warning("underlier races failed: %s", e)
+    for key in ("foreign", "ipo"):
+        data = (built.get(key) or {}).get("data") or []
+        for it in data:
+            nm = it.get("name") or it.get("company") or it.get("ticker")
+            race = it.get("race") or []
+            if nm and race:
+                races[tc._canon(nm)] = race
+    return races
+
+
 def build_all(ctx: LaneContext | None = None) -> dict:
-    """Build every lane → {key: {key,title,accent,data,html}} + shared context."""
+    """Build every lane → {key: {key,title,accent,data,html}} + shared context + races."""
     ctx = ctx or build_context()
     out = {ln.key: build_lane(ln.key, ctx) for ln in LANES}
     out["_ctx"] = ctx
+    out["_races"] = build_races(out)
     return out
