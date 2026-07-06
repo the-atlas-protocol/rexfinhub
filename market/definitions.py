@@ -123,7 +123,7 @@ def suite_for_name(fund_name: str | None) -> str | None:
     if not fund_name:
         return None
     n = str(fund_name).upper()
-    if n.startswith("T-REX"):
+    if "T-REX" in n:  # incl. co-brands e.g. ROUNDHILL T-REX (RAM); T-REX is REX-exclusive
         return "T-REX"
     if n.startswith("MICROSECTORS"):
         return "MicroSectors"
