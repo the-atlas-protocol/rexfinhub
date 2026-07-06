@@ -181,3 +181,8 @@ FESC US,,"auto-llm-other: Small cap equity ETF with no leverage, hedging, or opt
 CDPI US,,auto-llm-other: High dividend equity fund emphasizing dividend collection without explicit options-writing mechanics.
 QFF US,,auto-llm-other: Focused equity fund emphasizing quality and growth without options or leverage strategies.
 DRVR US,,"auto-llm-other: Dividend drivers ETF using fundamental screening; equity-income via dividends, not options strategies."
+FINA US,,auto-llm-other: Index-based equity ETF tracking MSCI North American subset; standard passive equity exposure.
+TRUR US,,auto-llm-other: Real estate sector ETF tracking real estate trusts; traditional equity sector exposure without leverage or derivatives.
+TRUU US,,auto-llm-other: Utilities sector ETF; traditional equity sector exposure without leverage or derivatives.
+TRUN US,,auto-llm-other: Energy sector ETF; traditional equity sector exposure without leverage or derivatives.
+LCTO US,,"auto-llm-other: Large cap equity ETF with tax-optimization focus; standard equity strategy without leverage, derivatives, or thematic wrap."
