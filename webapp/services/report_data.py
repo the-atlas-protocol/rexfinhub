@@ -576,6 +576,15 @@ def _load_all() -> dict[str, Any]:
         _blank = master["issuer_display"].isna() | (master["issuer_display"].astype(str).str.strip() == "")
         master.loc[_blank, "issuer_display"] = master.loc[_blank, "issuer"]
 
+    # T-REX co-brands carry a partner's legal issuer (e.g. RAM US issuer='Roundhill')
+    # but ARE REX products (is_rex=1) — bucket them under REX in issuer leaderboards/
+    # KPIs so flow/L&I counts tie to the canonical is_rex total (42 single-stock L&I).
+    # MicroSectors keeps its own brand; competitor Roundhill funds (is_rex=0) untouched.
+    # (Ryu 2026-06-29)
+    if {"is_rex", "issuer_display"}.issubset(master.columns):
+        _cobrand = (master["is_rex"] == True) & (~master["issuer_display"].isin(["REX", "MicroSectors"]))
+        master.loc[_cobrand, "issuer_display"] = "REX"
+
     # Merge LI attributes
     if "ticker" in li_attrs.columns:
         la = li_attrs.rename(columns={"ticker": "ticker_clean"})
@@ -2197,7 +2206,7 @@ _FLOW_SUITES = [
         "key": "incomemax",
         "label": "IncomeMax",
         "rex_suites": ["IncomeMax"],
-        "peer_tickers": ["ULTY US", "SLTY US"],
+        "peer_tickers": ["ULTY US", "SLTY US", "KYLD US"],
     },
     {
         "key": "autocallable",

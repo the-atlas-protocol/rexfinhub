@@ -861,9 +861,21 @@ def audit_status_canonical(db) -> dict:
         except OSError:
             continue
         scanned += 1
-        found = {m.group(1).title() for m in _FORBIDDEN_STATUS_RE.finditer(html)}
-        if found:
-            out["hits"].append({"file": path.name, "statuses": sorted(found)})
+        leaks = set()
+        for m in _FORBIDDEN_STATUS_RE.finditer(html):
+            pre = html[max(0, m.start() - 110):m.start()]
+            # Skip legitimate aggregate KPI summary-tile labels — the small,
+            # uppercase, letter-spaced gray captions on market-supply tiles like
+            # "1,512 / Pending" (pending market filings) sit next to "Newly
+            # Effective". They are NOT per-fund status leaks; canonical_status
+            # governs per-fund status badges/cells, which never carry this KPI
+            # label styling. Without this, the audit cried wolf on a clean weekly
+            # report and hard-blocked the daily send (2026-06-24).
+            if "letter-spacing" in pre and "text-transform:uppercase" in pre:
+                continue
+            leaks.add(m.group(1).title())
+        if leaks:
+            out["hits"].append({"file": path.name, "statuses": sorted(leaks)})
     if out["hits"]:
         out["status"] = "fail"
         out["detail"] = ("non-canonical status rendered in: "

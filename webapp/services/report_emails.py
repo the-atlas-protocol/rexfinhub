@@ -1760,11 +1760,19 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
         cut = s[:n].rsplit(" ", 1)[0]
         return (cut or s[:n]) + "…"
 
+    import datetime as _dt
+    _today = _dt.date.today().isoformat()
+    def _eff_disp(e):
+        # an "upcoming" launch with a PAST estimated date is stale (DELAYED filings
+        # carry an old target) — show TBD, not a misleading past date. (Ryu 2026-06-29)
+        if not e:
+            return "—"
+        return "TBD" if e < _today else e
     rows, rex_rows = [], set()
     for i, (iss, name, status, eff, is_rex) in enumerate(items):
         # _table already HTML-escapes each cell — do NOT pre-escape here or names with
         # '&' (S&P) render as '&amp;amp;'. (Ryu 2026-06-17.)
-        rows.append([_trunc(iss, 20), _trunc(name, 52), status, eff or "—"])
+        rows.append([_trunc(iss, 20), _trunc(name, 52), status, _eff_disp(eff)])
         if is_rex:
             rex_rows.add(i)
     n_rex = sum(1 for it in items if it[4])

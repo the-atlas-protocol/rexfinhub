@@ -103,7 +103,7 @@ def build_html(xlsm_path: Path | str = XLSM, db_path: Path | str = DB) -> str:
     conn = sqlite3.connect(str(db_path))
     try:
         li = pd.read_sql_query("""
-            SELECT ticker, fund_name, COALESCE(issuer_nickname, issuer) AS issuer, map_li_underlier
+            SELECT ticker, fund_name, CASE WHEN is_rex=1 AND COALESCE(issuer_nickname,issuer)<>'MicroSectors' THEN 'REX' ELSE COALESCE(issuer_nickname, issuer) END AS issuer, map_li_underlier
             FROM mkt_master_data
             WHERE primary_category='LI' AND market_status='ACTV'
         """, conn)
