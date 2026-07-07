@@ -634,7 +634,7 @@ def load_foreign():
     # made into US 2x products, so they aren't the foreign whitespace. Ryu wants
     # the foreign-LISTED names (.KS / .T / .TW / .HK / etc.). Ryu 2026-06-09.
     if "market" in df.columns:
-        df = df[~df["market"].astype(str).str.upper().isin(["NYSE", "NASDAQ", "NYSE ARCA", "AMEX"])]
+        df = df[~df["market"].astype(str).str.upper().isin(["NYSE", "NASDAQ", "NYSE ARCA", "AMEX", "HKG", "OTC", "OTCMKTS", "PINK"])]
     return df.sort_values("composite_score", ascending=False).head(25)
 
 
@@ -743,7 +743,7 @@ def load_foreign_competition():
         # Foreign-LISTED only: US-ADR names (NYSE/NASDAQ) can already be made into a
         # US 2x product, so they aren't foreign whitespace. Matches the old loader +
         # the Brief's US-ADR exclusion. Ryu wants the .KS/.T/.HK/.XETRA names.
-        if str(r.get("market", "")).upper() in ("NYSE", "NASDAQ", "NYSE ARCA", "AMEX"):
+        if str(r.get("market", "")).upper() in ("NYSE", "NASDAQ", "NYSE ARCA", "AMEX", "HKG", "OTC", "OTCMKTS", "PINK"):
             continue
         _kw = r.get("name_keywords")  # numpy array when sourced from the parquet
         kws = list(_kw) if _kw is not None and not isinstance(_kw, float) else []

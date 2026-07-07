@@ -45,14 +45,16 @@ high_profile_pre_ipo:
 - ticker: Databricks
   company: Databricks
   date: Speculative
-  valuation: ~$62B (Dec 2024 Series J)
-  desc: Lakehouse + AI platform. F-1 watch ongoing; Snowflake is the trading comp.
-  valuation_usd: 62.0
-  last_round_date: '2024-12-17'
-  source_url: https://www.reuters.com/technology/databricks-raises-10-billion-series-j-62-billion-valuation-2024-12-17/
-  expected_ipo_window: Speculative (2026+)
+  valuation: ~$134B (Feb 2026 close); in talks for $165-175B new round (Jun 2026)
+  desc: Lakehouse + AI platform. Closed $5B raise + $2B debt at $134B (Feb 2026), $5.4B
+    revenue run-rate. CEO ruled out a 2026 IPO on 2026-06-04, pointing to 2027+.
+  valuation_usd: 134.0
+  valuation_projected_usd: 175.0
+  last_round_date: '2026-02-09'
+  source_url: https://www.cnbc.com/2026/02/09/databricks-completes-5-billion-funding-round-with-2-billion-in-debt.html
+  expected_ipo_window: Speculative (2027+)
   s1_filed: false
-  as_of_date: '2026-05-12'
+  as_of_date: '2026-07-06'
 - ticker: Anduril
   company: Anduril Industries
   date: TBD
@@ -76,21 +78,49 @@ high_profile_pre_ipo:
   expected_ipo_window: TBD
   s1_filed: false
   as_of_date: '2026-05-12'
+- ticker: Figure AI
+  company: Figure AI
+  date: TBD
+  valuation: ~$39B (Series C, Sept 2025)
+  desc: Humanoid robotics — general-purpose robots for home + commercial use. Series
+    C closed at $39B post-money, a 15x step-up from the $2.6B Series B (Feb 2024).
+  valuation_usd: 39.0
+  last_round_date: '2025-09-17'
+  source_url: https://www.figure.ai/news/series-c
+  expected_ipo_window: TBD
+  s1_filed: false
+  as_of_date: '2026-07-06'
+- ticker: Discord
+  company: Discord
+  date: Confidential S-1 filed (Jan 2026)
+  valuation: ~$8.5B (secondary market, Jun 2026) — targeted range $7B-$25B
+  desc: Chat/community platform. Filed confidentially for a US IPO in Jan 2026 with
+    Goldman + JPMorgan; targeted a Q1 2026 debut but has slipped past that window on
+    SEC backlog and valuation disagreement.
+  valuation_usd: 8.5
+  last_round_date: '2026-06-13'
+  source_url: https://www.bloomberg.com/news/articles/2026-01-06/chat-platform-discord-is-said-to-file-confidentially-for-ipo
+  expected_ipo_window: 2026 (delayed past Q1)
+  s1_filed: true
+  s1_filed_date: '2026-01-06'
+  as_of_date: '2026-07-06'
 - ticker: Klarna
   company: Klarna
-  date: Filed for IPO
-  valuation: ~$15B (targeted)
-  desc: BNPL leader. Re-filed after multiple postponements; testing 2026 window.
-  valuation_usd: 15.0
-  last_round_date: '2025-03-14'
-  source_url: https://www.reuters.com/business/finance/klarna-files-ipo-2025-03-14/
-  expected_ipo_window: 2026 H1
+  date: IPO complete (NYSE, Sept 10, 2025)
+  valuation: Public — $15.1B IPO valuation; $7.4B market cap as of Jul 2026
+  desc: BNPL leader. IPO'd on NYSE at $40/share, priced at $15.1B (down from $45.6B
+    2021 peak). Stock has since declined to ~$7.4B market cap.
+  valuation_usd: 7.4
+  valuation_projected_usd: 15.1
+  last_round_date: '2025-09-10'
+  source_url: https://www.fintechweekly.com/magazine/articles/klarna-ipo-raises-1-37-billion-nyse-debut
+  expected_ipo_window: IPO complete
   s1_filed: true
   s1_filed_date: '2025-03-14'
   as_of_date: '2026-05-12'
 - company: VAST Data
   valuation_usd: 9.1
-  as_of_date: '2026-07-02'
+  as_of_date: '2026-07-06'
   valuation_as_of: 2024-05
   s1_filed: false
   s1_filed_date: ''
@@ -99,7 +129,7 @@ high_profile_pre_ipo:
   source: ai-source-ipo
 - company: Viva Republica (Toss)
   valuation_usd: 7.4
-  as_of_date: '2026-07-02'
+  as_of_date: '2026-07-06'
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
@@ -107,11 +137,19 @@ high_profile_pre_ipo:
   sector: Fintech / Neobank
   source: ai-source-ipo
 - company: X-Energy
-  as_of_date: '2026-07-02'
-  valuation_as_of: unknown
-  s1_filed: false
-  s1_filed_date: ''
-  expected_ipo_window: no timeline
+  ticker: XE
+  date: IPO complete (Nasdaq, Apr 24, 2026)
+  valuation: Public — ~$5.3B market cap as of Jul 2026
+  desc: SMR nuclear reactor developer. Raised $700M Series D (Nov 2025) before IPO'ing
+    on Nasdaq under XE; ~$1.1B net IPO proceeds. Stock has been volatile since debut.
+  valuation_usd: 5.3
+  last_round_date: '2026-04-24'
+  source_url: https://www.morningstar.com/stocks/xnas/xe/quote
+  as_of_date: '2026-07-06'
+  valuation_as_of: 2026-07
+  s1_filed: true
+  s1_filed_date: '2026-04-24'
+  expected_ipo_window: IPO complete
   sector: Nuclear Energy / SMR
   source: ai-source-ipo
 recently_priced:

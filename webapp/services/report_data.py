@@ -201,6 +201,34 @@ def _apply_ms_history_to_data_aum(data_aum, overrides) -> None:
         log.warning("MicroSectors history override (data_aum) failed: %s", e)
 
 
+def _sanitize_impossible_flows(master):
+    """Zero physically-impossible fund flows. A fund cannot flow more money than it has
+    ever held, so a period flow dwarfing its historical PEAK AUM is a ghost -- stale
+    metrics left on a REUSED ticker (AVGC: Avantis UCITS -> Corgi AVGO 2X carried a
+    -276M liquidation outflow onto a 0.23M fund). Cap flows at 2x peak AUM + 5M so ghosts
+    cannot pollute movers/flow tables; real crashes (flow <= peak) survive. (Ryu 2026-07-06.)"""
+    import json as _json
+    flow_cols = [c for c in ("fund_flow_1day", "fund_flow_1week", "fund_flow_1month",
+                 "fund_flow_3month", "fund_flow_6month", "fund_flow_ytd",
+                 "fund_flow_1year", "fund_flow_3year") if c in master.columns]
+    if "aum" not in master.columns or not flow_cols:
+        return master
+    def _peak(row):
+        peak = abs(float(row.get("aum") or 0.0))
+        hj = row.get("aum_history_json")
+        if isinstance(hj, str) and hj.strip().startswith("{"):
+            try:
+                peak = max([peak] + [abs(float(v)) for v in _json.loads(hj).values() if v is not None])
+            except Exception:
+                pass
+        return peak
+    cap = master.apply(_peak, axis=1) * 2.0 + 5.0
+    for c in flow_cols:
+        v = pd.to_numeric(master[c], errors="coerce").fillna(0.0)
+        master.loc[v.abs() > cap, c] = 0.0
+    return master
+
+
 def _load_from_db(db: Session) -> dict[str, Any]:
     """Load report data from SQLite tables (mkt_master_data + mkt_time_series).
 
@@ -248,6 +276,7 @@ def _load_from_db(db: Session) -> dict[str, Any]:
     for col in _NUMERIC:
         if col in master.columns:
             master[col] = pd.to_numeric(master[col], errors="coerce").fillna(0.0)
+    master = _sanitize_impossible_flows(master)
 
     # REX tickers
     rex_tickers = set(
@@ -474,6 +503,7 @@ def _load_all() -> dict[str, Any]:
     for col in _NUMERIC:
         if col in master.columns:
             master[col] = pd.to_numeric(master[col], errors="coerce").fillna(0.0)
+    master = _sanitize_impossible_flows(master)
 
     # Clean ticker via canonical normalizer (ROOT + EXCHANGE, drops
     # Bloomberg asset-class suffix only). Matches the DB-load path so

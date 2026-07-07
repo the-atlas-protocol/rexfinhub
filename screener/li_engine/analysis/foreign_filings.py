@@ -169,6 +169,12 @@ SEED_FOREIGN_UNIVERSE = [
     ("TCS.NS",    "Tata Consultancy Services",    "NSE",  "Technology",              170.0, ["TATA CONSULTANCY"]),
     ("HDFCBANK.NS","HDFC Bank Ltd",               "NSE",  "Financials",              150.0, ["HDFC BANK"]),
     ("BHARTIARTL.NS","Bharti Airtel Ltd",         "NSE",  "Communication Services",  110.0, ["BHARTI AIRTEL"]),
+    # Added 2026-07-06 (Hub2) — foreign-listed underliers whose US ADR/NYSE
+    # ticker is excluded elsewhere as US-tradeable; these are the primary
+    # foreign listings so they still surface as foreign whitespace.
+    ("012450.KS", "Hanwha Aerospace Co Ltd",      "KRX",  "Industrials",              34.0, ["HANWHA AEROSPACE"]),
+    ("3350.T",    "Metaplanet Inc",               "TSE",  "Financials",                1.8, ["METAPLANET"]),
+    ("NOVO-B.CO", "Novo Nordisk A/S",             "CPH",  "Health Care",             220.0, ["NOVO-B", "NOVO NORDISK A/S"]),
 ]
 
 # REX-affiliated registrant matches (REX itself + the white-label trust
@@ -189,7 +195,16 @@ def load_foreign_universe() -> pd.DataFrame:
             if "name_keywords" not in df.columns:
                 # D1 may store keywords differently — synthesise from name
                 df["name_keywords"] = df["name"].str.upper().apply(lambda n: [n.split(",")[0].strip()])
-            log.info("Loaded foreign universe from D1: %d rows", len(df))
+            _seed = pd.DataFrame([
+                {"foreign_ticker": t, "name": n, "market": m, "sector": s,
+                 "market_cap_usd": cap * 1e9, "name_keywords": kws}
+                for (t, n, m, s, cap, kws) in SEED_FOREIGN_UNIVERSE if kws
+            ])
+            _have = set(df["foreign_ticker"].astype(str))
+            _extra = _seed[~_seed["foreign_ticker"].astype(str).isin(_have)]
+            if not _extra.empty:
+                df = pd.concat([df, _extra], ignore_index=True)
+            log.info("Foreign universe: D1 + %d curated seed rows = %d", len(_extra), len(df))
             return df
         except Exception as e:
             log.warning("Could not read D1 universe.parquet (%s); using seed", e)
