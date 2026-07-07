@@ -77,6 +77,21 @@ STEPS = [
     # canonical override-first resolution actually takes effect on the
     # mkt_master_data columns the reports read.
     ("apply_classification_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_classification_overrides.py")]),
+    # Hub4 (2026-07-07): fetch + parse the 485A cover-page effectiveness election
+    # for rows fund_extractions never captured at ingestion (step3 missed the
+    # parse) — this is the actual fix for competitor/REX 485A effective dates
+    # going stale between manual backfills (root cause of today's blank autocall-
+    # report competitor dates). Writes fund_status.effective_date directly (the
+    # table the T-REX report + six competitor sections read) and
+    # rex_products.estimated_effective_date. Runs BEFORE refresh_effective_dates
+    # so its "fund_status fallback" carries the freshly-parsed date into
+    # rex_products the same run, and BEFORE status_reconciler so PENDING->Filed
+    # evidence is available same-run. Scoped to filings from the last 2 years
+    # (baked into the script's WHERE clause) and capped at --limit candidates so
+    # a SEC-fetch hiccup or backlog can't blow out the nightly chain; advisory
+    # (non-fatal) like every other step here.
+    ("backfill_485a_elections", [PY, str(PROJECT_ROOT / "scripts" / "backfill_485a_elections.py"),
+                                  "--apply", "--limit", "300"]),
     # Refresh estimated_effective_date from the latest 485-series filing for
     # every product (by series_id) — the sync collapses multi-series filings
     # to one extraction, so funds filing repeated 485BXT extensions drift
