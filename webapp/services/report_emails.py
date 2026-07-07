@@ -1763,11 +1763,10 @@ def _pending_autocall_section(db, accent: str = _NAVY) -> str:
     import datetime as _dt
     _today = _dt.date.today().isoformat()
     def _eff_disp(e):
-        # an "upcoming" launch with a PAST estimated date is stale (DELAYED filings
-        # carry an old target) — show TBD, not a misleading past date. (Ryu 2026-06-29)
-        if not e:
-            return "—"
-        return "TBD" if e < _today else e
+        # Show the exact declared effective date from the latest date-declaring filing
+        # (485APOS election / BXT designated date). A delaying amendment does NOT set a
+        # new date, so the prior election stands even if past. No TBD. (Ryu 2026-07-06)
+        return e if e else "—"
     rows, rex_rows = [], set()
     for i, (iss, name, status, eff, is_rex) in enumerate(items):
         # _table already HTML-escapes each cell — do NOT pre-escape here or names with

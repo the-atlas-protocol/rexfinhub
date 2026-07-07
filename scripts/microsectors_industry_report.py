@@ -305,10 +305,13 @@ kpi_table = f"""<table cellpadding="0" cellspacing="0" border="0" style="width:1
 </table>"""
 
 # ============ Page 4 & 5: Volume on Page 4, Inflow/Outflow split on Page 5 ============
-li_for_top = li.dropna(subset=["fund_flow_1week"]).copy()
+# Exclude negligible-AUM funds (<$1M) from movers/volume — a just-launched sub-$1M
+# fund cannot be a real top mover; ticker-reuse ghosts (e.g. AVGC) carry stale volume/
+# flow from the prior holder. (Ryu 2026-07-06)
+li_for_top = li[li["aum"] >= 1.0].dropna(subset=["fund_flow_1week"]).copy()
 top_inflows  = li_for_top.sort_values("fund_flow_1week", ascending=False).head(10)
 top_outflows = li_for_top.sort_values("fund_flow_1week", ascending=True ).head(10)
-top_vol = li[li["vol_1w"] > 0].sort_values("vol_1w", ascending=False).head(10)
+top_vol = li[(li["vol_1w"] > 0) & (li["aum"] >= 1.0)].sort_values("vol_1w", ascending=False).head(10)
 
 def split_panel(title, n, aum_v, flow_v, share_v, accent_color):
     return f"""<td style="width:50%;padding:24px 22px;vertical-align:top;border:1px solid {LIGHT_GRAY};border-left:4px solid {accent_color};">
