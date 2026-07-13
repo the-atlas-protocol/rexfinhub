@@ -186,3 +186,11 @@ TRUR US,,auto-llm-other: Real estate sector ETF tracking real estate trusts; tra
 TRUU US,,auto-llm-other: Utilities sector ETF; traditional equity sector exposure without leverage or derivatives.
 TRUN US,,auto-llm-other: Energy sector ETF; traditional equity sector exposure without leverage or derivatives.
 LCTO US,,"auto-llm-other: Large cap equity ETF with tax-optimization focus; standard equity strategy without leverage, derivatives, or thematic wrap."
+VPFF US,,auto-llm-other: Preferred and income securities fund without explicit options-income or covered-call mechanics in name.
+NQLT US,,"auto-llm-other: Quality-focused equity ETF with no leverage, options, or defined structure."
+IQQ US,,"auto-llm-other: Nasdaq 100 index ETF with no leverage, options, or defined structure."
+NSIV US,,"auto-llm-other: Disciplined value equity ETF with no leverage, options, or defined mechanics."
+NSIG US,,"auto-llm-other: Growth opportunities equity ETF with no leverage, options, or defined structure."
+SNTQ US,,"auto-llm-other: Synthequity Nasdaq 100 ETF uses synthetic strategies but name does not indicate leverage, options income, or defined mechanics; treated as structured equity exposure."
+ARIA US,,"auto-llm-other: Generic equity ETF with 'Opportunities' name; no clear leverage, options, thematic, or defined outcome mechanic stated."
+JLCO US,,"auto-llm-other: Large-cap equity opportunities fund; standard equity exposure without leverage, options, or thematic mechanics."

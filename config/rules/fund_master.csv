@@ -7672,3 +7672,47 @@ TRUN US,VANECK ENERGY TRUSECTOR ETF,,Equity,Plain Beta,Broad,,,,,standalone,phys
 LCTO US,KURV US LARGE CAP TAXOPTIMIZED ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-06,"auto: outside tracked categories (Large cap equity ETF with tax-optimization focus; standard equity strategy without leverage, derivatives, or thematic wr)"
 DRM US,DEFIANCE DRAM OPTION INCOME ETF,,Equity,Income,Derivative Income > Covered Call,single,DRAM,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-06,auto: legacy candidate translated (classify_daily)
 KWH US,GMO POWER INFRASTRUCTURE ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-06,auto: legacy candidate translated (classify_daily)
+UN US,CORGI UNH 2X DAILY ETF,,Equity,L&I,Long,single,UNH,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+LRCC US,CORGI LRCX 2X DAILY ETF,,Equity,L&I,Long,single,LRCX,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+CRWX US,CORGI CRWV 2X DAILY ETF,,Equity,L&I,Long,single,CRWV,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+ONDC US,CORGI ONDS 2X DAILY ETF,,Equity,L&I,Long,single,ONDS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+OKLC US,CORGI OKLO 2X DAILY ETF,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+MPWC US,CORGI MPWR 2X DAILY ETF,,Equity,L&I,Long,single,MPWR,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+AMKX US,CORGI AMKR 2X DAILY ETF,,Equity,L&I,Long,single,AMKR,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+AXTC US,CORGI AXTI 2X DAILY ETF,,Equity,L&I,Long,single,AXTI,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+BRKL US,CORGI BRKB 2X DAILY ETF,,Equity,L&I,Long,single,BRK/B,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+CIR US,CORGI CRCL 2X DAILY ETF,,Equity,L&I,Long,single,CRCL,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+TERC US,CORGI TER 2X DAILY ETF,,Equity,L&I,Long,single,TER,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+COHC US,CORGI COHR 2X DAILY ETF,,Equity,L&I,Long,single,COHR,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+NVTC US,CORGI NVTS 2X DAILY ETF,,Equity,L&I,Long,single,NVTS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+NFX US,CORGI NFLX 2X DAILY ETF,,Equity,L&I,Long,single,NFLX,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+APMI US,CORGI AMAT 2X DAILY ETF,,Equity,L&I,Long,single,AMAT,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+BBUL US,GRANITESHARES 2X LONG BB DAILY ETF,,Equity,L&I,Long,single,BB,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-08,auto: legacy candidate translated (classify_daily)
+VPFF US,VIRTUS INFRACAP PREFERRED AND INCOME SECURITIES ETF,,Fixed Income,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-09,auto: outside tracked categories (Preferred and income securities fund without explicit options-income or covered-call mechanics in name.)
+NQLT US,NEUBERGER QUALITY SELECT ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-09,"auto: outside tracked categories (Quality-focused equity ETF with no leverage, options, or defined structure.)"
+IQQ US,ISHARES NASDAQ 100 ETF/US,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-09,"auto: outside tracked categories (Nasdaq 100 index ETF with no leverage, options, or defined structure.)"
+NSIV US,NORTH SQUARE DISCIPLINED VALUE ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-09,"auto: outside tracked categories (Disciplined value equity ETF with no leverage, options, or defined mechanics.)"
+NSIG US,NORTH SQUARE GROWTH OPPORTUNITIES ETF,,Equity,Plain Beta,Style,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-09,"auto: outside tracked categories (Growth opportunities equity ETF with no leverage, options, or defined structure.)"
+SNTQ US,MRP SYNTHEQUITY NASDAQ 100 ETF,,Multi-Asset,Risk Mgmt,Alternatives,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-09,"auto: outside tracked categories (Synthequity Nasdaq 100 ETF uses synthetic strategies but name does not indicate leverage, options income, or defined mec)"
+HYNX US,T-REX 2X LONG SK HYNIX DAILY TARGET ETF,,Equity,L&I,Long,single,HYNIX,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-09,auto: legacy candidate translated (classify_daily)
+WSPC US,WISDOMTREE SPACE ECONOMY FUND,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-10,auto: legacy candidate translated (classify_daily)
+FSPC US,FIRST TRUST BLOOMBERG SPACE ECONOMY ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-10,auto: legacy candidate translated (classify_daily)
+JOBC US,CORGI JOBY 2X DAILY ETF,,Equity,L&I,Long,single,JOBY,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+UPSC US,CORGI UPST 2X DAILY ETF,,Equity,L&I,Long,single,UPST,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+QUA US,CORGI QBTS 2X DAILY ETF,,Equity,L&I,Long,single,QBTS,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+BNMC US,CORGI BMNR 2X DAILY ETF,,Equity,L&I,Long,single,BMNR,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+LITC US,CORGI LITE 2X DAILY ETF,,Equity,L&I,Long,single,LITE,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+UUUC US,CORGI UUUU 2X DAILY ETF,,Equity,L&I,Long,single,UUUU,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+HOOC US,CORGI HOOD 2X DAILY ETF,,Equity,L&I,Long,single,HOOD,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+GEVC US,CORGI GEV 2X DAILY ETF,,Equity,L&I,Long,single,GEV,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+SOFC US,CORGI SOFI 2X DAILY ETF,,Equity,L&I,Long,single,SOFI,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+TEMC US,CORGI TEM 2X DAILY ETF,,Equity,L&I,Long,single,TEM,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+BABC US,CORGI BABA 2X DAILY ETF,,Equity,L&I,Long,single,BABA,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+WDCC US,CORGI WDC 2X DAILY ETF,,Equity,L&I,Long,single,WDC,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+SMRX US,CORGI SMR 2X DAILY ETF,,Equity,L&I,Long,single,SMR,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+INT US,CORGI INTC 2X DAILY ETF,,Equity,L&I,Long,single,INTC,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+ALA US,CORGI ALAB 2X DAILY ETF,,Equity,L&I,Long,single,ALAB,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+AAOZ US,TRADR 2X SHORT AAOI DAILY ETF,,Equity,L&I,Short,single,AAOI,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+ORCZ US,TRADR 2X SHORT ORCL DAILY ETF,,Equity,L&I,Short,single,ORCL,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-07-13,auto: legacy candidate translated (classify_daily)
+ARIA US,ARIA OPPORTUNITIES ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-13,"auto: outside tracked categories (Generic equity ETF with 'Opportunities' name; no clear leverage, options, thematic, or defined outcome mechanic stated.)"
+JLCO US,JOHN HANCOCK LARGE CAP OPPORTUNITIES ETF,,Equity,Plain Beta,Broad,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-13,"auto: outside tracked categories (Large-cap equity opportunities fund; standard equity exposure without leverage, options, or thematic mechanics.)"
