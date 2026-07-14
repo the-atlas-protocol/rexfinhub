@@ -1,0 +1,90 @@
+
+=== STEP 1: Loading etp_monthly_fund (Mar 31) ===
+  Inserted/updated: 88 ETPs
+  Missing price: 8   Missing AUM: 0
+    no price: ['BBUP', 'BNBR', 'CEGI', 'FEGI', 'FEPI_LN', 'FIGO', 'FNGA', 'SPOU']
+
+=== STEP 2: Parsing broker files ===
+
+--- Korea KSD ---
+  KSD: 76 tickers, $881.84M
+  ACE Tesla (TSLT position): $17.73M
+
+--- Japan SBI ---
+  SBI: 22 tickers, $31.20M
+
+--- Japan Rakuten ---
+  Rakuten: 28 tickers, $58.20M
+
+--- Japan Monex ---
+  Monex: 32 tickers, $4.35M
+
+--- Japan Matsui ---
+  Matsui: 27 tickers, $1.51M
+
+--- Japan MooMoo (Oct 2025 shares -> Mar 2026 reprice) ---
+  Using last-available per-ticker data: 2025-10-30 (col 23)
+  Grace Mar aggregate: $13.03M (from 'by month&category')
+  Scaling factor (Grace ÷ Oct-repriced): 1.2159
+  MooMoo JP scaled: 36 tickers, $13.03M
+
+--- HK SYFE ---
+
+--- TH Asset Plus ---
+  DRNZ sold -- Thailand value is $0. Not inserting row.
+
+--- Stale-vendor shares-invariant reprice (Feb shares × Mar prices) ---
+  Futu HK (permanent): 51 funds, $97.39M (excluded 4 delisted)
+  Oriental Harbour HK (pending 13F): 1 funds, $60.39M
+  ViewTrade HK (pending hardcopy): 22 funds, $6.23M (excluded 2 delisted)
+  ViewTrade SG (pending hardcopy): 38 funds, $3.25M
+  ViewTrade TW (pending hardcopy): 39 funds, $12.52M (excluded 3 delisted)
+  MooMoo SG (pending Grace): 54 funds, $10.93M (excluded 5 delisted)
+  MooMoo MY (pending Grace): 56 funds, $4.31M (excluded 5 delisted)
+  Total stale-repriced: $195.02M across 261 fund-exchange pairs
+
+  Filled 110 missing share counts from Mar price
+
+=== STEP 3: Validation vs Grace's Mar summary ===
+  Exchange                                                    Parsed      Grace       Diff
+  ------------------------------------------------------------------------------------------
+  KSD (Korea Securities Depository) - Retail                 881.84M    881.80M     +0.04M  OK
+  Korea Investment Management -ACE TESLA Value Chain ETF      17.73M     17.70M     +0.03M  OK
+  SBI                                                         31.20M     31.20M     +0.00M  OK
+  Rakuten                                                     58.20M     58.00M     +0.20M  OK
+  Monex                                                        4.35M      4.30M     +0.05M  OK
+  Matsui                                                       1.51M      1.50M     +0.01M  OK
+  MooMoo                                                      28.27M     13.00M    +15.27M  CHECK
+  SYFE                                                         1.25M      1.25M     +0.00M  OK
+
+  Futu HK (shares-invariant reprice from Feb):    $97.39M  (no Grace value — structurally frozen)
+
+  Total parsed: $1204.12M
+
+=== STEP 4: Inserting into etp_exchange_monthly_aum ===
+  Cleared 503 existing month_id=14 rows
+  Inserted: 484 rows
+
+=== STEP 5: Verify DB state for month_id=14 ===
+
+  Exchange                                                     Country     #     AUM $M
+  ----------------------------------------------------------------------------------------
+  KSD (Korea Securities Depository) - Retail                     Korea    76     881.84
+  Futu/MooMoo                                                Hong Kong    51      97.39
+  Oriental Harbour *                                         Hong Kong     1      60.39
+  Rakuten                                                        Japan    28      58.20
+  SBI                                                            Japan    22      31.20
+  Korea Investment Management -ACE TESLA Value Chain ETF         Korea     1      17.73
+  MooMoo                                                         Japan    36      13.03
+  ViewTrade                                                     Taiwan    39      12.52
+  MooMoo                                                     Singapore    54      10.93
+  ViewTrade                                                  Hong Kong    22       6.23
+  Monex                                                          Japan    32       4.35
+  MooMoo                                                      Malaysia    56       4.31
+  ViewTrade                                                  Singapore    38       3.25
+  Matsui                                                         Japan    27       1.51
+  SYFE                                                       Hong Kong     1       1.25
+  ----------------------------------------------------------------------------------------
+  TOTAL                                                                         1204.13
+
+Done.

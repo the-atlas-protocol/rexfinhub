@@ -1,0 +1,522 @@
+===== PAGE 1 =====
+REX Asia Report
+March 2026
+Overview · Market Activity & Flows · T-REX · MicroSectors · Equity Premium Income · Growth & Income · Appendix
+Asia AUM: $1.2B — outflows (-$54.5M) compounded by market decline (-$61.3M)
+TOTAL ASIAN AUM
+$1.2B
+-$116M -8.8%
+TOTAL REX AUM
+$6.1B
+% OF AUM IN ASIA
+19.9%
+MARKET MOVE
+-$61.3M
+EST. MONTHLY FLOWS*
+-$54.5M
+OVERVIEW
+Asia AUM: $1.2B across 6 markets and 15 exchanges — down 8.8% MoM (-$116M)
+REX Shares (Leveraged): $1.1B · REX Financial (Non-Leveraged): $124M
+Broad market weakness drove -$61.3M in adverse movements, compounded by -$54.5M in est. net outflows
+T-REX represents 31.5% of its global AUM in Asia; MicroSectors declined 4.0% MoM
+GDXU attracted +$68.2M in est. net inflows — the single largest Asia flow this month
+Asia AUM by Product Suite
+T-REX MicroSectors Other
+$500M
+$1,000M
+$1,500M
+$2,000M
+Mar ’25 Jun ’25 Sep ’25 Dec ’25 Mar ’26
+$1,204M
+% of AUM in Asia
+5%
+10%
+15%
+20%
+25%
+Mar ’25 Jun ’25 Sep ’25 Dec ’25 Mar ’26
+11.9%
+19.5%
+20.7%
+Product Suite Breakdown
+$1,204M
+Total Asia AUM
+SUITE AUM % OF TOTAL MOM
+T-REX $611M 50.7% -$87.9M
+MicroSectors $469M 39.0% -$19.5M
+EPI + Autocallable $105M 8.8% -$8.0M
+G&I + IncomeMax $17.4M 1.4% -$43K
+Other $916K 0.1% -$355K
+Total $1.2B 100.0% -$116M
+Country Breakdown
+$1,204M
+Total Asia AUM
+COUNTRY AUM % OF TOTAL MOM
+Korea $900M 74.7% -$52.0M
+Hong Kong $165M 13.7% -$53.9M
+Japan $108M 9.0% -$4.3M
+Singapore $14.2M 1.2% -$2.2M
+Taiwan $12.5M 1.0% -$2.0M
+Malaysia $4.3M 0.4% -$987K
+Thailand $0 0.0% -$414K
+Total $1.2B 100.0% -$116M
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 1
+
+===== PAGE 2 =====
+Market Activity & Est. Flows*
+What Drove the $116M Decline?
+-$61.3M
+MARKET IMPACT
+Broad equity selloff hit leveraged products hardest. T-REX declined $30.5M from market
+moves alone; MicroSectors absorbed $89.3M.
+-$54.5M
+EST. NET INFLOWS*
+Strong investor conviction with est. $118M flowing into T-REX and $69.7M into
+MicroSectors. GDXU alone attracted $68.2M.
+Exchange Breakdown — Top 10
+15 exchanges across 6 markets — KSD Korea accounts for 73% of total Asia AUM
+EXCHANGE COUNTRY PRODUCTS AUM % OF ASIA
+KSD (Korea Securities Depository) - Retail Korea 76 $882M 73.2%
+Futu/MooMoo Hong Kong 51 $97.4M 8.1%
+Oriental Harbour * Hong Kong 1 $60.4M 5.0%
+Rakuten Japan 28 $58.2M 4.8%
+SBI Japan 22 $31.2M 2.6%
+Korea Investment Management -ACE TESLA Value Chain ETF Korea 1 $17.7M 1.5%
+MooMoo Japan 34 $13.0M 1.1%
+ViewTrade Taiwan 39 $12.5M 1.0%
+MooMoo Singapore 54 $10.9M 0.9%
+ViewTrade Hong Kong 22 $6.2M 0.5%
+Others (5) Various 154 $14.7M 1.2%
+Total (15 Exchanges) 6 Markets 77 $1.2B 100.0%
+Est. Net Flows* by Product Suite
+T-REX and MicroSectors drove $48.6M of the $54.5M total est. net inflows
+T-REX-$118M
+MicroSectors +$69.7M
+EPI + Autocallable -$4.8M
+G&I + IncomeMax -$504K
+Other -$631K
+Country AUM Over Time
+Korea Hong Kong Japan Other
+$500M
+$1,000M
+$1,500M
+$2,000M
+Mar ’25 Jun ’25 Sep ’25 Dec ’25 Mar ’26
+$815M
+$1,010M
+ $985M
+$1,131M
+ $1,117M
+$999M
+$1,577M
+$1,813M
+$1,550M
+$1,462M
+$1,380M
+$1,320M
+$1,204M
+Japan $108M
+HK $165M
+Korea $900M
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 2
+
+===== PAGE 3 =====
+T-REX Leveraged ETFs
+ASIA AUM
+$611M
+51% of Asia total
+% IN ASIA
+31.5%
+-4.4pp
+MOM CHANGE
+-12.4%
+$86.1M
+EST. INFLOWS*
+$118M
+MARKET MOVE
++$32.2M
+OVERVIEW
+Korea accounts for 78.3% of T-REX Asia AUM ($478.4M)
+NVDQ drew +$3.3M in est. net inflows — largest T-REX fund flow
+T-REX Asia represents 31.5% of its global AUM; +$30.5M from market, -$118.4M from flows
+T-REX Asia AUM Timeline
+13-month trend
+$500M
+$1,000M
+$1,500M
+10%
+40%
+Mar '25 Apr May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar '26
+$611M
+31%
+$518M
+ $665M
+ $719M
+ $697M
+ $669M
+ $583M
+$989M
+ $1,133M
+$884M
+ $838M
+ $770M
+ $699M
+Asia AUM
+% of Suite
+T-REX Top 8 Funds
+Korea $478.4M (78.3%) · Hong Kong $74.8M (12.2%) · Japan $30.5M (5%) · 3 other markets
+FUND ASIA AUM % OF GLOBAL AUM MARKET MOVE EST. FLOWS* ASIA MOM GLOBAL MOM
+BMNU $144M 48.0% +$53.3M $54.9M -1.1% +36.5%
+TSLT $134M 60.6% $28.0M $1.7M -18.1% -17.1%
+MSTU $130M 36.7% +$24.1M $50.0M -16.6% +15.4%
+NVDX $65.5M 14.1% $1.7M $3.3M -7.1% -2.4%
+MSTZ $26.3M 24.9% +$3.2M $2.1M +4.6% +12.9%
+ROBN $18.1M 23.0% $3.6M $2.1M -23.8% -15.0%
+CCUP $15.3M 62.0% +$3.4M $6.0M -14.6% +18.7%
+TSLZ $15.1M 28.0% $3.9M +$599K -17.8% -21.0%
+Asia Country Distribution
+Mar '26 78.3% 12.2%
+Feb '26 78.5% 12.6%
+Jan '26 79.2% 14.0%
+Dec '25 81.0% 12.9%
+Nov '25 81.4% 12.5%
+Oct '25 84.5% 9.8%
+COUNTRY MAR ’26 AUM ($M) COUNTRY SHARE (%)
+Korea $478.4 78.3%
+Hong Kong $74.8 12.2%
+Japan $30.5 5.0%
+Singapore $12.1 2.0%
+Taiwan $11.6 1.9%
+Malaysia $3.6 0.6%
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 3
+
+===== PAGE 4 =====
+MicroSectors ETNs
+ASIA AUM
+$469M
+39% of Asia total
+% IN ASIA
+18.4%
++2.9pp
+MOM CHANGE
+-4.0%
+$19.5M
+EST. INFLOWS*
++$69.7M
+MARKET MOVE
+-$89.3M
+OVERVIEW
+Korea (79.8%) and Hong Kong (18.8%) dominate MicroSectors Asia AUM
+NRGU rose on market momentum — +$7.5M market move (+189% global MoM)
+GDXU absorbed the sharpest market decline (-$46.5M, -34% global MoM)
+MicroSectors Asia: -$89.3M market, +$69.7M flows
+MicroSectors Asia AUM Timeline
+13-month trend
+$200M
+$400M
+$600M
+$800M
+10%
+30%
+40%
+Mar '25 Apr May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar '26
+$469M
+18%
+$269M
+$315M
+ $232M
+$395M
+ $402M
+ $367M
+$494M
+$570M
+ $550M
+$496M
+ $472M
+ $489M
+Asia AUM
+% of Suite
+MicroSectors Top 8 Funds
+Korea $374.5M (79.8%) · Hong Kong $88.4M (18.8%) · 3 other markets
+FUND ASIA AUM % OF GLOBAL AUM MARKET MOVE EST. FLOWS* ASIA MOM GLOBAL MOM
+GDXU $158M 18.7% $46.5M +$68.2M +15.9% -34.0%
+FNGU $158M 20.4% $16.5M $3.4M -11.2% -9.3%
+BULZ $97.8M 34.6% $20.1M +$3.8M -14.3% -17.6%
+SHNY $24.3M 24.5% $14.5M +$1.7M -34.5% -39.1%
+FNGS $9.3M 3.5% $580K +$529K -0.5% -6.2%
+NRGU $8.1M 14.7% +$7.5M $3.4M +103.2% +189.2%
+FNGD $3.6M 11.8% $35K +$3.4M >999% -16.3%
+FNGO $3.5M 5.2% $485K +$253K -6.3% -13.1%
+Asia Country Distribution
+Mar '26 79.8% 18.8%
+Feb '26 72.5% 26.4%
+Jan '26 67.6% 31.5%
+Dec '25 65.1% 34.0%
+Nov '25 62.0% 36.4%
+Oct '25 61.2% 37.3%
+COUNTRY MAR ’26 AUM ($M) COUNTRY SHARE (%)
+Korea $374.5 79.8%
+Hong Kong $88.4 18.8%
+Japan $4.9 1.0%
+Singapore $1.0 0.2%
+Malaysia $0.4 0.1%
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 4
+
+===== PAGE 5 =====
+Equity Premium Income + Autocallable ETFs
+ASIA AUM
+$105M
+9% of Asia total
+% IN ASIA
+10.3%
+-0.6pp
+MOM CHANGE
+-7.0%
+$8.0M
+EST. INFLOWS*
+$4.8M
+MARKET MOVE
+-$3.2M
+OVERVIEW
+Japan leads EPI distribution at 67.5% ($71.1M)
+EPI suite total: $105.5M across 4 funds
+EPI Asia AUM Timeline
+13-month trend
+$50M
+$100M
+$150M
+$200M
+30%
+40%
+Mar '25 Apr May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar '26
+$105M
+10%
+$28M
+ $31M
+ $34M
+$37M
+ $40M
+ $40M
+$84M
+$96M
+ $100M
+ $109M
+$116M
+$113M
+Asia AUM
+% of Suite
+EPI Top Funds
+Japan $71.1M (67.5%) · Korea $30.6M (29.0%) · Hong Kong $1.9M (2%) · 3 other markets
+FUND ASIA AUM % OF GLOBAL AUM MARKET MOVE EST. FLOWS* ASIA MOM GLOBAL MOM
+AIPI $37.8M 10.5% $1.9M $1.0M -7.2% -4.7%
+FEPI $33.9M 5.8% $117K $3.2M -9.0% -0.3%
+CEPI $33.7M 41.7% $1.2M $468K -4.8% -3.5%
+ATCL $7K 0.1% +$20K $20K +1.5% +283.0%
+Asia Country Distribution
+Mar '26 67.5% 29.0%
+Feb '26 60.1% 36.7%
+Jan '26 60.2% 38.6%
+Dec '25 59.7% 39.0%
+Nov '25 62.1% 37.2%
+Oct '25 62.5% 36.7%
+COUNTRY MAR ’26 AUM ($M) COUNTRY SHARE (%)
+Japan $71.1 67.5%
+Korea $30.6 29.0%
+Hong Kong $1.9 1.8%
+Taiwan $0.9 0.8%
+Singapore $0.7 0.6%
+Malaysia $0.2 0.2%
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 5
+
+===== PAGE 6 =====
+Growth & Income + IncomeMax ETFs
+ASIA AUM
+$17.4M
+1% of Asia total
+% IN ASIA
+10.9%
+-0.8pp
+MOM CHANGE
+-0.2%
+$43K
+EST. INFLOWS*
+$504K
+MARKET MOVE
++$461K
+OVERVIEW
+Korea dominates G&I at 89.8% ($15.9M) — most geographically concentrated suite
+G&I + IncomeMax suite: $17.7M across 12 funds
+G&I Asia AUM Timeline
+13-month trend
+$10M
+$20M
+$30M
+30%
+40%
+Mar '25 Apr May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar '26
+$17M
+9%
+$0M
+ $0M
+ $0M
+ $1M
+$5M
+$7M
+$10M
+ $13M
+$15M
+$19M
+ $20M
+$17M
+Asia AUM
+% of Suite
+G&I Top Funds
+Korea $15.6M (89.8%) · Japan $1.4M (8%) · Singapore $0.3M (1%) · 3 other markets
+FUND ASIA AUM % OF GLOBAL AUM MARKET MOVE EST. FLOWS* ASIA MOM GLOBAL MOM
+TSII $8.3M 20.5% $832K +$824K -0.1% -10.0%
+NVII $7.4M 8.9% +$1.1M $1.2M -1.5% +14.4%
+MSII $495K 16.2% $15K +$7K -1.6% -3.0%
+COII $345K 12.8% $11K $9K -5.5% -3.0%
+ULTI $246K 1.7% $13K +$69K +29.2% -6.9%
+WMTI $240K 3.5% +$165K $113K +27.6% +87.4%
+LLII $178K 5.5% $3K +$9K +3.3% -2.0%
+PLTI $60K 3.4% +$39K $43K -5.7% +61.6%
+HOII $40K 4.3% +$10K $20K -20.6% +19.3%
+CWII $17K 1.5% +$14K $6K +74.3% +141.7%
+GIF $12K 0.7% +$24K $23K +15.2% +235.6%
+Asia Country Distribution
+Mar '26 89.8%
+Feb '26 36.7% 60.1%
+Jan '26 38.6% 60.2%
+Dec '25 39.0% 59.7%
+Nov '25 37.2% 62.1%
+Oct '25 36.7% 62.5%
+COUNTRY MAR ’26 AUM ($M) COUNTRY SHARE (%)
+Korea $15.6 89.8%
+Japan $1.4 7.9%
+Singapore $0.3 1.5%
+Hong Kong $0.1 0.6%
+Malaysia $0.0 0.2%
+Taiwan $0.0 0.0%
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 6
+
+===== PAGE 7 =====
+Appendix — Fund Detail (1 of 2)
+Asia AUM by Fund
+77 REX funds held in Asia — sorted by Asia AUM descending. Not all REX products have Asia distribution.
+FUND FAMILY ASIA AUM GLOBAL AUM % OF GLOBAL
+AUM
+ASIAN AUM MOM CHG
+(%) MARKET MOVE EST. FLOWS*
+GDXU MicroSectors $158M $845M 18.7% +15.9% $46.5M +$68.2M
+FNGU MicroSectors $158M $774M 20.4% -11.2% $16.5M $3.4M
+BMNU T-REX $144M $301M 48.0% -1.1% +$53.3M $54.9M
+TSLT T-REX $134M $221M 60.6% -18.1% $28.0M $1.7M
+MSTU T-REX $130M $354M 36.7% -16.6% +$24.1M $50.0M
+BULZ MicroSectors $97.8M $282M 34.6% -14.3% $20.1M +$3.8M
+NVDX T-REX $65.5M $463M 14.1% -7.1% $1.7M $3.3M
+AIPI Equity Premium Income $37.8M $359M 10.5% -7.2% $1.9M $1.0M
+FEPI Equity Premium Income $33.9M $580M 5.8% -9.0% $117K $3.2M
+CEPI Equity Premium Income $33.7M $80.9M 41.7% -4.8% $1.2M $468K
+MSTZ T-REX $26.3M $106M 24.9% +4.6% +$3.2M $2.1M
+SHNY MicroSectors $24.3M $99.1M 24.5% -34.5% $14.5M +$1.7M
+ROBN T-REX $18.1M $78.8M 23.0% -23.8% $3.6M $2.1M
+CCUP T-REX $15.3M $24.7M 62.0% -14.6% +$3.4M $6.0M
+TSLZ T-REX $15.1M $53.8M 28.0% -17.8% $3.9M +$599K
+GOOX T-REX $14.1M $40.9M 34.5% -19.7% $5.9M +$2.5M
+NVDQ T-REX $12.6M $24.2M 51.9% -7.8% $4.4M +$3.3M
+FNGS MicroSectors $9.3M $270M 3.5% -0.5% $580K +$529K
+TSII Growth & Income $8.3M $40.7M 20.5% -0.1% $832K +$824K
+NRGU MicroSectors $8.1M $54.9M 14.7% +103.2% +$7.5M $3.4M
+NVII Growth & Income $7.4M $83.1M 8.9% -1.5% +$1.1M $1.2M
+CRCD T-REX $4.5M $13.7M 32.7% +2.2% $869K +$967K
+SMUP T-REX $3.7M $10.1M 36.9% -30.0% $1.5M $88K
+FNGD MicroSectors $3.6M $30.4M 11.8% >999% $35K +$3.4M
+GMEU T-REX $3.5M $20.3M 17.5% -5.2% $362K +$167K
+FNGO MicroSectors $3.5M $66.8M 5.2% -6.3% $485K +$253K
+NFLU T-REX $2.9M $37.2M 7.7% -40.3% $1.5M $441K
+OILU MicroSectors $2.5M $42.7M 5.8% +10.9% +$1.0M $802K
+BTCL T-REX $2.1M $26.9M 7.9% -0.2% +$135K $141K
+MSFX T-REX $2.1M $21.0M 9.9% -16.3% +$105K $510K
+CRWU T-REX $2.1M $17.0M 12.2% -31.1% +$1.1M $2.0M
+RBLU T-REX $2.0M $6.8M 29.6% -35.1% $1.3M +$194K
+DJTU T-REX $1.8M $8.9M 19.8% -35.4% $321K $647K
+BTCZ T-REX $1.7M $26.6M 6.6% -9.9% +$1.2M $1.4M
+ETU T-REX $1.6M $12.7M 12.6% +15.0% +$245K $35K
+RDWU T-REX $1.6M $4.0M 39.3% -22.6% $345K $112K
+CORD T-REX $1.4M $7.3M 19.1% -38.2% $1.5M +$670K
+TTDU T-REX $1.2M $7.9M 15.7% +79.7% +$129K +$423K
+SNOU T-REX $1.2M $7.6M 16.3% -16.0% $490K +$254K
+GDXD MicroSectors $1.0M $32.1M 3.2% +69.9% +$24K +$397K
+BNKU MicroSectors $956K $9.8M 9.8% -50.8% $224K $764K
+KTUP T-REX $693K $5.6M 12.4% -37.2% $29K $382K
+WTIU MicroSectors $654K $13.7M 4.8% +112.9% +$216K +$130K
+MSII Growth & Income $495K $3.1M 16.2% -1.6% $15K +$7K
+AAPX T-REX $445K $7.7M 5.8% -7.5% $11K $25K
+GLXU T-REX $403K $6.7M 6.0% -36.3% $162K $67K
+BERZ MicroSectors $389K $4.6M 8.5% -11.5% $141K +$91K
+OILD MicroSectors $379K $9.6M 4.0% +168.4% +$123K +$115K
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 7
+
+===== PAGE 8 =====
+Appendix — Fund Detail (2 of 2)
+Asia AUM by Fund (continued)
+77 REX funds held in Asia — sorted by Asia AUM descending. Not all REX products have Asia distribution.
+FUND FAMILY ASIA AUM GLOBAL AUM % OF GLOBAL
+AUM
+ASIAN AUM MOM CHG
+(%) MARKET MOVE EST. FLOWS*
+BMAX Other $346K $5.9M 5.9% +0.8% $1K +$4K
+COII Growth & Income $345K $2.7M 12.8% -5.5% $11K $9K
+EOSU T-REX $305K $7.6M 4.0% -16.4% +$850K $909K
+DULL MicroSectors $259K $8.3M 3.1% +4.7% +$485K $474K
+ULTI IncomeMax $246K $14.6M 1.7% +29.2% $13K +$69K
+WMTI Growth & Income $240K $6.9M 3.5% +27.6% +$165K $113K
+DRNZ Other $226K $84.3M 0.3% -59.6% +$282K $616K
+SSK Other $213K $83.4M 0.3% -6.1% +$0 $14K
+NRGD MicroSectors $213K $2.6M 8.3% +346.9% +$190K $25K
+LLII Growth & Income $178K $3.2M 5.5% +3.3% $3K +$9K
+WTID MicroSectors $139K $4.5M 3.1% +798.2% +$119K +$5K
+CIFU T-REX $95K $7.4M 1.3% -63.3% $19K $144K
+XRPR Other $74K $55.8M 0.1% -7.7% $5K $0
+FLYU MicroSectors $69K $1.4M 5.0% +191.9% +$19K +$26K
+SBTU T-REX $61K $1.4M 4.5% -35.1% $11K $22K
+PLTI Growth & Income $60K $1.7M 3.4% -5.7% +$39K $43K
+FLYD MicroSectors $48K $1.2M 4.0% +30.1% +$50K $39K
+HOII Growth & Income $40K $936K 4.3% -20.6% +$10K $20K
+DOJE Other $38K $14.8M 0.3% -6.5% $1K $2K
+FGRU T-REX $36K $4.6M 0.8% -58.3% +$497K $548K
+AFRU T-REX $25K $2.2M 1.2% -1.2% $14K +$14K
+ESK Other $20K $1.6M 1.2% -5.0% +$1K $2K
+CWII Growth & Income $17K $1.1M 1.5% +74.3% +$14K $6K
+SOLX T-REX $13K $444K 2.9% +37.4% +$0 +$4K
+GIF Growth & Income $12K $1.6M 0.7% +15.2% +$24K $23K
+BNKD MicroSectors $10K $612K 1.6% -37.9% +$10K $16K
+ATCL Autocallable $7K $8.7M 0.1% +1.5% +$20K $20K
+XRPK T-REX $5K $318K 1.7% +14.5% $0 +$0
+PAAU T-REX $0 $388K 0.2% +0.0% $0 +$0
+Others(non-AsiaREX funds) $0 $135M 0.0% — — —
+Total $1.2B $6.1B 19.9% — — —
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 8
+
+===== PAGE 9 =====
+Methodology March 2026
+Asia AUM
+Collected monthly from brokerage firms and custodians across Asian markets
+Some brokers report AUM directly in local currency (KRW, JPY), converted to USD at month-end FX rates. Others report share counts, priced using Bloomberg month-end closes
+Futu HK: structurally unreachable — the broker does not release asset data without a commercial agreement. Positions are held at last-known shares and repriced at each month's Bloomberg
+close. Flows for this bucket are mechanically zero; all MoM change reflects market performance
+Oriental Harbour, ViewTrade, MooMoo (Singapore, Malaysia): quarterly reporters. Between reports, positions are held at last-known shares and repriced at Bloomberg close. Values are
+replaced with actuals when the next report arrives. Oriental Harbour's data is sourced from Q1 13F filings (due mid-quarter following quarter-end)
+Asset Plus Thailand: sold DRNZ — position has been zeroed as of March 2026
+Global AUM
+Sourced from Bloomberg as of each month-end
+Covers all REX ETPs across ETFs and ETNs
+Used to calculate each fund's percentage of global AUM held in Asia and to decompose AUM changes into market impact and investor flows
+Estimated Flows
+Each fund's month-over-month Asia AUM change is split into two components: market impact and estimated investor flows
+Market impact is the portion of the change attributable to the fund's global price movement
+Estimated flows are the residual — the AUM change not explained by price movement, representing net new investment or redemptions
+These are estimates. Actual fund flows, where disclosed by managers, may differ
+Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ. REX Financial · Page 9
+

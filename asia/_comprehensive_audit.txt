@@ -1,0 +1,191 @@
+
+================================================================================
+A. SCAN HTML FOR HARDCODED VALUES
+================================================================================
+Looking for suspicious patterns: fixed dollar amounts, date strings, specific percentages
+
+[PASS]   clean: February date label
+[FAIL]   HARDCODED: Feb year ref  pattern="Feb '2[56]"  matches=1
+    line 1134: const lastMonth = lastTimeline.length ? lastTimeline[lastTimeline.length - 1].month : "Feb '26";
+[PASS]   clean: Feb Asia $1.3B
+[PASS]   clean: Feb Asia $1,319M
+[FAIL]   HARDCODED: Feb T-REX  pattern='\\$699M\\b'  matches=1
+    line 508: <div class="kpi-val small">$699M</div>
+[FAIL]   HARDCODED: Feb MicroSectors  pattern='\\$489M\\b'  matches=1
+    line 578: <div class="kpi-val small">$489M</div>
+[PASS]   clean: Feb flows
+[PASS]   clean: Feb market move
+[PASS]   clean: Feb flows float
+[PASS]   clean: Feb market float
+[PASS]   clean: Feb Seamus number
+[PASS]   clean: Feb Seamus number int
+[PASS]   clean: Feb narrative
+[PASS]   clean: Feb narrative
+[PASS]   clean: Feb narrative
+[PASS]   clean: Feb EPI narrative
+[PASS]   clean: Feb G&I narrative
+[FAIL]   HARDCODED: Feb T-REX pp  pattern='\\+5\\.1pp'  matches=1
+    line 514: <div class="kpi-sub" style="color: var(--positive); font-weight: 600;">+5.1pp</div>
+[FAIL]   HARDCODED: Feb Micro pp  pattern='\\+0\\.8pp'  matches=1
+    line 584: <div class="kpi-sub" style="color: var(--positive); font-weight: 600;">+0.8pp</div>
+[FAIL]   HARDCODED: Feb EPI pp  pattern='\\+2\\.0pp'  matches=1
+    line 654: <div class="kpi-sub" style="color: var(--positive); font-weight: 600;">+2.0pp</div>
+[FAIL]   HARDCODED: Feb G&I pp  pattern='-1\\.0pp'  matches=1
+    line 723: <div class="kpi-sub" style="color: var(--negative); font-weight: 600;">-1.0pp</div>
+[PASS]   clean: Feb T-REX bullet
+[PASS]   clean: Feb MSTU flow
+[PASS]   clean: Feb GDXU rise
+[FAIL]   HARDCODED: Unreplaced token  pattern='__MONTH_LONG__'  matches=6
+    line 6: <title>REX Asia Report — __MONTH_LONG__</title>
+[PASS]   clean: Unreplaced token
+
+================================================================================
+B. COVER PAGE — NUMBERS vs ENRICHED JSON
+================================================================================
+[PASS]   Asia AUM        PDF='$1.2B' == enriched '$1.2B'
+[FAIL]   MoM $           PDF MISSING '-$116M' (enriched says '$-86M')
+[FAIL]   MoM %           PDF MISSING '-8.8%' (enriched says '-6.5%')
+[PASS]   Total REX       PDF='$6.1B' == enriched '$6.1B'
+[FAIL]   % in Asia       PDF MISSING '19.9%' (enriched says '20.3%')
+[PASS]   Market          PDF='-$61.3M' == enriched '-$61.3M'
+[FAIL]   Flows           PDF MISSING '-$54.5M' (enriched says '-$24.9M')
+[PASS]   Month label     PDF='March 2026' == enriched 'March 2026'
+
+================================================================================
+C. MATH INVARIANTS
+================================================================================
+[PASS]   Per-fund market_move + flows == dollar_change  (85 funds, 0 mismatches)
+[PASS]   Suite 'T-REX' aum: fund-sum $633.11M vs enriched $633.11M
+[PASS]   Suite 'MicroSectors' aum: fund-sum $475.99M vs enriched $475.99M
+[PASS]   Suite 'Income' aum: fund-sum $123.49M vs enriched $123.49M
+[PASS]   headlines.total_asia_aum: fund-sum $1233.67M vs enriched $1233.67M
+[PASS]   headlines.total_market_move: fund-sum $-61.29M vs enriched $-61.29M
+[PASS]   headlines.pct_in_asia: computed 20.3498% vs stored 20.3498%
+[PASS]   countries sum: $1233.67M vs headlines.total_asia_aum $1233.67M
+[PASS]   exchanges sum: $1233.67M vs headlines.total_asia_aum $1233.67M
+
+================================================================================
+D. GRACE'S MAR 2026 SUMMARY vs OUR DB
+================================================================================
+[PASS]   Korea KSD (Korea Securities Depository) -  Grace=$881.8M  DB=$881.84M  diff +0.04M  src=reported
+[PASS]   Korea Korea Investment Management -ACE TE  Grace=$17.7M  DB=$17.73M  diff +0.03M  src=reported
+[PASS]   Japan SBI                                  Grace=$31.2M  DB=$31.20M  diff +0.00M  src=reported
+[PASS]   Japan Rakuten                              Grace=$58.0M  DB=$58.20M  diff +0.20M  src=reported
+[PASS]   Japan MooMoo                               Grace=$13.0M  DB=$13.03M  diff +0.03M  src=reported
+[PASS]   Japan Monex                                Grace=$4.3M  DB=$4.35M  diff +0.05M  src=reported
+[PASS]   Japan Matsui                               Grace=$1.5M  DB=$1.51M  diff +0.01M  src=reported
+[PASS]   Hong Kong SYFE                                 Grace=$1.25M  DB=$1.25M  diff +0.00M  src=reported
+[PASS]   Hong Kong Futu/MooMoo                          Grace=blank  DB=$102.50M (repriced) — OK
+[PASS]   Hong Kong Oriental Harbour *                   Grace=blank  DB=$63.85M (repriced) — OK
+[PASS]   Hong Kong ViewTrade                            Grace=blank  DB=$6.39M (repriced) — OK
+[WARN]   Singapore MooMoo                               Grace=blank  DB=$28.10M src=scaled_aggregate — CHECK
+[PASS]   Singapore ViewTrade                            Grace=blank  DB=$3.33M (repriced) — OK
+[WARN]   Malaysia MooMoo                               Grace=blank  DB=$7.00M src=scaled_aggregate — CHECK
+[PASS]   Taiwan ViewTrade                            Grace=blank  DB=$13.41M (repriced) — OK
+[PASS]   Thailand Asset Plus Asset Management          Grace=blank  DB=absent — OK (e.g. Thailand DRNZ sold)
+
+================================================================================
+E. APPENDIX FUND VALUES — PDF vs DB
+================================================================================
+[PASS]   FNGU      DB $  161.54M  PDF $  162.00M  diff +0.460M
+[PASS]   GDXU      DB $  159.55M  PDF $  160.00M  diff +0.447M
+[PASS]   BMNU      DB $  148.01M  PDF $  148.00M  diff -0.013M
+[PASS]   MSTU      DB $  136.12M  PDF $  136.00M  diff -0.120M
+[PASS]   TSLT      DB $  135.24M  PDF $  135.00M  diff -0.242M
+[PASS]   BULZ      DB $   98.85M  PDF $   98.90M  diff +0.048M
+[PASS]   NVDX      DB $   70.20M  PDF $   70.20M  diff +0.003M
+[PASS]   AIPI      DB $   38.04M  PDF $   38.00M  diff -0.043M
+[PASS]   FEPI      DB $   34.22M  PDF $   34.20M  diff -0.023M
+[PASS]   CEPI      DB $   33.72M  PDF $   33.70M  diff -0.021M
+[PASS]   MSTZ      DB $   26.60M  PDF $   26.60M  diff -0.001M
+[PASS]   SHNY      DB $   24.45M  PDF $   24.40M  diff -0.047M
+[PASS]   ROBN      DB $   19.65M  PDF $   19.70M  diff +0.048M
+[PASS]   TSLZ      DB $   16.09M  PDF $   16.10M  diff +0.014M
+[PASS]   GOOX      DB $   15.60M  PDF $   15.60M  diff -0.002M
+[PASS]   CCUP      DB $   15.54M  PDF $   15.50M  diff -0.040M
+[PASS]   NVDQ      DB $   12.66M  PDF $   12.70M  diff +0.041M
+[PASS]   FNGS      DB $    9.56M  PDF $    9.60M  diff +0.040M
+[PASS]   TSII      DB $    8.39M  PDF $    8.40M  diff +0.012M
+[PASS]   NRGU      DB $    8.08M  PDF $    8.10M  diff +0.020M
+[PASS]   NVII      DB $    7.46M  PDF $    7.50M  diff +0.037M
+[PASS]   CRCD      DB $    4.63M  PDF $    4.60M  diff -0.032M
+[PASS]   SMUP      DB $    4.04M  PDF $    4.00M  diff -0.044M
+[PASS]   GMEU      DB $    3.65M  PDF $    3.70M  diff +0.048M
+[PASS]   FNGO      DB $    3.65M  PDF $    3.70M  diff +0.048M
+
+================================================================================
+F. SUITE-FILTERED PDFs — DO THEY INHERIT PARENT DATA?
+================================================================================
+[PASS]   T-REX PDF 'ASIA AUM' header: first $M figure = $633M, enriched $633.11M
+[PASS]   MicroSectors PDF 'ASIA AUM' header: $476M, enriched $475.99M
+[PASS]   T-REX PDF has no __MONTH_LONG__ token
+[PASS]   MicroSectors PDF has no __MONTH_LONG__ token
+[PASS]   T-REX PDF shows 'March 2026'
+[PASS]   MicroSectors PDF shows 'March 2026'
+
+================================================================================
+G. TIMELINE DATA — HISTORICAL CONTEXT PRESERVED
+================================================================================
+  2025-03: Asia $  815.37M  3 suites
+  2025-04: Asia $ 1010.31M  4 suites
+  2025-05: Asia $  984.77M  4 suites
+  2025-06: Asia $ 1130.74M  4 suites
+  2025-07: Asia $ 1116.66M  4 suites
+  2025-08: Asia $  998.87M  5 suites
+  2025-09: Asia $ 1577.44M  5 suites
+  2025-10: Asia $ 1813.09M  5 suites
+  2025-11: Asia $ 1550.42M  5 suites
+  2025-12: Asia $ 1462.30M  5 suites
+  2026-01: Asia $ 1379.85M  5 suites
+  2026-02: Asia $ 1319.85M  5 suites
+  2026-03: Asia $ 1233.67M  5 suites
+
+Cross-check enriched timeline vs DB:
+[PASS]   2025-03  DB $  815.37M  Enriched $  815.37M  diff -0.0002
+[PASS]   2025-04  DB $ 1010.31M  Enriched $ 1010.31M  diff -0.0021
+[PASS]   2025-05  DB $  984.77M  Enriched $  984.77M  diff -0.0003
+[PASS]   2025-06  DB $ 1130.74M  Enriched $ 1130.74M  diff +0.0043
+[PASS]   2025-07  DB $ 1116.66M  Enriched $ 1116.66M  diff +0.0020
+[PASS]   2025-08  DB $  998.87M  Enriched $  998.87M  diff +0.0045
+[PASS]   2025-09  DB $ 1577.44M  Enriched $ 1577.44M  diff -0.0026
+[PASS]   2025-10  DB $ 1813.09M  Enriched $ 1813.09M  diff +0.0049
+[PASS]   2025-11  DB $ 1550.42M  Enriched $ 1550.42M  diff +0.0023
+[PASS]   2025-12  DB $ 1462.30M  Enriched $ 1462.30M  diff +0.0049
+[PASS]   2026-01  DB $ 1379.85M  Enriched $ 1379.85M  diff -0.0015
+[PASS]   2026-02  DB $ 1319.85M  Enriched $ 1319.85M  diff -0.0033
+[PASS]   2026-03  DB $ 1233.67M  Enriched $ 1233.67M  diff -0.0014
+[WARN]   2026-04  DB $ 1214.01M  Enriched $    0.00M  diff +1214.0100
+
+================================================================================
+H. GLOBAL AUM TIMELINE — HISTORICAL % IN ASIA
+================================================================================
+  2025-03  Asia $  815.37M  Global $6.674B  % in Asia 12.22%
+  2025-04  Asia $ 1010.31M  Global $7.714B  % in Asia 13.10%
+  2025-05  Asia $  984.77M  Global $6.769B  % in Asia 14.55%
+  2025-06  Asia $ 1130.74M  Global $6.974B  % in Asia 16.21%
+  2025-07  Asia $ 1116.66M  Global $6.812B  % in Asia 16.39%
+  2025-08  Asia $  998.87M  Global $6.619B  % in Asia 15.09%
+  2025-09  Asia $ 1577.44M  Global $8.046B  % in Asia 19.60%
+  2025-10  Asia $ 1813.09M  Global $8.572B  % in Asia 21.15%
+  2025-11  Asia $ 1550.42M  Global $7.713B  % in Asia 20.10%
+  2025-12  Asia $ 1462.30M  Global $7.276B  % in Asia 20.10%
+  2026-01  Asia $ 1379.85M  Global $7.135B  % in Asia 19.34%
+  2026-02  Asia $ 1319.85M  Global $6.634B  % in Asia 19.90%
+  2026-03  Asia $ 1233.67M  Global $6.029B  % in Asia 20.46%
+
+================================================================================
+I. SUITE FLOW BAR CHART DATA
+================================================================================
+  T-REX           flows $-96.30M   market $+30.47M
+  MicroSectors    flows $+76.48M   market $-89.26M
+  Income          flows $-4.60M   market $-2.77M
+  Other           flows $-0.61M   market $+0.28M
+[PASS]   Sum flows: $-24.89M  headlines $-24.89M
+[PASS]   Sum market: $-61.29M  headlines $-61.29M
+
+================================================================================
+SUMMARY
+================================================================================
+  PASS: 91
+  FAIL: 12
+  WARN: 3

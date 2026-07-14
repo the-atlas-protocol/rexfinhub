@@ -1,0 +1,6 @@
+Scott, Geeseok —
+
+Dug deeper and found some discrepancies in how Sean's database fed into the report. Need to pull a few things from the terminal in the morning — will have updated reports over shortly after.
+
+Best,
+Ryu

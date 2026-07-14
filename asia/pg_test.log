@@ -1,0 +1,21 @@
+2026-05-28 06:15:02.626 EDT [8500] LOG:  starting PostgreSQL 17.4 on x86_64-windows, compiled by msvc-19.42.34436, 64-bit
+2026-05-28 06:15:02.632 EDT [8500] LOG:  listening on IPv6 address "::1", port 5455
+2026-05-28 06:15:02.632 EDT [8500] LOG:  listening on IPv4 address "127.0.0.1", port 5455
+2026-05-28 06:15:02.685 EDT [44532] LOG:  database system was interrupted; last known up at 2026-05-14 13:25:12 EDT
+2026-05-28 06:15:03.172 EDT [44532] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-05-28 06:15:03.176 EDT [44532] LOG:  redo starts at 0/3495208
+2026-05-28 06:15:03.176 EDT [44532] LOG:  invalid record length at 0/3495348: expected at least 24, got 0
+2026-05-28 06:15:03.176 EDT [44532] LOG:  redo done at 0/3495310 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2026-05-28 06:15:03.181 EDT [13552] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-05-28 06:15:03.187 EDT [13552] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.008 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/3495348, redo lsn=0/3495348
+2026-05-28 06:15:03.203 EDT [8500] LOG:  database system is ready to accept connections
+2026-05-28 06:17:09.408 EDT [46224] FATAL:  role "RyuEl-Asmar" does not exist
+2026-05-28 06:40:03.190 EDT [13552] LOG:  checkpoint starting: time
+2026-05-28 06:40:08.535 EDT [13552] LOG:  checkpoint complete: wrote 54 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=5.327 s, sync=0.007 s, total=5.345 s; sync files=10, longest=0.002 s, average=0.001 s; distance=335 kB, estimate=335 kB; lsn=0/34E93C0, redo lsn=0/34E9330
+2026-05-28 07:03:30.175 EDT [8500] LOG:  received fast shutdown request
+2026-05-28 07:03:30.177 EDT [8500] LOG:  aborting any active transactions
+2026-05-28 07:03:30.190 EDT [8500] LOG:  background worker "logical replication launcher" (PID 23320) exited with exit code 1
+2026-05-28 07:03:30.191 EDT [13552] LOG:  shutting down
+2026-05-28 07:03:30.192 EDT [13552] LOG:  checkpoint starting: shutdown immediate
+2026-05-28 07:03:30.209 EDT [13552] LOG:  checkpoint complete: wrote 29 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.004 s, total=0.018 s; sync files=5, longest=0.001 s, average=0.001 s; distance=184 kB, estimate=320 kB; lsn=0/3517618, redo lsn=0/3517618
+2026-05-28 07:03:30.227 EDT [8500] LOG:  database system is shut down
