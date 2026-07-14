@@ -1,0 +1,3907 @@
+{
+  "meta": {
+    "report_month": "2026-03",
+    "month_id": 14,
+    "month_end": "2026-03-31",
+    "prior_month_id": 13,
+    "prior_month_end": "2026-02-28",
+    "generated_at": "2026-05-05T21:58:35.312954",
+    "fund_count": 85
+  },
+  "funds": [
+    {
+      "etp_id": 20,
+      "ticker": "AIPI",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 38042871.9972,
+      "asia_aum_prior": 40717394.0,
+      "global_aum": 358603140.0,
+      "global_aum_prior": 376136700.0
+    },
+    {
+      "etp_id": 93,
+      "ticker": "ATCL",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 7145.0,
+      "asia_aum_prior": 7038.0,
+      "global_aum": 8655707.0,
+      "global_aum_prior": 2259749.0
+    },
+    {
+      "etp_id": 22,
+      "ticker": "CEPI",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 33721257.7046,
+      "asia_aum_prior": 35419915.0001,
+      "global_aum": 80915229.0,
+      "global_aum_prior": 83854031.0
+    },
+    {
+      "etp_id": 43,
+      "ticker": "COII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 349907.133,
+      "asia_aum_prior": 364757.0,
+      "global_aum": 2686940.08,
+      "global_aum_prior": 2769409.82
+    },
+    {
+      "etp_id": 82,
+      "ticker": "CWII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 16877.3814,
+      "asia_aum_prior": 9595.0,
+      "global_aum": 1126108.0,
+      "global_aum_prior": 465990.0
+    },
+    {
+      "etp_id": 1,
+      "ticker": "FEPI",
+      "fund_name": "REX FANG & Innovation Equity Premium Income ETF",
+      "family_name": "Income",
+      "asia_aum": 34223415.1126,
+      "asia_aum_prior": 37297782.0,
+      "global_aum": 580477950.0,
+      "global_aum_prior": 582299640.0
+    },
+    {
+      "etp_id": 94,
+      "ticker": "GIF",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 11777.0,
+      "asia_aum_prior": 10220.0,
+      "global_aum": 1611464.0,
+      "global_aum_prior": 480135.0
+    },
+    {
+      "etp_id": 83,
+      "ticker": "HOII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 41098.7361,
+      "asia_aum_prior": 50690.0,
+      "global_aum": 935654.0,
+      "global_aum_prior": 783973.0
+    },
+    {
+      "etp_id": 84,
+      "ticker": "LLII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 179885.4938,
+      "asia_aum_prior": 172235.0,
+      "global_aum": 3244522.0,
+      "global_aum_prior": 3309994.0
+    },
+    {
+      "etp_id": 40,
+      "ticker": "MSII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 497047.3841,
+      "asia_aum_prior": 503200.0,
+      "global_aum": 3063740.0,
+      "global_aum_prior": 3159272.0
+    },
+    {
+      "etp_id": 34,
+      "ticker": "NVII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 7462813.4038,
+      "asia_aum_prior": 7534915.9999,
+      "global_aum": 83060599.0,
+      "global_aum_prior": 72606804.0
+    },
+    {
+      "etp_id": 85,
+      "ticker": "PLTI",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 60259.1859,
+      "asia_aum_prior": 63738.0,
+      "global_aum": 1742912.0,
+      "global_aum_prior": 1078525.0
+    },
+    {
+      "etp_id": 37,
+      "ticker": "TSII",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 8388168.1627,
+      "asia_aum_prior": 8338189.0001,
+      "global_aum": 40699594.0,
+      "global_aum_prior": 45212526.0
+    },
+    {
+      "etp_id": 86,
+      "ticker": "ULTI",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 245736.225,
+      "asia_aum_prior": 190094.22,
+      "global_aum": 14616111.0,
+      "global_aum_prior": 15701855.0
+    },
+    {
+      "etp_id": 87,
+      "ticker": "WMTI",
+      "fund_name": null,
+      "family_name": "Income",
+      "asia_aum": 240480.9436,
+      "asia_aum_prior": 188226.0,
+      "global_aum": 6908505.0,
+      "global_aum_prior": 3685632.0
+    },
+    {
+      "etp_id": 52,
+      "ticker": "BERZ",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 387281.9159,
+      "asia_aum_prior": 439482.0001,
+      "global_aum": 4568349.8217,
+      "global_aum_prior": 6734389.8504
+    },
+    {
+      "etp_id": 74,
+      "ticker": "BNKD",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 9865.0,
+      "asia_aum_prior": 15877.0,
+      "global_aum": 612421.2,
+      "global_aum_prior": 373188.25
+    },
+    {
+      "etp_id": 38,
+      "ticker": "BNKU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 956908.1272,
+      "asia_aum_prior": 1943461.0,
+      "global_aum": 9755839.75,
+      "global_aum_prior": 11025315.45
+    },
+    {
+      "etp_id": 15,
+      "ticker": "BULZ",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 98851620.523,
+      "asia_aum_prior": 114044740.9999,
+      "global_aum": 282452354.76,
+      "global_aum_prior": 342895170.52
+    },
+    {
+      "etp_id": 64,
+      "ticker": "DULL",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 252779.67,
+      "asia_aum_prior": 247772.0,
+      "global_aum": 8264664.06,
+      "global_aum_prior": 2793070.5162
+    },
+    {
+      "etp_id": 70,
+      "ticker": "FLYD",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 79688.7752,
+      "asia_aum_prior": 36715.0,
+      "global_aum": 1184456.0,
+      "global_aum_prior": 501711.0
+    },
+    {
+      "etp_id": 69,
+      "ticker": "FLYU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 68582.0,
+      "asia_aum_prior": 23494.0,
+      "global_aum": 1365231.35,
+      "global_aum_prior": 756511.35
+    },
+    {
+      "etp_id": 32,
+      "ticker": "FNGD",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 3607563.7921,
+      "asia_aum_prior": 214232.0001,
+      "global_aum": 30430031.9641,
+      "global_aum_prior": 36351732.2032
+    },
+    {
+      "etp_id": 29,
+      "ticker": "FNGO",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 3652103.9092,
+      "asia_aum_prior": 3710099.0,
+      "global_aum": 66822994.74,
+      "global_aum_prior": 76883254.02
+    },
+    {
+      "etp_id": 27,
+      "ticker": "FNGS",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 9560207.1669,
+      "asia_aum_prior": 9367652.0001,
+      "global_aum": 269670538.18,
+      "global_aum_prior": 287454128.25
+    },
+    {
+      "etp_id": 16,
+      "ticker": "FNGU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 161540195.5557,
+      "asia_aum_prior": 177735871.0,
+      "global_aum": 774245986.55,
+      "global_aum_prior": 853438889.22
+    },
+    {
+      "etp_id": 31,
+      "ticker": "GDXD",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 1016177.9153,
+      "asia_aum_prior": 603196.0001,
+      "global_aum": 32123969.3751,
+      "global_aum_prior": 30873416.0537
+    },
+    {
+      "etp_id": 18,
+      "ticker": "GDXU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 159553226.1578,
+      "asia_aum_prior": 136544681.0,
+      "global_aum": 844770605.76,
+      "global_aum_prior": 1280743684.08
+    },
+    {
+      "etp_id": 66,
+      "ticker": "NRGD",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 212711.3491,
+      "asia_aum_prior": 47596.0,
+      "global_aum": 2552449.1502,
+      "global_aum_prior": 510343.6576
+    },
+    {
+      "etp_id": 55,
+      "ticker": "NRGU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 8079912.7584,
+      "asia_aum_prior": 3967396.0001,
+      "global_aum": 54885901.32,
+      "global_aum_prior": 18978223.2
+    },
+    {
+      "etp_id": 51,
+      "ticker": "OILD",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 379554.8052,
+      "asia_aum_prior": 141227.0001,
+      "global_aum": 9586716.3473,
+      "global_aum_prior": 5123866.3812
+    },
+    {
+      "etp_id": 45,
+      "ticker": "OILU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 2556199.3029,
+      "asia_aum_prior": 2235781.0,
+      "global_aum": 42736562.7282,
+      "global_aum_prior": 29121298.305
+    },
+    {
+      "etp_id": 26,
+      "ticker": "SHNY",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 24447383.8617,
+      "asia_aum_prior": 37135605.0,
+      "global_aum": 99076364.4,
+      "global_aum_prior": 162638366.0
+    },
+    {
+      "etp_id": 71,
+      "ticker": "WTID",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 139383.0,
+      "asia_aum_prior": 15518.0,
+      "global_aum": 4508085.84,
+      "global_aum_prior": 519392.6
+    },
+    {
+      "etp_id": 61,
+      "ticker": "WTIU",
+      "fund_name": null,
+      "family_name": "MicroSectors",
+      "asia_aum": 642066.724,
+      "asia_aum_prior": 306939.0,
+      "global_aum": 13657749.36,
+      "global_aum_prior": 8012626.02
+    },
+    {
+      "etp_id": 60,
+      "ticker": "BMAX",
+      "fund_name": null,
+      "family_name": "Other",
+      "asia_aum": 345466.9929,
+      "asia_aum_prior": 342795.0,
+      "global_aum": 5879347.0,
+      "global_aum_prior": 5901245.0
+    },
+    {
+      "etp_id": 88,
+      "ticker": "DRNZ",
+      "fund_name": null,
+      "family_name": "Other",
+      "asia_aum": 227335.7337,
+      "asia_aum_prior": 560344.0,
+      "global_aum": 84254690.0,
+      "global_aum_prior": 56060670.0
+    },
+    {
+      "etp_id": 67,
+      "ticker": "DOJE",
+      "fund_name": null,
+      "family_name": "REX Osprey",
+      "asia_aum": 60421.0599,
+      "asia_aum_prior": 40898.0,
+      "global_aum": 14785679.0,
+      "global_aum_prior": 15209677.0
+    },
+    {
+      "etp_id": 72,
+      "ticker": "ESK",
+      "fund_name": null,
+      "family_name": "REX Osprey",
+      "asia_aum": 42493.8537,
+      "asia_aum_prior": 20736.0,
+      "global_aum": 1638358.0,
+      "global_aum_prior": 1541253.0
+    },
+    {
+      "etp_id": 48,
+      "ticker": "SSK",
+      "fund_name": null,
+      "family_name": "REX Osprey",
+      "asia_aum": 313846.0009,
+      "asia_aum_prior": 226455.0,
+      "global_aum": 83355564.0,
+      "global_aum_prior": 83112518.0
+    },
+    {
+      "etp_id": 65,
+      "ticker": "XRPR",
+      "fund_name": null,
+      "family_name": "REX Osprey",
+      "asia_aum": 88519.6177,
+      "asia_aum_prior": 79915.9999,
+      "global_aum": 55798864.0,
+      "global_aum_prior": 59755666.0
+    },
+    {
+      "etp_id": 54,
+      "ticker": "AAPX",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 474207.8073,
+      "asia_aum_prior": 480861.0001,
+      "global_aum": 7650840.0,
+      "global_aum_prior": 7830088.0
+    },
+    {
+      "etp_id": 79,
+      "ticker": "AFRU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 25511.4157,
+      "asia_aum_prior": 25812.9622,
+      "global_aum": 2166520.0,
+      "global_aum_prior": 4869301.0
+    },
+    {
+      "etp_id": 92,
+      "ticker": "APHU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 14596.0,
+      "global_aum": 346731.0,
+      "global_aum_prior": 479815.0
+    },
+    {
+      "etp_id": 57,
+      "ticker": "ARMU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 1205443.0001,
+      "global_aum": 0.0,
+      "global_aum_prior": 3435442.0
+    },
+    {
+      "etp_id": 68,
+      "ticker": "AXUP",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 34126.0,
+      "global_aum": 0.0,
+      "global_aum_prior": 3818132.0
+    },
+    {
+      "etp_id": 80,
+      "ticker": "BKNU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 20908.0,
+      "global_aum": 0.0,
+      "global_aum_prior": 1962398.0
+    },
+    {
+      "etp_id": 23,
+      "ticker": "BMNU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 148012781.5506,
+      "asia_aum_prior": 145855187.0001,
+      "global_aum": 300827795.0,
+      "global_aum_prior": 220338427.0
+    },
+    {
+      "etp_id": 39,
+      "ticker": "BTCL",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 2201169.7381,
+      "asia_aum_prior": 2134223.0,
+      "global_aum": 26875203.0,
+      "global_aum_prior": 25270841.0
+    },
+    {
+      "etp_id": 53,
+      "ticker": "BTCZ",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1757382.5459,
+      "asia_aum_prior": 1937563.9999,
+      "global_aum": 26551101.0,
+      "global_aum_prior": 16419534.0
+    },
+    {
+      "etp_id": 63,
+      "ticker": "BULU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 90347.0001,
+      "global_aum": 0.0,
+      "global_aum_prior": 612113.0
+    },
+    {
+      "etp_id": 28,
+      "ticker": "CCUP",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 15540014.3003,
+      "asia_aum_prior": 17963260.0,
+      "global_aum": 24729182.0,
+      "global_aum_prior": 20826596.0
+    },
+    {
+      "etp_id": 81,
+      "ticker": "CIFU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 102849.192,
+      "asia_aum_prior": 257658.0,
+      "global_aum": 7414583.0,
+      "global_aum_prior": 7989528.0
+    },
+    {
+      "etp_id": 75,
+      "ticker": "CORD",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1359966.0761,
+      "asia_aum_prior": 2241918.0,
+      "global_aum": 7264772.0,
+      "global_aum_prior": 22789165.0
+    },
+    {
+      "etp_id": 76,
+      "ticker": "CRCD",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 4632167.0116,
+      "asia_aum_prior": 4393709.0,
+      "global_aum": 13723927.0,
+      "global_aum_prior": 17108072.0
+    },
+    {
+      "etp_id": 35,
+      "ticker": "CRWU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 2144365.9122,
+      "asia_aum_prior": 3000137.0,
+      "global_aum": 16957795.0,
+      "global_aum_prior": 12489977.0
+    },
+    {
+      "etp_id": 30,
+      "ticker": "DJTU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1988021.2774,
+      "asia_aum_prior": 2735703.0,
+      "global_aum": 8910448.0,
+      "global_aum_prior": 10095501.0
+    },
+    {
+      "etp_id": 73,
+      "ticker": "DKUP",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 23395.8,
+      "global_aum": 0.0,
+      "global_aum_prior": 588793.0
+    },
+    {
+      "etp_id": 91,
+      "ticker": "EOSU",
+      "fund_name": "T-REX 2X Long EOSE Daily Target ETF",
+      "family_name": "T-REX",
+      "asia_aum": 311601.2832,
+      "asia_aum_prior": 365002.88,
+      "global_aum": 7586333.0,
+      "global_aum_prior": 2279809.0
+    },
+    {
+      "etp_id": 59,
+      "ticker": "ETQ",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 60618.0,
+      "global_aum": 0.0,
+      "global_aum_prior": 2540572.0
+    },
+    {
+      "etp_id": 42,
+      "ticker": "ETU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1661914.5885,
+      "asia_aum_prior": 1397699.0,
+      "global_aum": 12743809.0,
+      "global_aum_prior": 10840713.0
+    },
+    {
+      "etp_id": 96,
+      "ticker": "FGRU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 36469.0,
+      "asia_aum_prior": 87420.0,
+      "global_aum": 4561314.0,
+      "global_aum_prior": 681810.0
+    },
+    {
+      "etp_id": 58,
+      "ticker": "GLXU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 447709.3824,
+      "asia_aum_prior": 632035.0,
+      "global_aum": 6749464.0,
+      "global_aum_prior": 9080112.0
+    },
+    {
+      "etp_id": 33,
+      "ticker": "GMEU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 3651877.6493,
+      "asia_aum_prior": 3736419.0,
+      "global_aum": 20272340.0,
+      "global_aum_prior": 22446138.0
+    },
+    {
+      "etp_id": 41,
+      "ticker": "GOOX",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 15601531.8317,
+      "asia_aum_prior": 17598257.0,
+      "global_aum": 40931903.0,
+      "global_aum_prior": 61762176.0
+    },
+    {
+      "etp_id": 62,
+      "ticker": "KTUP",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 737077.1549,
+      "asia_aum_prior": 1104437.0,
+      "global_aum": 5603301.0,
+      "global_aum_prior": 5754653.0
+    },
+    {
+      "etp_id": 46,
+      "ticker": "MSFX",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 2222463.4939,
+      "asia_aum_prior": 2490656.0,
+      "global_aum": 20975310.0,
+      "global_aum_prior": 20124144.0
+    },
+    {
+      "etp_id": 13,
+      "ticker": "MSTU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 136120153.1071,
+      "asia_aum_prior": 155938422.0,
+      "global_aum": 354382578.0,
+      "global_aum_prior": 306991739.0
+    },
+    {
+      "etp_id": 24,
+      "ticker": "MSTZ",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 26600872.0199,
+      "asia_aum_prior": 25190242.9999,
+      "global_aum": 105626690.0,
+      "global_aum_prior": 93594804.0
+    },
+    {
+      "etp_id": 56,
+      "ticker": "NFLU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 3212978.9562,
+      "asia_aum_prior": 4825821.0,
+      "global_aum": 37170808.0,
+      "global_aum_prior": 54025862.0
+    },
+    {
+      "etp_id": 25,
+      "ticker": "NVDQ",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 12659429.591,
+      "asia_aum_prior": 13618694.9999,
+      "global_aum": 24187477.0,
+      "global_aum_prior": 35779995.0
+    },
+    {
+      "etp_id": 17,
+      "ticker": "NVDX",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 70197285.7194,
+      "asia_aum_prior": 70479702.0,
+      "global_aum": 462900960.0,
+      "global_aum_prior": 474376758.0
+    },
+    {
+      "etp_id": 103,
+      "ticker": "PAAU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 595.0,
+      "asia_aum_prior": 0.0,
+      "global_aum": 387938.0,
+      "global_aum_prior": 0.0
+    },
+    {
+      "etp_id": 50,
+      "ticker": "PXIU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 0.0,
+      "asia_aum_prior": 322931.0,
+      "global_aum": 0.0,
+      "global_aum_prior": 857877.0
+    },
+    {
+      "etp_id": 44,
+      "ticker": "RBLU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 2054217.1392,
+      "asia_aum_prior": 3080379.0,
+      "global_aum": 6753340.0,
+      "global_aum_prior": 11531489.0
+    },
+    {
+      "etp_id": 95,
+      "ticker": "RDWU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1562455.8862,
+      "asia_aum_prior": 2017291.05,
+      "global_aum": 3971278.0,
+      "global_aum_prior": 4790128.0
+    },
+    {
+      "etp_id": 19,
+      "ticker": "ROBN",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 19652403.2903,
+      "asia_aum_prior": 23786678.0001,
+      "global_aum": 78767105.0,
+      "global_aum_prior": 92701053.0
+    },
+    {
+      "etp_id": 78,
+      "ticker": "SBTU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 67126.2936,
+      "asia_aum_prior": 94748.0,
+      "global_aum": 1377948.0,
+      "global_aum_prior": 1555716.0
+    },
+    {
+      "etp_id": 36,
+      "ticker": "SMUP",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 4043852.2019,
+      "asia_aum_prior": 5336491.0,
+      "global_aum": 10134693.0,
+      "global_aum_prior": 14142948.0
+    },
+    {
+      "etp_id": 49,
+      "ticker": "SNOU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1434358.1641,
+      "asia_aum_prior": 1475849.0001,
+      "global_aum": 7600527.0,
+      "global_aum_prior": 11378819.0
+    },
+    {
+      "etp_id": 89,
+      "ticker": "SOLX",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 13057.0,
+      "asia_aum_prior": 9504.0,
+      "global_aum": 444438.0,
+      "global_aum_prior": 443545.0
+    },
+    {
+      "etp_id": 14,
+      "ticker": "TSLT",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 135241924.3676,
+      "asia_aum_prior": 163864219.0,
+      "global_aum": 221250900.0,
+      "global_aum_prior": 266884464.0
+    },
+    {
+      "etp_id": 21,
+      "ticker": "TSLZ",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 16085743.5151,
+      "asia_aum_prior": 18311512.0,
+      "global_aum": 53807300.0,
+      "global_aum_prior": 68151300.0
+    },
+    {
+      "etp_id": 47,
+      "ticker": "TTDU",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 1250137.1513,
+      "asia_aum_prior": 692113.0,
+      "global_aum": 7944103.0,
+      "global_aum_prior": 6694911.0
+    },
+    {
+      "etp_id": 90,
+      "ticker": "XRPK",
+      "fund_name": null,
+      "family_name": "T-REX",
+      "asia_aum": 5493.0,
+      "asia_aum_prior": 4796.0,
+      "global_aum": 318297.0,
+      "global_aum_prior": 335572.0
+    }
+  ],
+  "timeline": [
+    {
+      "month": "2025-03",
+      "total": 815370246.385,
+      "suites": {
+        "Income": 28035077.89,
+        "MicroSectors": 269175599.0,
+        "Other": 0.0,
+        "REX Osprey": 0.0,
+        "T-REX": 518159569.495
+      }
+    },
+    {
+      "month": "2025-04",
+      "total": 1010312133.56,
+      "suites": {
+        "Income": 30826763.35,
+        "MicroSectors": 314938980.0,
+        "Other": 8409.0,
+        "REX Osprey": 0.0,
+        "T-REX": 664537981.21
+      }
+    },
+    {
+      "month": "2025-05",
+      "total": 984770339.02,
+      "suites": {
+        "Income": 34471690.72,
+        "MicroSectors": 231556781.0,
+        "Other": 101627.86,
+        "REX Osprey": 0.0,
+        "T-REX": 718640239.44
+      }
+    },
+    {
+      "month": "2025-06",
+      "total": 1130735683.48,
+      "suites": {
+        "Income": 37919550.15,
+        "MicroSectors": 395288630.3,
+        "Other": 124577.83,
+        "REX Osprey": 0.0,
+        "T-REX": 697402925.2
+      }
+    },
+    {
+      "month": "2025-07",
+      "total": 1116658025.825,
+      "suites": {
+        "Income": 45378757.84,
+        "MicroSectors": 402416153.4,
+        "Other": 132481.96,
+        "REX Osprey": 0.0,
+        "T-REX": 668730632.625
+      }
+    },
+    {
+      "month": "2025-08",
+      "total": 998865466.79,
+      "suites": {
+        "Income": 47509488.43,
+        "MicroSectors": 367169872.6,
+        "Other": 145451.75,
+        "REX Osprey": 626389.0,
+        "T-REX": 583414265.01
+      }
+    },
+    {
+      "month": "2025-09",
+      "total": 1577442621.26,
+      "suites": {
+        "Income": 93553373.5144,
+        "MicroSectors": 493705413.2886,
+        "Other": 301308.7,
+        "REX Osprey": 1161876.15,
+        "T-REX": 988720649.607
+      }
+    },
+    {
+      "month": "2025-10",
+      "total": 1813085116.5988,
+      "suites": {
+        "Income": 108469801.455,
+        "MicroSectors": 569880479.9966,
+        "Other": 293065.376,
+        "REX Osprey": 1395028.1164,
+        "T-REX": 1133046741.6548
+      }
+    },
+    {
+      "month": "2025-11",
+      "total": 1550417704.0865,
+      "suites": {
+        "Income": 115313254.9768,
+        "MicroSectors": 550125425.1966,
+        "Other": 225666.1949,
+        "REX Osprey": 1162825.1164,
+        "T-REX": 883590532.6018
+      }
+    },
+    {
+      "month": "2025-12",
+      "total": 1462295107.0534,
+      "suites": {
+        "Income": 127526026.2393,
+        "MicroSectors": 496278786.9714,
+        "Other": 341514.4865,
+        "REX Osprey": 628860.2095,
+        "T-REX": 837519919.1467
+      }
+    },
+    {
+      "month": "2026-01",
+      "total": 1379851478.7434,
+      "suites": {
+        "Income": 136108520.5393,
+        "MicroSectors": 472311875.3714,
+        "Other": 557310.5265,
+        "REX Osprey": 580805.2095,
+        "T-REX": 770292967.0967
+      }
+    },
+    {
+      "month": "2026-02",
+      "total": 1319853254.913,
+      "suites": {
+        "Income": 130867989.2201,
+        "MicroSectors": 488777335.0005,
+        "Other": 903139.0,
+        "REX Osprey": 368004.9999,
+        "T-REX": 698936786.6925
+      }
+    },
+    {
+      "month": "2026-03",
+      "total": 1233671400.0462,
+      "suites": {
+        "Income": 123488740.8638,
+        "MicroSectors": 475993412.3096,
+        "Other": 572802.7266,
+        "REX Osprey": 505280.5322,
+        "T-REX": 633111163.614
+      }
+    }
+  ],
+  "global_aum_timeline": {
+    "2025-03": 6674402115.8074,
+    "2025-04": 7713878826.5885,
+    "2025-05": 6769294464.5417,
+    "2025-06": 6974086657.3778,
+    "2025-07": 6811551360.8131,
+    "2025-08": 6618985054.6669,
+    "2025-09": 8046146099.3573,
+    "2025-10": 8572209105.6226,
+    "2025-11": 7712684500.1528,
+    "2025-12": 7275820065.1003,
+    "2026-01": 7134940066.635,
+    "2026-02": 6634074951.7473,
+    "2026-03": 6029265263.7366
+  },
+  "countries": [
+    {
+      "country": "Korea",
+      "aum": 899566653.6667,
+      "aum_prior": 951589017.069
+    },
+    {
+      "country": "Hong Kong",
+      "aum": 173983988.3033,
+      "aum_prior": 219135177.581
+    },
+    {
+      "country": "Japan",
+      "aum": 108286742.3077,
+      "aum_prior": 112487136.7034
+    },
+    {
+      "country": "Singapore",
+      "aum": 31425513.6989,
+      "aum_prior": 16397197.8475
+    },
+    {
+      "country": "Taiwan",
+      "aum": 13408502.0695,
+      "aum_prior": 14537030.744
+    },
+    {
+      "country": "Malaysia",
+      "aum": 7000000.0001,
+      "aum_prior": 5293934.9681
+    },
+    {
+      "country": "Thailand",
+      "aum": 0.0,
+      "aum_prior": 413760.0
+    }
+  ],
+  "exchanges": [
+    {
+      "exchange": "KSD (Korea Securities Depository) - Retail",
+      "country": "Korea",
+      "products": 76,
+      "aum": 881835187.0
+    },
+    {
+      "exchange": "Futu/MooMoo",
+      "country": "Hong Kong",
+      "products": 51,
+      "aum": 102496762.598
+    },
+    {
+      "exchange": "Oriental Harbour *",
+      "country": "Hong Kong",
+      "products": 1,
+      "aum": 63846606.2702
+    },
+    {
+      "exchange": "Rakuten",
+      "country": "Japan",
+      "products": 28,
+      "aum": 58195461.0
+    },
+    {
+      "exchange": "SBI",
+      "country": "Japan",
+      "products": 22,
+      "aum": 31202087.65
+    },
+    {
+      "exchange": "MooMoo",
+      "country": "Singapore",
+      "products": 54,
+      "aum": 28100000.0003
+    },
+    {
+      "exchange": "Korea Investment Management -ACE TESLA Value Chain ETF",
+      "country": "Korea",
+      "products": 1,
+      "aum": 17731466.6667
+    },
+    {
+      "exchange": "ViewTrade",
+      "country": "Taiwan",
+      "products": 39,
+      "aum": 13408502.0695
+    },
+    {
+      "exchange": "MooMoo",
+      "country": "Japan",
+      "products": 34,
+      "aum": 13033247.0001
+    },
+    {
+      "exchange": "MooMoo",
+      "country": "Malaysia",
+      "products": 56,
+      "aum": 7000000.0001
+    },
+    {
+      "exchange": "ViewTrade",
+      "country": "Hong Kong",
+      "products": 22,
+      "aum": 6390619.4351
+    },
+    {
+      "exchange": "Monex",
+      "country": "Japan",
+      "products": 32,
+      "aum": 4349562.6576
+    },
+    {
+      "exchange": "ViewTrade",
+      "country": "Singapore",
+      "products": 38,
+      "aum": 3325513.6986
+    },
+    {
+      "exchange": "Matsui",
+      "country": "Japan",
+      "products": 27,
+      "aum": 1506384.0
+    },
+    {
+      "exchange": "SYFE",
+      "country": "Hong Kong",
+      "products": 1,
+      "aum": 1250000.0
+    }
+  ],
+  "country_timeline": [
+    {
+      "month": "2025-03",
+      "countries": {
+        "Japan": 25694948.385,
+        "Korea": 789675298.0
+      }
+    },
+    {
+      "month": "2025-04",
+      "countries": {
+        "Japan": 42568020.56,
+        "Korea": 967744113.0
+      }
+    },
+    {
+      "month": "2025-05",
+      "countries": {
+        "Japan": 42775774.02,
+        "Korea": 941994565.0
+      }
+    },
+    {
+      "month": "2025-06",
+      "countries": {
+        "Hong Kong": 129477929.3,
+        "Japan": 49506210.18,
+        "Korea": 951751544.0
+      }
+    },
+    {
+      "month": "2025-07",
+      "countries": {
+        "Hong Kong": 133015293.4,
+        "Japan": 43467325.425,
+        "Korea": 913404600.0,
+        "Singapore": 26770807.0
+      }
+    },
+    {
+      "month": "2025-08",
+      "countries": {
+        "Hong Kong": 131402671.6,
+        "Japan": 37320103.19,
+        "Korea": 830142692.0
+      }
+    },
+    {
+      "month": "2025-09",
+      "countries": {
+        "Hong Kong": 307262213.13,
+        "Japan": 100411918.13,
+        "Korea": 1169768490.0
+      }
+    },
+    {
+      "month": "2025-10",
+      "countries": {
+        "Hong Kong": 323957859.53,
+        "Japan": 107514607.7624,
+        "Korea": 1347280943.5,
+        "Malaysia": 10500791.9583,
+        "Singapore": 23830913.8481
+      }
+    },
+    {
+      "month": "2025-11",
+      "countries": {
+        "Hong Kong": 311954804.73,
+        "Japan": 100582321.4001,
+        "Korea": 1103548872.15,
+        "Malaysia": 10500791.9583,
+        "Singapore": 23830913.8481
+      }
+    },
+    {
+      "month": "2025-12",
+      "countries": {
+        "Hong Kong": 277483373.6,
+        "Japan": 109967265.2948,
+        "Korea": 1051871434.72,
+        "Malaysia": 6355020.9363,
+        "Singapore": 16618012.5023
+      }
+    },
+    {
+      "month": "2026-01",
+      "countries": {
+        "Hong Kong": 257722262.0,
+        "Japan": 116508089.3048,
+        "Korea": 982648094.0,
+        "Malaysia": 6355020.9363,
+        "Singapore": 16618012.5023
+      }
+    },
+    {
+      "month": "2026-02",
+      "countries": {
+        "Hong Kong": 219135177.581,
+        "Japan": 112487136.7034,
+        "Korea": 951589017.069,
+        "Malaysia": 5293934.9681,
+        "Singapore": 16397197.8475,
+        "Taiwan": 14537030.744,
+        "Thailand": 413760.0
+      }
+    },
+    {
+      "month": "2026-03",
+      "countries": {
+        "Hong Kong": 173983988.3033,
+        "Japan": 108286742.3077,
+        "Korea": 899566653.6667,
+        "Malaysia": 7000000.0001,
+        "Singapore": 31425513.6989,
+        "Taiwan": 13408502.0695
+      }
+    }
+  ],
+  "suite_global_timeline": [
+    {
+      "month": "2025-03",
+      "suites": {
+        "Income": 736297901.0,
+        "MicroSectors": 3246667139.8074,
+        "Other": 190068021.0,
+        "T-REX": 2501369054.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 270539753.0,
+          "asia": 17746578.59
+        },
+        "CEPI": {
+          "global": 29804708.0,
+          "asia": 1805236.88
+        },
+        "FEPI": {
+          "global": 435953440.0,
+          "asia": 8483262.42
+        },
+        "NVII": {
+          "global": 0,
+          "asia": 0.0
+        }
+      }
+    },
+    {
+      "month": "2025-04",
+      "suites": {
+        "Income": 732253401.0,
+        "MicroSectors": 3572464304.5885,
+        "Other": 194989749.0,
+        "T-REX": 3214171372.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 267357930.0,
+          "asia": 18841137.15
+        },
+        "CEPI": {
+          "global": 34853841.0,
+          "asia": 2713739.72
+        },
+        "FEPI": {
+          "global": 430041630.0,
+          "asia": 9271886.48
+        },
+        "NVII": {
+          "global": 0,
+          "asia": 0.0
+        }
+      }
+    },
+    {
+      "month": "2025-05",
+      "suites": {
+        "Income": 780356575.0,
+        "MicroSectors": 2546962945.5417,
+        "Other": 211798576.0,
+        "T-REX": 3230176368.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 295295735.0,
+          "asia": 20377379.54
+        },
+        "CEPI": {
+          "global": 38935724.0,
+          "asia": 3540789.82
+        },
+        "FEPI": {
+          "global": 445120043.0,
+          "asia": 10553521.36
+        },
+        "NVII": {
+          "global": 1005073.0,
+          "asia": 0.0
+        }
+      }
+    },
+    {
+      "month": "2025-06",
+      "suites": {
+        "Income": 860537193.03,
+        "MicroSectors": 2865912298.3478,
+        "Other": 209169652.0,
+        "T-REX": 3038467514.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 322113000.0,
+          "asia": 20943373.98
+        },
+        "CEPI": {
+          "global": 46592638.0,
+          "asia": 5037558.97
+        },
+        "COII": {
+          "global": 1986221.03,
+          "asia": 36591.0
+        },
+        "FEPI": {
+          "global": 472224900.0,
+          "asia": 11369459.2
+        },
+        "MSII": {
+          "global": 9221905.0,
+          "asia": 359449.0
+        },
+        "NVII": {
+          "global": 5819709.0,
+          "asia": 109130.0
+        },
+        "TSII": {
+          "global": 2578820.0,
+          "asia": 63988.0
+        }
+      }
+    },
+    {
+      "month": "2025-07",
+      "suites": {
+        "Income": 916832407.6,
+        "MicroSectors": 2726927569.2131,
+        "Other": 226491666.0,
+        "REX Osprey": 139337643.0,
+        "T-REX": 2801962075.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 334686223.0,
+          "asia": 21188834.8
+        },
+        "CEPI": {
+          "global": 58077227.0,
+          "asia": 5265968.24
+        },
+        "COII": {
+          "global": 6470505.6,
+          "asia": 987827.0
+        },
+        "FEPI": {
+          "global": 482465375.0,
+          "asia": 13673237.8
+        },
+        "FEPI_LN": {
+          "global": 4037217.0,
+          "asia": 0
+        },
+        "MSII": {
+          "global": 12340214.0,
+          "asia": 1935127.0
+        },
+        "NVII": {
+          "global": 11856743.0,
+          "asia": 1092901.0
+        },
+        "TSII": {
+          "global": 6898903.0,
+          "asia": 1234862.0
+        }
+      }
+    },
+    {
+      "month": "2025-08",
+      "suites": {
+        "Income": 992352123.19,
+        "MicroSectors": 2522943901.4769,
+        "Other": 216482611.0,
+        "REX Osprey": 214477519.0,
+        "T-REX": 2672728900.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 343964450.0,
+          "asia": 20315799.86
+        },
+        "CEPI": {
+          "global": 64094160.0,
+          "asia": 5304122.27
+        },
+        "COII": {
+          "global": 12239507.19,
+          "asia": 1503735.0
+        },
+        "FEPI": {
+          "global": 502263433.0,
+          "asia": 14713553.3
+        },
+        "FEPI_LN": {
+          "global": 16897936.0,
+          "asia": 0
+        },
+        "MSII": {
+          "global": 14665552.0,
+          "asia": 2019925.0
+        },
+        "NVII": {
+          "global": 29643582.0,
+          "asia": 1934940.0
+        },
+        "TSII": {
+          "global": 8583503.0,
+          "asia": 1717413.0
+        }
+      }
+    },
+    {
+      "month": "2025-09",
+      "suites": {
+        "Income": 1083774271.08,
+        "MicroSectors": 2995905090.2773,
+        "Other": 232968426.0,
+        "REX Osprey": 479839343.0,
+        "T-REX": 3253658969.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 363209560.0,
+          "asia": 32271556.2444
+        },
+        "CEPI": {
+          "global": 74563001.0,
+          "asia": 26022995.84
+        },
+        "COII": {
+          "global": 11492073.08,
+          "asia": 1419844.0
+        },
+        "FEPI": {
+          "global": 547578188.0,
+          "asia": 25604049.81
+        },
+        "FEPI_LN": {
+          "global": 18516998.0,
+          "asia": 0
+        },
+        "MSII": {
+          "global": 13027641.0,
+          "asia": 1586422.0
+        },
+        "NVII": {
+          "global": 43462078.0,
+          "asia": 3966696.21
+        },
+        "TSII": {
+          "global": 11924732.0,
+          "asia": 2681809.41
+        }
+      }
+    },
+    {
+      "month": "2025-10",
+      "suites": {
+        "Income": 1189051262.42,
+        "MicroSectors": 3208067519.2026,
+        "Other": 217675536.0,
+        "REX Osprey": 541947552.0,
+        "T-REX": 3415467236.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 391392450.0,
+          "asia": 36388923.7602
+        },
+        "CEPI": {
+          "global": 84317202.0,
+          "asia": 30536495.405
+        },
+        "COII": {
+          "global": 9698711.42,
+          "asia": 1139529.1308
+        },
+        "FEPI": {
+          "global": 594112140.0,
+          "asia": 28635514.7775
+        },
+        "FEPI_LN": {
+          "global": 22526531.0,
+          "asia": 0
+        },
+        "MSII": {
+          "global": 8375168.0,
+          "asia": 1429619.1693
+        },
+        "NVII": {
+          "global": 53793146.0,
+          "asia": 6111489.6043
+        },
+        "TSII": {
+          "global": 19667594.0,
+          "asia": 4228229.6079
+        },
+        "ULTI": {
+          "global": 5168320.0,
+          "asia": 0
+        }
+      }
+    },
+    {
+      "month": "2025-11",
+      "suites": {
+        "Income": 1178783951.01,
+        "MicroSectors": 3396400018.1428,
+        "Other": 184781816.0,
+        "REX Osprey": 351040711.0,
+        "T-REX": 2601678004.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 379196318.0,
+          "asia": 37979217.7122
+        },
+        "CEPI": {
+          "global": 82497611.0,
+          "asia": 31322190.223
+        },
+        "COII": {
+          "global": 5842747.01,
+          "asia": 723845.336
+        },
+        "CWII": {
+          "global": 708000.0,
+          "asia": 5547.0
+        },
+        "FEPI": {
+          "global": 578932000.0,
+          "asia": 31042377.7722
+        },
+        "FEPI_LN": {
+          "global": 24563395.0,
+          "asia": 0
+        },
+        "HOII": {
+          "global": 1023041.0,
+          "asia": 29807.0
+        },
+        "LLII": {
+          "global": 2919353.0,
+          "asia": 129908.0
+        },
+        "MSII": {
+          "global": 4769577.0,
+          "asia": 831585.2315
+        },
+        "NVII": {
+          "global": 57038372.0,
+          "asia": 6990231.5334
+        },
+        "PLTI": {
+          "global": 1366026.0,
+          "asia": 36417.0
+        },
+        "TSII": {
+          "global": 31998244.0,
+          "asia": 6138447.1685
+        },
+        "ULTI": {
+          "global": 6576759.0,
+          "asia": 70951.0
+        },
+        "WMTI": {
+          "global": 1352508.0,
+          "asia": 12730.0
+        }
+      }
+    },
+    {
+      "month": "2025-12",
+      "suites": {
+        "Income": 1259156399.75,
+        "MicroSectors": 3054413356.3503,
+        "Other": 167174090.0,
+        "REX Osprey": 274177046.0,
+        "T-REX": 2520899173.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 405124538.0,
+          "asia": 41583015.4722
+        },
+        "CEPI": {
+          "global": 82835949.0,
+          "asia": 32974279.7686
+        },
+        "COII": {
+          "global": 4647346.75,
+          "asia": 686312.9678
+        },
+        "CWII": {
+          "global": 622510.0,
+          "asia": 6637.79
+        },
+        "FEPI": {
+          "global": 602631200.0,
+          "asia": 34303267.2218
+        },
+        "FEPI_LN": {
+          "global": 27193899.0,
+          "asia": 0
+        },
+        "HOII": {
+          "global": 1237156.0,
+          "asia": 38545.3809
+        },
+        "LLII": {
+          "global": 1712993.0,
+          "asia": 56834.6425
+        },
+        "MSII": {
+          "global": 3927843.0,
+          "asia": 592595.3702
+        },
+        "NVII": {
+          "global": 76606257.0,
+          "asia": 9359239.0684
+        },
+        "PLTI": {
+          "global": 1413247.0,
+          "asia": 56240.0099
+        },
+        "TSII": {
+          "global": 41196960.0,
+          "asia": 7763299.1825
+        },
+        "ULTI": {
+          "global": 8135097.0,
+          "asia": 61995.0
+        },
+        "WMTI": {
+          "global": 1871404.0,
+          "asia": 43764.3645
+        }
+      }
+    },
+    {
+      "month": "2026-01",
+      "suites": {
+        "Income": 1305274793.34,
+        "MicroSectors": 3023830683.295,
+        "Other": 159927312.0,
+        "REX Osprey": 226880751.0,
+        "T-REX": 2419026527.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 412594643.0,
+          "asia": 42739683.4222
+        },
+        "CEPI": {
+          "global": 88899695.0,
+          "asia": 37086598.3186
+        },
+        "COII": {
+          "global": 3703059.34,
+          "asia": 599180.9678
+        },
+        "CWII": {
+          "global": 774642.0,
+          "asia": 7744.79
+        },
+        "FEPI": {
+          "global": 615818910.0,
+          "asia": 36576049.0218
+        },
+        "FEPI_LN": {
+          "global": 29308570.0,
+          "asia": 0
+        },
+        "HOII": {
+          "global": 1382111.0,
+          "asia": 41331.3809
+        },
+        "LLII": {
+          "global": 2634502.0,
+          "asia": 75090.6425
+        },
+        "MSII": {
+          "global": 3772869.0,
+          "asia": 582536.3702
+        },
+        "NVII": {
+          "global": 78331814.0,
+          "asia": 9054189.0684
+        },
+        "PLTI": {
+          "global": 1132505.0,
+          "asia": 49250.0099
+        },
+        "TSII": {
+          "global": 47241333.0,
+          "asia": 9107581.1825
+        },
+        "ULTI": {
+          "global": 17455329.0,
+          "asia": 117369.0
+        },
+        "WMTI": {
+          "global": 2224811.0,
+          "asia": 71916.3645
+        }
+      }
+    },
+    {
+      "month": "2026-02",
+      "suites": {
+        "Income": 1219768369.82,
+        "MicroSectors": 3155728576.9273,
+        "Other": 142288061.0,
+        "REX Osprey": 159619114.0,
+        "T-REX": 1956670830.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 376136700.0,
+          "asia": 40717394.0
+        },
+        "ATCL": {
+          "global": 2259749.0,
+          "asia": 7038.0
+        },
+        "CEPI": {
+          "global": 83854031.0,
+          "asia": 35419915.0001
+        },
+        "COII": {
+          "global": 2769409.82,
+          "asia": 364757.0
+        },
+        "CWII": {
+          "global": 465990.0,
+          "asia": 9595.0
+        },
+        "FEPI": {
+          "global": 582299640.0,
+          "asia": 37297782.0
+        },
+        "FEPI_LN": {
+          "global": 25964134.0,
+          "asia": 0
+        },
+        "GIF": {
+          "global": 480135.0,
+          "asia": 10220.0
+        },
+        "HOII": {
+          "global": 783973.0,
+          "asia": 50690.0
+        },
+        "LLII": {
+          "global": 3309994.0,
+          "asia": 172235.0
+        },
+        "MSII": {
+          "global": 3159272.0,
+          "asia": 503200.0
+        },
+        "NVII": {
+          "global": 72606804.0,
+          "asia": 7534915.9999
+        },
+        "PLTI": {
+          "global": 1078525.0,
+          "asia": 63738.0
+        },
+        "TSII": {
+          "global": 45212526.0,
+          "asia": 8338189.0001
+        },
+        "ULTI": {
+          "global": 15701855.0,
+          "asia": 190094.22
+        },
+        "WMTI": {
+          "global": 3685632.0,
+          "asia": 188226.0
+        }
+      }
+    },
+    {
+      "month": "2026-03",
+      "suites": {
+        "Income": 1214291806.08,
+        "MicroSectors": 2553271272.6566,
+        "Other": 158550985.0,
+        "REX Osprey": 155578465.0,
+        "T-REX": 1947572735.0
+      },
+      "income_funds": {
+        "AIPI": {
+          "global": 358603140.0,
+          "asia": 38042871.9972
+        },
+        "ATCL": {
+          "global": 8655707.0,
+          "asia": 7145.0
+        },
+        "CEPI": {
+          "global": 80915229.0,
+          "asia": 33721257.7046
+        },
+        "COII": {
+          "global": 2686940.08,
+          "asia": 349907.133
+        },
+        "CWII": {
+          "global": 1126108.0,
+          "asia": 16877.3814
+        },
+        "FEPI": {
+          "global": 580477950.0,
+          "asia": 34223415.1126
+        },
+        "FEPI_LN": {
+          "global": 25943631.0,
+          "asia": 0
+        },
+        "GIF": {
+          "global": 1611464.0,
+          "asia": 11777.0
+        },
+        "HOII": {
+          "global": 935654.0,
+          "asia": 41098.7361
+        },
+        "LLII": {
+          "global": 3244522.0,
+          "asia": 179885.4938
+        },
+        "MSII": {
+          "global": 3063740.0,
+          "asia": 497047.3841
+        },
+        "NVII": {
+          "global": 83060599.0,
+          "asia": 7462813.4038
+        },
+        "PLTI": {
+          "global": 1742912.0,
+          "asia": 60259.1859
+        },
+        "TSII": {
+          "global": 40699594.0,
+          "asia": 8388168.1627
+        },
+        "ULTI": {
+          "global": 14616111.0,
+          "asia": 245736.225
+        },
+        "WMTI": {
+          "global": 6908505.0,
+          "asia": 240480.9436
+        }
+      }
+    }
+  ],
+  "suite_country_6m": {
+    "Income": [
+      {
+        "month_id": 9,
+        "month": "Oct '25",
+        "countries": {
+          "Japan": 67832986.4141,
+          "Korea": 39785553.0,
+          "Hong Kong": 599026.3644,
+          "Malaysia": 252235.6765
+        }
+      },
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Japan": 71559052.9359,
+          "Korea": 42902940.0,
+          "Hong Kong": 599026.3644,
+          "Malaysia": 252235.6765
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Japan": 76192307.9923,
+          "Korea": 49739094.0,
+          "Hong Kong": 893698.0,
+          "Singapore": 381184.3751,
+          "Malaysia": 319741.8719
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Japan": 81954027.2923,
+          "Korea": 52559869.0,
+          "Hong Kong": 893698.0,
+          "Singapore": 381184.3751,
+          "Malaysia": 319741.8719
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Japan": 78700169.8102,
+          "Korea": 48072606.0,
+          "Hong Kong": 1850427.8301,
+          "Singapore": 988832.0216,
+          "Taiwan": 947562.43,
+          "Malaysia": 308391.1282
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Japan": 72442407.0644,
+          "Korea": 46186132.0,
+          "Hong Kong": 2058608.3722,
+          "Singapore": 1440596.8353,
+          "Taiwan": 903039.8811,
+          "Malaysia": 457956.7108
+        }
+      }
+    ],
+    "MicroSectors": [
+      {
+        "month_id": 9,
+        "month": "Oct '25",
+        "countries": {
+          "Korea": 348860601.0,
+          "Hong Kong": 212376255.6886,
+          "Singapore": 5929402.308,
+          "Japan": 2714221.0
+        }
+      },
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Korea": 341108601.0,
+          "Hong Kong": 200373200.8886,
+          "Singapore": 5929402.308,
+          "Japan": 2714221.0
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Korea": 323318834.0,
+          "Hong Kong": 168567963.6,
+          "Japan": 2415731.0005,
+          "Singapore": 1400522.6566,
+          "Malaysia": 575735.7143
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Korea": 319113034.0,
+          "Hong Kong": 148806852.0,
+          "Japan": 2415731.0005,
+          "Singapore": 1400522.6566,
+          "Malaysia": 575735.7143
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Korea": 354185063.0,
+          "Hong Kong": 128956771.4277,
+          "Japan": 3712902.508,
+          "Singapore": 1138268.8437,
+          "Malaysia": 784329.2211
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Korea": 374537337.0,
+          "Hong Kong": 93303700.9346,
+          "Japan": 4902137.2934,
+          "Singapore": 2560187.0062,
+          "Malaysia": 690050.0754
+        }
+      }
+    ],
+    "Other": [
+      {
+        "month_id": 9,
+        "month": "Oct '25",
+        "countries": {
+          "Japan": 187974.376,
+          "Korea": 105091.0
+        }
+      },
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Japan": 168239.1949,
+          "Korea": 57427.0
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Japan": 276809.3615,
+          "Korea": 56896.0,
+          "Hong Kong": 7581.0,
+          "Singapore": 228.125
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Japan": 301579.4015,
+          "Korea": 247922.0,
+          "Hong Kong": 7581.0,
+          "Singapore": 228.125
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Thailand": 413760.0,
+          "Japan": 305713.1344,
+          "Korea": 168833.0,
+          "Hong Kong": 7657.8656,
+          "Taiwan": 6490.53,
+          "Singapore": 684.47
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Japan": 306086.5462,
+          "Korea": 251579.0,
+          "Hong Kong": 7629.4467,
+          "Taiwan": 5962.7586,
+          "Singapore": 1544.9751
+        }
+      }
+    ],
+    "REX Osprey": [
+      {
+        "month_id": 9,
+        "month": "Oct '25",
+        "countries": {
+          "Korea": 819000.0,
+          "Singapore": 219413.0769,
+          "Malaysia": 185842.8895,
+          "Hong Kong": 170772.15
+        }
+      },
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Korea": 586797.0,
+          "Singapore": 219413.0769,
+          "Malaysia": 185842.8895,
+          "Hong Kong": 170772.15
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Korea": 386232.0,
+          "Singapore": 165512.5001,
+          "Malaysia": 42702.7094,
+          "Hong Kong": 34413.0
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Korea": 338177.0,
+          "Singapore": 165512.5001,
+          "Malaysia": 42702.7094,
+          "Hong Kong": 34413.0
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Korea": 200211.0,
+          "Singapore": 113611.6858,
+          "Malaysia": 27337.7895,
+          "Hong Kong": 20994.5246,
+          "Taiwan": 5850.0
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Singapore": 258966.2265,
+          "Korea": 177272.0,
+          "Malaysia": 42243.9975,
+          "Hong Kong": 20931.1609,
+          "Taiwan": 5867.1473
+        }
+      }
+    ],
+    "T-REX": [
+      {
+        "month_id": 9,
+        "month": "Oct '25",
+        "countries": {
+          "Korea": 957710698.5,
+          "Hong Kong": 110811805.327,
+          "Japan": 36779425.9723,
+          "Singapore": 17682098.4632,
+          "Malaysia": 10062713.3923
+        }
+      },
+      {
+        "month_id": 10,
+        "month": "Nov '25",
+        "countries": {
+          "Korea": 718893107.15,
+          "Hong Kong": 110811805.327,
+          "Japan": 26140808.2693,
+          "Singapore": 17682098.4632,
+          "Malaysia": 10062713.3923
+        }
+      },
+      {
+        "month_id": 11,
+        "month": "Dec '25",
+        "countries": {
+          "Korea": 678370378.72,
+          "Hong Kong": 107979718.0,
+          "Japan": 31082416.9405,
+          "Singapore": 14670564.8455,
+          "Malaysia": 5416840.6407
+        }
+      },
+      {
+        "month_id": 12,
+        "month": "Jan '26",
+        "countries": {
+          "Korea": 610389092.0,
+          "Hong Kong": 107979718.0,
+          "Japan": 31836751.6105,
+          "Singapore": 14670564.8455,
+          "Malaysia": 5416840.6407
+        }
+      },
+      {
+        "month_id": 13,
+        "month": "Feb '26",
+        "countries": {
+          "Korea": 548962304.069,
+          "Hong Kong": 88299325.933,
+          "Japan": 29768351.2508,
+          "Singapore": 14155800.8264,
+          "Taiwan": 13577127.784,
+          "Malaysia": 4173876.8293
+        }
+      },
+      {
+        "month_id": 14,
+        "month": "Mar '26",
+        "countries": {
+          "Korea": 478414333.6667,
+          "Hong Kong": 78593118.3889,
+          "Japan": 30636111.4037,
+          "Singapore": 27164218.6558,
+          "Taiwan": 12493632.2825,
+          "Malaysia": 5809749.2164
+        }
+      }
+    ]
+  },
+  "fund_countries": [
+    {
+      "ticker": "AAPX",
+      "country": "Korea",
+      "aum": 284862.0
+    },
+    {
+      "ticker": "AAPX",
+      "country": "Hong Kong",
+      "aum": 131902.2976
+    },
+    {
+      "ticker": "AAPX",
+      "country": "Singapore",
+      "aum": 32268.5889
+    },
+    {
+      "ticker": "AAPX",
+      "country": "Malaysia",
+      "aum": 23648.2855
+    },
+    {
+      "ticker": "AAPX",
+      "country": "Taiwan",
+      "aum": 1526.6353
+    },
+    {
+      "ticker": "AFRU",
+      "country": "Korea",
+      "aum": 20286.0
+    },
+    {
+      "ticker": "AFRU",
+      "country": "Japan",
+      "aum": 4978.34
+    },
+    {
+      "ticker": "AFRU",
+      "country": "Taiwan",
+      "aum": 219.6228
+    },
+    {
+      "ticker": "AFRU",
+      "country": "Singapore",
+      "aum": 27.4529
+    },
+    {
+      "ticker": "AIPI",
+      "country": "Japan",
+      "aum": 18357002.3309
+    },
+    {
+      "ticker": "AIPI",
+      "country": "Korea",
+      "aum": 18228138.0
+    },
+    {
+      "ticker": "AIPI",
+      "country": "Taiwan",
+      "aum": 559759.5157
+    },
+    {
+      "ticker": "AIPI",
+      "country": "Singapore",
+      "aum": 541508.4055
+    },
+    {
+      "ticker": "AIPI",
+      "country": "Hong Kong",
+      "aum": 283850.697
+    },
+    {
+      "ticker": "AIPI",
+      "country": "Malaysia",
+      "aum": 72613.0481
+    },
+    {
+      "ticker": "ATCL",
+      "country": "Korea",
+      "aum": 7145.0
+    },
+    {
+      "ticker": "BERZ",
+      "country": "Korea",
+      "aum": 301070.0
+    },
+    {
+      "ticker": "BERZ",
+      "country": "Hong Kong",
+      "aum": 58643.6646
+    },
+    {
+      "ticker": "BERZ",
+      "country": "Japan",
+      "aum": 15709.764
+    },
+    {
+      "ticker": "BERZ",
+      "country": "Malaysia",
+      "aum": 6302.1972
+    },
+    {
+      "ticker": "BERZ",
+      "country": "Singapore",
+      "aum": 5556.2901
+    },
+    {
+      "ticker": "BMAX",
+      "country": "Japan",
+      "aum": 306086.5462
+    },
+    {
+      "ticker": "BMAX",
+      "country": "Korea",
+      "aum": 31751.0
+    },
+    {
+      "ticker": "BMAX",
+      "country": "Hong Kong",
+      "aum": 7629.4467
+    },
+    {
+      "ticker": "BMNU",
+      "country": "Korea",
+      "aum": 130616079.0
+    },
+    {
+      "ticker": "BMNU",
+      "country": "Hong Kong",
+      "aum": 7996480.2982
+    },
+    {
+      "ticker": "BMNU",
+      "country": "Taiwan",
+      "aum": 4355500.8473
+    },
+    {
+      "ticker": "BMNU",
+      "country": "Singapore",
+      "aum": 3705211.5625
+    },
+    {
+      "ticker": "BMNU",
+      "country": "Malaysia",
+      "aum": 682799.1926
+    },
+    {
+      "ticker": "BMNU",
+      "country": "Japan",
+      "aum": 656710.65
+    },
+    {
+      "ticker": "BNKD",
+      "country": "Korea",
+      "aum": 9865.0
+    },
+    {
+      "ticker": "BNKU",
+      "country": "Korea",
+      "aum": 939053.0
+    },
+    {
+      "ticker": "BNKU",
+      "country": "Hong Kong",
+      "aum": 17793.8933
+    },
+    {
+      "ticker": "BNKU",
+      "country": "Japan",
+      "aum": 61.2339
+    },
+    {
+      "ticker": "BTCL",
+      "country": "Korea",
+      "aum": 2019132.0
+    },
+    {
+      "ticker": "BTCL",
+      "country": "Singapore",
+      "aum": 158249.9207
+    },
+    {
+      "ticker": "BTCL",
+      "country": "Malaysia",
+      "aum": 12636.2245
+    },
+    {
+      "ticker": "BTCL",
+      "country": "Hong Kong",
+      "aum": 7144.1517
+    },
+    {
+      "ticker": "BTCL",
+      "country": "Taiwan",
+      "aum": 4007.4412
+    },
+    {
+      "ticker": "BTCZ",
+      "country": "Korea",
+      "aum": 1123533.0
+    },
+    {
+      "ticker": "BTCZ",
+      "country": "Singapore",
+      "aum": 621130.6646
+    },
+    {
+      "ticker": "BTCZ",
+      "country": "Malaysia",
+      "aum": 8125.1059
+    },
+    {
+      "ticker": "BTCZ",
+      "country": "Hong Kong",
+      "aum": 4593.7754
+    },
+    {
+      "ticker": "BULZ",
+      "country": "Korea",
+      "aum": 95686760.0
+    },
+    {
+      "ticker": "BULZ",
+      "country": "Singapore",
+      "aum": 1604119.8464
+    },
+    {
+      "ticker": "BULZ",
+      "country": "Hong Kong",
+      "aum": 1537485.1609
+    },
+    {
+      "ticker": "BULZ",
+      "country": "Malaysia",
+      "aum": 19218.2645
+    },
+    {
+      "ticker": "BULZ",
+      "country": "Japan",
+      "aum": 4037.2512
+    },
+    {
+      "ticker": "CCUP",
+      "country": "Korea",
+      "aum": 11945057.0
+    },
+    {
+      "ticker": "CCUP",
+      "country": "Japan",
+      "aum": 2330223.254
+    },
+    {
+      "ticker": "CCUP",
+      "country": "Hong Kong",
+      "aum": 899155.0429
+    },
+    {
+      "ticker": "CCUP",
+      "country": "Singapore",
+      "aum": 229746.198
+    },
+    {
+      "ticker": "CCUP",
+      "country": "Taiwan",
+      "aum": 78898.1557
+    },
+    {
+      "ticker": "CCUP",
+      "country": "Malaysia",
+      "aum": 56934.6497
+    },
+    {
+      "ticker": "CEPI",
+      "country": "Japan",
+      "aum": 32529944.9555
+    },
+    {
+      "ticker": "CEPI",
+      "country": "Korea",
+      "aum": 1000496.0
+    },
+    {
+      "ticker": "CEPI",
+      "country": "Singapore",
+      "aum": 96744.2057
+    },
+    {
+      "ticker": "CEPI",
+      "country": "Hong Kong",
+      "aum": 46154.0539
+    },
+    {
+      "ticker": "CEPI",
+      "country": "Taiwan",
+      "aum": 26675.3307
+    },
+    {
+      "ticker": "CEPI",
+      "country": "Malaysia",
+      "aum": 21243.1588
+    },
+    {
+      "ticker": "CIFU",
+      "country": "Korea",
+      "aum": 83206.0
+    },
+    {
+      "ticker": "CIFU",
+      "country": "Malaysia",
+      "aum": 17182.8248
+    },
+    {
+      "ticker": "CIFU",
+      "country": "Taiwan",
+      "aum": 1886.0248
+    },
+    {
+      "ticker": "CIFU",
+      "country": "Singapore",
+      "aum": 574.3424
+    },
+    {
+      "ticker": "COII",
+      "country": "Korea",
+      "aum": 290077.0
+    },
+    {
+      "ticker": "COII",
+      "country": "Japan",
+      "aum": 38803.3408
+    },
+    {
+      "ticker": "COII",
+      "country": "Hong Kong",
+      "aum": 10568.07
+    },
+    {
+      "ticker": "COII",
+      "country": "Singapore",
+      "aum": 6586.9675
+    },
+    {
+      "ticker": "COII",
+      "country": "Malaysia",
+      "aum": 2336.628
+    },
+    {
+      "ticker": "COII",
+      "country": "Taiwan",
+      "aum": 1535.1267
+    },
+    {
+      "ticker": "CORD",
+      "country": "Korea",
+      "aum": 638150.0
+    },
+    {
+      "ticker": "CORD",
+      "country": "Hong Kong",
+      "aum": 368099.2624
+    },
+    {
+      "ticker": "CORD",
+      "country": "Singapore",
+      "aum": 333215.3212
+    },
+    {
+      "ticker": "CORD",
+      "country": "Malaysia",
+      "aum": 20501.4925
+    },
+    {
+      "ticker": "CRCD",
+      "country": "Korea",
+      "aum": 4203545.0
+    },
+    {
+      "ticker": "CRCD",
+      "country": "Singapore",
+      "aum": 251612.8049
+    },
+    {
+      "ticker": "CRCD",
+      "country": "Hong Kong",
+      "aum": 117412.1705
+    },
+    {
+      "ticker": "CRCD",
+      "country": "Malaysia",
+      "aum": 46727.9928
+    },
+    {
+      "ticker": "CRCD",
+      "country": "Taiwan",
+      "aum": 12869.0434
+    },
+    {
+      "ticker": "CRWU",
+      "country": "Korea",
+      "aum": 873302.0
+    },
+    {
+      "ticker": "CRWU",
+      "country": "Japan",
+      "aum": 782309.8718
+    },
+    {
+      "ticker": "CRWU",
+      "country": "Hong Kong",
+      "aum": 346277.5915
+    },
+    {
+      "ticker": "CRWU",
+      "country": "Taiwan",
+      "aum": 67944.4728
+    },
+    {
+      "ticker": "CRWU",
+      "country": "Singapore",
+      "aum": 62397.1388
+    },
+    {
+      "ticker": "CRWU",
+      "country": "Malaysia",
+      "aum": 12134.8373
+    },
+    {
+      "ticker": "CWII",
+      "country": "Korea",
+      "aum": 9901.0
+    },
+    {
+      "ticker": "CWII",
+      "country": "Japan",
+      "aum": 6661.9
+    },
+    {
+      "ticker": "CWII",
+      "country": "Malaysia",
+      "aum": 175.6999
+    },
+    {
+      "ticker": "CWII",
+      "country": "Singapore",
+      "aum": 138.7815
+    },
+    {
+      "ticker": "DJTU",
+      "country": "Hong Kong",
+      "aum": 841895.1237
+    },
+    {
+      "ticker": "DJTU",
+      "country": "Korea",
+      "aum": 714451.0
+    },
+    {
+      "ticker": "DJTU",
+      "country": "Singapore",
+      "aum": 226777.4073
+    },
+    {
+      "ticker": "DJTU",
+      "country": "Japan",
+      "aum": 92778.9705
+    },
+    {
+      "ticker": "DJTU",
+      "country": "Malaysia",
+      "aum": 91089.9
+    },
+    {
+      "ticker": "DJTU",
+      "country": "Taiwan",
+      "aum": 21028.8759
+    },
+    {
+      "ticker": "DOJE",
+      "country": "Singapore",
+      "aum": 29037.1887
+    },
+    {
+      "ticker": "DOJE",
+      "country": "Korea",
+      "aum": 16764.0
+    },
+    {
+      "ticker": "DOJE",
+      "country": "Malaysia",
+      "aum": 13456.2404
+    },
+    {
+      "ticker": "DOJE",
+      "country": "Hong Kong",
+      "aum": 1163.6308
+    },
+    {
+      "ticker": "DRNZ",
+      "country": "Korea",
+      "aum": 219828.0
+    },
+    {
+      "ticker": "DRNZ",
+      "country": "Taiwan",
+      "aum": 5962.7586
+    },
+    {
+      "ticker": "DRNZ",
+      "country": "Singapore",
+      "aum": 1544.9751
+    },
+    {
+      "ticker": "DULL",
+      "country": "Korea",
+      "aum": 153187.0
+    },
+    {
+      "ticker": "DULL",
+      "country": "Hong Kong",
+      "aum": 73299.7602
+    },
+    {
+      "ticker": "DULL",
+      "country": "Japan",
+      "aum": 26292.9098
+    },
+    {
+      "ticker": "EOSU",
+      "country": "Korea",
+      "aum": 272208.0
+    },
+    {
+      "ticker": "EOSU",
+      "country": "Taiwan",
+      "aum": 39161.5208
+    },
+    {
+      "ticker": "EOSU",
+      "country": "Singapore",
+      "aum": 231.7624
+    },
+    {
+      "ticker": "ESK",
+      "country": "Singapore",
+      "aum": 37878.077
+    },
+    {
+      "ticker": "ESK",
+      "country": "Korea",
+      "aum": 4205.0
+    },
+    {
+      "ticker": "ESK",
+      "country": "Malaysia",
+      "aum": 410.7767
+    },
+    {
+      "ticker": "ETU",
+      "country": "Korea",
+      "aum": 1548056.0
+    },
+    {
+      "ticker": "ETU",
+      "country": "Singapore",
+      "aum": 88855.9309
+    },
+    {
+      "ticker": "ETU",
+      "country": "Malaysia",
+      "aum": 11591.8724
+    },
+    {
+      "ticker": "ETU",
+      "country": "Taiwan",
+      "aum": 6857.0684
+    },
+    {
+      "ticker": "ETU",
+      "country": "Hong Kong",
+      "aum": 6553.7168
+    },
+    {
+      "ticker": "FEPI",
+      "country": "Japan",
+      "aum": 20201554.9118
+    },
+    {
+      "ticker": "FEPI",
+      "country": "Korea",
+      "aum": 11345836.0
+    },
+    {
+      "ticker": "FEPI",
+      "country": "Hong Kong",
+      "aum": 1625343.0098
+    },
+    {
+      "ticker": "FEPI",
+      "country": "Singapore",
+      "aum": 443458.5021
+    },
+    {
+      "ticker": "FEPI",
+      "country": "Taiwan",
+      "aum": 309967.7087
+    },
+    {
+      "ticker": "FEPI",
+      "country": "Malaysia",
+      "aum": 297254.9802
+    },
+    {
+      "ticker": "FGRU",
+      "country": "Korea",
+      "aum": 36469.0
+    },
+    {
+      "ticker": "FLYD",
+      "country": "Singapore",
+      "aum": 56690.3073
+    },
+    {
+      "ticker": "FLYD",
+      "country": "Korea",
+      "aum": 22395.0
+    },
+    {
+      "ticker": "FLYD",
+      "country": "Malaysia",
+      "aum": 603.4679
+    },
+    {
+      "ticker": "FLYU",
+      "country": "Korea",
+      "aum": 68582.0
+    },
+    {
+      "ticker": "FNGD",
+      "country": "Korea",
+      "aum": 3325273.0
+    },
+    {
+      "ticker": "FNGD",
+      "country": "Hong Kong",
+      "aum": 199931.715
+    },
+    {
+      "ticker": "FNGD",
+      "country": "Singapore",
+      "aum": 68375.7751
+    },
+    {
+      "ticker": "FNGD",
+      "country": "Malaysia",
+      "aum": 12534.5796
+    },
+    {
+      "ticker": "FNGD",
+      "country": "Japan",
+      "aum": 1448.7224
+    },
+    {
+      "ticker": "FNGO",
+      "country": "Korea",
+      "aum": 3296828.0
+    },
+    {
+      "ticker": "FNGO",
+      "country": "Singapore",
+      "aum": 271398.9135
+    },
+    {
+      "ticker": "FNGO",
+      "country": "Hong Kong",
+      "aum": 31661.2033
+    },
+    {
+      "ticker": "FNGO",
+      "country": "Japan",
+      "aum": 30893.4513
+    },
+    {
+      "ticker": "FNGO",
+      "country": "Malaysia",
+      "aum": 21322.3411
+    },
+    {
+      "ticker": "FNGS",
+      "country": "Korea",
+      "aum": 6926428.0
+    },
+    {
+      "ticker": "FNGS",
+      "country": "Hong Kong",
+      "aum": 2164733.5761
+    },
+    {
+      "ticker": "FNGS",
+      "country": "Singapore",
+      "aum": 294340.314
+    },
+    {
+      "ticker": "FNGS",
+      "country": "Japan",
+      "aum": 102978.843
+    },
+    {
+      "ticker": "FNGS",
+      "country": "Malaysia",
+      "aum": 71726.4338
+    },
+    {
+      "ticker": "FNGU",
+      "country": "Korea",
+      "aum": 92943033.0
+    },
+    {
+      "ticker": "FNGU",
+      "country": "Hong Kong",
+      "aum": 68597162.5557
+    },
+    {
+      "ticker": "GDXD",
+      "country": "Hong Kong",
+      "aum": 848196.1326
+    },
+    {
+      "ticker": "GDXD",
+      "country": "Singapore",
+      "aum": 102023.7323
+    },
+    {
+      "ticker": "GDXD",
+      "country": "Malaysia",
+      "aum": 65293.6085
+    },
+    {
+      "ticker": "GDXD",
+      "country": "Japan",
+      "aum": 664.4419
+    },
+    {
+      "ticker": "GDXU",
+      "country": "Korea",
+      "aum": 138494301.0
+    },
+    {
+      "ticker": "GDXU",
+      "country": "Hong Kong",
+      "aum": 16027876.4575
+    },
+    {
+      "ticker": "GDXU",
+      "country": "Japan",
+      "aum": 4611849.1697
+    },
+    {
+      "ticker": "GDXU",
+      "country": "Malaysia",
+      "aum": 419199.5306
+    },
+    {
+      "ticker": "GIF",
+      "country": "Korea",
+      "aum": 11777.0
+    },
+    {
+      "ticker": "GLXU",
+      "country": "Japan",
+      "aum": 174468.9967
+    },
+    {
+      "ticker": "GLXU",
+      "country": "Hong Kong",
+      "aum": 111692.7209
+    },
+    {
+      "ticker": "GLXU",
+      "country": "Korea",
+      "aum": 91417.0
+    },
+    {
+      "ticker": "GLXU",
+      "country": "Singapore",
+      "aum": 52545.6961
+    },
+    {
+      "ticker": "GLXU",
+      "country": "Malaysia",
+      "aum": 12003.1934
+    },
+    {
+      "ticker": "GLXU",
+      "country": "Taiwan",
+      "aum": 5581.7753
+    },
+    {
+      "ticker": "GMEU",
+      "country": "Korea",
+      "aum": 3027827.0
+    },
+    {
+      "ticker": "GMEU",
+      "country": "Hong Kong",
+      "aum": 310202.333
+    },
+    {
+      "ticker": "GMEU",
+      "country": "Singapore",
+      "aum": 170280.3208
+    },
+    {
+      "ticker": "GMEU",
+      "country": "Japan",
+      "aum": 126993.8488
+    },
+    {
+      "ticker": "GMEU",
+      "country": "Taiwan",
+      "aum": 11168.0153
+    },
+    {
+      "ticker": "GMEU",
+      "country": "Malaysia",
+      "aum": 5406.1314
+    },
+    {
+      "ticker": "GOOX",
+      "country": "Hong Kong",
+      "aum": 8227105.6567
+    },
+    {
+      "ticker": "GOOX",
+      "country": "Korea",
+      "aum": 5014761.0
+    },
+    {
+      "ticker": "GOOX",
+      "country": "Singapore",
+      "aum": 1701452.8638
+    },
+    {
+      "ticker": "GOOX",
+      "country": "Taiwan",
+      "aum": 378674.6851
+    },
+    {
+      "ticker": "GOOX",
+      "country": "Malaysia",
+      "aum": 279537.6261
+    },
+    {
+      "ticker": "HOII",
+      "country": "Korea",
+      "aum": 36371.0
+    },
+    {
+      "ticker": "HOII",
+      "country": "Japan",
+      "aum": 3016.633
+    },
+    {
+      "ticker": "HOII",
+      "country": "Malaysia",
+      "aum": 936.7786
+    },
+    {
+      "ticker": "HOII",
+      "country": "Singapore",
+      "aum": 774.3245
+    },
+    {
+      "ticker": "KTUP",
+      "country": "Korea",
+      "aum": 265623.0
+    },
+    {
+      "ticker": "KTUP",
+      "country": "Taiwan",
+      "aum": 194811.4411
+    },
+    {
+      "ticker": "KTUP",
+      "country": "Hong Kong",
+      "aum": 119204.8896
+    },
+    {
+      "ticker": "KTUP",
+      "country": "Japan",
+      "aum": 115083.23
+    },
+    {
+      "ticker": "KTUP",
+      "country": "Singapore",
+      "aum": 32654.5535
+    },
+    {
+      "ticker": "KTUP",
+      "country": "Malaysia",
+      "aum": 9700.0407
+    },
+    {
+      "ticker": "LLII",
+      "country": "Korea",
+      "aum": 90587.0
+    },
+    {
+      "ticker": "LLII",
+      "country": "Japan",
+      "aum": 85878.4
+    },
+    {
+      "ticker": "LLII",
+      "country": "Singapore",
+      "aum": 3006.581
+    },
+    {
+      "ticker": "LLII",
+      "country": "Malaysia",
+      "aum": 413.5128
+    },
+    {
+      "ticker": "MSFX",
+      "country": "Korea",
+      "aum": 1611702.0
+    },
+    {
+      "ticker": "MSFX",
+      "country": "Hong Kong",
+      "aum": 364006.1241
+    },
+    {
+      "ticker": "MSFX",
+      "country": "Singapore",
+      "aum": 171374.6249
+    },
+    {
+      "ticker": "MSFX",
+      "country": "Malaysia",
+      "aum": 67618.6512
+    },
+    {
+      "ticker": "MSFX",
+      "country": "Taiwan",
+      "aum": 7762.0937
+    },
+    {
+      "ticker": "MSII",
+      "country": "Korea",
+      "aum": 482975.0
+    },
+    {
+      "ticker": "MSII",
+      "country": "Singapore",
+      "aum": 4503.2555
+    },
+    {
+      "ticker": "MSII",
+      "country": "Japan",
+      "aum": 2876.6111
+    },
+    {
+      "ticker": "MSII",
+      "country": "Malaysia",
+      "aum": 2781.5944
+    },
+    {
+      "ticker": "MSII",
+      "country": "Taiwan",
+      "aum": 2294.6923
+    },
+    {
+      "ticker": "MSII",
+      "country": "Hong Kong",
+      "aum": 1616.2308
+    },
+    {
+      "ticker": "MSTU",
+      "country": "Korea",
+      "aum": 91223679.0
+    },
+    {
+      "ticker": "MSTU",
+      "country": "Japan",
+      "aum": 17490060.638
+    },
+    {
+      "ticker": "MSTU",
+      "country": "Hong Kong",
+      "aum": 17485143.3337
+    },
+    {
+      "ticker": "MSTU",
+      "country": "Singapore",
+      "aum": 6698512.6356
+    },
+    {
+      "ticker": "MSTU",
+      "country": "Taiwan",
+      "aum": 2614964.6205
+    },
+    {
+      "ticker": "MSTU",
+      "country": "Malaysia",
+      "aum": 607792.8793
+    },
+    {
+      "ticker": "MSTZ",
+      "country": "Korea",
+      "aum": 20308105.0
+    },
+    {
+      "ticker": "MSTZ",
+      "country": "Japan",
+      "aum": 2894150.3316
+    },
+    {
+      "ticker": "MSTZ",
+      "country": "Hong Kong",
+      "aum": 2362154.8052
+    },
+    {
+      "ticker": "MSTZ",
+      "country": "Singapore",
+      "aum": 918361.6365
+    },
+    {
+      "ticker": "MSTZ",
+      "country": "Malaysia",
+      "aum": 91404.9566
+    },
+    {
+      "ticker": "MSTZ",
+      "country": "Taiwan",
+      "aum": 26695.29
+    },
+    {
+      "ticker": "NFLU",
+      "country": "Korea",
+      "aum": 2254463.0
+    },
+    {
+      "ticker": "NFLU",
+      "country": "Singapore",
+      "aum": 504084.7462
+    },
+    {
+      "ticker": "NFLU",
+      "country": "Hong Kong",
+      "aum": 388477.8495
+    },
+    {
+      "ticker": "NFLU",
+      "country": "Malaysia",
+      "aum": 58898.2676
+    },
+    {
+      "ticker": "NFLU",
+      "country": "Taiwan",
+      "aum": 7055.0929
+    },
+    {
+      "ticker": "NRGD",
+      "country": "Korea",
+      "aum": 212515.0
+    },
+    {
+      "ticker": "NRGD",
+      "country": "Hong Kong",
+      "aum": 167.6615
+    },
+    {
+      "ticker": "NRGD",
+      "country": "Japan",
+      "aum": 28.6876
+    },
+    {
+      "ticker": "NRGU",
+      "country": "Korea",
+      "aum": 7995036.0
+    },
+    {
+      "ticker": "NRGU",
+      "country": "Malaysia",
+      "aum": 39652.4384
+    },
+    {
+      "ticker": "NRGU",
+      "country": "Hong Kong",
+      "aum": 27956.2426
+    },
+    {
+      "ticker": "NRGU",
+      "country": "Singapore",
+      "aum": 14064.0358
+    },
+    {
+      "ticker": "NRGU",
+      "country": "Japan",
+      "aum": 3204.0416
+    },
+    {
+      "ticker": "NVDQ",
+      "country": "Korea",
+      "aum": 9228888.0
+    },
+    {
+      "ticker": "NVDQ",
+      "country": "Hong Kong",
+      "aum": 2652435.5879
+    },
+    {
+      "ticker": "NVDQ",
+      "country": "Singapore",
+      "aum": 320805.595
+    },
+    {
+      "ticker": "NVDQ",
+      "country": "Japan",
+      "aum": 301208.6111
+    },
+    {
+      "ticker": "NVDQ",
+      "country": "Malaysia",
+      "aum": 147278.8559
+    },
+    {
+      "ticker": "NVDQ",
+      "country": "Taiwan",
+      "aum": 8812.9411
+    },
+    {
+      "ticker": "NVDX",
+      "country": "Korea",
+      "aum": 37083000.0
+    },
+    {
+      "ticker": "NVDX",
+      "country": "Hong Kong",
+      "aum": 19810651.6723
+    },
+    {
+      "ticker": "NVDX",
+      "country": "Singapore",
+      "aum": 5633452.1065
+    },
+    {
+      "ticker": "NVDX",
+      "country": "Taiwan",
+      "aum": 3720267.4017
+    },
+    {
+      "ticker": "NVDX",
+      "country": "Japan",
+      "aum": 2036712.4918
+    },
+    {
+      "ticker": "NVDX",
+      "country": "Malaysia",
+      "aum": 1913202.0471
+    },
+    {
+      "ticker": "NVII",
+      "country": "Korea",
+      "aum": 6432412.0
+    },
+    {
+      "ticker": "NVII",
+      "country": "Japan",
+      "aum": 707432.2899
+    },
+    {
+      "ticker": "NVII",
+      "country": "Singapore",
+      "aum": 228218.2704
+    },
+    {
+      "ticker": "NVII",
+      "country": "Hong Kong",
+      "aum": 62399.187
+    },
+    {
+      "ticker": "NVII",
+      "country": "Malaysia",
+      "aum": 31861.535
+    },
+    {
+      "ticker": "NVII",
+      "country": "Taiwan",
+      "aum": 490.1215
+    },
+    {
+      "ticker": "OILD",
+      "country": "Korea",
+      "aum": 375433.0
+    },
+    {
+      "ticker": "OILD",
+      "country": "Hong Kong",
+      "aum": 3645.6222
+    },
+    {
+      "ticker": "OILD",
+      "country": "Singapore",
+      "aum": 463.914
+    },
+    {
+      "ticker": "OILD",
+      "country": "Malaysia",
+      "aum": 12.269
+    },
+    {
+      "ticker": "OILU",
+      "country": "Korea",
+      "aum": 2194199.0
+    },
+    {
+      "ticker": "OILU",
+      "country": "Hong Kong",
+      "aum": 152291.9596
+    },
+    {
+      "ticker": "OILU",
+      "country": "Singapore",
+      "aum": 143153.8777
+    },
+    {
+      "ticker": "OILU",
+      "country": "Malaysia",
+      "aum": 34184.9448
+    },
+    {
+      "ticker": "OILU",
+      "country": "Japan",
+      "aum": 32369.5208
+    },
+    {
+      "ticker": "PAAU",
+      "country": "Korea",
+      "aum": 595.0
+    },
+    {
+      "ticker": "PLTI",
+      "country": "Korea",
+      "aum": 56827.0
+    },
+    {
+      "ticker": "PLTI",
+      "country": "Japan",
+      "aum": 2983.87
+    },
+    {
+      "ticker": "PLTI",
+      "country": "Malaysia",
+      "aum": 448.3159
+    },
+    {
+      "ticker": "RBLU",
+      "country": "Korea",
+      "aum": 956186.0
+    },
+    {
+      "ticker": "RBLU",
+      "country": "Hong Kong",
+      "aum": 726477.6649
+    },
+    {
+      "ticker": "RBLU",
+      "country": "Singapore",
+      "aum": 284298.5716
+    },
+    {
+      "ticker": "RBLU",
+      "country": "Japan",
+      "aum": 62718.2186
+    },
+    {
+      "ticker": "RBLU",
+      "country": "Malaysia",
+      "aum": 24009.2332
+    },
+    {
+      "ticker": "RBLU",
+      "country": "Taiwan",
+      "aum": 527.4509
+    },
+    {
+      "ticker": "RDWU",
+      "country": "Korea",
+      "aum": 1545119.0
+    },
+    {
+      "ticker": "RDWU",
+      "country": "Taiwan",
+      "aum": 12798.6743
+    },
+    {
+      "ticker": "RDWU",
+      "country": "Hong Kong",
+      "aum": 4538.2119
+    },
+    {
+      "ticker": "ROBN",
+      "country": "Korea",
+      "aum": 8394945.0
+    },
+    {
+      "ticker": "ROBN",
+      "country": "Hong Kong",
+      "aum": 7164729.9493
+    },
+    {
+      "ticker": "ROBN",
+      "country": "Japan",
+      "aum": 2258280.7928
+    },
+    {
+      "ticker": "ROBN",
+      "country": "Singapore",
+      "aum": 1310916.492
+    },
+    {
+      "ticker": "ROBN",
+      "country": "Malaysia",
+      "aum": 367041.5783
+    },
+    {
+      "ticker": "ROBN",
+      "country": "Taiwan",
+      "aum": 156489.4779
+    },
+    {
+      "ticker": "SBTU",
+      "country": "Korea",
+      "aum": 57363.0
+    },
+    {
+      "ticker": "SBTU",
+      "country": "Singapore",
+      "aum": 8680.4936
+    },
+    {
+      "ticker": "SBTU",
+      "country": "Malaysia",
+      "aum": 1082.8
+    },
+    {
+      "ticker": "SHNY",
+      "country": "Korea",
+      "aum": 20953482.0
+    },
+    {
+      "ticker": "SHNY",
+      "country": "Hong Kong",
+      "aum": 3433458.7354
+    },
+    {
+      "ticker": "SHNY",
+      "country": "Japan",
+      "aum": 60443.1263
+    },
+    {
+      "ticker": "SMUP",
+      "country": "Korea",
+      "aum": 2591251.0
+    },
+    {
+      "ticker": "SMUP",
+      "country": "Japan",
+      "aum": 425564.698
+    },
+    {
+      "ticker": "SMUP",
+      "country": "Hong Kong",
+      "aum": 401623.8993
+    },
+    {
+      "ticker": "SMUP",
+      "country": "Singapore",
+      "aum": 398055.7322
+    },
+    {
+      "ticker": "SMUP",
+      "country": "Malaysia",
+      "aum": 177959.0807
+    },
+    {
+      "ticker": "SMUP",
+      "country": "Taiwan",
+      "aum": 49397.7917
+    },
+    {
+      "ticker": "SNOU",
+      "country": "Korea",
+      "aum": 959458.0
+    },
+    {
+      "ticker": "SNOU",
+      "country": "Singapore",
+      "aum": 327769.6232
+    },
+    {
+      "ticker": "SNOU",
+      "country": "Hong Kong",
+      "aum": 109892.9269
+    },
+    {
+      "ticker": "SNOU",
+      "country": "Taiwan",
+      "aum": 34009.6778
+    },
+    {
+      "ticker": "SNOU",
+      "country": "Malaysia",
+      "aum": 3227.9362
+    },
+    {
+      "ticker": "SOLX",
+      "country": "Korea",
+      "aum": 13057.0
+    },
+    {
+      "ticker": "SSK",
+      "country": "Singapore",
+      "aum": 171158.6234
+    },
+    {
+      "ticker": "SSK",
+      "country": "Korea",
+      "aum": 98793.0
+    },
+    {
+      "ticker": "SSK",
+      "country": "Malaysia",
+      "aum": 21913.6107
+    },
+    {
+      "ticker": "SSK",
+      "country": "Hong Kong",
+      "aum": 16113.6195
+    },
+    {
+      "ticker": "SSK",
+      "country": "Taiwan",
+      "aum": 5867.1473
+    },
+    {
+      "ticker": "TSII",
+      "country": "Korea",
+      "aum": 7921378.0
+    },
+    {
+      "ticker": "TSII",
+      "country": "Japan",
+      "aum": 298347.2886
+    },
+    {
+      "ticker": "TSII",
+      "country": "Singapore",
+      "aum": 110871.5076
+    },
+    {
+      "ticker": "TSII",
+      "country": "Hong Kong",
+      "aum": 28677.1237
+    },
+    {
+      "ticker": "TSII",
+      "country": "Malaysia",
+      "aum": 27193.2405
+    },
+    {
+      "ticker": "TSII",
+      "country": "Taiwan",
+      "aum": 1701.0023
+    },
+    {
+      "ticker": "TSLT",
+      "country": "Korea",
+      "aum": 127413690.6667
+    },
+    {
+      "ticker": "TSLT",
+      "country": "Hong Kong",
+      "aum": 5428594.6597
+    },
+    {
+      "ticker": "TSLT",
+      "country": "Singapore",
+      "aum": 969597.9582
+    },
+    {
+      "ticker": "TSLT",
+      "country": "Malaysia",
+      "aum": 718763.9399
+    },
+    {
+      "ticker": "TSLT",
+      "country": "Taiwan",
+      "aum": 427615.0231
+    },
+    {
+      "ticker": "TSLT",
+      "country": "Japan",
+      "aum": 283662.12
+    },
+    {
+      "ticker": "TSLZ",
+      "country": "Korea",
+      "aum": 11355026.0
+    },
+    {
+      "ticker": "TSLZ",
+      "country": "Hong Kong",
+      "aum": 2107775.3791
+    },
+    {
+      "ticker": "TSLZ",
+      "country": "Singapore",
+      "aum": 1943373.7872
+    },
+    {
+      "ticker": "TSLZ",
+      "country": "Malaysia",
+      "aum": 327905.2927
+    },
+    {
+      "ticker": "TSLZ",
+      "country": "Taiwan",
+      "aum": 240964.3061
+    },
+    {
+      "ticker": "TSLZ",
+      "country": "Japan",
+      "aum": 110698.75
+    },
+    {
+      "ticker": "TTDU",
+      "country": "Korea",
+      "aum": 634349.0
+    },
+    {
+      "ticker": "TTDU",
+      "country": "Japan",
+      "aum": 489507.59
+    },
+    {
+      "ticker": "TTDU",
+      "country": "Hong Kong",
+      "aum": 98897.2942
+    },
+    {
+      "ticker": "TTDU",
+      "country": "Malaysia",
+      "aum": 13544.3281
+    },
+    {
+      "ticker": "TTDU",
+      "country": "Singapore",
+      "aum": 7702.1234
+    },
+    {
+      "ticker": "TTDU",
+      "country": "Taiwan",
+      "aum": 6136.8156
+    },
+    {
+      "ticker": "ULTI",
+      "country": "Korea",
+      "aum": 145788.0
+    },
+    {
+      "ticker": "ULTI",
+      "country": "Japan",
+      "aum": 94545.8078
+    },
+    {
+      "ticker": "ULTI",
+      "country": "Singapore",
+      "aum": 4786.034
+    },
+    {
+      "ticker": "ULTI",
+      "country": "Taiwan",
+      "aum": 616.3832
+    },
+    {
+      "ticker": "WMTI",
+      "country": "Korea",
+      "aum": 126424.0
+    },
+    {
+      "ticker": "WMTI",
+      "country": "Japan",
+      "aum": 113358.725
+    },
+    {
+      "ticker": "WMTI",
+      "country": "Malaysia",
+      "aum": 698.2186
+    },
+    {
+      "ticker": "WTID",
+      "country": "Korea",
+      "aum": 139383.0
+    },
+    {
+      "ticker": "WTIU",
+      "country": "Korea",
+      "aum": 500514.0
+    },
+    {
+      "ticker": "WTIU",
+      "country": "Hong Kong",
+      "aum": 129396.5941
+    },
+    {
+      "ticker": "WTIU",
+      "country": "Japan",
+      "aum": 12156.1299
+    },
+    {
+      "ticker": "XRPK",
+      "country": "Korea",
+      "aum": 5493.0
+    },
+    {
+      "ticker": "XRPR",
+      "country": "Korea",
+      "aum": 57510.0
+    },
+    {
+      "ticker": "XRPR",
+      "country": "Singapore",
+      "aum": 20892.3374
+    },
+    {
+      "ticker": "XRPR",
+      "country": "Malaysia",
+      "aum": 6463.3697
+    },
+    {
+      "ticker": "XRPR",
+      "country": "Hong Kong",
+      "aum": 3653.9106
+    }
+  ]
+}

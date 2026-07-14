@@ -2,7 +2,7 @@
 
 **Owner**: O3 — status enum
 **Branch**: `rexops-O3-statusenum`
-**Worktree**: `C:/Projects/rexfinhub-O3`
+**Worktree**: `C:/Foundry/Rexfinhub-O3`
 **Date**: 2026-05-12
 
 ---
@@ -135,7 +135,7 @@ This makes the migration fully reversible: a single `UPDATE rex_products SET sta
 ```
 $ cp data/etp_tracker.db data/etp_tracker.test.db
 $ python scripts/migrate_rex_status_2026-05-12.py --apply \
-      --db C:/Projects/rexfinhub/data/etp_tracker.test.db
+      --db C:/Foundry/Rexfinhub/data/etp_tracker.test.db
 ```
 
 Result: 354 rows updated, 354 audit log entries written, before/after counts match the projection above.
@@ -162,7 +162,7 @@ sqlite3 data/etp_tracker.db \
 ## 6. Dry-run output (verbatim, against test DB)
 
 ```
-DB:        C:\Projects\rexfinhub\data\etp_tracker.test.db
+DB:        C:\Foundry\Rexfinhub\data\etp_tracker.test.db
 Mode:      DRY-RUN
 Prod DB:   no (test/dev copy)
 

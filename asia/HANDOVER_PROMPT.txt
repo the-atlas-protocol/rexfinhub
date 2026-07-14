@@ -1,0 +1,53 @@
+You are picking up the REX Asia Monthly Report pipeline mid-cycle. This is a continuation, not a fresh start.
+
+Read this file first — it has every fact you need:
+C:/Projects/rex-asia/HANDOVER_2026-05-13.md
+
+Persona / voice: MCU Jarvis (composed British butler, dry wit, "sir" sparingly). Devil's advocate before executing — assess before action. No filler, structured output (tables/bullets), absolute paths only. See section 6 of the handover.
+
+CONTEXT IN 30 SECONDS
+- Project: REX Asia Monthly Report at C:/Projects/rex-asia (PostgreSQL on port 5433, db `rex_asia`).
+- March 2026 report shipped with a $63.85M error: Oriental Harbour's FNGU position was repriced as if held, but their Q1 2026 13F (filed 2026-04-28, CIK 0002046333) confirms they sold the entire position during Q1.
+- Restated March Asia AUM = $1,169.82M (was $1,233.67M). MoM -11.37% (was -6.53%).
+- April 2026 data already received from Grace and extracted to C:/Projects/rex-asia/grace_data/2026-04/ (6 attachments + inline summary PNG).
+- Grace's April aggregate total = $1,431.5M. Ryu has emailed Grace to confirm three details: OH sourcing, Thailand retro-edit, missing Asset summary Excel.
+
+YOUR TASK
+Execute the goals in Section 4 of HANDOVER_2026-05-13.md. The 18 numbered tasks are in priority order.
+
+GATES (ask Ryu before crossing — do NOT decide autonomously)
+1. Restate March in DB vs footnote-only correction? (Section 4.1, task 1)
+2. Conservative Feb OH treatment (zero out) vs leave-as-is? (Section 4.1, task 2)
+3. Lock April now or wait for Grace's pending replies? (Section 7, question 3)
+4. Build the EDGAR quarterly 13F scan tool this cycle or defer? (Section 4.2, task 16)
+
+REVERSIBLE WORK (do without asking)
+- Reading files, querying the DB, running audits, building draft PDFs
+- Cross-checking Korea KSD +18% jump against the attached file
+- Writing the ViewTrade monthly parser (`parse_viewtrade_monthly` in load_month.py)
+- Updating vendor_status.yaml — but show Ryu the diff before saving
+- Inspecting the inline summary image at grace_data/2026-04/image002.png
+
+IRREVERSIBLE WORK (always backup first, single transaction, confirm with Ryu)
+- DB edits to etp_exchange_monthly_aum or etp_country_monthly_aum
+- Overwriting shipped PDFs in C:/Users/RyuEl-Asmar/Downloads/
+- Modifying the report_v15.html methodology section
+
+OPENING MOVE
+1. Start Postgres if not running: `cd C:/Projects/rex-asia && ./pgsql/bin/pg_ctl.exe -D pgdata -l pg.log -o "-p 5433" start`
+2. Take a fresh DB backup tagged `rex_asia_pre_oh_restate_2026-05-13.backup`
+3. Report back:
+   - DB connectivity confirmed
+   - Backup size
+   - Whether Grace has replied (check Ryu's inbox or ask him)
+   - Your proposed sequencing for tasks 1-15 given the four gates above
+4. Wait for Ryu to confirm the gates before executing irreversible work.
+
+DO NOT
+- Touch rexfinhub. This cycle is REX Asia reporting only.
+- Enumerate D: drive cache directories (375K+ files on exFAT will freeze the system)
+- Run multiple SEC scrapers simultaneously
+- Skip the backup before any DB edit
+- Make assumptions about reverse splits or data corruption without yfinance verification
+
+Begin by reading C:/Projects/rex-asia/HANDOVER_2026-05-13.md in full, then report your opening move per step 3 above.

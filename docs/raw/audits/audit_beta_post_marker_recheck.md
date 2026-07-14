@@ -185,9 +185,9 @@ landing in Plain Beta when `uses_leverage=1` is absent in Bloomberg data.
 
 ## Files Modified
 
-- `C:/Projects/rexfinhub/market/auto_classify.py` — added `_detect_risk_mgmt_keywords()`, updated `_detect_outcome_keywords()`, inserted Rule 4b
-- `C:/Projects/rexfinhub/config/rules/fund_master.csv` — 27 rows updated
-- `C:/Projects/rexfinhub/data/etp_tracker.db` — 7,231 rows applied via `apply_fund_master.py`
+- `C:/Foundry/Rexfinhub/market/auto_classify.py` — added `_detect_risk_mgmt_keywords()`, updated `_detect_outcome_keywords()`, inserted Rule 4b
+- `C:/Foundry/Rexfinhub/config/rules/fund_master.csv` — 27 rows updated
+- `C:/Foundry/Rexfinhub/data/etp_tracker.db` — 7,231 rows applied via `apply_fund_master.py`
 
 ---
 

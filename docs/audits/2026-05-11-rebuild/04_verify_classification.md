@@ -80,7 +80,7 @@ radius.
 ### F3 — Three-source-of-truth race for fund classification
 - **Status**: **PARTIALLY RESOLVED**
 - `data/rules/` has been emptied (only README.md remains) — confirmed
-  locally at `C:/Projects/rexfinhub/data/rules/`
+  locally at `C:/Foundry/Rexfinhub/data/rules/`
 - `RULES_DIR` in `tools/rules_editor/classify_engine.py:21` now points at
   `config/rules/` — confirmed
 - `config/rules/fund_mapping.csv` grew from 2,300 to 2,366 rows (+66:

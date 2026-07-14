@@ -3,7 +3,7 @@ echo ==========================================
 echo  REX Dev Server - Live Reload
 echo ==========================================
 echo.
-cd /d C:\Projects\rexfinhub
+cd /d C:\Foundry\rexfinhub
 
 :: Start Caddy (named URLs)
 :: Try PATH first, then winget install location

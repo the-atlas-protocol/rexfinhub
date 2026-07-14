@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+http_cache/
+data/
+*.db
+.claude/

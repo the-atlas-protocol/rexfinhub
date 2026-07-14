@@ -54,7 +54,7 @@ python scripts/run_all_pipelines.py
 
 | What | Where |
 |------|-------|
-| Project root | `C:\Projects\rexfinhub` |
+| Project root | `C:\Foundry\Rexfinhub` |
 | Bloomberg data | `data/DASHBOARD/bbg_data.xlsx` |
 | Screener data | `data/SCREENER/data.xlsx` |
 | Pipeline logs | `logs/pipeline_YYYYMMDD_HHMM.log` |

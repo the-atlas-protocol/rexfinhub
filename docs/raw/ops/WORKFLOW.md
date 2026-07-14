@@ -8,8 +8,8 @@ How this project is set up across machines, synced, and developed.
 
 | Machine | Role | Path |
 |---------|------|------|
-| Desktop (RyuPC) | Development + pipeline runs | `C:\Projects\rexfinhub` |
-| Work Laptop | Development + pipeline runs | `C:\Projects\rexfinhub` |
+| Desktop (RyuPC) | Development + pipeline runs | `C:\Foundry\Rexfinhub` |
+| Work Laptop | Development + pipeline runs | `C:\Foundry\Rexfinhub` |
 
 Both machines are equal. Either can run the pipeline, server, or Claude Code sessions.
 
@@ -23,7 +23,7 @@ Syncthing keeps two folders in sync between desktop and laptop:
 
 | Folder | Path | What it contains |
 |--------|------|------------------|
-| Projects | `C:\Projects\` | All project code |
+| Projects | `C:\Foundry\` | All project code |
 | Claude Code Data | `C:\Users\<username>\.claude\` | Claude memory, settings, session history |
 
 Syncthing runs in the background via **SyncTrayzor** (desktop) or a startup script (laptop). You never need to touch it after initial setup.
@@ -37,7 +37,7 @@ Deny Syncthing auto-upgrades to prevent the `-n` flag crash:
 - `http_cache/` (13GB+ SEC response cache) — each machine maintains its own
 - `__pycache__/` — rebuilt locally
 
-These are excluded via `C:\Projects\.stignore`.
+These are excluded via `C:\Foundry\.stignore`.
 
 ---
 
@@ -49,7 +49,7 @@ These are excluded via `C:\Projects\.stignore`.
 4. **Accept on other machine**: Open its Syncthing UI, approve the new device
 5. **Share folders**: On the existing machine, share "Projects" and "Claude Code Data" with the new device
 6. **Accept folders on new machine**:
-   - Projects → `C:\Projects`
+   - Projects → `C:\Foundry`
    - Claude Code Data → `C:\Users\<username>\.claude`
 7. **Auto-start**: Create `syncthing.vbs` in `shell:startup`:
    ```vbs
@@ -68,20 +68,20 @@ The SEC HTTP cache (`http_cache/`) is ~13GB and not synced. To bootstrap a new m
 ## Daily Development
 
 1. Open a terminal on whichever machine you're using
-2. `cd C:\Projects\rexfinhub`
+2. `cd C:\Foundry\Rexfinhub`
 3. Start Claude Code: `claude`
 4. Work normally — all changes sync to the other machine automatically
 
 ### Pipeline runs
 ```powershell
-cd C:\Projects\rexfinhub
+cd C:\Foundry\Rexfinhub
 python scripts/run_daily.py
 ```
 Run on whichever machine is available. Pipeline is incremental — seconds if nothing new.
 
 ### Local server
 ```powershell
-cd C:\Projects\rexfinhub
+cd C:\Foundry\Rexfinhub
 uvicorn webapp.main:app --reload --port 8000
 ```
 

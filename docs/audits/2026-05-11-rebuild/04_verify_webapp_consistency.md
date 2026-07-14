@@ -3,7 +3,7 @@
 Generated: 2026-05-11 (post commit 6470819)
 Agent: webapp_consistency_verify
 Site under audit: https://rex-etp-tracker.onrender.com
-Local DB snapshot: `C:/Projects/rexfinhub/data/etp_tracker.db` (mtime 2026-05-11 18:18)
+Local DB snapshot: `C:/Foundry/Rexfinhub/data/etp_tracker.db` (mtime 2026-05-11 18:18)
 Auth: SITE_PASSWORD=rexusers26 (read-only browse, never touched admin endpoints)
 Stage 1 reference: `01_webapp_consistency.md`
 

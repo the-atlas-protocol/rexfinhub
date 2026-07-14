@@ -135,7 +135,7 @@ Create a team with a researcher and 2 implementers to build the REST API
 
 ## Working Directory
 
-Always run Claude Code from the project root (e.g., `C:\Projects\rexfinhub\`), not from a parent directory. This ensures:
+Always run Claude Code from the project root (e.g., `C:\Foundry\Rexfinhub\`), not from a parent directory. This ensures:
 - CLAUDE.md auto-loads
 - Project-level agents are available
 - .claude/settings.local.json applies

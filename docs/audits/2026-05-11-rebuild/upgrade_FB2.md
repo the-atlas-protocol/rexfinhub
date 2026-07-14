@@ -1,7 +1,7 @@
 # Upgrade FB2 — Notable Voices qualitative layer
 
 **Branch:** `audit-stockrecs-FB2-voices`
-**Worktree:** `C:/Projects/rexfinhub-FB2`
+**Worktree:** `C:/Foundry/Rexfinhub-FB2`
 **Owner:** stockrecs FB2 wave
 **Status:** first-pass curated quote layer (no RSS ingestion yet)
 

@@ -24,7 +24,7 @@ if [ "${1:-}" = "--execute" ]; then
     EXECUTE=true
 fi
 
-REPO_ROOT="/c/Projects/rexfinhub"
+REPO_ROOT="/c/Foundry/rexfinhub"
 cd "$REPO_ROOT"
 
 echo "=== Worktree cleanup ==="

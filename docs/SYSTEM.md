@@ -42,7 +42,7 @@ updated: 2026-05-19
                 Archive only. Nightly backup tarballs + cache snapshots.
                 Not queried live.
 
-                Local C:\Projects\rexfinhub\
+                Local C:\Foundry\Rexfinhub\
                 ─────────────────────────────────────────────────────────────
                 Dev only. Synced laptop↔desktop via Syncthing.
                 NEVER authoritative for any data.

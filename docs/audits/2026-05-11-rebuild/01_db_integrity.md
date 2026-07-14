@@ -1,7 +1,7 @@
 # Stage 1 Audit — DB Integrity Sweep
 Generated: 2026-05-11T22:30:00Z
 Agent: db_integrity
-DB: `C:/Projects/rexfinhub/data/etp_tracker.db`
+DB: `C:/Foundry/Rexfinhub/data/etp_tracker.db`
 
 ## Summary
 **21 findings**: 4 critical, 7 high, 7 medium, 3 low.

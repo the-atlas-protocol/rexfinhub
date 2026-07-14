@@ -32,7 +32,7 @@ USER_AGENT = "REX-ETP-Tracker/2.0 (relasmar@rexfin.com)"
 DASHBOARD_URL = "https://rex-etp-tracker.onrender.com"
 RENDER_API_URL = "https://rex-etp-tracker.onrender.com/api/v1"
 
-NOTES_PROJECT = Path("C:/Projects/structured-notes")
+NOTES_PROJECT = Path("C:/Foundry/Rexfinhub/structured-notes")
 NOTES_DB_SRC = Path("D:/sec-data/databases/structured_notes.db")
 NOTES_DB_DST = PROJECT_ROOT / "data" / "structured_notes.db"
 

@@ -104,15 +104,15 @@ R9 closed the most urgent operational finding (.txt fallback files restored on V
 
 ## Source files referenced
 
-- `C:/Projects/rexfinhub/docs/audit_2026-05-11/01_csv_rules.md`
-- `C:/Projects/rexfinhub/docs/audit_2026-05-11/01_rex_tables.md`
-- `C:/Projects/rexfinhub/docs/audit_2026-05-11/01_db_drift.md`
-- `C:/Projects/rexfinhub/docs/audit_2026-05-11/01_recipients.md`
-- `C:/Projects/rexfinhub/docs/audit_2026-05-11/fix_R6.md`, `fix_R9.md`, `cleanup_T1.md` (referenced for fix scope)
-- `C:/Projects/rexfinhub/market/config.py:21-23`
-- `C:/Projects/rexfinhub/market/transform.py:88-234`
-- `C:/Projects/rexfinhub/tools/rules_editor/classify_engine.py:15-21`
-- `C:/Projects/rexfinhub/data/rules/README.md` (deprecation notice)
+- `C:/Foundry/Rexfinhub/docs/audit_2026-05-11/01_csv_rules.md`
+- `C:/Foundry/Rexfinhub/docs/audit_2026-05-11/01_rex_tables.md`
+- `C:/Foundry/Rexfinhub/docs/audit_2026-05-11/01_db_drift.md`
+- `C:/Foundry/Rexfinhub/docs/audit_2026-05-11/01_recipients.md`
+- `C:/Foundry/Rexfinhub/docs/audit_2026-05-11/fix_R6.md`, `fix_R9.md`, `cleanup_T1.md` (referenced for fix scope)
+- `C:/Foundry/Rexfinhub/market/config.py:21-23`
+- `C:/Foundry/Rexfinhub/market/transform.py:88-234`
+- `C:/Foundry/Rexfinhub/tools/rules_editor/classify_engine.py:15-21`
+- `C:/Foundry/Rexfinhub/data/rules/README.md` (deprecation notice)
 - `/home/jarvis/rexfinhub/data/etp_tracker.db` (VPS SQLite — live)
 - `/home/jarvis/rexfinhub/data/backups/etp_tracker_20260511.db` (fresh backup, 651 MB)
 - `/home/jarvis/rexfinhub/logs/pipeline_20260511_2000.log` (most-recent successful daily run)

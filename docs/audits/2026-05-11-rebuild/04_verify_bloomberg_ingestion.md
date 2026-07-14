@@ -124,7 +124,7 @@ The system is *meaningfully* healthier — the nightly chain works end-to-end �
 
 ### N1: T1 fix did NOT propagate to local copy of `issuer_brand_overrides.csv`
 - **Severity**: high
-- **Surface**: `C:/Projects/rexfinhub/config/rules/issuer_brand_overrides.csv`
+- **Surface**: `C:/Foundry/Rexfinhub/config/rules/issuer_brand_overrides.csv`
 - **Evidence**: Local file size 238,631 bytes; VPS file size 235,997 bytes. Local file contains **15 raw 0x97 bytes** (cp1252 em-dash, U+2014). VPS file contains **0 non-ASCII bytes**. Sample: `BNDY US,Horizon,audit-T1,Horizon Funds \x97 CC backfill\r\n`.
 - **Impact**: `scripts/apply_issuer_brands.py:192` opens with strict `encoding="utf-8"`. Any local execution (`python scripts/apply_issuer_brands.py`, `python scripts/run_daily.py`) will crash on `UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 34: invalid start byte`.
 - **Hypothesis**: The T1 fix was applied directly on VPS (likely via SSH edit) rather than committed and synced through Syncthing/git, so the desktop never received it. The mtime alignment supports this (VPS: May 11 21:28; local: May 11 21:26 — close but local is older AND larger AND has the bad bytes).

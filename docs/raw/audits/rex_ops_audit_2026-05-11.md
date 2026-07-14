@@ -355,15 +355,15 @@ For each file in 6.1 that uses `.page-wrap`, change the class to `full-width-pag
 
 | Pillar | Path | Purpose |
 |---|---|---|
-| Pipeline router | `C:/Projects/rexfinhub/webapp/routers/pipeline_calendar.py` | `_pipeline_products_impl`, calendar handlers, redirects |
-| Pipeline template | `C:/Projects/rexfinhub/webapp/templates/pipeline_products.html` | 635-line page with KPIs + filters + table |
-| Products router | `C:/Projects/rexfinhub/webapp/routers/capm.py` | `_capm_index_impl`, export, update |
-| Products template | `C:/Projects/rexfinhub/webapp/templates/capm.html` | 401-line page with suite tabs + Trust&APs tab |
-| Calendar template | `C:/Projects/rexfinhub/webapp/templates/pipeline_calendar.html` | Month calendar w/ event types |
-| Models | `C:/Projects/rexfinhub/webapp/models.py` | `RexProduct` (line 900), `CapMTrustAP` (1010), `CapMProduct` (1034) |
-| Import scripts | `C:/Projects/rexfinhub/scripts/import_capm.py`, `import_product_tracker.py` | Populate from xlsx |
-| Global CSS | `C:/Projects/rexfinhub/webapp/static/css/style.css` | `--container-width` (line 54), `.container` (line 143) |
-| Operations mount | `C:/Projects/rexfinhub/webapp/routers/operations.py` | Mounts `/operations/{pipeline,products,calendar}` |
+| Pipeline router | `C:/Foundry/Rexfinhub/webapp/routers/pipeline_calendar.py` | `_pipeline_products_impl`, calendar handlers, redirects |
+| Pipeline template | `C:/Foundry/Rexfinhub/webapp/templates/pipeline_products.html` | 635-line page with KPIs + filters + table |
+| Products router | `C:/Foundry/Rexfinhub/webapp/routers/capm.py` | `_capm_index_impl`, export, update |
+| Products template | `C:/Foundry/Rexfinhub/webapp/templates/capm.html` | 401-line page with suite tabs + Trust&APs tab |
+| Calendar template | `C:/Foundry/Rexfinhub/webapp/templates/pipeline_calendar.html` | Month calendar w/ event types |
+| Models | `C:/Foundry/Rexfinhub/webapp/models.py` | `RexProduct` (line 900), `CapMTrustAP` (1010), `CapMProduct` (1034) |
+| Import scripts | `C:/Foundry/Rexfinhub/scripts/import_capm.py`, `import_product_tracker.py` | Populate from xlsx |
+| Global CSS | `C:/Foundry/Rexfinhub/webapp/static/css/style.css` | `--container-width` (line 54), `.container` (line 143) |
+| Operations mount | `C:/Foundry/Rexfinhub/webapp/routers/operations.py` | Mounts `/operations/{pipeline,products,calendar}` |
 | Master xlsm | `C:/Users/RyuEl-Asmar/REX Financial LLC/REX Financial LLC - Rex Financial LLC/Product Development/MasterFiles/MASTER Product Tracker/REX Master Product Development Tracker.xlsm` | Source of truth — 18 sheets, "Pipeline" has 42 cols |
 | CapM source xlsx | `C:/Users/RyuEl-Asmar/Downloads/Capital Markets Product List .xlsx` | Drives `capm_products` |
-| App DB | `C:/Projects/rexfinhub/data/etp_tracker.db` | Live SQLite — 702 rex_products, 0 capm_products |
+| App DB | `C:/Foundry/Rexfinhub/data/etp_tracker.db` | Live SQLite — 702 rex_products, 0 capm_products |

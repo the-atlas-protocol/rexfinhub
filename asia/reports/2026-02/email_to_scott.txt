@@ -1,0 +1,14 @@
+Subject: REX Asia Reports — February 2026 (Updated)
+
+Scott,
+
+Updated reports attached with your changes incorporated. Also caught and fixed a minor calculation error in the suite KPIs — values now tie exactly to the fund-level data in the appendix.
+
+1. REX Asia Report — full (internal)
+2. T-REX Asia Report — counterparty ready
+3. MicroSectors Asia Report — BMO ready
+
+Let me know if anything else needs adjusting.
+
+Best,
+Ryu

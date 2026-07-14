@@ -37,7 +37,7 @@ CACHE_LOCAL = PROJECT_ROOT / "cache"          # C: SSD — fast writes during sc
 CACHE_ARCHIVE = Path("D:/sec-data/cache/rexfinhub")  # D: USB — cold storage, 276GB history
 
 # Structured notes
-NOTES_PROJECT = Path("C:/Projects/structured-notes")
+NOTES_PROJECT = Path("C:/Foundry/Rexfinhub/structured-notes")
 
 # Perf fix (Sys-I): CSV staging dir for CSV-first xlsm path.
 # export_sheets.py writes w1-w4 CSVs here; market_sync + classification read them,

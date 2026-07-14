@@ -125,8 +125,8 @@ def build_competitor_panel(db_path: str, output_dir: str) -> tuple[pd.DataFrame,
 
 
 if __name__ == "__main__":
-    db_path = r'C:\Projects\rexfinhub\data\etp_tracker.db'
-    output_dir = r'C:\Projects\rexfinhub\data\analysis'
+    db_path = r'C:\Foundry\Rexfinhub\data\etp_tracker.db'
+    output_dir = r'C:\Foundry\Rexfinhub\data\analysis'
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     
     long_df, cross_df = build_competitor_panel(db_path, output_dir)

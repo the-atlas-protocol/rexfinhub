@@ -120,7 +120,7 @@ service. "Notes" = scheduling/health observations.
 - **Severity**: high
 - **Units affected**: `rexfinhub-13f-quarterly.{service,timer}`, `rexfinhub-parquet-rebuild.{service,timer}`, `rexfinhub-bloomberg-chain.service`
 - **Symptom**: `systemctl list-unit-files 'rexfinhub-*'` returns 25 units, all named — but the three above are absent. `systemctl status rexfinhub-13f-quarterly.timer` returns `Unit could not be found.`
-- **Evidence**: Unit-files list has no `rexfinhub-13f-quarterly.*`, no `rexfinhub-parquet-rebuild.*`, no `rexfinhub-bloomberg-chain.*`. All three exist in `C:/Projects/rexfinhub/deploy/systemd/`.
+- **Evidence**: Unit-files list has no `rexfinhub-13f-quarterly.*`, no `rexfinhub-parquet-rebuild.*`, no `rexfinhub-bloomberg-chain.*`. All three exist in `C:/Foundry/Rexfinhub/deploy/systemd/`.
 - **Blast radius**:
   - 13F quarterly ingestion: **next scheduled fire was 2026-05-20** — that won't happen automatically. Ryu would have to remember to manually run `python scripts/fetch_13f.py --backfill`.
   - Parquet rebuild: documented as twice-weekly (Mon+Fri 06:00). The same parquets ARE built inside `run_daily.py` step 9.5 daily — so the data is fresh, but the standalone rebuild path doesn't exist as a fallback.
@@ -235,7 +235,7 @@ service. "Notes" = scheduling/health observations.
 
 ## Surfaces inspected
 
-- All 16 unit files in `C:/Projects/rexfinhub/deploy/systemd/` (read).
+- All 16 unit files in `C:/Foundry/Rexfinhub/deploy/systemd/` (read).
 - All 25 installed unit files on VPS (`systemctl list-unit-files 'rexfinhub-*'`).
 - Service status + last-7-days journal for: sec-scrape, daily, preflight, classification-sweep, bloomberg, cboe, reconciler, bulk-sync, db-backup, gate-open, gate-close, atom-watcher, single-filing-worker, api.
 - State files: `.preflight_result.json`, `.preflight_token`, `.preflight_decision.json` (absent), `.send_log.json`, `.send_audit.json`, `.send_enabled`.

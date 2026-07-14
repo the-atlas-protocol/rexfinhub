@@ -46,8 +46,8 @@ Assumptions documented inline:
     section 3 ("Whitespace Ranking" / "Strict Whitespace") -> filing.
 
 Output:
-  - Dry-run MD at C:/Projects/temp/preview-decisions/rec_history_backfill_dryrun.md
-  - JSON staging at C:/Projects/temp/preview-decisions/rec_history_backfill_staged.json
+  - Dry-run MD at C:/Foundry/Temp/preview-decisions/rec_history_backfill_dryrun.md
+  - JSON staging at C:/Foundry/Temp/preview-decisions/rec_history_backfill_staged.json
 
 Cross-validation:
   - For reports with run_date in li_engine_daily (2026-05-29, 06-01..06-05),
@@ -75,9 +75,9 @@ from screener.li_engine.analysis.recommendation_history import (  # noqa: E402
     RecRow, monday_of, _tier_for,
 )
 
-REPORTS_DIR = Path("C:/Projects/temp/li_reports_archive")
-READONLY_DB = Path("C:/Projects/temp/etp_tracker_readonly.db")
-OUT_DIR = Path("C:/Projects/temp/preview-decisions")
+REPORTS_DIR = Path("C:/Foundry/Temp/li_reports_archive")
+READONLY_DB = Path("C:/Foundry/Temp/etp_tracker_readonly.db")
+OUT_DIR = Path("C:/Foundry/Temp/preview-decisions")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DRYRUN_MD = OUT_DIR / "rec_history_backfill_dryrun.md"

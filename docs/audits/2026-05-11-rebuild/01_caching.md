@@ -6,9 +6,9 @@ Scope: READ-ONLY. No cache invalidations. No deletions. No file rewrites outside
 
 ## Summary
 
-There are **eleven distinct caches** spanning four storage tiers (in-memory, file system, SQLite, Render persistent disk). The overall picture is healthier than expected — the SEC HTTP cache has an LRU pruner, the LLM `filing_analyses` table costs are negligible (~$0.80 since launch), the prebaked reports + `mkt_report_cache` were rebuilt today (2026-05-11 16:18 VPS / 22:16 UTC) and ride together with the daily DB upload, and the screener cache has explicit invalidation hooks tied to pipeline runs. **Atlas memory is wrong on three points**: (1) http_cache is no longer ~13 GB — it's 615 MB locally + 5.2 GB on VPS; (2) `D:/sec-data/cache/rexfinhub/` does not exist on this machine — the project writes to `C:/Projects/rexfinhub/cache/` because `D:` is not mounted; and (3) FilingAnalysis cache is NOT keyed on `(filing_id, model)` — it's keyed on `filing_id` alone with a UNIQUE constraint, so an Opus → Sonnet upgrade would silently serve old Sonnet text forever.
+There are **eleven distinct caches** spanning four storage tiers (in-memory, file system, SQLite, Render persistent disk). The overall picture is healthier than expected — the SEC HTTP cache has an LRU pruner, the LLM `filing_analyses` table costs are negligible (~$0.80 since launch), the prebaked reports + `mkt_report_cache` were rebuilt today (2026-05-11 16:18 VPS / 22:16 UTC) and ride together with the daily DB upload, and the screener cache has explicit invalidation hooks tied to pipeline runs. **Atlas memory is wrong on three points**: (1) http_cache is no longer ~13 GB — it's 615 MB locally + 5.2 GB on VPS; (2) `D:/sec-data/cache/rexfinhub/` does not exist on this machine — the project writes to `C:/Foundry/Rexfinhub/cache/` because `D:` is not mounted; and (3) FilingAnalysis cache is NOT keyed on `(filing_id, model)` — it's keyed on `filing_id` alone with a UNIQUE constraint, so an Opus → Sonnet upgrade would silently serve old Sonnet text forever.
 
-The single most concerning finding is **a 27 GB orphan**: `C:/Projects/rexfinhub/temp_cache/` (23,447 files dated 2026-03-17, untouched since) is the abandoned remnant of a one-time copy from the old C: drive layout, with no code path that reads or writes it. It's a free 27 GB recovery on a machine with 4 GB free on C:. The second concern is **schema drift in the LLM cache**: the writer model column is unfilled-as-key, so Sonnet 4.5 → 4.6 → 4.7 transitions will not trigger re-analysis. The third is the **SEC HTTP cache has no TTL**: a 485BPOS amendment to a previously cached filing will return the original prospectus body forever (mitigated only by submissions-JSON 6-hour refresh + If-Modified-Since, which catches the *list* of filings but never the *body*).
+The single most concerning finding is **a 27 GB orphan**: `C:/Foundry/Rexfinhub/temp_cache/` (23,447 files dated 2026-03-17, untouched since) is the abandoned remnant of a one-time copy from the old C: drive layout, with no code path that reads or writes it. It's a free 27 GB recovery on a machine with 4 GB free on C:. The second concern is **schema drift in the LLM cache**: the writer model column is unfilled-as-key, so Sonnet 4.5 → 4.6 → 4.7 transitions will not trigger re-analysis. The third is the **SEC HTTP cache has no TTL**: a 485BPOS amendment to a previously cached filing will return the original prospectus body forever (mitigated only by submissions-JSON 6-hour refresh + If-Modified-Since, which catches the *list* of filings but never the *body*).
 
 The Render `mkt_report_cache` staleness check (line 542 of `report_data.py`) compares `pipeline_run_id` to the latest run, but the `screener_3x` row was written with `pipeline_run_id = None` — so that staleness check is a no-op for screener data and the cache is "fresh forever" until explicitly invalidated.
 
@@ -16,10 +16,10 @@ The Render `mkt_report_cache` staleness check (line 542 of `report_data.py`) com
 
 | Cache name | Location | Size | TTL | Eviction policy | Last refreshed |
 |---|---|---|---|---|---|
-| **SEC http (`cache/web`)** | `C:/Projects/rexfinhub/cache/web` (local) + `/home/jarvis/rexfinhub/cache/web` (VPS) | 238 MB local / 5.0 GB VPS (4,456 files) | None | LRU pruner if >5 GB (`SEC_CACHE_MAX_MB`), 1h prune cooldown | 2026-05-11 18:26 (local), 16:04 (VPS, last_prune marker) |
+| **SEC http (`cache/web`)** | `C:/Foundry/Rexfinhub/cache/web` (local) + `/home/jarvis/rexfinhub/cache/web` (VPS) | 238 MB local / 5.0 GB VPS (4,456 files) | None | LRU pruner if >5 GB (`SEC_CACHE_MAX_MB`), 1h prune cooldown | 2026-05-11 18:26 (local), 16:04 (VPS, last_prune marker) |
 | **SEC submissions JSON** | `cache/submissions/CIK*.json` | 64 MB local / 497 MB VPS (449 files local, 16,399 VPS) | 6h conditional (If-Modified-Since) | Never | 2026-05-11 18:24 |
 | **SEC iXBRL/sec subdir** | `cache/sec/web` + `cache/sec/submissions` | 615 MB | Same as parent | Same LRU | 2026-05-11 18:18 |
-| **temp_cache (ORPHAN)** | `C:/Projects/rexfinhub/temp_cache` | **27 GB** (628 MB submissions, 26 GB web, 23,447 files) | None | None | 2026-03-17 (untouched 55 days — dead) |
+| **temp_cache (ORPHAN)** | `C:/Foundry/Rexfinhub/temp_cache` | **27 GB** (628 MB submissions, 26 GB web, 23,447 files) | None | None | 2026-03-17 (untouched 55 days — dead) |
 | **screener_3x in-memory** | `webapp/services/screener_3x_cache.py` `_cache: dict` | ~550 KB serialized | None | Explicit `invalidate_cache()` on pipeline run | 2026-05-11 22:18 (DB row) |
 | **mkt_report_cache (DB)** | `etp_tracker.db` table | 1.1 MB total (li 174 KB, cc 292 KB, flow 90 KB, screener 551 KB) | None | Recompute when `pipeline_run_id < latest` (broken for screener, see findings) | 2026-05-11 22:16 (li/cc/flow), 22:18 (screener) |
 | **filing_analyses (LLM)** | `etp_tracker.db` table | 30 rows / ~$0.80 lifetime cost | None | Never (canonical-set semantics) | 2026-05-01 23:42 (last write) |
@@ -40,10 +40,10 @@ Counted as caches — distinct from primary data stores (`etp_tracker.db`, `13f_
 ## Findings (ordered by severity)
 
 ### CRIT-1 — `temp_cache/` is a 27 GB orphan with zero readers
-- **What**: `C:/Projects/rexfinhub/temp_cache/web` holds 23,447 files (26 GB) all dated 2026-03-17. `temp_cache/submissions` holds 628 MB. Nothing in the codebase references `temp_cache/`. Only `cache/` is read or written by `sec_client.py`.
+- **What**: `C:/Foundry/Rexfinhub/temp_cache/web` holds 23,447 files (26 GB) all dated 2026-03-17. `temp_cache/submissions` holds 628 MB. Nothing in the codebase references `temp_cache/`. Only `cache/` is read or written by `sec_client.py`.
 - **Why this matters**: This is dead disk on a machine with 4 GB free on C:. It corresponds to the documented "276 GB http_cache being copied to D:" migration in atlas memory — the source side was orphaned after the copy and then `D:` was unmounted.
 - **Verification**: `_DEFAULT_CACHE_DIR = SEC_CACHE_DIR or .../cache/sec` (sec_client.py:15). `SEC_CACHE_DIR` env var is not set. No reference to `temp_cache` in any `.py` file (grep returns none).
-- **Stage 2 action**: safe to `rm -rf C:/Projects/rexfinhub/temp_cache/` after one final visual inspection; reclaims 27 GB.
+- **Stage 2 action**: safe to `rm -rf C:/Foundry/Rexfinhub/temp_cache/` after one final visual inspection; reclaims 27 GB.
 
 ### CRIT-2 — FilingAnalysis cache key ignores model upgrades
 - **What**: `webapp/models.py:182-184` declares `filing_id: ... unique=True, index=True` — only `filing_id` is the cache key. The `writer_model` and `selector_model` columns are stored but **not part of the unique index**.
@@ -65,7 +65,7 @@ Counted as caches — distinct from primary data stores (`etp_tracker.db`, `13f_
 - **Stage 2 action**: add a `max_age_hours` parameter to `fetch_text`/`fetch_bytes`; for 485BPOS bodies specifically, refetch if cached file age > 24h.
 
 ### HIGH-2 — Local prebaked reports are 28 days stale
-- **What**: `C:/Projects/rexfinhub/data/prebaked_reports/*.html` mtime is **2026-04-14 11:42-11:43** for all 9 files. The VPS copies are fresh (2026-05-11 16:16-19), but local devs hitting the local site would see April 14 reports.
+- **What**: `C:/Foundry/Rexfinhub/data/prebaked_reports/*.html` mtime is **2026-04-14 11:42-11:43** for all 9 files. The VPS copies are fresh (2026-05-11 16:16-19), but local devs hitting the local site would see April 14 reports.
 - **Why this matters**: Low — `/admin/reports/preview/{key}/raw` serves whatever HTML is on disk with no "stale" indicator (admin_reports.py:99-121). Local development cannot tell, by looking at the page, that the data is 28 days old.
 - **Stage 2 action**: add a `baked_at` timestamp banner to the served HTML (the `meta.json` is already written but not displayed). Or run `python scripts/prebake_reports.py --no-upload` locally.
 
@@ -74,7 +74,7 @@ Counted as caches — distinct from primary data stores (`etp_tracker.db`, `13f_
 - **Stage 2 action**: write to `discovered_trusts.json.tmp` then atomic rename (currently a direct overwrite based on the lack of `.tmp` rename in the writer).
 
 ### MED-1 — Atlas memory entry on rexfinhub cache path is wrong
-- **What**: Memory says "rexfinhub cache now writes to `D:/sec-data/cache/rexfinhub/` with bucketed subfolders". `D:/` is not mounted on this machine (verified). The actual path is `C:/Projects/rexfinhub/cache/` (default), with bucketed subfolders. The `SEC_CACHE_DIR` env var that would override this is not set.
+- **What**: Memory says "rexfinhub cache now writes to `D:/sec-data/cache/rexfinhub/` with bucketed subfolders". `D:/` is not mounted on this machine (verified). The actual path is `C:/Foundry/Rexfinhub/cache/` (default), with bucketed subfolders. The `SEC_CACHE_DIR` env var that would override this is not set.
 - **Stage 2 action**: update atlas memory or set `SEC_CACHE_DIR=D:/sec-data/cache/rexfinhub` in `.env` and re-mount D:.
 
 ### MED-2 — Atlas memory: "filing analysis ~35s/~$0.09 cold" overstates cost
@@ -145,7 +145,7 @@ VPS disk discipline is good. The LRU pruner is doing its job (`.last_prune` mark
 4. **Prebake**: 9 reports baked nightly by `run_daily.py` step 8.5 (line 950). Served from disk regardless of staleness, no "stale" indicator. Local copies 28 days behind VPS.
 5. **ETP performance cache**: `mkt_report_cache` (DB table) + `_cache` dicts in `report_data.py` and `market_data.py`. All invalidated together on `_compute_and_cache_reports` (market_sync.py:639-644).
 6. **Render persistent vs ephemeral**: persistent → DB, prebaked HTML, screener cache.json. Ephemeral → all in-memory caches; warmed on startup before `/health` returns OK.
-7. **D: drive cache claim**: D: not mounted; project writes to `C:/Projects/rexfinhub/cache/` with bucketed `web/{ab}/` subdirs. Atlas memory is wrong.
+7. **D: drive cache claim**: D: not mounted; project writes to `C:/Foundry/Rexfinhub/cache/` with bucketed `web/{ab}/` subdirs. Atlas memory is wrong.
 8. **LLM cost runaway**: $0.80 lifetime over 30 rows. ~$30/year projected. Non-issue.
 9. **Cache coherency on BBG sync**: yes — `_compute_and_cache_reports` calls `report_data.invalidate_cache()`, `market_data.invalidate_cache()`, and `inv_screener()` before writing fresh DB rows. Screener `pipeline_run_id` not propagated, breaking the per-row staleness check (CRIT-3).
 10. **HTTP cache validation**: only `load_submissions_json` uses If-Modified-Since (304 → use cache + bump mtime). Body fetches blind-serve from disk.
@@ -160,25 +160,25 @@ VPS disk discipline is good. The LRU pruner is doing its job (`.last_prune` mark
 6. **MED-1**: fix atlas memory note about D: drive cache path.
 
 ## Files referenced
-- `C:/Projects/rexfinhub/webapp/services/screener_3x_cache.py`
-- `C:/Projects/rexfinhub/webapp/services/market_data.py` (lines 414-470)
-- `C:/Projects/rexfinhub/webapp/services/market_sync.py` (lines 626-670)
-- `C:/Projects/rexfinhub/webapp/services/report_data.py` (lines 524-565)
-- `C:/Projects/rexfinhub/webapp/services/data_freshness.py` (lines 27-30, 60s TTL)
-- `C:/Projects/rexfinhub/webapp/services/holdings_intel.py` (lines 24-39, 600s TTL)
-- `C:/Projects/rexfinhub/webapp/services/bbg_file.py`
-- `C:/Projects/rexfinhub/webapp/services/cboe/live.py`
-- `C:/Projects/rexfinhub/webapp/main.py` (lines 163-218, prewarm + lifespan)
-- `C:/Projects/rexfinhub/webapp/models.py` (lines 173-203 FilingAnalysis, 518-531 MktReportCache, 1316-1326 AutocallSweepCache)
-- `C:/Projects/rexfinhub/webapp/routers/admin_reports.py`
-- `C:/Projects/rexfinhub/webapp/routers/admin.py` (line 1648 `/upload/screener-cache`)
-- `C:/Projects/rexfinhub/etp_tracker/sec_client.py`
-- `C:/Projects/rexfinhub/etp_tracker/filing_analysis.py`
-- `C:/Projects/rexfinhub/etp_tracker/bulk_sync.py` (ETag handling)
-- `C:/Projects/rexfinhub/scripts/prebake_reports.py`
-- `C:/Projects/rexfinhub/scripts/run_daily.py` (line 943-971 prebake step)
-- `C:/Projects/rexfinhub/scripts/edgar_sponsor_lookup.py` (sponsor cache)
-- `C:/Projects/rexfinhub/render.yaml` (persistent disk config)
+- `C:/Foundry/Rexfinhub/webapp/services/screener_3x_cache.py`
+- `C:/Foundry/Rexfinhub/webapp/services/market_data.py` (lines 414-470)
+- `C:/Foundry/Rexfinhub/webapp/services/market_sync.py` (lines 626-670)
+- `C:/Foundry/Rexfinhub/webapp/services/report_data.py` (lines 524-565)
+- `C:/Foundry/Rexfinhub/webapp/services/data_freshness.py` (lines 27-30, 60s TTL)
+- `C:/Foundry/Rexfinhub/webapp/services/holdings_intel.py` (lines 24-39, 600s TTL)
+- `C:/Foundry/Rexfinhub/webapp/services/bbg_file.py`
+- `C:/Foundry/Rexfinhub/webapp/services/cboe/live.py`
+- `C:/Foundry/Rexfinhub/webapp/main.py` (lines 163-218, prewarm + lifespan)
+- `C:/Foundry/Rexfinhub/webapp/models.py` (lines 173-203 FilingAnalysis, 518-531 MktReportCache, 1316-1326 AutocallSweepCache)
+- `C:/Foundry/Rexfinhub/webapp/routers/admin_reports.py`
+- `C:/Foundry/Rexfinhub/webapp/routers/admin.py` (line 1648 `/upload/screener-cache`)
+- `C:/Foundry/Rexfinhub/etp_tracker/sec_client.py`
+- `C:/Foundry/Rexfinhub/etp_tracker/filing_analysis.py`
+- `C:/Foundry/Rexfinhub/etp_tracker/bulk_sync.py` (ETag handling)
+- `C:/Foundry/Rexfinhub/scripts/prebake_reports.py`
+- `C:/Foundry/Rexfinhub/scripts/run_daily.py` (line 943-971 prebake step)
+- `C:/Foundry/Rexfinhub/scripts/edgar_sponsor_lookup.py` (sponsor cache)
+- `C:/Foundry/Rexfinhub/render.yaml` (persistent disk config)
 
 ## Sign-off
 Stage 1 read-only complete. No caches were invalidated, no files outside this report were written, no deletions performed. The 27 GB `temp_cache/` orphan is the standout finding.

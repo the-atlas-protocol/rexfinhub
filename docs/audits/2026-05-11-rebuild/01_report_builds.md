@@ -161,7 +161,7 @@ therefore renders **zero rows** every day until upstream classification is fixed
 - **Fix size**: trivial (one-line constant change in two files)
 
 ## Rendered report inspection
-Pulled today's prebaked HTML from `jarvis@46.224.126.196:/home/jarvis/rexfinhub/data/prebaked_reports/` (baked 2026-05-11 16:16-16:19 ET). Saved to `C:/Projects/rexfinhub/temp/audit_2026-05-11/`.
+Pulled today's prebaked HTML from `jarvis@46.224.126.196:/home/jarvis/rexfinhub/data/prebaked_reports/` (baked 2026-05-11 16:16-16:19 ET). Saved to `C:/Foundry/Rexfinhub/temp/audit_2026-05-11/`.
 
 ### `daily_filing.html` (68.8 KB)
 1. **Funds in Pipeline section: ABSENT** — `grep -c "Funds in Pipeline"` returns 0. Should be ~142 PEND/DLST funds. F1.

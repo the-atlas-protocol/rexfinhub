@@ -45,7 +45,7 @@ Conventions:
 - Anti-patterns codified: no future-tense in SYSTEM, no architecture in RUNBOOK, no inline TODOs (use per-doc `### known-gaps` section), no `####` for retrievable concepts (breaks chunk uniformity).
 
 Discovery mechanism:
-1. `C:\Projects\rexfinhub\CLAUDE.md` carries a load-order block: "Read `docs/INDEX.md` first. Resolve unfamiliar terms via `docs/GLOSSARY.md`."
+1. `C:\Foundry\Rexfinhub\CLAUDE.md` carries a load-order block: "Read `docs/INDEX.md` first. Resolve unfamiliar terms via `docs/GLOSSARY.md`."
 2. User-scope `MEMORY.md` gets one pointer line to `docs/INDEX.md`.
 3. `INDEX.md` has a `### load-order` table mapping task type → doc read sequence.
 

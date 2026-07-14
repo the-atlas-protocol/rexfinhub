@@ -128,7 +128,7 @@ Zero CSV edits. Zero admin clicks. Zero classification work.
        └────────────────────────────────────────┘
 
        ┌────────────────────────────────────────┐
-       │  LOCAL (C:\Projects\rexfinhub)         │
+       │  LOCAL (C:\Foundry\Rexfinhub)         │
        │  Dev only. Synced laptop↔desktop via   │
        │  Syncthing. NEVER authoritative for    │
        │  any data.                             │
@@ -733,7 +733,7 @@ Once you call these, I queue Phase 0a immediately.
 ### A. Repository structure
 
 ```
-C:\Projects\rexfinhub\
+C:\Foundry\Rexfinhub\
 ├── etp_tracker/          # SEC pipeline core
 │   ├── run_pipeline.py
 │   ├── trusts.py

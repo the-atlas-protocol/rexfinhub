@@ -163,12 +163,12 @@ The timeout the user mentioned ("upload TIMED OUT at 18:00") is not in any log I
 
 ## Surfaces inspected
 
-- `C:/Projects/rexfinhub/data/etp_tracker.db` (LOCAL — full counts + WAL state + schema dump)
+- `C:/Foundry/Rexfinhub/data/etp_tracker.db` (LOCAL — full counts + WAL state + schema dump)
 - `/home/jarvis/rexfinhub/data/etp_tracker.db` (VPS — full counts + WAL checkpoint verification + schema dump)
 - `https://rexfinhub.com/api/v1/health`, `/api/v1/filings/recent`, `/api/v1/etp/rex-summary`, `/api/v1/trusts`, `/api/v1/funds`, `/api/v1/reports/list` (RENDER — public API endpoints with X-API-Key)
-- `C:/Projects/rexfinhub/webapp/database.py` (LOCAL — DB engine config, init_db, autosee logic)
-- `C:/Projects/rexfinhub/webapp/routers/api.py` lines 194-376 (`/db/upload` and `/db/upload-notes` handlers)
-- `C:/Projects/rexfinhub/scripts/run_daily.py` lines 600-732 (`upload_db_to_render()`)
+- `C:/Foundry/Rexfinhub/webapp/database.py` (LOCAL — DB engine config, init_db, autosee logic)
+- `C:/Foundry/Rexfinhub/webapp/routers/api.py` lines 194-376 (`/db/upload` and `/db/upload-notes` handlers)
+- `C:/Foundry/Rexfinhub/scripts/run_daily.py` lines 600-732 (`upload_db_to_render()`)
 - VPS systemd: `systemctl list-timers` for all rexfinhub-* timers
 - VPS journalctl: `rexfinhub-db-backup` last 30 entries
 - VPS logs: `/home/jarvis/rexfinhub/logs/pipeline_20260508_2000.log`, `pipeline_20260511_0800.log`, `pipeline_20260511_1200.log`, `pipeline_20260511_1600.log`

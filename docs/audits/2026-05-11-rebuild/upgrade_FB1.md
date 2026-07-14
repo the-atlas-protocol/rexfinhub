@@ -92,6 +92,6 @@ for filing-race intelligence; SEC EDGAR is the per-row source URL.
 
 ## Files touched
 
-- `C:/Projects/rexfinhub-FB1/config/ipo_watchlist.yaml`
-- `C:/Projects/rexfinhub-FB1/screener/li_engine/analysis/weekly_v2_report.py`
-- `C:/Projects/rexfinhub-FB1/docs/audit_2026-05-11/upgrade_FB1.md` (this file)
+- `C:/Foundry/Rexfinhub-FB1/config/ipo_watchlist.yaml`
+- `C:/Foundry/Rexfinhub-FB1/screener/li_engine/analysis/weekly_v2_report.py`
+- `C:/Foundry/Rexfinhub-FB1/docs/audit_2026-05-11/upgrade_FB1.md` (this file)
