@@ -1,4 +1,4 @@
-p = r'C:\Projects\rex-asia\report_v15.html'
+p = r'C:\Projects\rexfinhub\asia\report_v15.html'
 with open(p, 'r', encoding='utf-8') as f: c = f.read()
 old = "el('p1-headline').textContent = `Asia AUM: ${$b(h.total_asia_aum)} \\u2014 inflows (${signed$m(fl)}) offset market decline (${signed$m(mm)})`;"
 new = """const flLabel = fl >= 0 ? 'inflows' : 'outflows';

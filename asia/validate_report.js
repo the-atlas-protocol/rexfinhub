@@ -8,8 +8,8 @@
 const { chromium } = require('playwright');
 const path = require('path');
 
-const HTML_PATH = process.argv[2] || 'C:/Projects/rex-asia/report_v14.html';
-const OUTPUT_DIR = 'C:/Projects/rex-asia/reports';
+const HTML_PATH = process.argv[2] || 'C:/Projects/rexfinhub/asia/report_v14.html';
+const OUTPUT_DIR = 'C:/Projects/rexfinhub/asia/reports';
 
 // 8.5in x 11in at 96dpi
 const PAGE_W = 816;

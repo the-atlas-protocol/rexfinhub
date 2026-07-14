@@ -57,7 +57,7 @@ if ONEDRIVE_PATH.parent.exists():
         print(f"  WARN: mirror to OneDrive path failed: {e}")
 
 # Also mirror locally for reproducibility.
-LOCAL_MIRROR = Path(r"C:/Projects/rex-asia/bloomberg_daily_file_live.xlsm")
+LOCAL_MIRROR = Path(r"C:/Projects/rexfinhub/asia/bloomberg_daily_file_live.xlsm")
 shutil.copy2(local_path, LOCAL_MIRROR)
 print(f"  Mirrored to:      {LOCAL_MIRROR}")
 

@@ -376,7 +376,7 @@ else:
 
     logp(f"\nROLLBACK (if needed):")
     logp(f"  pg_restore -h localhost -p 5433 -U postgres -c -d rex_asia \\")
-    logp(f"    C:/Projects/rex-asia/rex_asia_pre_month_refresh_20260423_1405.backup")
+    logp(f"    C:/Projects/rexfinhub/asia/rex_asia_pre_month_refresh_20260423_1405.backup")
     logp(f"{'='*80}")
 
 wb.close()

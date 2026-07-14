@@ -1,7 +1,7 @@
 """Replace methodology bullets with the approved 2-paragraph format."""
 import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-p = r'C:\Projects\rex-asia\report_v15.html'
+p = r'C:\Projects\rexfinhub\asia\report_v15.html'
 with open(p, 'r', encoding='utf-8') as f:
     c = f.read()
 

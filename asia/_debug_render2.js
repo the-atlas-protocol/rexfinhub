@@ -12,7 +12,7 @@ const fs = require('fs');
   html = html.replace('const SUITE_FILTER = null;', `const SUITE_FILTER = 'T-REX';`);
   fs.writeFileSync('_inject_trex.html', html, 'utf8');
 
-  await page.goto('file:///C:/Projects/rex-asia/_inject_trex.html', { waitUntil: 'networkidle' });
+  await page.goto('file:///C:/Projects/rexfinhub/asia/_inject_trex.html', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
   const info = await page.evaluate(() => {
     const filter = window.SUITE_FILTER;

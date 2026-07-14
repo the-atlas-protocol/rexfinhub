@@ -8,8 +8,8 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-const HTML_PATH = process.argv[2] || 'C:/Projects/rex-asia/report_v15.html';
-const OUT_DIR = 'C:/Projects/rex-asia/reports';
+const HTML_PATH = process.argv[2] || 'C:/Projects/rexfinhub/asia/report_v15.html';
+const OUT_DIR = 'C:/Projects/rexfinhub/asia/reports';
 
 (async () => {
   const browser = await chromium.launch();

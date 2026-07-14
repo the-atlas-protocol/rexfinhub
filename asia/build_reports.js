@@ -13,12 +13,12 @@ const fs = require('fs');
 const MONTH = process.argv[2] || '2026-03';
 const MONTH_LABEL = process.argv[3] || 'Mar26';
 const ENRICHED_JSON = process.argv[4] || 'enriched_report_data.json';
-const HTML_SOURCE = 'C:/Projects/rex-asia/report_v15.html';
+const HTML_SOURCE = 'C:/Projects/rexfinhub/asia/report_v15.html';
 // ─────────────────────────────────────
 console.log(`Building reports for ${MONTH} (${MONTH_LABEL}), source=${ENRICHED_JSON}`);
 
-const OUT_DIR = path.join('C:/Projects/rex-asia/reports', MONTH);
-const TEMP_DIR = 'C:/Projects/rex-asia/temp';
+const OUT_DIR = path.join('C:/Projects/rexfinhub/asia/reports', MONTH);
+const TEMP_DIR = 'C:/Projects/rexfinhub/asia/temp';
 
 const BUILDS = [
   { filter: null,             filename: `REX_Asia_Report_${MONTH_LABEL}.pdf` },

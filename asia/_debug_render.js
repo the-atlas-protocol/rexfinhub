@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
   const page = await browser.newPage({ viewport: { width: 816, height: 1056 } });
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
   page.on('pageerror', err => console.log('PAGE ERR:', err.message));
-  await page.goto('file:///C:/Projects/rex-asia/_test_trex.html', { waitUntil: 'networkidle' });
+  await page.goto('file:///C:/Projects/rexfinhub/asia/_test_trex.html', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
   const info = await page.evaluate(() => {
     const filter = window.SUITE_FILTER;

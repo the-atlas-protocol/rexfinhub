@@ -253,5 +253,5 @@ Every month's `Asia Total` column sums to that month's headline (April: **$1,397
 
 ---
 
-*Maintained alongside the pipeline code in `C:/Projects/rex-asia`. When you change methodology or add
+*Maintained alongside the pipeline code in `C:/Projects/rexfinhub/asia`. When you change methodology or add
 a vendor, update this doc, the runbook, and `vendor_status.yaml` together.*

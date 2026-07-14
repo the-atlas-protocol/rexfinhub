@@ -7,9 +7,9 @@ import pandas as pd
 import csv
 import json
 
-LIVE = r"C:\Projects\rex-asia\bloomberg_daily_file_live.xlsm"
-GRACE_XL = r"C:\Projects\rex-asia\grace_data\Asset report summary Feb 2026.xlsx"
-REPORT_DATA = r"C:\Projects\rex-asia\report_data.json"
+LIVE = r"C:\Projects\rexfinhub\asia\bloomberg_daily_file_live.xlsm"
+GRACE_XL = r"C:\Projects\rexfinhub\asia\grace_data\Asset report summary Feb 2026.xlsx"
+REPORT_DATA = r"C:\Projects\rexfinhub\asia\report_data.json"
 
 conn = psycopg2.connect(host='localhost', port=5433, user='postgres', dbname='rex_asia')
 cur = conn.cursor()
@@ -211,7 +211,7 @@ json_asia_total = sum(f['asia_aum'] for f in rdata['funds'])
 
 # From report HTML
 import re
-with open(r"C:\Projects\rex-asia\report_v15.html", 'r', encoding='utf-8') as fh:
+with open(r"C:\Projects\rexfinhub\asia\report_v15.html", 'r', encoding='utf-8') as fh:
     html = fh.read()
 
 html_entries = re.findall(r"fund:'(\w+)',family:'[^']*',aum:(\d+)", html)
