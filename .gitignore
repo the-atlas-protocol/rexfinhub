@@ -102,3 +102,7 @@ dmypy.json
 cache/
 config/.send_enabled
 assets/fonts/
+
+# Foundry Phase-5 cleanup: asia dev-scratch untracked (files remain on disk; history retains)
+asia/_*
+asia/archive/drafts/
