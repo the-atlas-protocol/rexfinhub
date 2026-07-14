@@ -1,0 +1,17 @@
+=== Target date: 2026-03-31 ===
+
+Trying each candidate sheet (header row 1, data from row 2):
+  data_aum: 89 tickers matched, raw sum = 8,596  (if $M, that's $8.6B)
+  data_notional: 82 tickers matched, raw sum = 1,148,347,762  (if $M, that's $1,148,347.8B)
+  data_flow: 12 tickers matched, raw sum = 43  (if $M, that's $0.0B)
+  data_nav: 90 tickers matched, raw sum = 2,577  (if $M, that's $2.6B)
+  data_price: 89 tickers matched, raw sum = 2,036  (if $M, that's $2.0B)
+  bbg_pull: no ticker columns in header row 1
+
+bbg_pull (header row 2, dates from row 3 — AUM preface on row 1):
+  bbg_pull: no row for 2026-03-31
+
+repull_168:
+  repull_168: NOT FOUND
+
+flowcalcs — show structure (first 15 rows, all cols):

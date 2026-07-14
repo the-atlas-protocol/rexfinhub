@@ -1,0 +1,149 @@
+# Vendor status registry — single source of truth for per-vendor state
+# Updated when Grace tells us about a structural change (frozen, zeroed, cadence shift).
+# NOT for routine monthly data.
+#
+# Schema:
+#   status: active | zeroed | frozen_permanent | waiting_13f | waiting_hardcopy | waiting
+#   cadence: monthly | quarterly | blocked
+#   methodology: shares_invariant_reprice  (applied when we have no fresh data)
+#   since: YYYY-MM-DD  (when status took effect)
+#   reason: human-readable explanation
+#   parser: name of parser function in load_month.py (only for active)
+#   file_pattern: glob relative to grace_data/{YYYY-MM}/ (only for active)
+
+defaults:
+  stale_methodology: shares_invariant_reprice
+
+vendors:
+  # ── Monthly reporters (active) ─────────────────────────────────────
+  "Korea/KSD (Korea Securities Depository) - Retail":
+    status: active
+    cadence: monthly
+    parser: ksd
+    file_pattern: "*Korea REX report KSD*.xlsx"
+
+  "Korea/Korea Investment Management -ACE TESLA Value Chain ETF":
+    status: zeroed
+    since: 2026-05-31
+    reason: |
+      Per Grace (email 2026-06-08): ACE ETF data reduced to zero, as the portfolio
+      manager moved into direct Tesla value-chain stocks rather than REX products.
+      No further allocation expected.
+
+  "Japan/SBI":
+    status: active
+    cadence: monthly
+    parser: sbi
+    file_pattern: "*Japan SBI*.xlsx"
+
+  "Japan/Rakuten":
+    status: active
+    cadence: monthly
+    parser: rakuten
+    file_pattern: "*Japan Rakuten*.xlsx"
+
+  "Japan/Monex":
+    status: active
+    cadence: monthly
+    parser: monex
+    file_pattern: "*Monex*.xlsx"
+
+  "Japan/Matsui":
+    status: active
+    cadence: monthly
+    parser: matsui
+    file_pattern: "*Mat*REX*.xlsx"
+
+  "Japan/MooMoo":
+    status: active_aggregate_only
+    cadence: quarterly
+    methodology: scaled_to_grace_aggregate
+    grace_source_name: "MooMoo"
+    notes: |
+      Grace's Apr 2026 summary labels this row "Quarter end reporting".
+      Prior monthly-transition assumption (Mar 2026) was wrong.
+      Allocation: prior-quarter per-fund shares scaled to Grace's aggregate.
+
+  "Hong Kong/Webull":
+    status: active
+    cadence: monthly
+    since: 2026-05-31
+    parser: hk_webull
+    file_pattern: "*HK Webull*.xlsx"
+    notes: "Added by Grace 2026-06 starting with May data. ISIN-based: US -> base ticker, IE -> _LN UCITS variant."
+
+  "Hong Kong/SYFE":
+    status: active
+    cadence: monthly
+    parser: syfe_verbal
+    notes: "Verbal from Grace's summary file, single-fund (FEPI US ticker). No attached file."
+
+  # ── Frozen / structurally unavailable ──────────────────────────────
+  "Hong Kong/Futu/MooMoo":
+    status: frozen_permanent
+    cadence: blocked
+    since: 2026-03-01
+    methodology: shares_invariant_reprice
+    reason: |
+      No commercial contract with REX. Grace confirmed 2026-04-21:
+      "FuTu HK are not able to send us the asset data for this quarter
+      as FuTu can only release asset data if we have commercial corporate
+      activities contract with them."
+      Positions held at last-known shares, repriced at each month's Bloomberg close.
+
+  # ── Quarterly reporters — waiting for scheduled data ───────────────
+  "Hong Kong/Oriental Harbour *":
+    status: zeroed
+    since: 2026-03-31
+    reason: |
+      Q1 2026 13F-HR filed 2026-04-28 (CIK 0002046333) shows zero REX/MicroSectors
+      exposure. Previously held FNGU now liquidated. Grace's Apr 2026 summary
+      confirms "Sold out". Held from Feb 2026 forward at $0.
+
+  "Hong Kong/ViewTrade":
+    status: active
+    cadence: monthly
+    parser: viewtrade_hk
+    file_pattern: "*VT asia*.xlsx"
+
+  "Singapore/ViewTrade":
+    status: active
+    cadence: monthly
+    parser: viewtrade_sg
+    file_pattern: "*VT asia*.xlsx"
+
+  "Taiwan/ViewTrade":
+    status: active
+    cadence: monthly
+    parser: viewtrade_tw
+    file_pattern: "*VT asia*.xlsx"
+
+  "Singapore/MooMoo":
+    status: active_aggregate_only
+    cadence: quarterly
+    methodology: scaled_to_grace_aggregate
+    grace_source_name: "MooMoo"
+    since: 2026-03-31
+    notes: |
+      Grace delivers aggregate total only (no per-fund breakdown) via summary file.
+      Update on 2026-04-20: Mar 2026 value $28.1M received.
+      Allocation: prior-month per-fund shares scaled to match Grace's aggregate.
+
+  "Malaysia/MooMoo":
+    status: active_aggregate_only
+    cadence: quarterly
+    methodology: scaled_to_grace_aggregate
+    grace_source_name: "MooMoo"
+    since: 2026-03-31
+    notes: "Grace update 2026-04-20: Mar 2026 value $7.0M received."
+
+  # ── Zeroed (vendor portfolio emptied) ──────────────────────────────
+  "Thailand/Asset Plus Asset Management":
+    status: zeroed
+    cadence: monthly
+    since: 2026-03-31
+    reason: |
+      DRNZ shares sold. Grace confirmed 2026-04-21:
+      "For DRNZ - they sold our DRNZ shares."
+      No rows inserted for this exchange in current or future months
+      unless status changes to active with fresh data.

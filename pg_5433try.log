@@ -1,0 +1,14 @@
+2026-05-28 07:03:32.727 EDT [33656] LOG:  starting PostgreSQL 17.4 on x86_64-windows, compiled by msvc-19.42.34436, 64-bit
+2026-05-28 07:03:32.734 EDT [33656] LOG:  listening on IPv6 address "::1", port 5433
+2026-05-28 07:03:32.735 EDT [33656] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-05-28 07:03:32.805 EDT [11844] LOG:  database system was shut down at 2026-05-28 07:03:30 EDT
+2026-05-28 07:03:32.835 EDT [33656] LOG:  database system is ready to accept connections
+2026-05-28 07:05:37.001 EDT [39180] FATAL:  role "RyuEl-Asmar" does not exist
+2026-05-28 07:08:32.797 EDT [46164] LOG:  checkpoint starting: time
+2026-05-28 07:08:32.811 EDT [46164] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.014 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/3517720, redo lsn=0/35176C8
+2026-05-28 13:19:45.690 EDT [22152] ERROR:  column "fund_name" does not exist at character 16
+2026-05-28 13:19:45.690 EDT [22152] STATEMENT:  SELECT ticker, fund_name FROM etp LIMIT 5
+2026-05-28 13:23:32.704 EDT [46164] LOG:  checkpoint starting: time
+2026-05-28 13:23:34.531 EDT [46164] LOG:  checkpoint complete: wrote 19 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.809 s, sync=0.008 s, total=1.829 s; sync files=10, longest=0.002 s, average=0.001 s; distance=61 kB, estimate=61 kB; lsn=0/3526F08, redo lsn=0/3526EB0
+2026-06-06 02:04:46.620 EDT [33656] LOG:  could not reserve shared memory region (addr=0000028A59BD0000) for child 0000000000000A34: error code 487
+2026-06-08 00:39:31.602 EDT [33656] LOG:  could not reserve shared memory region (addr=0000028A59BD0000) for child 0000000000000E6C: error code 487

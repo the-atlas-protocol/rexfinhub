@@ -19,7 +19,7 @@ import psycopg2.extras
 def get_connection():
     return psycopg2.connect(
         host="localhost",
-        port=5433,
+        port=int(__import__("os").environ.get("REX_ASIA_PORT","5433")),
         user="postgres",
         dbname="rex_asia",
     )

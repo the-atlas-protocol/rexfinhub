@@ -43,16 +43,17 @@ def bloomberg_total_rex_aum(year: int, month: int) -> tuple[float, int, list]:
         for i, col in enumerate(aum_header[1:], 1):
             if not col: continue
             raw = str(col)
-            if " Equity" not in raw: continue
+            _p = raw.split()
+            if len(_p) < 2 or _p[1] not in ("US","LN"): continue
             val = row[i]
             if val is None or not isinstance(val, (int, float)) or val <= 0: continue
             parts = raw.split()
-            if len(parts) < 3: continue
+            if len(parts) < 2: continue
             bbg_key = f"{parts[0]} {parts[1]}"  # e.g. "TSLT US" or "FEPI LN"
             ticker_aum[bbg_key] = float(val) * 1_000_000  # $M -> $
 
     # Microsector overwrite for ETNs (raw $)
-    ws_ms = wb["microsector"]
+    ws_ms = wb["microsector_aum"]
     ms_tickers = [str(v).strip() if v else None for v in next(ws_ms.iter_rows(min_row=4, max_row=4, values_only=True))]
     ms_tickers = ms_tickers[1:]  # skip Date
     for row in ws_ms.iter_rows(min_row=5, values_only=True):
@@ -71,7 +72,7 @@ def bloomberg_total_rex_aum(year: int, month: int) -> tuple[float, int, list]:
     # Simplest: match tickers by their product_family heuristic? No — use the etp table instead.
     # The audit here is a TOTAL across REX, so we need the REX universe list from the DB.
     import psycopg2
-    conn = psycopg2.connect(host="localhost", port=5433, user="postgres", dbname="rex_asia")
+    conn = psycopg2.connect(host="localhost", port=int(__import__("os").environ.get("REX_ASIA_PORT","5433")), user="postgres", dbname="rex_asia")
     cur = conn.cursor()
     cur.execute("SELECT ticker FROM etp")
     rex_tickers = [r[0] for r in cur.fetchall()]

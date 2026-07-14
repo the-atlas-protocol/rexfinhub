@@ -56,7 +56,7 @@ COUNTRY_ORDER = {"Korea": 1, "Japan": 2, "Hong Kong": 3, "Singapore": 4, "Malays
 
 # ── Data loading ──
 def db():
-    return psycopg2.connect(host="localhost", port=5433, user="postgres", dbname="rex_asia",
+    return psycopg2.connect(host="localhost", port=int(__import__("os").environ.get("REX_ASIA_PORT","5433")), user="postgres", dbname="rex_asia",
                             cursor_factory=psycopg2.extras.RealDictCursor)
 
 def load_classification():
@@ -75,7 +75,7 @@ def fetch_bloomberg_monthly():
     price = price.rename(columns={price.columns[0]: "Date"})
     price["Date"] = pd.to_datetime(price["Date"], errors="coerce")
 
-    ms_raw = pd.read_excel(BB, sheet_name="microsector", header=None)
+    ms_raw = pd.read_excel(BB, sheet_name="microsector_aum", header=None)
     ms_tickers = ms_raw.iloc[3, 1:].tolist()
     ms = ms_raw.iloc[4:].copy()
     ms.columns = ["Date"] + ms_tickers
@@ -97,7 +97,9 @@ def fetch_bloomberg_monthly():
             continue
         per_ticker = {}
         for col in aum_row.index:
-            if col == "Date" or not isinstance(col, str) or " Equity" not in col:
+            if col == "Date" or not isinstance(col, str): continue
+            _p = col.split()
+            if len(_p) < 2 or _p[1] not in ("US","LN"):
                 continue
             parts = col.split()
             if len(parts) < 3: continue
