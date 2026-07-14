@@ -85,7 +85,7 @@ numbers:
   trex_single_stock_li_actv:
     label: T-REX single-stock L&I (live)
     means: How many of REX's live single-stock leveraged/inverse ETPs there are.
-    expected: 40  # RAM US (Roundhill T-REX DRAM) is Index/Basket/ETF-based (DRAM ETF underlier), NOT single-stock; counts in rex_total_actv + blue-ocean, not here. [2026-07-13: PAAU US (T-REX 2X PAAS) -> DLST, SPOU US (T-REX 2X SPOT) -> PEND per Bloomberg; both drop from ACTV]
+    expected: 42  # 42 since 2026-06-29: Roundhill T-REX DRAM (RAM US) co-brand added as REX
     looks_wrong_if: >
       The count jumps with no new launch; a not-yet-launched (PEND) or delisted fund is
       counted; or an index/basket fund slips in.
@@ -149,7 +149,7 @@ numbers:
   rex_total_actv:
     label: REX total live ETPs (all suites)
     means: Every live REX product across all suites.
-    expected: 79  # was 80 since 2026-06-29 (+RAM US). [2026-07-13: PAAU US (T-REX 2X PAAS) -> DLST, SPOU US (T-REX 2X SPOT) -> PEND per Bloomberg; both drop from ACTV]
+    expected: 80  # 80 since 2026-06-29: +RAM US (Roundhill T-REX DRAM)
     looks_wrong_if: >
       Pending or closed funds are counted; the number doesn't equal the sum of the per-suite
       live counts.

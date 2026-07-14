@@ -1,0 +1,1112 @@
+ticker,map_li_category,map_li_subcategory,map_li_direction,map_li_leverage_amount,map_li_underlier
+AALG US,Equity,Single Stock,Long,2.0,AAL US
+AAPB US,Equity,Single Stock,Long,2.0,AAPL US
+AAPD US,Equity,Single Stock,Short,1.0,AAPL US
+AAPU US,Equity,Single Stock,Long,2.0,AAPL US
+AAPX US,Equity,Single Stock,Long,2.0,AAPL US
+ABNG US,Equity,Single Stock,Long,2.0,ABNB US
+ADBG US,Equity,Single Stock,Long,2.0,ADBE US
+ADZCF US,Commodity,Index/Basket/ETF Based,Short,1.0,
+AFRU US,Equity,Single Stock,Long,2.0,AFRM US
+AGQ US,Commodity,Index,Long,2.0,XAG Curncy
+AIBD US,Equity,Index/Basket/ETF Based,Short,2.0,
+AIBU US,Equity,Index/Basket/ETF Based,Long,2.0,
+ALBG US,Equity,Single Stock,Long,2.0,ALB US
+AMDD US,Equity,Single Stock,Short,1.0,AMD US
+AMDG US,Equity,Single Stock,Long,2.0,AMD US
+AMDL US,Equity,Single Stock,Long,2.0,AMD US
+AMUU US,Equity,Single Stock,Long,2.0,AMD US
+AMZD US,Equity,Single Stock,Short,1.0,AMZN US
+AMZU US,Equity,Single Stock,Long,2.0,AMZN US
+AMZZ US,Equity,Single Stock,Long,2.0,AMZN US
+ANEL US,Equity,Single Stock,Long,2.0,ANET US
+APLX US,Equity,Single Stock,Long,2.0,APLD US
+APPX US,Equity,Single Stock,Long,2.0,APP US
+ARCX US,Equity,Single Stock,Long,2.0,ACHR US
+ARMG US,Equity,Single Stock,Long,2.0,ARM US
+ARMU US,Equity,Single Stock,Long,2.0,ARM US
+ASMG US,Equity,Single Stock,Long,2.0,ASML US
+ASTX US,Equity,Single Stock,Long,2.0,ASTS US
+AURU US,Equity,Single Stock,Long,2.0,AUR
+AVGG US,Equity,Single Stock,Long,2.0,AVGO US
+AVGU US,Equity,Single Stock,Long,2.0,AVGO US
+AVGX US,Equity,Single Stock,Long,2.0,AVGO US
+AVL US,Equity,Single Stock,Long,2.0,AVGO US
+AVS US,Equity,Single Stock,Short,1.0,AVGO US
+AVXX US,Equity,Single Stock,Long,2.0,AVAV US
+AXUP US,Equity,Single Stock,Long,2.0,AXON US
+BABX US,Equity,Single Stock,Long,2.0,BABA US
+BAIG US,Equity,Single Stock,Long,2.0,BBAI US
+BDDXF US,Commodity,Index/Basket/ETF Based,Long,2.0,
+BEG US,Equity,Single Stock,Long,2.0,BE US
+BEGS US,Stacked Returns,Miscellaneous,Long,,Basket
+BEX US,Equity,Single Stock,Long,2.0,BE US
+BIB US,Equity,Index/Basket/ETF Based,Long,2.0,
+BIDG US,Equity,Single Stock,Long,2.0,BIDU US
+BIS US,Equity,Index/Basket/ETF Based,Short,2.0,
+BITI US,Crypto,Single Stock,Short,1.0,XBTUSD Curncy
+BITU US,Crypto,Single Stock,Long,2.0,XBTUSD Curncy
+BITX US,Crypto,Single Stock,Long,2.0,XBTUSD Curncy
+BKNU US,Equity,Single Stock,Long,2.0,BKNG US
+BLSG US,Equity,Single Stock,Long,2.0,BLSH US
+BLSX US,Equity,Single Stock,Long,2.0,BLSH US
+BMNG US,Equity,Single Stock,Long,2.0,BMNR US
+BMNU US,Equity,Single Stock,Long,2.0,BMNR US
+BMNZ US,Equity,Single Stock,Short,2.0,BMNR US
+BOED US,Equity,Single Stock,Short,1.0,BA US
+BOEG US,Equity,Single Stock,Long,2.0,BA US
+BOEU US,Equity,Single Stock,Long,2.0,BA US
+BOIL US,Commodity,Index,Long,2.0,NGA Comdty
+BOMMF US,Commodity,Index/Basket/ETF Based,Short,2.0,
+BOSXF US,Commodity,Index/Basket/ETF Based,Short,1.0,
+BRKD US,Equity,Single Stock,Short,1.0,BRK/B US
+BRKU US,Equity,Single Stock,Long,2.0,BRK/B US
+BRZU US,Equity,Index/Basket/ETF Based,Long,2.0,
+BTCL US,Crypto,Single Stock,Long,2.0,XBTUSD Curncy
+BTCZ US,Crypto,Single Stock,Short,2.0,XBTUSD Curncy
+BTFL US,Equity,Single Stock,Long,2.0,BITF US
+BTGD US,Stacked Returns,Miscellaneous,Long,,Basket
+BU US,Equity,Single Stock,Long,2.0,B US
+BULG US,Equity,Single Stock,Long,2.0,BULL US
+BULU US,Equity,Single Stock,Long,2.0,BULL US
+BULX US,Equity,Single Stock,Long,2.0,BULL US
+BZQ US,Equity,Index/Basket/ETF Based,Short,2.0,
+CCUP US,Equity,Single Stock,Long,2.0,CECL US
+CEGX US,Equity,Single Stock,Long,2.0,CEG US
+CELT US,Equity,Single Stock,Long,2.0,CELH
+CHAU US,Equity,Index/Basket/ETF Based,Long,2.0,
+CIFG US,Equity,Single Stock,Long,2.0,CIFR US
+CIFU US,Equity,Single Stock,Long,2.0,CIFR US
+CLSX US,Equity,Single Stock,Long,2.0,CLSK US
+CMGG US,Equity,Single Stock,Long,2.0,CMG US
+CNCG US,Equity,Single Stock,Long,2.0,CNC US
+COIA US,Equity,Single Stock,Long,2.0,COIN US
+COIG US,Equity,Single Stock,Long,2.0,COIN US
+COIO US,Equity,Single Stock,Long,2.0,COIN US
+CONI US,Equity,Single Stock,Short,2.0,COIN US
+CONL US,Equity,Single Stock,Long,2.0,COIN US
+CONX US,Equity,Single Stock,Long,2.0,BULL US
+CORD US,Equity,Single Stock,Short,2.0,CRWV US
+COTG US,Equity,Single Stock,Long,2.0,COST
+COZX US,Equity,Single Stock,Long,2.0,CORZ US
+CPXR US,Commodity,Index,Long,2.0,
+CRCA US,Equity,Single Stock,Long,2.0,CRCL US
+CRCD US,Equity,Single Stock,Short,2.0,CRCL US
+CRCG US,Equity,Single Stock,Long,2.0,CRCL US
+CRDU US,Equity,Single Stock,Long,2.0,CRDO US
+CRMG US,Equity,Single Stock,Long,2.0,CRM US
+CRMX US,Equity,Single Stock,Long,2.0,CRML US
+CRWG US,Equity,Single Stock,Long,2.0,CRWV US
+CRWL US,Equity,Single Stock,Long,2.0,CRWD US
+CRWU US,Equity,Single Stock,Long,2.0,CRWV US
+CSCL US,Equity,Single Stock,Long,2.0,CSCO US
+CSCS US,Equity,Single Stock,Short,1.0,CSCO US
+CSEX US,Equity,Single Stock,Long,2.0,CLS US
+CSM US,Equity,Index/Basket/ETF Based,Long,1.0,
+CURE US,Equity,Index/Basket/ETF Based,Long,3.0,
+CVNX US,Equity,Single Stock,Long,2.0,CVNA US
+CWEB US,Equity,Index/Basket/ETF Based,Long,2.0,
+CWVX US,Equity,Single Stock,Long,2.0,CRWV US
+CXRN US,Commodity,Index,Long,2.0,
+DAGXF US,Commodity,Index/Basket/ETF Based,Long,2.0,
+DAMD US,Equity,Single Stock,Short,2.0,AMD US
+DASX US,Equity,Single Stock,Long,2.0,DASH US
+DDM US,Equity,Index/Basket/ETF Based,Long,2.0,
+DDPXF US,Commodity,Index/Basket/ETF Based,Short,1.0,
+DEENF US,Commodity,Index/Basket/ETF Based,Short,2.0,
+DFEN US,Equity,Index/Basket/ETF Based,Long,3.0,
+DGP US,Commodity,Index/Basket/ETF Based,Long,2.0,
+DGZ US,Commodity,Index,Short,1.0,
+DIG US,Equity,Index/Basket/ETF Based,Long,2.0,
+DJTU US,Equity,Single Stock,Long,2.0,DJTU UA
+DKNX US,Equity,Single Stock,Long,2.0,DKNG US
+DKUP US,Equity,Single Stock,Long,2.0,DKNG US
+DLLL US,Equity,Single Stock,Long,2.0,DELL US
+DOG US,Equity,Index/Basket/ETF Based,Short,1.0,
+DOGD US,Equity,Single Stock,Long,2.0,DDOG US
+DPST US,Equity,Index/Basket/ETF Based,Long,3.0,
+DRIP US,Equity,Index/Basket/ETF Based,Short,2.0,
+DRN US,Equity,Index/Basket/ETF Based,Long,3.0,
+DRV US,Equity,Index/Basket/ETF Based,Short,3.0,
+DUG US,Equity,Index/Basket/ETF Based,Short,2.0,
+DUOG US,Equity,Single Stock,Long,2.0,DUOL US
+DUSL US,Equity,Index/Basket/ETF Based,Long,3.0,
+DUST US,Equity,Index/Basket/ETF Based,Short,2.0,
+DXD US,Equity,Index/Basket/ETF Based,Short,2.0,
+DYYXF US,Commodity,Index/Basket/ETF Based,Long,2.0,
+DZZ US,Commodity,Index/Basket/ETF Based,Short,1.0,
+EDC US,Equity,Index/Basket/ETF Based,Long,3.0,
+EDZ US,Equity,Index/Basket/ETF Based,Short,3.0,
+EET US,Equity,Index/Basket/ETF Based,Long,2.0,
+EEV US,Equity,Index/Basket/ETF Based,Short,2.0,
+EFO US,Equity,Index/Basket/ETF Based,Long,2.0,
+EFU US,Equity,Index/Basket/ETF Based,Short,2.0,
+EFZ US,Equity,Index/Basket/ETF Based,Short,1.0,
+ELIL US,Equity,Single Stock,Long,2.0,LLY US
+ELIS US,Equity,Single Stock,Short,1.0,LLY US
+EMTY US,Equity,Index/Basket/ETF Based,Short,1.0,
+ENPX US,Equity,Single Stock,Long,2.0,ENPH US
+EOSU US,Equity,Single Stock,Long,2.0,EOSE US
+EPV US,Equity,Index/Basket/ETF Based,Short,2.0,
+ERX US,Equity,Index/Basket/ETF Based,Long,2.0,
+ERY US,Equity,Index/Basket/ETF Based,Short,2.0,
+ETHD US,Crypto,Single Stock,Short,2.0,XETUSD Curncy
+ETHT US,Crypto,Single Stock,Long,2.0,XETUSD Curncy
+ETHU US,Crypto,Single Stock,Long,2.0,XETUSD Curncy
+ETQ US,Crypto,Single Stock,Short,2.0,XETUSD Curncy
+ETRL US,Equity,Single Stock,Long,2.0,ETOR US
+ETU US,Crypto,Single Stock,Long,2.0,XETUSD Curncy
+EUM US,Equity,Index/Basket/ETF Based,Short,1.0,
+EUO US,Currency,Index,Short,2.0,EURUSD Curncy
+EURL US,Equity,Index/Basket/ETF Based,Long,3.0,
+EWV US,Equity,Index/Basket/ETF Based,Short,2.0,
+EZJ US,Equity,Index/Basket/ETF Based,Long,2.0,
+FAS US,Equity,Index/Basket/ETF Based,Long,3.0,
+FAZ US,Equity,Index/Basket/ETF Based,Short,3.0,
+FBL US,Equity,Single Stock,Long,2.0,META US
+FDRX US,Equity,Index/Basket/ETF Based,Long,2.0,FDRTR Index
+FIGG US,Equity,Single Stock,Long,2.0,FIG US
+FLYT US,Equity,Single Stock,Long,2.0,FLY US
+FNGG US,Equity,Index/Basket/ETF Based,Long,2.0,
+FRDD US,Equity,Single Stock,Short,1.0,F US
+FRDU US,Equity,Single Stock,Long,2.0,F US
+FUTG US,Equity,Single Stock,Long,2.0,FUTU US
+FXP US,Equity,Index/Basket/ETF Based,Short,2.0,
+GEMG US,Equity,Single Stock,Long,2.0,GEMI US
+GEVG US,Equity,Single Stock,Long,2.0,GEV US
+GEVX US,Equity,Single Stock,Long,2.0,GEV US
+GGLL US,Equity,Single Stock,Long,2.0,GOOGL US
+GGLS US,Equity,Single Stock,Short,1.0,GOOGL US
+GLGG US,Equity,Single Stock,Long,2.0,GLXY US
+GLL US,Commodity,Index,Short,2.0,USDXAU Curncy
+GLXU US,Equity,Single Stock,Long,2.0,GLXY US
+GMEU US,Equity,Single Stock,Long,2.0,GME US
+GOOX US,Equity,Single Stock,Long,2.0,GOOG US
+GOU US,Equity,Single Stock,Long,2.0,GOOGL US
+GRAG US,Equity,Single Stock,Long,2.0,GRAB US
+GSX US,Equity,Single Stock,Long,2.0,GS US
+GUSH US,Equity,Index/Basket/ETF Based,Long,2.0,
+HCMT US,Equity,Index/Basket/ETF Based,Tactical,,
+HIBL US,Equity,Index/Basket/ETF Based,Long,3.0,
+HIBS US,Equity,Index/Basket/ETF Based,Short,3.0,
+HIMZ US,Equity,Single Stock,Long,2.0,HIMS US
+HODU US,Equity,Single Stock,Long,2.0,BULL US
+HOOG US,Equity,Single Stock,Long,2.0,HOOD US
+HOOX US,Equity,Single Stock,Long,2.0,HOOD US
+HOOZ US,Equity,Single Stock,Short,2.0,HOOD US
+HUTG US,Equity,Single Stock,Long,2.0,HUT US
+INDL US,Equity,Index/Basket/ETF Based,Long,2.0,
+INTW US,Equity,Single Stock,Long,2.0,INTC US
+IONL US,Equity,Single Stock,Long,2.0,IONQ US
+IONX US,Equity,Single Stock,Long,2.0,IONQ US
+IONZ US,Equity,Single Stock,Short,2.0,IONQ US
+IRE US,Equity,Single Stock,Long,2.0,IREN US
+IREG US,Equity,Single Stock,Long,2.0,IREN US
+IREX US,Equity,Single Stock,Long,2.0,IREN US
+ISUL US,Equity,Single Stock,Long,2.0,ISRG
+JDST US,Equity,Index/Basket/ETF Based,Short,2.0,
+JNUG US,Equity,Index/Basket/ETF Based,Long,2.0,
+JOBX US,Equity,Single Stock,Long,2.0,JOBY US
+KBAB US,Equity,Single Stock,Long,2.0,BABA US
+KBDU US,Equity,Single Stock,Long,2.0,BIDU US
+KJD US,Equity,Single Stock,Long,2.0,JD US
+KLAG US,Equity,Single Stock,Long,2.0,KLAC US
+KMLI US,Equity,Single Stock,Long,2.0,MELI US
+KOLD US,Commodity,Index/Basket/ETF Based,Short,2.0,
+KORU US,Equity,Index/Basket/ETF Based,Long,3.0,EWY US Equity
+KPDD US,Equity,Single Stock,Long,2.0,PDD US
+KTUP US,Equity,Single Stock,Long,2.0,KTOS US
+LABD US,Equity,Index/Basket/ETF Based,Short,3.0,
+LABU US,Equity,Index/Basket/ETF Based,Long,3.0,
+LABX US,Equity,Single Stock,Long,2.0,ALAB US
+LACG US,Equity,Single Stock,Long,2.0,LAC US
+LAYS US,Stacked Returns,Miscellaneous,Long,,Basket
+LCDL US,Equity,Single Stock,Long,2.0,LCID US
+LINT US,Equity,Single Stock,Long,2.0,INTC US
+LLYX US,Equity,Single Stock,Long,2.0,LLY US
+LLYZ US,Equity,Single Stock,Short,2.0,LLY US
+LMBO US,Equity,Index/Basket/ETF Based,Long,2.0,
+LMNX US,Equity,Single Stock,Long,2.0,LMND US
+LMTL US,Equity,Single Stock,Long,2.0,LMT US
+LMTS US,Equity,Single Stock,Short,1.0,LMT US
+LRCU US,Equity,Single Stock,Long,2.0,LRCX
+LTL US,Equity,Index/Basket/ETF Based,Long,2.0,
+LULG US,Equity,Single Stock,Long,2.0,LULU US
+LUNL US,Equity,Single Stock,Long,2.0,LUNR US
+LYFX US,Equity,Single Stock,Long,2.0,LYFT
+MAGX US,Equity,Index,Long,2.0,MAGNIFICENT
+MDBX US,Equity,Single Stock,Long,2.0,MDB US
+METD US,Equity,Single Stock,Short,1.0,META US
+METU US,Equity,Single Stock,Long,2.0,META US
+MEXX US,Equity,Index/Basket/ETF Based,Long,3.0,
+MIDU US,Equity,Index/Basket/ETF Based,Long,3.0,
+MPG US,Equity,Single Stock,Long,2.0,MP US
+MPL US,Equity,Single Stock,Long,2.0,MP US
+MQQQ US,Equity,Index/Basket/ETF Based,Long,2.0,
+MRAL US,Equity,Single Stock,Long,2.0,MARA US
+MSDD US,Equity,Single Stock,Short,2.0,MSTR US
+MSFD US,Equity,Single Stock,Short,1.0,MSFT US
+MSFL US,Equity,Single Stock,Long,2.0,MSFT US
+MSFU US,Equity,Single Stock,Long,2.0,MSFT US
+MSFX US,Equity,Single Stock,Long,2.0,MSFT US
+MSOO US,Equity,Single Stock,Long,2.0,MSTR US
+MSOX US,Equity,Index/Basket/ETF Based,Long,2.0,MSOS US Equity
+MSTP US,Equity,Single Stock,Long,2.0,MSTR US
+MSTU US,Equity,Single Stock,Long,2.0,MSTR US
+MSTX US,Equity,Single Stock,Long,2.0,MSTR US
+MSTZ US,Equity,Single Stock,Short,2.0,MSTR US
+MUD US,Equity,Single Stock,Short,1.0,MU US
+MULL US,Equity,Single Stock,Long,2.0,MU US
+MUU US,Equity,Single Stock,Long,2.0,MU US
+MVLL US,Equity,Single Stock,Long,2.0,MRVL US
+MVPL US,Equity,Index/Basket/ETF Based,Tactical,,
+MVV US,Equity,Index/Basket/ETF Based,Long,2.0,
+MYY US,Equity,Index/Basket/ETF Based,Short,1.0,
+MZZ US,Equity,Index/Basket/ETF Based,Short,2.0,
+NAIL US,Equity,Index/Basket/ETF Based,Long,3.0,
+NBIG US,Equity,Single Stock,Long,2.0,NBIS US
+NBIL US,Equity,Single Stock,Long,2.0,NVIS
+NEBX US,Equity,Single Stock,Long,2.0,NBIS US
+NEMG US,Equity,Single Stock,Long,2.0,NEM US
+NETG US,Equity,Single Stock,Long,2.0,NET US
+NETX US,Equity,Single Stock,Long,2.0,NET
+NFLU US,Equity,Single Stock,Long,2.0,NFLX US
+NFXL US,Equity,Single Stock,Long,2.0,NFLX US
+NFXS US,Equity,Single Stock,Short,1.0,NFLX US
+NIOG US,Equity,Single Stock,Long,2.0,NIO US
+NNEX US,Equity,Single Stock,Long,2.0,NNE US
+NOWL US,Equity,Single Stock,Long,2.0,NOW US
+NUG US,Equity,Single Stock,Long,2.0,NU US
+NUGT US,Commodity,Index/Basket/ETF Based,Long,2.0,
+NVD US,Equity,Single Stock,Short,2.0,NVDA US
+NVDB US,Equity,Single Stock,Long,2.0,NVDA US
+NVDD US,Equity,Single Stock,Short,1.0,NVDA US
+NVDG US,Equity,Single Stock,Long,2.0,NVDA US
+NVDL US,Equity,Single Stock,Long,2.0,NVDA US
+NVDO US,Equity,Single Stock,Long,2.0,NVDA US
+NVDQ US,Equity,Single Stock,Short,2.0,NVDA US
+NVDS US,Equity,Single Stock,Short,1.5,NVDA US
+NVDU US,Equity,Single Stock,Long,2.0,NVDA US
+NVDX US,Equity,Single Stock,Long,2.0,NVDA US
+NVOX US,Equity,Single Stock,Long,2.0,NVO US
+NVTX US,Equity,Single Stock,Long,2.0,NVTS US
+NWMX US,Equity,Single Stock,Long,2.0,NEM US
+OKLL US,Equity,Single Stock,Long,2.0,OKLO US
+OKLS US,Equity,Single Stock,Short,2.0,OKLO US
+OKTG US,Equity,Single Stock,Long,2.0,OKTA US
+OKTX US,Equity,Single Stock,Long,2.0,OKTA
+ONDG US,Equity,Single Stock,Long,2.0,ONDS US
+ONDL US,Equity,Single Stock,Long,2.0,ONDS US
+ONDU US,Equity,Single Stock,Long,2.0,ONDS US
+OOQB US,Stacked Returns,Miscellaneous,Long,,Basket
+OOSB US,Stacked Returns,Miscellaneous,Long,,Basket
+OPEG US,Equity,Single Stock,Long,2.0,OPEN US
+OPEX US,Equity,Single Stock,Long,2.0,OPEN US
+ORCS US,Equity,Single Stock,Short,1.0,ORCL US
+ORCU US,Equity,Single Stock,Long,2.0,ORCL US
+ORCX US,Equity,Single Stock,Long,2.0,ORCL US
+ORLG US,Equity,Single Stock,Long,2.0,ORLY US
+ORR US,Equity,Index/Basket/ETF Based,Short,,
+OSCG US,Equity,Single Stock,Long,2.0,OSCR US
+OSCX US,Equity,Single Stock,Long,2.0,OSCR
+PALD US,Equity,Single Stock,Short,1.0,PANW US
+PALU US,Equity,Single Stock,Long,2.0,PANW US
+PANG US,Equity,Single Stock,Long,2.0,PANW US
+PATX US,Equity,Single Stock,Long,2.0,PATH US
+PBRG US,Equity,Single Stock,Long,2.0,PBR US
+PDDL US,Equity,Single Stock,Long,2.0,PDD US
+PILL US,Equity,Index/Basket/ETF Based,Long,3.0,
+PLOO US,Equity,Single Stock,Long,2.0,PLTR US
+PLTA US,Equity,Single Stock,Long,2.0,PLTR US
+PLTD US,Equity,Single Stock,Short,1.0,PLTR US
+PLTG US,Equity,Single Stock,Long,2.0,PLTR US
+PLTU US,Equity,Single Stock,Long,2.0,PLTR US
+PLTZ US,Equity,Single Stock,Short,2.0,PLTR US
+PLU US,Equity,Single Stock,Long,2.0,PL US
+PLUL US,Equity,Single Stock,Long,2.0,PLUG US
+PONX US,Equity,Single Stock,Long,2.0,PONY US
+PSQ US,Equity,Index/Basket/ETF Based,Short,1.0,
+PST US,Fixed Income,Index/Basket/ETF Based,Short,2.0,
+PTIR US,Equity,Single Stock,Long,2.0,PLTR US
+PXIU US,Equity,Single Stock,Long,2.0,UPXI US
+PYPG US,Equity,Single Stock,Long,2.0,PYPL US
+QBTX US,Equity,Single Stock,Long,2.0,QBTS US
+QBTZ US,Equity,Single Stock,Short,2.0,QBTS US
+QCMD US,Equity,Single Stock,Short,1.0,QCOM US
+QCML US,Equity,Single Stock,Long,2.0,QCOM US
+QCMU US,Equity,Single Stock,Long,2.0,QCOM US
+QID US,Equity,Index/Basket/ETF Based,Short,2.0,
+QLD US,Equity,Index/Basket/ETF Based,Long,2.0,
+QPUX US,Equity,Index/Basket/ETF Based,Long,2.0,
+QQDN US,Equity,Index/Basket/ETF Based,Short,2.0,
+QQQD US,Equity,Index/Basket/ETF Based,Short,1.0,
+QQQP US,Equity,Index/Basket/ETF Based,Long,2.0,
+QQQU US,Equity,Index/Basket/ETF Based,Long,2.0,
+QQUP US,Equity,Index/Basket/ETF Based,Long,2.0,
+QQXL US,Equity,Index/Basket/ETF Based,Long,2.0,
+QSU US,Equity,Single Stock,Long,2.0,QS US
+QSX US,Equity,Single Stock,Long,2.0,QS US
+QUBX US,Equity,Single Stock,Long,2.0,QUBT US
+RAAA US,Fixed Income,Index/Basket/ETF Based,Long,,
+RBLU US,Equity,Single Stock,Long,2.0,RBLX US
+RDTL US,Equity,Single Stock,Long,2.0,RDDT US
+REK US,Equity,Index/Basket/ETF Based,Short,1.0,
+REKT US,Equity,Index/Basket/ETF Based,Short,1.0,
+RETL US,Equity,Index/Basket/ETF Based,Long,3.0,
+REW US,Equity,Index/Basket/ETF Based,Short,2.0,
+RGTU US,Equity,Single Stock,Long,2.0,RGTI US
+RGTX US,Equity,Single Stock,Long,2.0,RGTI US
+RGTZ US,Equity,Single Stock,Short,2.0,RGTI
+RIOX US,Equity,Single Stock,Long,2.0,RIOT US
+RKLX US,Equity,Single Stock,Long,2.0,RKLB US
+RKLZ US,Equity,Single Stock,Short,2.0,RKLB US
+RKTL US,Equity,Single Stock,Long,2.0,RKT US
+ROBN US,Equity,Single Stock,Long,2.0,HOOD US
+ROM US,Equity,Index/Basket/ETF Based,Long,2.0,
+RSBA US,Equity,Index/Basket/ETF Based,Tactical,,
+RSBT US,Equity,Index/Basket/ETF Based,Tactical,,
+RSBY US,Equity,Index/Basket/ETF Based,Tactical,,
+RSEE US,Equity,Index/Basket/ETF Based,Long,1.33,
+RSSB US,Stacked Returns,Miscellaneous,Long,,Basket
+RSST US,Equity,Index/Basket/ETF Based,Tactical,,
+RSSX US,Equity,Index/Basket/ETF Based,Tactical,,
+RSSY US,Equity,Index/Basket/ETF Based,Tactical,,
+RTXG US,Equity,Single Stock,Long,2.0,RTX US
+RVNL US,Equity,Single Stock,Long,2.0,RIVN US
+RWM US,Equity,Index/Basket/ETF Based,Short,1.0,
+RXD US,Equity,Index/Basket/ETF Based,Short,2.0,
+RXL US,Equity,Index/Basket/ETF Based,Long,2.0,
+SAA US,Equity,Index/Basket/ETF Based,Long,2.0,
+SARK US,Equity,Index/Basket/ETF Based,Short,1.0,
+SATG US,Equity,Single Stock,Long,2.0,SATS US
+SBB US,Equity,Index/Basket/ETF Based,Short,1.0,
+SBIT US,Crypto,Single Stock,Short,2.0,XBTUSD Curncy
+SBTU US,Equity,Single Stock,Long,2.0,SBET US
+SBU US,Equity,Single Stock,Long,2.0,SBUX US
+SCC US,Equity,Index/Basket/ETF Based,Short,2.0,
+SCO US,Commodity,Index/Basket/ETF Based,Short,2.0,
+SDD US,Equity,Index/Basket/ETF Based,Short,2.0,
+SDOW US,Equity,Index/Basket/ETF Based,Short,3.0,
+SDP US,Equity,Index/Basket/ETF Based,Short,2.0,
+SDS US,Equity,Index/Basket/ETF Based,Short,2.0,
+SEF US,Equity,Index/Basket/ETF Based,Short,1.0,
+SETH US,Crypto,Single Stock,Short,1.0,XETUSD Curncy
+SH US,Equity,Index/Basket/ETF Based,Short,1.0,
+SHPD US,Equity,Single Stock,Short,1.0,SHOP US
+SHPU US,Equity,Single Stock,Long,2.0,SHOP US
+SIJ US,Equity,Index/Basket/ETF Based,Short,2.0,
+SJB US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+SKF US,Equity,Index/Basket/ETF Based,Short,2.0,
+SKRE US,Equity,Index/Basket/ETF Based,Short,2.0,
+SKYU US,Equity,Index/Basket/ETF Based,Long,2.0,
+SLON US,Crypto,Single Stock,Long,2.0,XSOUSD Curncy
+SMCL US,Equity,Single Stock,Long,2.0,SMCI US
+SMCX US,Equity,Single Stock,Long,2.0,SMCI US
+SMCZ US,Equity,Single Stock,Short,2.0,SMCI US
+SMDD US,Equity,Index/Basket/ETF Based,Short,3.0,
+SMN US,Equity,Index/Basket/ETF Based,Short,2.0,
+SMQ US,Equity,Index/Basket/ETF Based,Short,1.0,QQQ US
+SMST US,Equity,Single Stock,Short,2.0,MSTR US
+SMU US,Equity,Single Stock,Long,2.0,SMR US
+SMUP US,Equity,Single Stock,Long,2.0,SMR US
+SNAG US,Equity,Single Stock,Long,2.0,SNAP US
+SNOU US,Equity,Single Stock,Long,2.0,SNOW US
+SNPX US,Equity,Single Stock,Long,2.0,SNPS US
+SOFX US,Equity,Single Stock,Long,2.0,SOFI US
+SOLT US,Crypto,Single Stock,Long,2.0,XSOUSD Curncy
+SOLX US,Crypto,Single Stock,Long,2.0,XSOUSD Curncy
+SOUX US,Equity,Single Stock,Long,2.0,SOUN US
+SOXL US,Equity,Index/Basket/ETF Based,Long,3.0,
+SOXS US,Equity,Index/Basket/ETF Based,Short,3.0,
+SPDN US,Equity,Index/Basket/ETF Based,Short,1.0,
+SPOG US,Equity,Single Stock,Long,2.0,SPOT US
+SPUU US,Equity,Index/Basket/ETF Based,Long,2.0,
+SPXL US,Equity,Index/Basket/ETF Based,Long,3.0,
+SPXS US,Equity,Index/Basket/ETF Based,Short,3.0,
+SPXU US,Equity,Index/Basket/ETF Based,Short,3.0,
+SPYQ US,Equity,Index/Basket/ETF Based,Long,2.0,SPY US
+SQQQ US,Equity,Index/Basket/ETF Based,Short,3.0,
+SRPU US,Equity,Single Stock,Long,2.0,SPRT US
+SRS US,Equity,Index/Basket/ETF Based,Short,2.0,
+SRTY US,Equity,Index/Basket/ETF Based,Short,3.0,
+SSG US,Equity,Index/Basket/ETF Based,Short,2.0,
+SSO US,Equity,Index/Basket/ETF Based,Long,2.0,
+STSM US,Equity,Single Stock,Short,2.0,TSM US
+SVIX US,Volatility,Index/Basket/ETF Based,Short,1.0,
+SVOL US,Volatility,Index/Basket/ETF Based,Short,0.25,
+SVXY US,Volatility,Index/Basket/ETF Based,Short,0.5,
+SZK US,Equity,Index/Basket/ETF Based,Short,2.0,
+TARK US,Equity,Index/Basket/ETF Based,Long,2.0,
+TBF US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+TBT US,Fixed Income,Index/Basket/ETF Based,Short,2.0,
+TBX US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+TBXU US,Equity,Index/Basket/ETF Based,Long,2.0,
+TECL US,Equity,Index,Long,3.0,TECHNOLOGY
+TECS US,Equity,Index,Short,3.0,TECHNOLOGY
+TEMT US,Equity,Single Stock,Long,2.0,TEM US
+TERG US,Equity,Single Stock,Long,2.0,TER US
+TEXU US,Equity,Index/Basket/ETF Based,Long,2.0,
+TMF US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
+TMV US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
+TNA US,Equity,Index/Basket/ETF Based,Long,3.0,
+TPOR US,Equity,Index,Long,3.0,TRANSPORTATION
+TQQQ US,Equity,Index/Basket/ETF Based,Long,3.0,
+TSDD US,Equity,Single Stock,Short,2.0,TSLA US
+TSL US,Equity,Single Stock,Long,1.25,TSLA US
+TSLG US,Equity,Single Stock,Long,2.0,TSLA US
+TSLI US,Equity,Single Stock,Long,2.0,TSLA US
+TSLL US,Equity,Single Stock,Long,2.0,TSLA US
+TSLO US,Equity,Single Stock,Long,2.0,TSLA US
+TSLQ US,Equity,Single Stock,Short,2.0,TSLA US
+TSLR US,Equity,Single Stock,Long,2.0,TSLA US
+TSLS US,Equity,Single Stock,Short,1.0,TSLA US
+TSLT US,Equity,Single Stock,Long,2.0,TSLA US
+TSLZ US,Equity,Single Stock,Short,2.0,TSLA US
+TSMG US,Equity,Single Stock,Long,2.0,TSM US
+TSMU US,Equity,Single Stock,Long,2.0,TSM US
+TSMX US,Equity,Single Stock,Long,2.0,TSM US
+TSMZ US,Equity,Single Stock,Short,1.0,TSM US
+TSXD US,Equity,Index/Basket/ETF Based,Short,2.0,
+TSXU US,Equity,Index/Basket/ETF Based,Long,2.0,
+TTDU US,Equity,Single Stock,Long,2.0,TTD US
+TTT US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
+TTXD US,Equity,Index/Basket/ETF Based,Short,2.0,
+TTXU US,Equity,Index/Basket/ETF Based,Long,2.0,
+TWM US,Equity,Index/Basket/ETF Based,Short,2.0,
+TXXD US,Crypto,Single Stock,Long,2.0,XDGUSD Curncy
+TXXS US,Crypto,Single Stock,Long,2.0,XSUIUSD Curncy
+TYD US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
+TYO US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
+TZA US,Equity,Index/Basket/ETF Based,Short,3.0,
+UBOT US,Equity,Index/Basket/ETF Based,Long,2.0,
+UBR US,Equity,Index/Basket/ETF Based,Long,2.0,
+UBRL US,Equity,Single Stock,Long,2.0,UBER US
+UBT US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+UCC US,Equity,Index/Basket/ETF Based,Long,2.0,
+UCO US,Commodity,Index,Long,2.0,CLA Comdty
+UCYB US,Equity,Index/Basket/ETF Based,Long,2.0,
+UDN US,Currency,Index/Basket/ETF Based,Short,1.0,
+UDOW US,Equity,Index/Basket/ETF Based,Long,3.0,
+UGE US,Equity,Index/Basket/ETF Based,Long,2.0,
+UGL US,Commodity,Index,Long,2.0,XAU Curncy
+UJB US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+ULE US,Currency,Index,Long,2.0,EURUSD Curncy
+UMDD US,Equity,Index/Basket/ETF Based,Long,3.0,
+UNHG US,Equity,Single Stock,Long,2.0,UNH US
+UNX US,Equity,Single Stock,Long,2.0,U US
+UPRO US,Equity,Index/Basket/ETF Based,Long,3.0,
+UPSG US,Equity,Single Stock,Long,2.0,UPS US
+UPSX US,Equity,Single Stock,Long,2.0,UPST US
+UPV US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPW US,Equity,Index/Basket/ETF Based,Long,2.0,
+URAA US,Equity,Index/Basket/ETF Based,Long,2.0,UXAA Comdty
+URE US,Equity,Index/Basket/ETF Based,Long,2.0,
+URSP US,Equity,Index/Basket/ETF Based,Long,2.0,
+URTY US,Equity,Index/Basket/ETF Based,Long,3.0,
+USAX US,Equity,Single Stock,Long,2.0,USAR US
+USD US,Equity,Index/Basket/ETF Based,Long,2.0,
+USGG US,Equity,Single Stock,Long,2.0,USAR US
+UST US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+UTSL US,Equity,Index/Basket/ETF Based,Long,3.0,
+UUUG US,Equity,Single Stock,Long,2.0,UUUU US
+UVIX US,Volatility,Index/Basket/ETF Based,Long,2.0,
+UVXY US,Volatility,Index/Basket/ETF Based,Long,1.5,
+UWM US,Equity,Index/Basket/ETF Based,Long,2.0,
+UXI US,Equity,Index/Basket/ETF Based,Long,2.0,
+UXRP US,Crypto,Single Stock,Long,2.0,XRPUSD Curncy
+UYG US,Equity,Index/Basket/ETF Based,Long,2.0,
+UYM US,Equity,Index/Basket/ETF Based,Long,2.0,
+VALG US,Equity,Single Stock,Long,2.0,VALE US
+VOYX US,Equity,Single Stock,Long,2.0,VOYG US
+VRTL US,Equity,Single Stock,Long,2.0,VRT US
+VSTL US,Equity,Single Stock,Long,2.0,VST US
+WANT US,Equity,Index/Basket/ETF Based,Long,3.0,
+WEBL US,Equity,Index/Basket/ETF Based,Long,3.0,
+WEBS US,Equity,Index/Basket/ETF Based,Short,3.0,
+WILD US,Equity,Index/Basket/ETF Based,Long,2.0,
+WTIB US,Equity,Index/Basket/ETF Based,Tactical,,
+WULX US,Equity,Single Stock,Long,2.0,WULF US
+WXET US,Commodity,Index,Long,2.0,
+XOMX US,Equity,Single Stock,Long,2.0,XOM US
+XOMZ US,Equity,Single Stock,Short,1.0,XOM US
+XPEG US,Equity,Single Stock,Long,2.0,XPEV
+XPP US,Equity,Index/Basket/ETF Based,Long,2.0,
+XRPK US,Crypto,Single Stock,Long,2.0,XRPUSD Curncy
+XRPT US,Crypto,Single Stock,Long,2.0,XRPUSD Curncy
+XVOL US,Equity,Index/Basket/ETF Based,Tactical,,
+XXRP US,Crypto,Single Stock,Long,2.0,XRPUSD Curncy
+XYZG US,Equity,Single Stock,Long,2.0,XYZ US
+YANG US,Equity,Index/Basket/ETF Based,Short,3.0,
+YCL US,Currency,Index,Long,2.0,JPYUSD Curncy
+YCS US,Currency,Single Stock,Short,2.0,USDJPY Curncy
+YINN US,Equity,Index/Basket/ETF Based,Long,3.0,
+YXI US,Equity,Index/Basket/ETF Based,Short,1.0,
+ZSL US,Commodity,Index,Short,2.0,SIA Comdty
+ZVOL US,Volatility,Index/Basket/ETF Based,Short,1.0,
+APLZ US,Equity,Single Stock,Short,2.0,APLD
+IREZ US,Equity,Single Stock,Short,2.0,IREN
+LCIZ US,Equity,Single Stock,Short,2.0,LCID
+LNOK US,Equity,Single Stock,Long,2.0,NOK
+NBIZ US,Equity,Single Stock,Short,2.0,NBIS
+QXAS US,Equity,Index/Basket/ETF Based,Long,2.0,
+TDAX US,Equity,Index/Basket/ETF Based,Long,,TDAQ
+TSYX US,Equity,Index/Basket/ETF Based,Long,,TSPY
+LITX US,Equity,Single Stock,Long,2.0,LITE
+RDWU US,Equity,Single Stock,Long,2.0,RDW
+SNXX US,Equity,Single Stock,Long,2.0,SNDK
+WDCX US,Equity,Single Stock,Long,2.0,WDC
+MRNX US,Equity,Single Stock,Long,2.0,MRNA
+RCAX US,Equity,Single Stock,Long,2.0,RCAT
+ZETX US,Equity,Single Stock,Long,2.0,ZETA
+ASTN US,Equity,Single Stock,Short,2.0,ASTS
+CRMU US,Equity,Single Stock,Long,2.0,CRML
+DNNG US,Equity,Single Stock,Long,2.0,DNN
+UECG US,Equity,Single Stock,Long,2.0,UEC
+BEZ US,Equity,Single Stock,Short,2.0,BE
+SMZ US,Equity,Single Stock,Short,2.0,SMR
+APHU US,Equity,Single Stock,Long,2.0,APH
+ASMU US,Equity,Single Stock,Long,2.0,ASML
+AXPG US,Equity,Single Stock,Long,2.0,AXP
+BABU US,Equity,Single Stock,Long,2.0,BABA
+CLSZ US,Equity,Single Stock,Short,2.0,CLSK
+COHX US,Equity,Single Stock,Long,2.0,COHR
+COPZ US,Commodity,Index/Basket/ETF Based,Long,2.0,COPX
+FCXG US,Equity,Single Stock,Long,2.0,FCX
+FGRU US,Equity,Single Stock,Long,2.0,FIGR
+LEUX US,Equity,Single Stock,Long,2.0,KEY
+MRVU US,Equity,Single Stock,Long,2.0,MRVL
+SOFA US,Equity,Single Stock,Long,2.0,SOFI
+OILU US,Commodity,Energy,Long,3.0,SOLOILT
+NRGU US,Commodity,Energy,Long,3.0,SOLUSBOT
+WTIU US,Commodity,Energy,Long,3.0,BIGOIL
+GDXU US,Commodity,Gold,Long,3.0,MINERS
+SHNY US,Commodity,Index,Long,3.0,
+FNGD US,Equity,Tech,Short,3.0,NYFANGT
+SCDL US,Equity,Dividend,Long,2.0,DJUSDIVT
+JETU US,Equity,Airlines,Long,3.0,PJETSNTR
+HDLB US,Equity,Dividend,Long,2.0,SOLHDLV
+MLPR US,Equity,MLP,Long,1.5,AMZ
+BERZ US,Equity,Tech,Short,3.0,SOLFANGT
+FLYD US,Equity,Travel,Short,3.0,MQUSTRAV
+IWML US,Equity,Factor,Long,2.0,RU20INTR
+IWDL US,Equity,Factor,Long,2.0,RU10VATR
+SMHB US,Equity,Dividend,Long,2.0,SOLSMHD
+PFFL US,Fixed Income,Preferred,Long,2.0,SOLPRF
+CARD US,Equity,Auto,Short,3.0,PCARSNTR
+QULL US,Equity,Factor,Long,2.0,M2USSNQ
+CEFD US,Equity,Closed-End,Long,1.5,CEFX
+USML US,Equity,Factor,Long,2.0,M00IMV$T
+MVRL US,Equity,Real Estate,Long,1.5,MVMORT
+MTUL US,Equity,Factor,Long,2.0,M2US000$
+VYLD US,Volatility,VIX,Short,1.0,SPVXSTIT
+BNKU US,Equity,Financials,Long,3.0,SOLUSBBT
+SPYU US,Equity,Broad Market,Long,4.0,SPXT
+BNKD US,Equity,Financials,Short,3.0,SOLUSBBT
+BDCX US,Equity,Closed-End,Long,1.5,MVBIZD
+IWFL US,Equity,Factor,Long,2.0,RU10GRTR
+CARU US,Equity,Auto,Long,3.0,PCARSNTR
+FNGO US,Equity,Tech,Long,2.0,NYFANGT
+FLYU US,Equity,Travel,Long,3.0,MQUSTRAV
+BULZ US,Equity,Tech,Long,3.0,SOLFANGT
+SZOXF US,Commodity,Index,Short,1.0,DBODIXX
+JETD US,Equity,Airlines,Short,3.0,PJETSNTR
+FNGU US,Equity,Tech,Long,3.0,NYFANGT
+WTID US,Commodity,Energy,Short,3.0,BIGOIL
+DULL US,Commodity,Index,Short,3.0,Gold
+OILD US,Commodity,Energy,Short,3.0,SOLOILT
+NRGD US,Commodity,Energy,Short,3.0,SOLUSBOT
+GDXD US,Commodity,Gold,Short,3.0,MINERS
+DRNL US,Equity,Index/Basket/ETF Based,Long,2.0,
+FNGS US,Equity,Index/Basket/ETF Based,Long,1.0,
+UPSD US,Equity,Index/Basket/ETF Based,Tactical,,
+HOLD US,Equity,Index/Basket/ETF Based,Long,1.5,
+FIEGF US,Equity,Index/Basket/ETF Based,Long,2.0,
+LQPE US,Equity,Index/Basket/ETF Based,Long,,
+QTAC US,Equity,Index/Basket/ETF Based,Long,1.5,
+1938071D US,Commodity,Index/Basket/ETF Based,Short,3.0,
+GASX US,Equity,Index/Basket/ETF Based,Short,3.0,
+EVIX US,Equity,Index/Basket/ETF Based,Long,1.0,
+AAVX US,Volatility,Index/Basket/ETF Based,Short,1.0,
+WDRW US,Equity,Index/Basket/ETF Based,Short,3.0,
+CLDS US,Equity,Index/Basket/ETF Based,Short,2.0,
+MIDZ US,Equity,Index/Basket/ETF Based,Short,3.0,
+GDXX US,Commodity,Index/Basket/ETF Based,Long,2.0,
+DXO US,Commodity,Index/Basket/ETF Based,Long,2.0,
+PFES US,Equity,Single Stock,Short,2.0,PFE
+UMX US,Equity,Index/Basket/ETF Based,Long,2.0,
+DPK US,Equity,Index/Basket/ETF Based,Short,3.0,
+SOP US,Commodity,Index/Basket/ETF Based,Short,2.0,
+ZIVZF US,Volatility,Index/Basket/ETF Based,Short,1.0,
+2550752D US,Equity,Index/Basket/ETF Based,Long,3.0,
+EUXL US,Currency,Index/Basket/ETF Based,Long,3.0,
+FINZ US,Equity,Index/Basket/ETF Based,Short,3.0,
+USOU US,Commodity,Index/Basket/ETF Based,Long,3.0,
+HAKK US,Equity,Index/Basket/ETF Based,Long,2.0,
+MJIN US,Equity,Index/Basket/ETF Based,Short,2.0,
+RUSS US,Equity,Index/Basket/ETF Based,Short,3.0,
+SWAR US,Equity,Index/Basket/ETF Based,Long,2.0,
+FNTC US,Equity,Index/Basket/ETF Based,Long,2.0,
+SCOM US,Equity,Index/Basket/ETF Based,Short,3.0,
+IGU US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+DFVS US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+2550705D US,Commodity,Index/Basket/ETF Based,Long,3.0,
+RSU US,Equity,Index/Basket/ETF Based,Long,2.0,
+MFLAF US,Equity,Index/Basket/ETF Based,Long,2.0,
+GDJJ US,Equity,Index/Basket/ETF Based,Long,2.0,
+BXUC US,Equity,Index/Basket/ETF Based,Long,2.0,
+DOZR US,Equity,Index/Basket/ETF Based,Long,2.0,
+UCD US,Commodity,Index/Basket/ETF Based,Long,2.0,
+UXJ US,Equity,Index/Basket/ETF Based,Long,2.0,
+NKEQ US,Equity,Single Stock,Short,2.0,NKE
+XCOM US,Equity,Index/Basket/ETF Based,Long,2.0,
+UGLDF US,Commodity,Index/Basket/ETF Based,Long,3.0,
+LLEM US,Equity,Index/Basket/ETF Based,Long,1.25,
+LBJ US,Equity,Index/Basket/ETF Based,Long,2.0,
+FSU US,Equity,Index/Basket/ETF Based,Short,2.0,
+PYPS US,Equity,Single Stock,Short,1.5,PYPL
+HBU US,Equity,Index/Basket/ETF Based,Long,2.0,
+1555944D US,Equity,Index/Basket/ETF Based,Long,2.0,
+2469700D US,Equity,Index/Basket/ETF Based,Short,3.0,
+SINV US,Commodity,Index/Basket/ETF Based,Short,2.0,
+QQQW US,Equity,Index/Basket/ETF Based,Long,2.0,
+EUFX US,Currency,Index/Basket/ETF Based,Short,1.0,
+2602911D US,Equity,Index/Basket/ETF Based,Long,2.0,
+SPYB US,Equity,Index/Basket/ETF Based,Long,2.0,
+SYTL US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+ERYY US,Equity,Index/Basket/ETF Based,Short,1.0,
+SOXM US,Equity,Index/Basket/ETF Based,Long,2.0,
+SJL US,Equity,Index/Basket/ETF Based,Short,2.0,
+SOXW US,Equity,Index/Basket/ETF Based,Long,2.0,
+CROC US,Currency,Index/Basket/ETF Based,Short,2.0,
+KRS US,Equity,Index/Basket/ETF Based,Short,1.0,
+TAWK US,Equity,Index/Basket/ETF Based,Long,3.0,
+TIPL US,Equity,Index/Basket/ETF Based,Long,2.0,
+SFLAF US,Equity,Index/Basket/ETF Based,Long,3.0,
+AWYX US,Equity,Index/Basket/ETF Based,Long,2.0,
+TLTM US,Equity,Index/Basket/ETF Based,Long,2.0,
+SWEB US,Equity,Index/Basket/ETF Based,Short,1.0,
+EVEN US,Equity,Index/Basket/ETF Based,Long,2.0,
+TLTQ US,Equity,Index/Basket/ETF Based,Long,1.75,
+2369112D US,Equity,Index/Basket/ETF Based,Short,2.0,
+FLAT US,Fixed Income,Index/Basket/ETF Based,Long,1.0,
+TWQ US,Equity,Index/Basket/ETF Based,Short,2.0,
+SJH US,Equity,Index/Basket/ETF Based,Short,2.0,
+HDGI US,Equity,Index/Basket/ETF Based,Short,1.0,
+SDK US,Equity,Index/Basket/ETF Based,Short,2.0,
+1534558D US,Commodity,Index/Basket/ETF Based,Long,3.0,
+2572986D US,Equity,Single Stock,Long,1.75,NVDA
+FINF US,Equity,Index/Basket/ETF Based,Short,1.0,
+SBM US,Equity,Index/Basket/ETF Based,Short,1.0,
+SFK US,Equity,Index/Basket/ETF Based,Short,2.0,
+SINF US,Equity,Index/Basket/ETF Based,Short,3.0,
+SJF US,Equity,Index/Basket/ETF Based,Short,2.0,
+RTLAF US,Equity,Index/Basket/ETF Based,Long,3.0,
+KORZ US,Equity,Index/Basket/ETF Based,Short,3.0,
+DSLVF US,Commodity,Index/Basket/ETF Based,Short,3.0,
+UKW US,Equity,Index/Basket/ETF Based,Long,2.0,
+UKF US,Equity,Index/Basket/ETF Based,Long,2.0,
+UVG US,Equity,Index/Basket/ETF Based,Long,2.0,
+UINF US,Equity,Index/Basket/ETF Based,Long,3.0,
+LLDM US,Equity,Index/Basket/ETF Based,Long,1.25,
+MNM US,Equity,Index/Basket/ETF Based,Long,2.0,
+UVU US,Equity,Index/Basket/ETF Based,Long,2.0,
+XXVFF US,Volatility,Index/Basket/ETF Based,Short,1.0,
+AGLS US,Equity,Index/Basket/ETF Based,Short,1.5,
+2587952D US,Equity,Index/Basket/ETF Based,Short,2.0,
+SAGG US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+UWC US,Equity,Index/Basket/ETF Based,Long,2.0,
+JPNS US,Equity,Index/Basket/ETF Based,Short,3.0,
+WYDE US,Equity,Index/Basket/ETF Based,Short,1.0,
+BRKY US,Fixed Income,Index/Basket/ETF Based,Long,,
+UKK US,Equity,Index/Basket/ETF Based,Long,2.0,
+MDLL US,Equity,Index/Basket/ETF Based,Long,2.0,
+TLL US,Equity,Index/Basket/ETF Based,Short,2.0,
+CHAD US,Equity,Index/Basket/ETF Based,Short,1.0,
+TBZ US,Fixed Income,Index/Basket/ETF Based,Short,2.0,
+UVT US,Equity,Index/Basket/ETF Based,Long,2.0,
+NEED US,Equity,Index/Basket/ETF Based,Long,3.0,
+TYNS US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+WEIX US,Equity,Index/Basket/ETF Based,Short,0.5,
+TOTS US,Equity,Index/Basket/ETF Based,Short,1.0,
+FSE US,Equity,Index/Basket/ETF Based,Short,2.0,
+HEGE US,Currency,Index/Basket/ETF Based,Long,2.0,
+TPS US,Equity,Index/Basket/ETF Based,Short,2.0,
+GDAY US,Currency,Index/Basket/ETF Based,Long,2.0,
+SJIM US,Equity,Index/Basket/ETF Based,Short,,
+ROLAF US,Equity,Index/Basket/ETF Based,Long,3.0,
+2217287D US,Equity,Index/Basket/ETF Based,Long,1.35,
+TVIZ US,Volatility,Index/Basket/ETF Based,Long,2.0,
+FAZZ US,Equity,Index/Basket/ETF Based,Short,1.0,
+IGS US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+PPDM US,Equity,Index/Basket/ETF Based,Long,1.35,
+PILS US,Equity,Index/Basket/ETF Based,Short,2.0,
+HAKD US,Equity,Index/Basket/ETF Based,Short,2.0,
+FFEU US,Currency,Index/Basket/ETF Based,Long,2.0,
+2165355D US,Commodity,Index/Basket/ETF Based,Short,1.0,
+2261682D US,Currency,Index/Basket/ETF Based,Long,2.0,
+TECZ US,Equity,Index/Basket/ETF Based,Short,1.0,
+AMDS US,Equity,Single Stock,Short,1.0,AMD
+PPMC US,Equity,Index/Basket/ETF Based,Long,1.35,
+KRU US,Equity,Index/Basket/ETF Based,Long,2.0,
+DGLDF US,Commodity,Index/Basket/ETF Based,Short,3.0,
+RSW US,Equity,Index/Basket/ETF Based,Short,2.0,
+DNO US,Commodity,Index/Basket/ETF Based,Short,1.0,
+2572987D US,Equity,Single Stock,Long,1.5,TSLA
+EMBU US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
+1449312D US,Commodity,Index/Basket/ETF Based,Short,2.0,
+HYDD US,Equity,Index/Basket/ETF Based,Short,2.0,
+JPNL US,Equity,Index/Basket/ETF Based,Long,3.0,
+ONG US,Equity,Single Stock,Long,2.0,ON
+TYBS US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+EUFS US,Currency,Index/Basket/ETF Based,Short,1.0,
+NKEL US,Equity,Single Stock,Long,2.0,NKE
+PYPT US,Equity,Single Stock,Long,1.5,PYPL
+HBZ US,Equity,Index/Basket/ETF Based,Short,2.0,
+2584019D US,Equity,Index/Basket/ETF Based,Short,2.0,
+FNGA US,Equity,Index/Basket/ETF Based,Long,3.0,
+2224616D US,Commodity,Index/Basket/ETF Based,Short,2.0,
+PPSC US,Equity,Index/Basket/ETF Based,Long,1.35,
+2550753D US,Commodity,Index/Basket/ETF Based,Short,3.0,
+KLNE US,Equity,Single Stock,Long,2.0,ICLN US
+DDG US,Commodity,Index/Basket/ETF Based,Short,1.0,
+SILX US,Commodity,Index/Basket/ETF Based,Long,2.0,
+SOGU US,Equity,Index/Basket/ETF Based,Short,1.0,
+USLVF US,Commodity,Index/Basket/ETF Based,Long,3.0,
+MATL US,Equity,Index/Basket/ETF Based,Long,3.0,
+EMLBF US,Equity,Index/Basket/ETF Based,Long,2.0,
+LABS US,Equity,Index/Basket/ETF Based,Short,1.0,
+2470304D US,Equity,Index/Basket/ETF Based,Long,2.0,
+BRZS US,Equity,Index/Basket/ETF Based,Short,3.0,
+DTUS US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+DZK US,Equity,Index/Basket/ETF Based,Long,3.0,
+2550723D US,Equity,Index/Basket/ETF Based,Short,3.0,
+YCOM US,Equity,Index/Basket/ETF Based,Short,2.0,
+PFEL US,Equity,Single Stock,Long,2.0,PFE
+SICK US,Equity,Index/Basket/ETF Based,Short,3.0,
+SMK US,Equity,Index/Basket/ETF Based,Short,2.0,
+UBIO US,Equity,Index/Basket/ETF Based,Long,3.0,
+UOP US,Commodity,Index/Basket/ETF Based,Long,2.0,
+2224615D US,Commodity,Index/Basket/ETF Based,Long,2.0,
+LACK US,Equity,Index/Basket/ETF Based,Short,3.0,
+GDXS US,Commodity,Index/Basket/ETF Based,Short,2.0,
+TENG US,Equity,Index/Basket/ETF Based,Long,2.0,
+2560936D US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+CLAW US,Equity,Index/Basket/ETF Based,Short,3.0,
+UCOM US,Equity,Index/Basket/ETF Based,Long,3.0,
+EUFL US,Currency,Index/Basket/ETF Based,Long,2.0,
+MUTE US,Equity,Index/Basket/ETF Based,Short,3.0,
+FOL US,Commodity,Index/Basket/ETF Based,Short,2.0,
+PASS US,Equity,Index/Basket/ETF Based,Short,3.0,
+FSG US,Commodity,Index/Basket/ETF Based,Short,2.0,
+FSA US,Equity,Index/Basket/ETF Based,Short,2.0,
+USOD US,Commodity,Index/Basket/ETF Based,Short,3.0,
+1848835D US,Equity,Index/Basket/ETF Based,Long,3.0,
+SPKY US,Equity,Index/Basket/ETF Based,Long,1.5,
+EXIV US,Equity,Index/Basket/ETF Based,Short,1.0,
+MJXL US,Equity,Index/Basket/ETF Based,Long,2.0,
+VXDN US,Volatility,Index/Basket/ETF Based,Long,1.0,
+RUSL US,Equity,Index/Basket/ETF Based,Long,2.0,
+GDJS US,Equity,Index/Basket/ETF Based,Short,2.0,
+VMIN US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+XIV US,Volatility,Index/Basket/ETF Based,Short,1.0,
+1938070D US,Commodity,Index/Basket/ETF Based,Long,3.0,
+GASL US,Equity,Index/Basket/ETF Based,Long,3.0,
+VXDL US,Volatility,Index/Basket/ETF Based,Long,2.0,
+VXAL US,Volatility,Index/Basket/ETF Based,Long,2.0,
+1551474D US,Currency,Index/Basket/ETF Based,Short,3.0,
+DMM US,Equity,Index/Basket/ETF Based,Long,3.0,
+UMM US,Equity,Index/Basket/ETF Based,Long,3.0,
+BARS US,Commodity,Index/Basket/ETF Based,Short,3.0,
+UTLZ US,Equity,Index/Basket/ETF Based,Short,1.0,
+SPLZ US,Equity,Index/Basket/ETF Based,Short,1.0,
+LGS US,Commodity,Single Stock,Long,2.0,GS
+SGS US,Commodity,Single Stock,Short,2.0,GS
+LJPM US,Equity,Single Stock,Long,2.0,JPM
+UGOO US,Equity,Single Stock,Long,2.0,GOOGL
+SXOM US,Equity,Single Stock,Short,2.0,XOM
+DGOO US,Equity,Single Stock,Short,2.0,GOOGL
+SJPM US,Equity,Single Stock,Short,2.0,JPM
+LXOM US,Equity,Single Stock,Long,2.0,XOM
+BETX US,Equity,Single Stock,Long,2.0,BETZ
+FBFB US,Equity,Single Stock,Long,2.0,METV
+PPTB US,Fixed Income,Index/Basket/ETF Based,Long,1.25,
+2362244D US,Equity,Index/Basket/ETF Based,Short,1.0,
+MAGQ US,Equity,Index/Basket/ETF Based,Short,1.0,
+VXBL US,Volatility,Index/Basket/ETF Based,Long,2.0,
+1370035D US,Volatility,Index/Basket/ETF Based,Long,2.0,
+VXCL US,Volatility,Index/Basket/ETF Based,Long,2.0,
+GOS US,Commodity,Index/Basket/ETF Based,Short,1.0,
+OOL US,Commodity,Index/Basket/ETF Based,Long,1.0,
+OTS US,Commodity,Index/Basket/ETF Based,Short,2.0,
+GTL US,Commodity,Index/Basket/ETF Based,Long,2.0,
+OOS US,Commodity,Index/Basket/ETF Based,Short,1.0,
+GWS US,Commodity,Index/Basket/ETF Based,Short,2.0,
+BTYS US,Fixed Income,Index/Basket/ETF Based,Short,1.0,
+FIHQ US,Equity,Index/Basket/ETF Based,Long,2.0,
+MRVX US,Equity,Single Stock,Long,2.0,MRVL
+RDDX US,Equity,Single Stock,Long,2.0,RDDT
+ARMX US,Equity,Single Stock,Long,2.0,ARM
+SOFL US,Equity,Index/Basket/ETF Based,Long,2.0,
+UBEG US,Equity,Single Stock,Long,2.0,UBER
+BBUP US,Equity,Single Stock,Long,2.0,BBAI
+SPOU US,Equity,Single Stock,Long,2.0,SPOT
+FIGO US,Equity,Single Stock,Long,2.0,FIG
+VXFL US,Volatility,Index/Basket/ETF Based,Long,2.0,
+EOSX US,Equity,Index/Basket/ETF Based,Long,1.5,
+HIMD US,Equity,Single Stock,Short,2.0,HIMS
+BTQL US,Equity,Single Stock,Long,2.0,BTQ
+BITG US,Equity,Single Stock,Long,2.0,BITF
+POEL US,Equity,Single Stock,Long,2.0,POET
+2633034D US,Equity,Index/Basket/ETF Based,Long,1.35,
+SNDU US,Equity,Single Stock,Long,2.0,SNDK
+WLDU US,Equity,Index,Long,2.0,VT
+PAAU US,Equity,Single Stock,Long,2.0,PAAS
+GLWG US,Equity,Single Stock,Long,2.0,GLW
+AAOX US,Equity,Single Stock,Long,2.0,AAOI
+PYPU US,Equity,Single Stock,Long,2.0,PYPL
+ADBU US,Equity,Single Stock,Long,2.0,ADBE
+TXNU US,Equity,Single Stock,Long,2.0,TXN
+UNHU US,Equity,Single Stock,Long,2.0,UNH
+HLXX US,Equity,Single Stock,Long,2.0,HL
+AMZO US,Equity,Single Stock,Short,2.0,AMZN
+IBX US,Equity,Single Stock,Long,2.0,IBM
+CHNL US,Equity,Index,Long,,
+STLR US,Equity,Index,Long,,
+CRDX US,Equity,Index,Long,2.0,
+STLU US,Equity,Index,Long,2.0,
+CHNU US,Equity,Index,Long,2.0,
+XAIL US,Fixed Income,Index/Basket/ETF Based,Long,2.0,
+UCOP US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPLT US,Equity,Index/Basket/ETF Based,Long,2.0,
+UPAL US,Equity,Index/Basket/ETF Based,Long,2.0,
+STXL US,Equity,Single Stock,Long,2.0,STX
+MPWX US,Equity,Single Stock,Long,2.0,MPWR
+STXX US,Equity,Single Stock,Long,2.0,STX
+CPNX US,Equity,Single Stock,Long,2.0,CPNG
+LITZ US,Equity,Single Stock,Short,2.0,LITE
+SNDQ US,Equity,Single Stock,Short,2.0,SNDK
+AXTX US,Equity,Single Stock,Long,2.0,AXTI
+AMA US,Equity,Single Stock,Long,2.0,AMAT
+XOVL US,Equity,Single Stock,Long,2.0,XOVR
+AXTU US,Equity,Single Stock,Long,2.0,AXTI
+KRK US,Equity,Index/Basket/ETF Based,Long,2.0,
+HXSL US,Equity,Index/Basket/ETF Based,Long,2.0,
+AMPU US,Equity,Single Stock,Long,2.0,AMPX
+AMKL US,Equity,Single Stock,Long,2.0,AMKR
+RSIT US,Equity,Index/Basket/ETF Based,Long,1.0,
+XNDX US,Equity,Single Stock,Long,2.0,XNDU
+RAM US,Equity,Single Stock,Long,2.0,DRAM
+CBRG US,Equity,Single Stock,Long,2.0,CBRS
+AMAU US,Equity,Single Stock,Long,2.0,AMAT
+CIEG US,Equity,Single Stock,Long,2.0,CIEN
+AAOG US,Equity,Single Stock,Long,2.0,AAOI
+AVAZ US,Equity,Index/Basket/ETF Based,Long,2.0,
+COHH US,Equity,Single Stock,Long,2.0,COHR
+SUIL US,Equity,Index/Basket/ETF Based,Long,2.0,
+SNDG US,Equity,Single Stock,Long,2.0,SNDK
+STXU US,Equity,Single Stock,Long,2.0,STX
+CATG US,Equity,Single Stock,Long,2.0,CAT
+ETNG US,Equity,Single Stock,Long,2.0,ETN
+HONG US,Equity,Single Stock,Long,2.0,HON
+USLV US,Commodity,Index/Basket/ETF Based,Long,2.0,
+OSSL US,Equity,Single Stock,Long,2.0,OSS
+BTCU US,Crypto,Index/Basket/ETF Based,Long,2.0,
+VAVL US,Equity,Index/Basket/ETF Based,Long,2.0,
+EVMU US,Crypto,Index/Basket/ETF Based,Long,2.0,
+UGLD US,Commodity,Index/Basket/ETF Based,Long,2.0,
+ASUP US,Equity,Single Stock,Long,2.0,ASTS
+LITU US,Equity,Single Stock,Long,2.0,LITE
+ASTY US,Equity,Single Stock,Long,2.0,ASTS
+ONX US,Equity,Single Stock,Long,2.0,ON
+VELL US,Equity,Single Stock,Long,2.0,VELO
+WYFL US,Equity,Single Stock,Long,2.0,WYFI
+XVO US,Equity,Index/Basket/ETF Based,Long,2.0,
+XHOA US,Equity,Index/Basket/ETF Based,Long,2.0,
+WX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XSEM US,Equity,Index/Basket/ETF Based,Long,2.0,
+XEUR US,Currency,Index/Basket/ETF Based,Long,2.0,
+VOOX US,Equity,Index/Basket/ETF Based,Long,2.0,
+EMXX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLYX US,Equity,Index/Basket/ETF Based,Long,2.0,
+WEBX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLIX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XPAV US,Equity,Index/Basket/ETF Based,Long,2.0,
+CCPX US,Equity,Index/Basket/ETF Based,Long,2.0,
+EUVX US,Equity,Index,Long,2.0,
+VBX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLPX US,Equity,Index/Basket/ETF Based,Long,2.0,
+BRZX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XTAI US,Equity,Index/Basket/ETF Based,Long,2.0,
+XVUG US,Equity,Index/Basket/ETF Based,Long,2.0,
+XW US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLBX US,Equity,Index/Basket/ETF Based,Long,2.0,
+TAJX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XIWC US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLEX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLVX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLUX US,Equity,Index/Basket/ETF Based,Long,2.0,
+KRWX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLKX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XBIX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XLFX US,Equity,Index/Basket/ETF Based,Long,2.0,
+XKRE US,Equity,Index/Basket/ETF Based,Long,2.0,
+MGKX US,Equity,Index/Basket/ETF Based,Long,2.0,
+TEUP US,Equity,Single Stock,Long,2.0,TE
+XAGI US,Equity,Index/Basket/ETF Based,Long,2.0,
+USX US,Equity,Index/Basket/ETF Based,Long,2.0,
+INFH US,Equity,Single Stock,Long,2.0,INFQ
+CBRX US,Equity,Single Stock,Long,2.0,CBRS
+CBRZ US,Equity,Single Stock,Short,2.0,CBRS
+AIQD US,Equity,Tech,Short,3.0,AI
+MUZ US,Equity,Single Stock,Short,2.0,MU
+AIQU US,Equity,Tech,Long,3.0,AI
+SAMX US,Equity,Single Stock,Long,2.0,005930 KS
+ASMX US,Equity,Single Stock,Long,2.0,ASM NA
+MDTX US,Equity,Single Stock,Long,2.0,2454 TT
+LASX US,Equity,Single Stock,Long,2.0,6920 JT
+SK US,Equity,Single Stock,Long,2.0,000660 KS
+ADVX US,Equity,Single Stock,Long,2.0,6857 JP
+KI US,Equity,Single Stock,Long,2.0,285A JT
+HYUX US,Equity,Single Stock,Long,2.0,005380 KS
+BESX US,Equity,Single Stock,Long,2.0,BESI NA
+TELX US,Equity,Single Stock,Long,2.0,8035 JT
+DISC US,Equity,Single Stock,Long,2.0,6146 JT
+LBIX US,Crypto,Index/Basket/ETF Based,Long,,
+DELC US,Equity,Single Stock,Long,2.0,2308 TT
+NXPG US,Equity,Single Stock,Long,2.0,NXPI
+MCHU US,Equity,Single Stock,Long,2.0,MCHP
+NXPX US,Equity,Single Stock,Long,2.0,NXPI
+SPCQ US,Equity,Single Stock,Short,2.0,
+SPCU US,Equity,Single Stock,Long,2.0,
+2660552D US,Equity,Single Stock,Long,2.0,DRAM
+SPCH US,Equity,Single Stock,Long,2.0,SPCX
+SSPC US,Equity,Single Stock,Short,2.0,SPCX
+QTMS US,,,Long,1.0,QTUM
+SSOY US,,,Long,1.0,SPX
+PLPW US,,,Long,1.0,PLTR
+KEEX US,Equity,Single Stock,Long,2.0,BITF
+SPCL US,Equity,Index/Basket/ETF Based,Long,2.0,
+HELS US,,,Long,1.3,US Equities
+XBNB US,Crypto,Single Stock,Long,2.0,BNB
+UMAL US,,,Long,2.0,UMAC
+SGVA US,,,Short,1.0,US Treasury
+TXXH US,Crypto,Single Stock,Long,2.0,HYPE
+SNK US,Equity,Single Stock,Short,2.0,
+SPAL US,Equity,Single Stock,Long,2.0,SPCX
+XXDC US,Equity,Index/Basket/ETF Based,Long,2.0,
+LOFF US,Equity,Single Stock,Long,2.0,SPCX
+SPCF US,Equity,Single Stock,Long,2.0,SPCX
+SPAX US,Equity,Single Stock,Long,2.0,SPCX
+SPCM US,Equity,Single Stock,Long,2.0,SPCX
+SPCG US,Equity,Single Stock,Short,2.0,SPCX
+SPXP US,,Index,Long,1.5,S&P 500
+FNG US,Equity,Single Stock,Long,2.0,FN
+ADIU US,Equity,Single Stock,Long,2.0,ADI
+AXTL US,Equity,Single Stock,Long,2.0,AXTI
+KEYG US,Equity,Single Stock,Long,2.0,KEYS
+MCHG US,Equity,Single Stock,Long,2.0,MCHP
+DRAL US,Equity,Index/Basket/ETF Based,Long,2.0,
+APHG US,Equity,Single Stock,Long,2.0,APH
+TELG US,Equity,Single Stock,Long,2.0,TEL
+TSEG US,Equity,Single Stock,Long,2.0,TSEM
+IOSX US,Equity,Single Stock,Long,2.0,AAPL
+APPC US,Equity,Single Stock,Long,2.0,APP
+FBX US,Equity,Single Stock,Long,2.0,META
+TWSC US,Equity,Single Stock,Long,2.0,TSM
+PLTL US,Equity,Single Stock,Long,2.0,PLTR
+2663830D US,Equity,Single Stock,Long,2.0,MRVL
+JOBC US,Equity,Single Stock,Long,2.0,JOBY
+CRWC US,Equity,Single Stock,Long,2.0,CRWD
+CRD US,Equity,Single Stock,Long,2.0,CRDO
+UN US,Equity,Single Stock,Long,2.0,UNH
+UPSC US,Equity,Single Stock,Long,2.0,UPST
+NOWX US,Equity,Single Stock,Long,2.0,NOW
+LRNX US,Equity,Single Stock,Long,2.0,LRN
+RMBC US,Equity,Single Stock,Long,2.0,RMBS
+IONC US,Equity,Single Stock,Long,2.0,IONQ
+QUA US,Equity,Single Stock,Long,2.0,QBTS
+BNMC US,Equity,Single Stock,Long,2.0,BMNR
+LITC US,Equity,Single Stock,Long,2.0,LITE
+LRCC US,Equity,Single Stock,Long,2.0,LRCX
+HIMC US,Equity,Single Stock,Long,2.0,HIMS
+TESC US,Equity,Single Stock,Long,2.0,TSLA
+UUUC US,Equity,Single Stock,Long,2.0,UUUU
+UCTX US,Equity,Single Stock,Long,2.0,UCTT
+TPLX US,Equity,Single Stock,Long,2.0,TPL
+CRUC US,Equity,Single Stock,Long,2.0,CRUS
+MNSX US,Equity,Single Stock,Long,2.0,MNST
+BEC US,Equity,Single Stock,Long,2.0,BE
+CRWX US,Equity,Single Stock,Long,2.0,CRWV
+NVOC US,Equity,Single Stock,Long,2.0,NVO
+ONDC US,Equity,Single Stock,Long,2.0,ONDS
+KEYX US,Equity,Single Stock,Long,2.0,KEYS
+RKX US,Equity,Single Stock,Long,2.0,RKLB
+OKLC US,Equity,Index/Basket/ETF Based,Long,2.0,
+RIVC US,Equity,Single Stock,Long,2.0,RIVN
+UMCX US,Equity,Single Stock,Long,2.0,UMC
+CARX US,Equity,Single Stock,Long,2.0,CART
+MPWC US,Equity,Single Stock,Long,2.0,MPWR
+HOOC US,Equity,Single Stock,Long,2.0,HOOD
+GEVC US,Equity,Single Stock,Long,2.0,GEV
+SOFC US,Equity,Single Stock,Long,2.0,SOFI
+EO US,Equity,Single Stock,Long,2.0,EOSE
+LASC US,Equity,Single Stock,Long,2.0,LASR
+AMKX US,Equity,Single Stock,Long,2.0,AMKR
+ACHX US,Equity,Single Stock,Long,2.0,ACHR
+TEMC US,Equity,Single Stock,Long,2.0,TEM
+CIFC US,Equity,Single Stock,Long,2.0,CIFR
+ASTT US,Equity,Single Stock,Long,2.0,ASTS
+COIX US,Equity,Single Stock,Long,2.0,COIN
+VRC US,Equity,Single Stock,Long,2.0,VRT
+MSTC US,Equity,Single Stock,Long,2.0,MSTR
+ORAC US,Equity,Single Stock,Long,2.0,ORCL
+BABC US,Equity,Single Stock,Long,2.0,BABA
+NVC US,Equity,Single Stock,Long,2.0,NVDA
+AXTC US,Equity,Single Stock,Long,2.0,AXTI
+AVGC US,Equity,Single Stock,Long,2.0,AVGO
+IREC US,Equity,Single Stock,Long,2.0,IREN
+MSIX US,Equity,Single Stock,Long,2.0,MSI
+WDCC US,Equity,Single Stock,Long,2.0,WDC
+RGTC US,Equity,Single Stock,Long,2.0,RGTI
+BRKL US,Equity,Single Stock,Long,2.0,BRK/B
+MSFC US,Equity,Single Stock,Long,2.0,MSFT
+ONTX US,Equity,Single Stock,Long,2.0,ONTO
+GMEC US,Equity,Single Stock,Long,2.0,GME
+MHX US,Equity,Single Stock,Long,2.0,MARA
+GOGL US,Equity,Single Stock,Long,2.0,GOOGL
+SMRX US,Equity,Single Stock,Long,2.0,SMR
+CIR US,Equity,Single Stock,Long,2.0,CRCL
+TERC US,Equity,Single Stock,Long,2.0,TER
+SIMX US,Equity,Single Stock,Long,2.0,SIMO
+CAMC US,Equity,Single Stock,Long,2.0,CAMT
+AMDC US,Equity,Single Stock,Long,2.0,AMD
+MIC US,Equity,Single Stock,Long,2.0,MU
+INT US,Equity,Single Stock,Long,2.0,INTC
+COHC US,Equity,Single Stock,Long,2.0,COHR
+ALA US,Equity,Single Stock,Long,2.0,ALAB
+SNDC US,Equity,Single Stock,Long,2.0,SNDK
+NBIC US,Equity,Single Stock,Long,2.0,NBIS
+NVTC US,Equity,Single Stock,Long,2.0,NVTS
+NFX US,Equity,Single Stock,Long,2.0,NFLX
+ACLZ US,Equity,Single Stock,Long,2.0,ACLS
+AMAA US,Equity,Single Stock,Long,2.0,AMZN
+RDDC US,Equity,Single Stock,Long,2.0,RDDT
+ARMA US,Equity,Single Stock,Long,2.0,ARM
+APMI US,Equity,Single Stock,Long,2.0,AMAT
+GLX US,Equity,Single Stock,Long,2.0,GLXY
+ASMZ US,Equity,Single Stock,Long,2.0,ASML
+FPSX US,Equity,Single Stock,Long,2.0,FPS
+ENTL US,Equity,Single Stock,Long,2.0,ENTG
+FOMG US,Equity,Single Stock,Long,2.0,FORM
+GFSG US,Equity,Single Stock,Long,2.0,GFS
+ASTG US,Equity,Single Stock,Long,2.0,ASTS
+HPEL US,Equity,Single Stock,Long,2.0,HPE
+CDNG US,Equity,Single Stock,Long,2.0,CDNS
+AEHG US,Equity,Single Stock,Long,2.0,AEHR
+MTSG US,Equity,Single Stock,Long,2.0,MTSI
+SMTG US,Equity,Single Stock,Long,2.0,SMTC
+XQTM US,Equity,Index/Basket/ETF Based,Long,2.0,
+HINX US,,Single Stock,Long,2.0,SSNLF
+PUR US,Equity,Single Stock,Long,2.0,PURR
+LRMB US,Equity,Single Stock,Long,2.0,RMBS
+QNTU US,Equity,Single Stock,Long,2.0,QNT
