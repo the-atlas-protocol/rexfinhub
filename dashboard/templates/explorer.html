@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Product Explorer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Product Explorer</h1>
+    <p class="subtitle">{{ products.total|comma }} products matching filters</p>
+</div>
+
+<!-- Filters -->
+<form class="filter-bar" method="get" action="/explorer">
+    <div class="filter-group">
+        <label>Issuer</label>
+        <select name="issuer" onchange="this.form.submit()">
+            <option value="">All Issuers</option>
+            {% for iss in filters.issuers %}
+            <option value="{{ iss }}" {% if iss == current_issuer %}selected{% endif %}>{{ iss }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Product Type</label>
+        <select name="type" onchange="this.form.submit()">
+            <option value="">All Types</option>
+            {% for t in filters.types %}
+            <option value="{{ t }}" {% if t == current_type %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Year</label>
+        <select name="year" onchange="this.form.submit()">
+            <option value="">All Years</option>
+            {% for y in filters.years %}
+            <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group search">
+        <label>Underlier</label>
+        <input type="text" name="underlier" value="{{ current_underlier }}"
+               placeholder="e.g. AAPL, SPX, Tesla..." onchange="this.form.submit()">
+    </div>
+    {% if current_issuer or current_type or current_underlier or current_year %}
+    <a href="/explorer" class="btn btn-clear">Clear</a>
+    {% endif %}
+</form>
+
+<!-- Table -->
+<div class="table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Issuer</th>
+                <th>Type</th>
+                <th>Underliers</th>
+                <th>CUSIP</th>
+                <th class="num">Notional</th>
+                <th class="num">Coupon</th>
+                <th class="num">Barrier</th>
+                <th>Maturity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in products.products %}
+            <tr>
+                <td class="mono">{{ p.filing_date }}</td>
+                <td>{{ p.issuer or '-' }}</td>
+                <td>
+                    <span class="type-badge type-{{ p.product_type or 'unknown' }}">{{ p.product_type or '-' }}</span>
+                </td>
+                <td class="underlier-cell" title="{{ p.underliers or '' }}">
+                    {{ p.tickers or p.underliers or '-' }}
+                </td>
+                <td class="mono">{{ p.cusip or '-' }}</td>
+                <td class="num">{% if p.notional %}{{ p.notional|money(0) }}{% else %}-{% endif %}</td>
+                <td class="num">{% if p.coupon %}{{ p.coupon|pct(1) }}{% else %}-{% endif %}</td>
+                <td class="num">{% if p.barrier %}{{ p.barrier|pct(0) }}{% else %}-{% endif %}</td>
+                <td class="mono">{{ p.maturity or '-' }}</td>
+            </tr>
+            {% endfor %}
+            {% if not products.products %}
+            <tr><td colspan="9" class="empty-state">No products match these filters.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if products.pages > 1 %}
+<div class="pagination">
+    {% set base_url = "/explorer?" %}
+    {% if current_issuer %}{% set base_url = base_url + "issuer=" + current_issuer + "&" %}{% endif %}
+    {% if current_type %}{% set base_url = base_url + "type=" + current_type + "&" %}{% endif %}
+    {% if current_underlier %}{% set base_url = base_url + "underlier=" + current_underlier + "&" %}{% endif %}
+    {% if current_year %}{% set base_url = base_url + "year=" + (current_year|string) + "&" %}{% endif %}
+
+    {% if products.page > 1 %}
+    <a href="{{ base_url }}page={{ products.page - 1 }}" class="page-btn">&laquo; Prev</a>
+    {% endif %}
+
+    <span class="page-info">Page {{ products.page }} of {{ products.pages }}</span>
+
+    {% if products.page < products.pages %}
+    <a href="{{ base_url }}page={{ products.page + 1 }}" class="page-btn">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

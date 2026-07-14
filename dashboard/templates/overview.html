@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Market Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-row">
+        <div>
+            <h1>Structured Notes Market</h1>
+            <p class="subtitle">SEC EDGAR 424B2 filings &mdash; {{ kpis.issuer_count }} issuers tracked</p>
+        </div>
+        <form class="year-filter" method="get" action="/">
+            <select name="year" onchange="this.form.submit()">
+                <option value="">All Years</option>
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+    <div class="kpi">
+        <div class="kpi-value">{{ kpis.sn_count|comma }}</div>
+        <div class="kpi-label">Structured Notes</div>
+        <div class="kpi-sub">{{ kpis.finals|comma }} finals total (incl. ETN/MTN)</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-value">{{ kpis.total_notional|money(1) }}</div>
+        <div class="kpi-label">Total Notional</div>
+        <div class="kpi-sub">structured notes only</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-value">{{ kpis.avg_coupon|pct(1) }}</div>
+        <div class="kpi-label">Avg Coupon</div>
+        <div class="kpi-sub">annualized</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-value">{{ kpis.avg_barrier|pct(1) }}</div>
+        <div class="kpi-label">Avg Barrier</div>
+        <div class="kpi-sub">% of initial level</div>
+    </div>
+</div>
+
+<!-- Charts: Row 1 -->
+<div class="chart-row">
+    <div class="chart-card wide">
+        <div class="chart-header">
+            <h3>Monthly Issuance</h3>
+            <span class="chart-sub">Product count by filing month</span>
+        </div>
+        <div class="chart-body">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts: Row 2 -->
+<div class="chart-row two-col">
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Product Types</h3>
+        </div>
+        <div class="chart-body">
+            <canvas id="typeChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Issuer Market Share</h3>
+            <span class="chart-sub">by product count</span>
+        </div>
+        <div class="chart-body">
+            <canvas id="issuerChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts: Row 3 -->
+<div class="chart-row two-col">
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Top Underliers</h3>
+        </div>
+        <div class="chart-body">
+            <canvas id="underlierChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Barrier Levels</h3>
+            <span class="chart-sub">downside protection distribution</span>
+        </div>
+        <div class="chart-body">
+            <canvas id="barrierChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts: Row 4 -->
+<div class="chart-row two-col">
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Coupon Distribution</h3>
+            <span class="chart-sub">autocallable notes</span>
+        </div>
+        <div class="chart-body">
+            <canvas id="couponChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Annual Issuance</h3>
+            <span class="chart-sub">products per year</span>
+        </div>
+        <div class="chart-body">
+            <canvas id="annualChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Chart data from server
+const DATA = {
+    monthly: {{ json_dumps(monthly)|safe }},
+    types: {{ json_dumps(product_types)|safe }},
+    issuers: {{ json_dumps(issuers)|safe }},
+    underliers: {{ json_dumps(underliers)|safe }},
+    barriers: {{ json_dumps(barriers)|safe }},
+    coupons: {{ json_dumps(coupons)|safe }},
+    annual: {{ json_dumps(annual)|safe }},
+};
+</script>
+<script src="/static/js/charts.js"></script>
+{% endblock %}

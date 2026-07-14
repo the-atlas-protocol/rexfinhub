@@ -3,3 +3,4 @@ __pycache__/
 http_cache/
 data/
 *.db
+.claude/
