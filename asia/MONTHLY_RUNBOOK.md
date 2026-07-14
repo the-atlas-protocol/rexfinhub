@@ -9,7 +9,7 @@ Designed for paste-and-run. Each step is a single command. The agent running the
 ## Prerequisites (one-time per machine)
 
 - Postgres running on `localhost:5433` with `rex_asia` DB (use `./pgsql/bin/pg_ctl.exe -D pgdata -l pg.log -o "-p 5433" start`)
-- Graph API credentials in `C:/Projects/rexfinhub/config/.env` (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET)
+- Graph API credentials in `C:/Foundry/Rexfinhub/config/.env` (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET)
 - Python packages: `yaml`, `openpyxl`, `psycopg2`, `pandas`, `yfinance`, `pypdf`, `playwright` (and `chromium` installed)
 - Node packages: `playwright`
 

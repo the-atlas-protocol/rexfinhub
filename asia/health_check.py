@@ -7,7 +7,7 @@ random.seed(42)
 conn = psycopg2.connect(host='localhost', port=5433, user='postgres', dbname='rex_asia')
 cur = conn.cursor()
 
-with open('C:/Projects/rexfinhub/asia/report_v15.html', 'r', encoding='utf-8') as f:
+with open('C:/Foundry/Rexfinhub/asia/report_v15.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 entries = re.findall(
@@ -87,7 +87,7 @@ print("=" * 90)
 print("2. CROSS-REPORT CONSISTENCY")
 print("=" * 90)
 
-with open('C:/Projects/rexfinhub/asia/report_data.json') as f:
+with open('C:/Foundry/Rexfinhub/asia/report_data.json') as f:
     rdata = json.load(f)
 
 fams = {}
@@ -186,7 +186,7 @@ print("=" * 90)
 print("4. FUND SPOT CHECK: 8 random funds across HTML / DB / Excel")
 print("=" * 90)
 
-df_xl = pd.read_excel('C:/Projects/rexfinhub/asia/reports/REX_Asia_Source_of_Truth_Feb26.xlsx',
+df_xl = pd.read_excel('C:/Foundry/Rexfinhub/asia/reports/REX_Asia_Source_of_Truth_Feb26.xlsx',
                        'Fund Detail', engine='openpyxl')
 
 tickers = [e[0] for e in entries]

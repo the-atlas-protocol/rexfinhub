@@ -50,8 +50,8 @@ A separate stale-data risk: `data/DASHBOARD/sheets/` CSVs are dated **2026-03-03
   - `webapp/services/market_sync.py:196-199` (chooses build_all_from_csvs vs build_all)
 - **Symptom**: After today's run 304, `temp/bloomberg_sheets/` does not exist. Either `_export_bloomberg_sheets` was never called (because the trigger was the watcher, not run_daily) or it ran and was cleaned up. Either way, `data/DASHBOARD/sheets/` CSVs are 62 days stale (2026-03-03), so no consumer that reads from the legacy sheets dir will get fresh data.
 - **Evidence**:
-  - `ls -la C:/Projects/rexfinhub/temp/bloomberg_sheets/` → "No such file or directory"
-  - `ls -la C:/Projects/rexfinhub/data/DASHBOARD/sheets/` → all 8 CSVs dated `Mar 3 00:05`
+  - `ls -la C:/Foundry/Rexfinhub/temp/bloomberg_sheets/` → "No such file or directory"
+  - `ls -la C:/Foundry/Rexfinhub/data/DASHBOARD/sheets/` → all 8 CSVs dated `Mar 3 00:05`
   - `data/DASHBOARD/.last_market_run.json` shows `data_file: ...bloomberg_daily_file.xlsm` (xlsm path, not csv)
   - `market_sync.py:278` for global ETP supplement defaults to `data/DASHBOARD/sheets` — so it's reading 62-day-old assets/cost/performance/flows CSVs as the global supplement (or skipping if `assets.csv` not in expected dir).
 - **Blast radius**: Anyone consuming `mkt_global_etp` (UCITS / Asia view) is on March 3 data. The xlsm fallback (which IS being used) has the F2 issuer_display bug.

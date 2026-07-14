@@ -47,7 +47,7 @@ DB = _ROOT / "data" / "etp_tracker.db"
 # Worktree DB may be empty (gitignored, copied at 0 bytes by git worktree). Fall
 # back to the main repo's DB if so. Both share the same canonical content.
 if not DB.exists() or DB.stat().st_size < 1_000_000:
-    _MAIN = Path("C:/Projects/rexfinhub")
+    _MAIN = Path("C:/Foundry/Rexfinhub")
     if (_MAIN / "data" / "etp_tracker.db").exists():
         DB = _MAIN / "data" / "etp_tracker.db"
 OUT_JSON = _ROOT / "data" / "analysis" / "refit_results_2026-05-11.json"

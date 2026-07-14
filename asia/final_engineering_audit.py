@@ -8,12 +8,12 @@ import random
 conn = psycopg2.connect(host='localhost', port=5433, user='postgres', dbname='rex_asia')
 cur = conn.cursor()
 
-LIVE = r"C:\Projects\rexfinhub\asia\bloomberg_daily_file_live.xlsm"
+LIVE = r"C:\Foundry\Rexfinhub\asia\bloomberg_daily_file_live.xlsm"
 
-with open(r'C:\Projects\rexfinhub\asia\report_v15.html', 'r', encoding='utf-8') as f:
+with open(r'C:\Foundry\Rexfinhub\asia\report_v15.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
-with open(r'C:\Projects\rexfinhub\asia\report_data.json') as f:
+with open(r'C:\Foundry\Rexfinhub\asia\report_data.json') as f:
     rdata = json.load(f)
 
 print("=" * 80)

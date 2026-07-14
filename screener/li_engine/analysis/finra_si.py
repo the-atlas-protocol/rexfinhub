@@ -96,7 +96,7 @@ def compute_si_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    output_dir = r'C:\Projects\rexfinhub\data\analysis'
+    output_dir = r'C:\Foundry\Rexfinhub\data\analysis'
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     
     # Attempt to fetch

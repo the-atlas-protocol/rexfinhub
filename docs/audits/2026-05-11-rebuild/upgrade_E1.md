@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-11
 **Branch:** `audit-stockrecs-E1-history`
-**Worktree:** `C:/Projects/rexfinhub-E1`
+**Worktree:** `C:/Foundry/Rexfinhub-E1`
 
 ## Goal
 

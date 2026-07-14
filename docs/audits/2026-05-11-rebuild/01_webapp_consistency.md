@@ -2,7 +2,7 @@
 Generated: 2026-05-11T18:55:00Z
 Agent: webapp_consistency
 Site under audit: https://rex-etp-tracker.onrender.com (rexfinhub.com)
-DB snapshot: C:/Projects/rexfinhub/rexfinhub.db (mkt_master_data: 7,361 rows; fund_status: 213,810 rows)
+DB snapshot: C:/Foundry/Rexfinhub/rexfinhub.db (mkt_master_data: 7,361 rows; fund_status: 213,810 rows)
 Auth: SITE_PASSWORD from `config/.env` (read-only browse, never touched admin endpoints)
 
 ## Summary

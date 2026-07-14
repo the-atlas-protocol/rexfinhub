@@ -24,7 +24,7 @@ two-axis drift: local↔VPS and config↔data.
 
 ## CSV inventory
 
-### `C:/Projects/rexfinhub/config/rules/`
+### `C:/Foundry/Rexfinhub/config/rules/`
 | File | Rows (data) | Columns | Last modified | Git tracked? |
 |---|---:|---|---|---|
 | fund_mapping.csv | 2300 | ticker, etp_category, is_primary, source | Apr 27 20:03 | YES |
@@ -45,7 +45,7 @@ two-axis drift: local↔VPS and config↔data.
 | fund_master.csv | 7231 | (snapshot/cache) | May 6 01:17 | YES |
 | _queues_report.json | n/a | (3.0 MB) | May 7 11:59 | YES (modified, unstaged) |
 
-### `C:/Projects/rexfinhub/data/rules/`
+### `C:/Foundry/Rexfinhub/data/rules/`
 | File | Rows (data) | Columns | Last modified | Git tracked? |
 |---|---:|---|---|---|
 | fund_mapping.csv | 2327 | ticker, etp_category, is_primary, source | May 5 21:43 | YES |

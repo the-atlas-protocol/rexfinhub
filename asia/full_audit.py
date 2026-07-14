@@ -3,7 +3,7 @@ import psycopg2
 import pandas as pd
 import csv
 
-LIVE = r"C:\Projects\rexfinhub\asia\bloomberg_daily_file_live.xlsm"
+LIVE = r"C:\Foundry\Rexfinhub\asia\bloomberg_daily_file_live.xlsm"
 
 conn = psycopg2.connect(host='localhost', port=5433, user='postgres', dbname='rex_asia')
 cur = conn.cursor()

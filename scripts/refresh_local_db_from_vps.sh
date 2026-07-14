@@ -10,8 +10,8 @@
 
 set -euo pipefail
 
-LOCAL=/c/Projects/rexfinhub/data/etp_tracker.db
-BACKUP_DIR=/c/Projects/rexfinhub/data/backups
+LOCAL=/c/Foundry/rexfinhub/data/etp_tracker.db
+BACKUP_DIR=/c/Foundry/rexfinhub/data/backups
 VPS=jarvis@46.224.126.196
 
 if [ -f "$LOCAL" ]; then

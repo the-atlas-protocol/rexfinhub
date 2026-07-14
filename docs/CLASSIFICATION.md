@@ -15,18 +15,18 @@ updated: 2026-06-10
 > Every ETP in the universe gets a complete multi-dimensional classification —
 > not just the five REX-tracked strategy buckets. This is the contract the
 > autonomous engine is held to. Design lineage:
-> `C:\Projects\rexfinhub\docs\raw\legacy\CLASSIFICATION_SYSTEM_PLAN.md` (the locked plan).
-> Engine: `C:\Projects\rexfinhub\scripts\classify_daily.py` — runs **inside the
+> `C:\Foundry\Rexfinhub\docs\raw\legacy\CLASSIFICATION_SYSTEM_PLAN.md` (the locked plan).
+> Engine: `C:\Foundry\Rexfinhub\scripts\classify_daily.py` — runs **inside the
 > 17:15/21:00 Bloomberg chain immediately after the data lands** (and 09:00 as
 > catch-up + report).
 
 ## The two layers (and which one is THE system)
 
 **FULL-SCALE (the system): the 3-axis taxonomy + attributes.**
-Master: `C:\Projects\rexfinhub\config\rules\fund_master.csv` (full universe,
+Master: `C:\Foundry\Rexfinhub\config\rules\fund_master.csv` (full universe,
 one row per ticker, 28 columns). DB home: 23 columns on `mkt_master_data`
-(`C:\Projects\rexfinhub\webapp\models.py:474-496`), restamped from the CSV by
-`C:\Projects\rexfinhub\scripts\apply_fund_master.py` right after every Bloomberg
+(`C:\Foundry\Rexfinhub\webapp\models.py:474-496`), restamped from the CSV by
+`C:\Foundry\Rexfinhub\scripts\apply_fund_master.py` right after every Bloomberg
 sync (the sync's full-snapshot replace wipes them — the restamp is structurally
 mandatory, never optional).
 

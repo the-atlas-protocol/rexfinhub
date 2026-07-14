@@ -130,10 +130,10 @@ the input frame (should not occur in practice — step3 always sets it).
 
 ```text
 $ python -c "from market.config import RULES_DIR; print(RULES_DIR)"
-C:\Projects\rexfinhub\.claude\worktrees\agent-aabc420f8badcfbf2\config\rules
+C:\Foundry\Rexfinhub\.claude\worktrees\agent-aabc420f8badcfbf2\config\rules
 
 $ python -c "from tools.rules_editor.classify_engine import RULES_DIR; print(RULES_DIR)"
-C:\Projects\rexfinhub\.claude\worktrees\agent-aabc420f8badcfbf2\config\rules
+C:\Foundry\Rexfinhub\.claude\worktrees\agent-aabc420f8badcfbf2\config\rules
 ```
 
 Synthetic write test (added a `TESTFIX_R6 US` candidate via

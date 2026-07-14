@@ -185,8 +185,8 @@ I deliberately did NOT touch `data/.preflight_maintenance` on VPS yet — flippi
 
 ### Rollback
 ```
-git -C C:/Projects/rexfinhub branch -D audit-fix-R9-preflight-maintenance
-git worktree remove C:/Projects/rexfinhub/.claude/worktrees/agent-R9-preflight
+git -C C:/Foundry/Rexfinhub branch -D audit-fix-R9-preflight-maintenance
+git worktree remove C:/Foundry/Rexfinhub/.claude/worktrees/agent-R9-preflight
 ```
 
 ---

@@ -95,7 +95,7 @@ The single most valuable next action is **rotating ADMIN_PASSWORD, SITE_PASSWORD
   - Approve any pending trust request or classification proposal
   - Mutate any Reserved Symbols row (status, suite, rationale)
   - Trigger maintenance mode on the public site
-- **Evidence**: `grep -rn 'CSRF\|csrf\|csrftoken' C:/Projects/rexfinhub/webapp` returns zero hits. `SessionMiddleware` declared with no CSRF integration. Reserved Symbols POST handlers (`operations_reserved.py:129, 172, 204`) only check `request.session.get("is_admin")` — no token verification.
+- **Evidence**: `grep -rn 'CSRF\|csrf\|csrftoken' C:/Foundry/Rexfinhub/webapp` returns zero hits. `SessionMiddleware` declared with no CSRF integration. Reserved Symbols POST handlers (`operations_reserved.py:129, 172, 204`) only check `request.session.get("is_admin")` — no token verification.
 - **Blast radius**: depends on attacker delivery — typically requires Ryu to click a hostile link on a logged-in browser session. Combined with F1 (potentially-stale ADMIN_PASSWORD), the blast widens: an attacker who already has the admin password also has a non-CSRF path, but the CSRF path matters most for an attacker WITHOUT the password who just needs Ryu's logged-in session.
 - **Hypothesis**: Greenfield FastAPI app with no CSRF requirement at design time. Internal-tool mindset (small audience) carried over into the production deployment.
 - **Fix size**: medium — add a CSRF middleware (e.g. `starlette-csrf` or hand-rolled per-form token). Forms already use server-side rendering so token injection is straightforward. Estimate: 4-6 hours including Reserved Symbols inline-edit JS update.
@@ -147,7 +147,7 @@ The single most valuable next action is **rotating ADMIN_PASSWORD, SITE_PASSWORD
 - **Severity**: medium
 - **Surface**: `config/.env` keys `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
 - **Symptom**: Five SMTP keys are populated and present on both local and VPS `.env` files, but the actual send path (`etp_tracker/email_alerts.py:_send_html_digest` via Microsoft Graph API) does not use them. Per the Stage-1 send-pathway audit (`01_send_pathway.md` line 89-90): "the docstring says 'SMTP' but the code uses Microsoft Graph API exclusively. SMTP fallback is explicitly disabled." So SMTP_PASSWORD is a dormant-but-live Gmail app password, sitting in two `.env` files, doing nothing.
-- **Evidence**: `grep -rn 'SMTP_PASSWORD\|smtplib' C:/Projects/rexfinhub/etp_tracker/email_alerts.py` shows the password is never read by the send path. Yet it's present in both env files.
+- **Evidence**: `grep -rn 'SMTP_PASSWORD\|smtplib' C:/Foundry/Rexfinhub/etp_tracker/email_alerts.py` shows the password is never read by the send path. Yet it's present in both env files.
 - **Blast radius**: low if SMTP_PASSWORD is unique-to-this-app (Gmail app password); medium if Ryu reused the Gmail account password.
 - **Hypothesis**: Migration from SMTP to Graph happened, the SMTP keys were left for "fallback that never fires". Standard credential drift.
 - **Fix size**: trivial — either (a) delete the SMTP keys from both `.env` files since they're unused, or (b) revoke the Gmail app password in Google account security settings if no recovery path needs it.

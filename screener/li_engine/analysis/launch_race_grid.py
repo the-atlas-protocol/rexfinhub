@@ -31,7 +31,7 @@ _HERE = Path(__file__).resolve()
 _CANDIDATE_ROOTS = [
     _HERE.parent.parent.parent.parent,
     Path("/home/jarvis/rexfinhub"),
-    Path("C:/Projects/rexfinhub"),
+    Path("C:/Foundry/Rexfinhub"),
 ]
 _ROOT = next(
     (r for r in _CANDIDATE_ROOTS if (r / "data" / "etp_tracker.db").exists()),

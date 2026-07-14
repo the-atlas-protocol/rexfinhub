@@ -17,7 +17,7 @@ Justification: a single mega-doc fails three of Ryu's stated goals — it cannot
 The layout borrows the 3-layer pattern from Karpathy's LLM Wiki (raw → wiki → index) and the CONTEXT.md + ADR pattern from the `grill-with-docs` skill: stable canonical pages, immutable decision records, append-only log, raw audits preserved.
 
 ```
-C:\Projects\rexfinhub\docs\
+C:\Foundry\Rexfinhub\docs\
   INDEX.md                  <- map; loaded by every Claude session
   SYSTEM.md                 <- canonical "what exists now" (the as-is)
   TARGET.md                 <- canonical "where we're going" (the to-be spec)
@@ -142,7 +142,7 @@ C:\Projects\rexfinhub\docs\
 
 Three reinforcing layers, in priority order:
 
-1. **`C:\Projects\rexfinhub\CLAUDE.md`** gets a single load-order block at the top: "Read `docs/INDEX.md` first. Resolve any term you do not recognize via `docs/GLOSSARY.md`." This is the project-scoped instruction every Claude session auto-loads.
+1. **`C:\Foundry\Rexfinhub\CLAUDE.md`** gets a single load-order block at the top: "Read `docs/INDEX.md` first. Resolve any term you do not recognize via `docs/GLOSSARY.md`." This is the project-scoped instruction every Claude session auto-loads.
 2. **User-scope `MEMORY.md`** gets one new line under `## Rexfinhub topic files` pointing to `docs/INDEX.md` and noting the framework version. No duplication of content into memory.
 3. **`docs/INDEX.md` itself** carries a `### load-order` section listing the read sequence per common task type (operate vs build vs debug vs explain-to-LLM-on-site).
 
@@ -230,7 +230,7 @@ If a doc fails this test, its scope is wrong — split it or absorb it.
 
 ## Next steps (not part of this deliverable)
 
-1. Create the empty skeleton tree under `C:\Projects\rexfinhub\docs\` per §1.
+1. Create the empty skeleton tree under `C:\Foundry\Rexfinhub\docs\` per §1.
 2. Move `REXFINHUB_ARCHITECTURE.md` v3 → `docs/raw/REXFINHUB_ARCHITECTURE_v3_2026-05-19.md`.
 3. Reshape its sections into `SYSTEM.md` + `TARGET.md` + `RUNBOOK.md` per the anchor lists in §2.
 4. Bootstrap `GLOSSARY.md` with the ~15 terms already in conflict (`rex-product`, `capm-product`, `is-rex-flag`, `etp-category`, `survivorship`, `canonical-product-id`, `gate`, `auto-go`, `preflight`, `send-gate`, `bloomberg-pull`, `cboe-cookie`, `fresh-poller`, `effective-date`, `inception-date`).

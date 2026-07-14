@@ -33,14 +33,14 @@ ARTIFACTS TO BUILD: (1) scripts/run_chain.py (VPS, the one entrypoint, steps 1-7
 reusable by a future file-watch poller). (2) ~/.claude/skills/refreshdata skill.
 
 ## WHERE THINGS LIVE (critical context)
-- **Active worktree**: `C:\Projects\rexfinhub\.claude\worktrees\fix-reports-2026-06-16`
+- **Active worktree**: `C:\Foundry\Rexfinhub\.claude\worktrees\fix-reports-2026-06-16`
   (branch `worktree-fix-reports-2026-06-16`). The harness ENFORCES editing in a
   worktree — edits to the shared checkout are rejected. Do code edits here.
   (An earlier worktree `fix-rex-family-2026-06-08` got corrupted by a failed
   `git worktree remove --force`; abandoned. Don't use it.)
-- **Main repo**: `C:\Projects\rexfinhub` — canonical. Synced to origin/main. After
-  pushing from the worktree, `git -C C:/Projects/rexfinhub merge --ff-only origin/main`
-  and `cp <worktree>/data/etp_tracker.db C:/Projects/rexfinhub/data/etp_tracker.db`.
+- **Main repo**: `C:\Foundry\Rexfinhub` — canonical. Synced to origin/main. After
+  pushing from the worktree, `git -C C:/Foundry/Rexfinhub merge --ff-only origin/main`
+  and `cp <worktree>/data/etp_tracker.db C:/Foundry/Rexfinhub/data/etp_tracker.db`.
 - **DB**: `data/etp_tracker.db` (~807MB) — the good, synced+enriched copy. Both
   worktree and main repo have it. Data fixes applied directly to it; persisted to
   CSVs (config/rules/) so a re-sync reproduces them.
@@ -164,4 +164,4 @@ task output file). **POST-SCRAPE STEPS (do these when it completes):**
 - AI classify journal: logs/ai_classify_*.jsonl (idempotency).
 
 ## STATE: shadow-gated, nothing sent. Previews in <worktree>/reports/preview_*_2026-06-16.html
-and copied to C:\Projects\rexfinhub\reports\.
+and copied to C:\Foundry\Rexfinhub\reports\.

@@ -29,7 +29,7 @@ sudo -u rexfinhub mkdir -p data/DASHBOARD cache/sec logs
 if [ ! -f "config/.env" ]; then
     echo ""
     echo "IMPORTANT: Copy config/.env from your desktop to this server."
-    echo "  scp your-desktop:C:/Projects/rexfinhub/config/.env /home/rexfinhub/rexfinhub/config/.env"
+    echo "  scp your-desktop:C:/Foundry/Rexfinhub/config/.env /home/rexfinhub/rexfinhub/config/.env"
     echo ""
 fi
 

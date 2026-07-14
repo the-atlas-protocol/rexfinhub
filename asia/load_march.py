@@ -21,7 +21,7 @@ from decimal import Decimal
 MONTH_ID = 14
 MONTH_END = date(2026, 3, 31)
 BBG_PATH = r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - MasterFiles\MASTER Data\bloomberg_daily_file.xlsm"
-DATA_DIR = r"C:\Projects\rexfinhub\asia\grace_data\2026-03"
+DATA_DIR = r"C:\Foundry\Rexfinhub\asia\grace_data\2026-03"
 
 # Tickers liquidated mid-March 2026 — exclude from shares-invariant reprice for March
 # (their positions were cashed out, not held forward)

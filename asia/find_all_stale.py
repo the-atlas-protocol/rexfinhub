@@ -3,7 +3,7 @@ import re
 import psycopg2
 import json
 
-with open(r'C:\Projects\rexfinhub\asia\report_v15.html', 'r', encoding='utf-8') as f:
+with open(r'C:\Foundry\Rexfinhub\asia\report_v15.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 conn = psycopg2.connect(host='localhost', port=5433, user='postgres', dbname='rex_asia')

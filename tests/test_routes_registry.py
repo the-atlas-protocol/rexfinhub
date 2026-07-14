@@ -4,7 +4,7 @@ and zero deprecated URL prefixes appear in templates or JS.
 Adopted as part of PR 4 to prevent post-migration drift.
 
 Usage:
-    cd C:/Projects/rexfinhub && python tests/test_routes_registry.py
+    cd C:/Foundry/Rexfinhub && python tests/test_routes_registry.py
 
 Exit code 0 = clean. Non-zero = drift detected.
 """

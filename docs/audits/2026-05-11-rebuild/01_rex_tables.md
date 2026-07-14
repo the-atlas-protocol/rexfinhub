@@ -547,17 +547,17 @@ SELECT direction, COUNT(*) FROM rex_products GROUP BY 1;
 
 ## Surfaces inspected
 
-- `C:/Projects/rexfinhub/webapp/models.py` — RexProduct, CapMProduct, CapMTrustAP, CapMAuditLog, ReservedSymbol, ClassificationAuditLog (lines 626–1145)
-- `C:/Projects/rexfinhub/webapp/database.py` — `_capm_seed_if_empty`, `_migrate_missing_columns`, `init_db` (lines 174–292)
-- `C:/Projects/rexfinhub/webapp/routers/capm.py` — `_capm_index_impl`, `_build_unified_row`, `_audit_log`, `_capm_update_impl`, `_CAPM_UPDATE_FIELDS`, `_names_overlap` (lines 1–710)
-- `C:/Projects/rexfinhub/webapp/routers/pipeline_calendar.py` — `VALID_STATUSES`, `PENDING_EFFECTIVE_STATUSES`, `TERMINAL_STATUSES`, `_rex_only_filter`, `_pipeline_products_impl` (lines 90–400)
-- `C:/Projects/rexfinhub/webapp/routers/operations_reserved.py` — `VALID_STATUSES` constant (line 28)
-- `C:/Projects/rexfinhub/webapp/templates/pipeline_products.html` — status dropdown options (lines 716–737)
-- `C:/Projects/rexfinhub/scripts/insert_trex_2x_2026_05_09.py` — full file (atomicity, audit destination, idempotence verified)
-- `C:/Projects/rexfinhub/webapp/data_static/capm_products.csv` — header vs DB columns, 74 distinct tickers
-- `C:/Projects/rexfinhub/webapp/data_static/capm_trust_aps.csv` — header vs DB columns, 40 rows
-- `C:/Projects/rexfinhub/data/etp_tracker.db` — local SQLite DB (623 MB, queried live)
-- `C:/Projects/rexfinhub/data/etp_tracker.db.fromvps` — VPS snapshot (617 MB, queried for table existence + counts)
+- `C:/Foundry/Rexfinhub/webapp/models.py` — RexProduct, CapMProduct, CapMTrustAP, CapMAuditLog, ReservedSymbol, ClassificationAuditLog (lines 626–1145)
+- `C:/Foundry/Rexfinhub/webapp/database.py` — `_capm_seed_if_empty`, `_migrate_missing_columns`, `init_db` (lines 174–292)
+- `C:/Foundry/Rexfinhub/webapp/routers/capm.py` — `_capm_index_impl`, `_build_unified_row`, `_audit_log`, `_capm_update_impl`, `_CAPM_UPDATE_FIELDS`, `_names_overlap` (lines 1–710)
+- `C:/Foundry/Rexfinhub/webapp/routers/pipeline_calendar.py` — `VALID_STATUSES`, `PENDING_EFFECTIVE_STATUSES`, `TERMINAL_STATUSES`, `_rex_only_filter`, `_pipeline_products_impl` (lines 90–400)
+- `C:/Foundry/Rexfinhub/webapp/routers/operations_reserved.py` — `VALID_STATUSES` constant (line 28)
+- `C:/Foundry/Rexfinhub/webapp/templates/pipeline_products.html` — status dropdown options (lines 716–737)
+- `C:/Foundry/Rexfinhub/scripts/insert_trex_2x_2026_05_09.py` — full file (atomicity, audit destination, idempotence verified)
+- `C:/Foundry/Rexfinhub/webapp/data_static/capm_products.csv` — header vs DB columns, 74 distinct tickers
+- `C:/Foundry/Rexfinhub/webapp/data_static/capm_trust_aps.csv` — header vs DB columns, 40 rows
+- `C:/Foundry/Rexfinhub/data/etp_tracker.db` — local SQLite DB (623 MB, queried live)
+- `C:/Foundry/Rexfinhub/data/etp_tracker.db.fromvps` — VPS snapshot (617 MB, queried for table existence + counts)
 
 ## Surfaces NOT inspected
 

@@ -85,16 +85,16 @@ fixing `/market/underlier` itself is left to a follow-up worktree.
 
 ### Files added
 
-- `C:/Projects/rexfinhub-O6/webapp/routers/underlier_view.py`
-- `C:/Projects/rexfinhub-O6/webapp/templates/operations/underlier_race.html`
-- `C:/Projects/rexfinhub-O6/webapp/templates/operations/_underlier_race_body.html`
+- `C:/Foundry/Rexfinhub-O6/webapp/routers/underlier_view.py`
+- `C:/Foundry/Rexfinhub-O6/webapp/templates/operations/underlier_race.html`
+- `C:/Foundry/Rexfinhub-O6/webapp/templates/operations/_underlier_race_body.html`
 
 ### Files edited
 
-- `C:/Projects/rexfinhub-O6/webapp/main.py`
+- `C:/Foundry/Rexfinhub-O6/webapp/main.py`
    — registers the new router (one new `include_router` call, additive
    only).
-- `C:/Projects/rexfinhub-O6/webapp/templates/pipeline_products.html`
+- `C:/Foundry/Rexfinhub-O6/webapp/templates/pipeline_products.html`
    — Name cell (column 1) appends a chip when `p.underlier` is set.
      The Status / Form / column-count macros are untouched. A new
      `<div id="underlierModal">` shell is appended after the Add Modal,

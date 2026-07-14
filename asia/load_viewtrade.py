@@ -12,7 +12,7 @@ import psycopg2
 from decimal import Decimal
 
 MONTH_ID = 13
-VT_FILE = r"C:\Projects\rexfinhub\asia\attachments\2026 VT asia datra Feb 2026.xlsx"
+VT_FILE = r"C:\Foundry\Rexfinhub\asia\attachments\2026 VT asia datra Feb 2026.xlsx"
 
 # Ticker normalization: ViewTrade typos → DB tickers
 TICKER_MAP = {

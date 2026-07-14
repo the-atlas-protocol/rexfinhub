@@ -91,7 +91,7 @@ Repo state:
 Manual user action (one-time):
 - Wire Windows Task Scheduler on laptop:
   - Trigger: daily 23:30 ET
-  - Action: `bash /c/Projects/rexfinhub/scripts/sync_vps_to_d_drive.sh > /c/Projects/rexfinhub/data/.sync_d_drive.log 2>&1`
+  - Action: `bash /c/Foundry/rexfinhub/scripts/sync_vps_to_d_drive.sh > /c/Foundry/rexfinhub/data/.sync_d_drive.log 2>&1`
   - Requires SSH key set up + D drive mounted
 
 ## Consequences

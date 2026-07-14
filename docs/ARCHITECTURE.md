@@ -56,7 +56,7 @@ genuinely ambiguous judgments.
 | **VPS** (Hetzner) | `jarvis@46.224.126.196:/home/jarvis/rexfinhub` | Production. All scheduled work runs here. | The database, the rules CSVs (`data/rules/`), runtime state |
 | **Render** | rexfinhub.com (auto-deploys `main`) | Public read-only replica | Nothing — receives uploads |
 | **GitHub** | `the-atlas-protocol/rexfinhub` (`main`) | Code truth. VPS deploys ONLY via `git pull` (ADR 0011 E4; the scp era ended 2026-06-09) | All code + `config/rules` mirror + docs |
-| **Local** | `C:\Projects\rexfinhub` (+ `.claude/worktrees/*`) | Dev only; Syncthing desktop↔laptop | Nothing |
+| **Local** | `C:\Foundry\Rexfinhub` (+ `.claude/worktrees/*`) | Dev only; Syncthing desktop↔laptop | Nothing |
 | **D: archive** | `D:\sec-data\{backups,databases,archives,cache,rexfinhub}` | Cold archive (nightly pulls when laptop online) | Nothing live |
 
 **VPS repo top level:** `etp_tracker/` `market/` `screener/` `webapp/` `scripts/`

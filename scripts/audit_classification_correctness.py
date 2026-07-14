@@ -12,9 +12,9 @@ from pathlib import Path
 from datetime import datetime
 
 # ── Config ──────────────────────────────────────────────────────────────────
-DB_PATH = Path("C:/Projects/rexfinhub/data/etp_tracker.db")
-OUT_CSV = Path("C:/Projects/rexfinhub/docs/classification_qa_residue.csv")
-OUT_MD  = Path("C:/Projects/rexfinhub/docs/audit_beta_classification_correctness.md")
+DB_PATH = Path("C:/Foundry/Rexfinhub/data/etp_tracker.db")
+OUT_CSV = Path("C:/Foundry/Rexfinhub/docs/classification_qa_residue.csv")
+OUT_MD  = Path("C:/Foundry/Rexfinhub/docs/audit_beta_classification_correctness.md")
 SAMPLE_PER_BUCKET = 100
 RANDOM_SEED = 42
 

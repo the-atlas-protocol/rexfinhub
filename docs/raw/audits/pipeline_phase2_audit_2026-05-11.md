@@ -4,8 +4,8 @@
 shipped (commit `f05dbb9`) and Phase 2 wiring (this PR).
 
 **Files in scope:**
-- `C:/Projects/rexfinhub/webapp/routers/pipeline_calendar.py` (handler `_pipeline_products_impl`)
-- `C:/Projects/rexfinhub/webapp/templates/pipeline_products.html`
+- `C:/Foundry/Rexfinhub/webapp/routers/pipeline_calendar.py` (handler `_pipeline_products_impl`)
+- `C:/Foundry/Rexfinhub/webapp/templates/pipeline_products.html`
 
 **DB snapshot:** 531 REX-branded products. Most-recent `updated_at` =
 **2026-04-14 20:16:54** — the table has not been touched in 27 days, which

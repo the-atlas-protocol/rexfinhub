@@ -34,7 +34,7 @@ GROUPS = {
 NODES = [
     # ---- devices (context) ----
     ("dev_vps",   "VPS (production)", "device", "Authoritative SQLite DB + every daemon/timer. jarvis@46.224.126.196.", "VPS", "ok"),
-    ("dev_local", "Local C:", "device", "Dev only. Syncthing laptop↔desktop. Never authoritative for data.", "C:/Projects/rexfinhub", "ok"),
+    ("dev_local", "Local C:", "device", "Dev only. Syncthing laptop↔desktop. Never authoritative for data.", "C:/Foundry/Rexfinhub", "ok"),
     ("dev_d",     "D: archive", "device", "Cold archive — nightly tarballs + cache snapshots. Not queried live.", "D:/sec-data", "ok"),
     ("dev_render","Render (rexfinhub.com)", "device", "Read-only replica of the VPS DB; webapp. Auto-deploys on push to main.", "render.com", "warn"),
     # ---- sources ----

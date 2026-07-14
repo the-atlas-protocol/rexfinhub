@@ -1,7 +1,7 @@
 # O1 — REX Ops PIPELINE Layout / Column Rewrite
 
 **Branch:** `rexops-O1-layout`
-**Worktree:** `C:/Projects/rexfinhub-O1`
+**Worktree:** `C:/Foundry/Rexfinhub-O1`
 **Files touched (sole owner):**
 - `webapp/templates/pipeline_products.html`
 - `webapp/routers/pipeline_calendar.py` (route handler + context dict only; DB queries untouched)
@@ -147,4 +147,4 @@ The old "Listed" date column and "Latest Form" column are no longer rendered. Th
 
 - The DB queries that produce `filings_last_7d` / `launches_last_30d` / `effectives_next_30d` / `effectives_next_90d` / `recent_activity` etc. still run on every page load even though no template consumes them. This is by design (lane constraint: O3 owns DB queries). Suggest follow-up ticket for O3 to reap these queries in a later cleanup.
 - The `toggleSection()` JS helper at the bottom of the template (lines ~845+) is now dead code (no caller). Left in place — harmless and would be needed if Quick Stats / Recent Activity are ever reinstated.
-- The dev DB at `C:/Projects/rexfinhub/data/etp_tracker.db` was copied into the worktree at `C:/Projects/rexfinhub-O1/data/etp_tracker.db` for the smoke test; this file is gitignored so the copy is local-only.
+- The dev DB at `C:/Foundry/Rexfinhub/data/etp_tracker.db` was copied into the worktree at `C:/Foundry/Rexfinhub-O1/data/etp_tracker.db` for the smoke test; this file is gitignored so the copy is local-only.

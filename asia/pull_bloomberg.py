@@ -12,7 +12,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Make rexfinhub importable and cd into it so its config/.env is loaded.
-REXFINHUB = Path(r"C:/Projects/rexfinhub")
+REXFINHUB = Path(r"C:/Foundry/Rexfinhub")
 if not REXFINHUB.exists():
     sys.exit(f"rexfinhub not found at {REXFINHUB} — cannot pull Bloomberg file.")
 
@@ -57,7 +57,7 @@ if ONEDRIVE_PATH.parent.exists():
         print(f"  WARN: mirror to OneDrive path failed: {e}")
 
 # Also mirror locally for reproducibility.
-LOCAL_MIRROR = Path(r"C:/Projects/rexfinhub/asia/bloomberg_daily_file_live.xlsm")
+LOCAL_MIRROR = Path(r"C:/Foundry/Rexfinhub/asia/bloomberg_daily_file_live.xlsm")
 shutil.copy2(local_path, LOCAL_MIRROR)
 print(f"  Mirrored to:      {LOCAL_MIRROR}")
 

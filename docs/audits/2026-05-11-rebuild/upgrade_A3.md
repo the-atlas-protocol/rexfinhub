@@ -1,7 +1,7 @@
 # Wave A3 — Tiered `signal_strength` replaces `has_signals` boolean
 
 **Branch**: `audit-stockrecs-A3-signals`
-**Worktree**: `C:/Projects/rexfinhub-A3`
+**Worktree**: `C:/Foundry/Rexfinhub-A3`
 **Date**: 2026-05-11
 
 ## Problem

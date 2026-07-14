@@ -87,7 +87,7 @@ for r in cur.fetchall():
 conn.close()
 
 # Read report
-with open('C:/Projects/rexfinhub/asia/report_v15.html', 'r', encoding='utf-8') as f:
+with open('C:/Foundry/Rexfinhub/asia/report_v15.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 # Fix APPENDIX entries - match pattern: {fund:'TICKER',...,flows:NUMBER}
@@ -161,11 +161,11 @@ html = re.sub(
 )
 
 # Write updated file
-with open('C:/Projects/rexfinhub/asia/report_v15.html', 'w', encoding='utf-8') as f:
+with open('C:/Foundry/Rexfinhub/asia/report_v15.html', 'w', encoding='utf-8') as f:
     f.write(html)
 
 # Verify by re-reading and checking a few values
-with open('C:/Projects/rexfinhub/asia/report_v15.html', 'r', encoding='utf-8') as f:
+with open('C:/Foundry/Rexfinhub/asia/report_v15.html', 'r', encoding='utf-8') as f:
     verify = f.read()
 
 # Check BULZ

@@ -29,7 +29,7 @@ The D: drive is a **Transcend USB external drive**. It is slow and will hang any
 |----------|------|-----|
 | `D:/sec-data/databases/structured_notes.db` | SQLite database | Too large for C: |
 | `D:/sec-data/cache/structured-notes/` | SEC filing cache | Hundreds of thousands of small files |
-| `C:/Projects/rexfinhub/http_cache/` | Legacy shared cache | **PENDING CLEANUP** — 13GB+, should be moved to D: or deleted |
+| `C:/Foundry/Rexfinhub/http_cache/` | Legacy shared cache | **PENDING CLEANUP** — 13GB+, should be moved to D: or deleted |
 | `data/extraction_progress.json` | Progress tracker | Stays on C: (tiny) |
 
 ## C: Drive is critically low (~4 GB free)

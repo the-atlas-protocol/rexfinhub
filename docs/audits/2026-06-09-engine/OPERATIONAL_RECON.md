@@ -96,7 +96,7 @@ Local main repo has the deletion staged uncommitted (`D scripts/pipeline_summary
   `temp/`, `archive/`, `outputs/`, `rexfinhub.db-wal` 760MB.
 - D:\sec-data top level: archives/ backups/ cache/ databases/ rexfinhub/ vps-archive-2026-06-02/
   + loose extraction_progress*.json, submissions.zip, rexfinhub_http_cache.7z.
-- Local C:\Projects\rexfinhub worktree DBs: 5 copies across worktrees (~2.5GB), incl. the
+- Local C:\Foundry\Rexfinhub worktree DBs: 5 copies across worktrees (~2.5GB), incl. the
   phase1_work copy in fix-rex-family worktree.
 
 ## H. Long-running daemons (VPS, since Jun 04)

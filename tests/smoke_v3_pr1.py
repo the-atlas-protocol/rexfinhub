@@ -4,7 +4,7 @@ Runs against a FastAPI TestClient (no live server needed). Authenticates via
 SITE_PASSWORD from config/.env so middleware lets requests through.
 
 Usage:
-    cd C:/Projects/rexfinhub && python tests/smoke_v3_pr1.py
+    cd C:/Foundry/Rexfinhub && python tests/smoke_v3_pr1.py
 
 Expected: every line ends "OK" or "WARN" (warnings are acceptable degraded states
 like 200-with-empty-body when DB is fresh on local dev).

@@ -117,7 +117,7 @@ Aligns with NAV-as-primary code path.
 
 ## Status File Locations
 
-- This plan: `C:/Projects/rexfinhub/asia/DEVELOPMENT_PLAN_MAR2026_NAV_FIX.md`
+- This plan: `C:/Foundry/Rexfinhub/asia/DEVELOPMENT_PLAN_MAR2026_NAV_FIX.md`
 - Audit logs: `_full_review.txt`, `_nav_nonlev.txt`, `_nav_date_check.txt`
 - Verification scripts: `_full_scale_review.py`, `_nav_nonleveraged_check.py`, `_nav_date_check.py`
 - Most recent backup: `rex_asia_pre_load_202603.backup`

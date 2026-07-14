@@ -19,7 +19,7 @@ from decimal import Decimal
 MONTH_ID = 13
 MONTH_END = date(2026, 2, 28)
 BBG_PATH = r"C:\Users\RyuEl-Asmar\REX Financial LLC\REX Financial LLC - MasterFiles\MASTER Data\bloomberg_daily_file.xlsm"
-ATTACH_DIR = r"C:\Projects\rexfinhub\asia\attachments"
+ATTACH_DIR = r"C:\Foundry\Rexfinhub\asia\attachments"
 
 def get_conn():
     return psycopg2.connect(host="localhost", port=5433, user="postgres", dbname="rex_asia")

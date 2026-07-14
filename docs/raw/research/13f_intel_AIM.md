@@ -118,7 +118,7 @@ An internal-only section at `rexfinhub.com/intel/*` and `rexfinhub.com/holdings/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  LOCAL LAPTOP (C:/Projects/rexfinhub)                           │
+│  LOCAL LAPTOP (C:/Foundry/Rexfinhub)                           │
 │  Purpose: dev, ad-hoc ops, manual one-offs                      │
 │  Not part of the production data path.                          │
 │                                                                  │
@@ -438,7 +438,7 @@ After today's metadata fix: 100% of cusip_mappings have a `trust_id`. CUSIP matc
 Local preview from worktree:
 
 ```powershell
-# from C:/Projects/rexfinhub/.claude/worktrees/atlas-13f-intel
+# from C:/Foundry/Rexfinhub/.claude/worktrees/atlas-13f-intel
 python -m uvicorn webapp.main:app --host 127.0.0.1 --port 8050
 ```
 
@@ -526,7 +526,7 @@ The deployment is reversible at every step:
 | Public visitors see 13F leak | Check `home.html` + `market/rex.html` for `enable_13f` references; should all be `request.session.get("is_admin")` |
 
 Pre-change DB backup of the original 811 MB file (with the bugs intact) lives at:
-`C:/Projects/rexfinhub/data/backups/13f_holdings_pre_intel_20260513_1450.db`
+`C:/Foundry/Rexfinhub/data/backups/13f_holdings_pre_intel_20260513_1450.db`
 
 Do not delete this until production deployment is verified working for at least one quarter cycle.
 

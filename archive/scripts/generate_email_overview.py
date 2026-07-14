@@ -211,6 +211,6 @@ r.font.size = Pt(8)
 r.font.color.rgb = GRAY
 
 # -- Save --
-out = Path(r"C:\Projects\rexfinhub\reports\REX_Email_Reports_Overview_v3.docx")
+out = Path(r"C:\Foundry\Rexfinhub\reports\REX_Email_Reports_Overview_v3.docx")
 doc.save(str(out))
 print(f"Saved to {out}")

@@ -34,7 +34,7 @@ bullet('All reported (non-quarterly) sources match Grace exactly')
 heading('March - Quarterly Data')
 bullet('Q1 2026 reports (Futu, Oriental Harbour, ViewTrade) will replace ~$240M of repriced estimates with actuals')
 
-out_path = os.path.join('C:/Projects/rexfinhub/asia/reports/2026-02', 'REX_Asia_Data_Notes_Feb26.docx')
+out_path = os.path.join('C:/Foundry/Rexfinhub/asia/reports/2026-02', 'REX_Asia_Data_Notes_Feb26.docx')
 for f in [out_path, out_path.replace('.docx', '_v2.docx')]:
     try:
         os.remove(f)

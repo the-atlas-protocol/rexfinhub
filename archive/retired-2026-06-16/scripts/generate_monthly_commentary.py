@@ -95,7 +95,7 @@ CONFIG = {
     ],
 
     # ─── Output dir ───
-    'output_dir': 'C:/Projects/rexfinhub/temp/report_previews',
+    'output_dir': 'C:/Foundry/Rexfinhub/temp/report_previews',
 }
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -50,7 +50,7 @@ bullet('All report values now recalculated from the corrected database. Verified
        '84/84 fund AUM, flows, MoM match; 13/13 timeline months match; flow balances verified; '
        'cross-checked against Grace source data and Seamus daily email.')
 
-out_path = os.path.join('C:/Projects/rexfinhub/asia/reports/2026-02', 'REX_Asia_SOP.docx')
+out_path = os.path.join('C:/Foundry/Rexfinhub/asia/reports/2026-02', 'REX_Asia_SOP.docx')
 try:
     os.remove(out_path)
 except (FileNotFoundError, PermissionError):
