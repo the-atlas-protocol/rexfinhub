@@ -1012,6 +1012,7 @@ BSTU US,Invesco,layer1_regex,Matched fund_name: INVESCO BULLETSHARES 2030 TREASU
 BSTV US,Invesco,layer1_regex,Matched fund_name: INVESCO BULLETSHARES 2031 TREASURY BOND ETF
 BSV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD SHORT-TERM BOND ETF
 BTCK US,7RCC,layer1_regex,Matched fund_name: 7RCC SPOT BITCOIN AND CARBON CREDIT FUTURES ETF
+BTDL US,GraniteShares,layer1_regex,Matched fund_name: GRANITESHARES 2X LONG BTDR DAILY ETF
 BTF US,CoinShares,layer1_regex,Matched fund_name: COINSHARES BITCOIN AND ETHER ETF
 BTOT US,iShares,layer1_regex,Matched fund_name: ISHARES TOTAL USD FIXED INCOME MARKET ETF
 BUL US,Pacer,layer1_regex,Matched fund_name: PACER US CASH COWS GROWTH ETF
@@ -2535,6 +2536,7 @@ NORW US,Global X,layer1_regex,Matched fund_name: GLOBAL X MSCI NORWAY ETF
 NPFI US,Nuveen,layer1_regex,Matched fund_name: NUVEEN PREFERRED AND INCOME ETF
 NQLT US,Neuberger Berman,layer1_regex,Matched fund_name: NEUBERGER QUALITY SELECT ETF
 NSCI US,Nuveen,layer1_regex,Matched fund_name: NUVEEN SECURITIZED INCOME ETF
+NTAL US,GraniteShares,layer1_regex,Matched fund_name: GRANITESHARES 2X LONG NTAP DAILY ETF
 NTSD US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE EFFICIENT US PLUS INTERNATIONAL EQUITY FUND
 NTSE US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE EMERGING MARKETS EFFICIENT CORE FUND
 NTSI US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE INTERNATIONAL EFFICIENT CORE FUND
@@ -3165,6 +3167,7 @@ TCAF US,T. Rowe Price,layer1_regex,Matched fund_name: T ROWE PRICE CAPITAL APPRE
 TCAI US,Tortoise,layer1_regex,Matched fund_name: TORTOISE AI INFRASTRUCTURE ETF
 TCHP US,T. Rowe Price,layer1_regex,Matched fund_name: T ROWE PRICE BLUE CHIP GROWTH ETF
 TCPB US,Thrivent,layer1_regex,Matched fund_name: THRIVENT CORE PLUS BOND ETF
+TDCL US,GraniteShares,layer1_regex,Matched fund_name: GRANITESHARES 2X LONG TDC DAILY ETF
 TDI US,Touchstone,layer1_regex,Matched fund_name: TOUCHSTONE DYNAMIC INTERNATIONAL ETF
 TDIV US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST NASDAQ TECHNOLOGY DIVIDEND INDEX FUND
 TDOT US,21Shares,layer1_regex,Matched fund_name: 21SHARES POLKADOT ETF
