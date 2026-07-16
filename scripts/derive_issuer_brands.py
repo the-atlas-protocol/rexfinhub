@@ -383,7 +383,11 @@ def main() -> int:
                         -- has an explicit pattern, re-deriving collapses the split.
                         'KURV', 'TEMA', 'GABELLI', 'ABACUS', 'MADISON', 'STRATEGAS',
                         'KENSINGTON', 'RECKONER', 'SWAN', 'ARROW', 'TWEEDY', 'FM',
-                        'WISDOM'))))
+                        'WISDOM',
+                        -- Same ALL-CAPS-twin class, surfaced only once the white-label
+                        -- misattributions above were corrected to the title-cased brand
+                        -- (fixing DIVZ to 'Polen' collided with 9 pre-existing 'POLEN').
+                        'POLEN', 'SOFI', 'SOUND'))))
         ORDER BY ticker
         """
     )
