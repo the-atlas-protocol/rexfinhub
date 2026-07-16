@@ -1,44 +1,18 @@
-# rexfinhub — Claude Code project instructions
+# rexfinhub — project instructions (pointers only; facts live in `docs/`)
 
-> Auto-loaded by every Claude Code session opened in this repository. Keep it short. The full architecture lives in `docs/`.
+**Every session: read `docs/INDEX.md` → `docs/GOAL.md` → `docs/DEFINITIONS.md` before anything substantive.** Resolve unfamiliar terms via `docs/GLOSSARY.md`. Canonical load order: `INDEX` → `ARCHITECTURE` → `SYSTEM_LEDGER` → `GOAL` → `DEFINITIONS` → `GLOSSARY` → `RUNBOOK` → `LOG`.
 
-## READ FIRST — Documentation layer
-
-This project uses a canonical doc framework under `docs/`. **Every session, read `docs/INDEX.md`, then `docs/GOAL.md` (north star — one source of truth per fact), then `docs/DEFINITIONS.md` (the REX ETP definition library) first** before routing to the right reference per task. Resolve any unfamiliar domain term via `docs/GLOSSARY.md`.
-
-The lean canonical load order is: `INDEX` → `ARCHITECTURE` → `SYSTEM_LEDGER` → `GOAL` → `DEFINITIONS` → `GLOSSARY` → `RUNBOOK` → `LOG`.
-
-**Single source of truth for fund classification** (internal suites, market-status KPI rules, trusts): `docs/DEFINITIONS.md` + `market/definitions.py`. Never re-derive suites/statuses/trusts elsewhere.
+**Single source of truth for fund classification** (suites, market-status KPIs, trusts): `docs/DEFINITIONS.md` + `market/definitions.py`. Never re-derive elsewhere.
 
 | If you're doing… | Load in this order |
 |---|---|
-| Anything substantive | `docs/INDEX.md` → `docs/GOAL.md` → `docs/DEFINITIONS.md` first, every time |
-| Classifying funds (suites/status/trusts) | `docs/DEFINITIONS.md` + `market/definitions.py` (single source of truth) |
-| Operating / debugging the live system | → `docs/SYSTEM_LEDGER.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
-| Planning or building a rebuild phase | → `docs/GOAL.md` → `docs/TARGET.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
-| Daily ops / "how do I X" | → `docs/RUNBOOK.md` → `docs/GLOSSARY.md` |
-| Understanding a past decision | → `docs/DECISIONS/NNNN-*.md` |
-| Reconstructing history | → `docs/LOG.md` |
+| Classifying funds (suites/status/trusts) | `docs/DEFINITIONS.md` + `market/definitions.py` |
+| Operating / debugging live | `docs/SYSTEM_LEDGER.md` → `docs/SYSTEM.md` → `docs/GLOSSARY.md` |
+| Planning / building | `docs/GOAL.md` → `docs/TARGET.md` → `docs/SYSTEM.md` |
+| Daily ops / "how do I X" | `docs/RUNBOOK.md` |
+| Why the design is this way | `docs/DECISIONS/NNNN-*.md` · history: `docs/LOG.md` |
 
-The full doc framework was adopted via `docs/DECISIONS/0001-docs-framework.md`. Anti-patterns and conventions are codified there.
-
-## Repo basics
-
-- **Production source of truth**: VPS at `jarvis@46.224.126.196:/home/jarvis/rexfinhub/`. SQLite DB lives there.
-- **Public webapp**: rexfinhub.com (Render). Read-only replica of VPS DB. Auto-deploys on push to `main`.
-- **D drive archive**: `D:\sec-data\` holds nightly backup tarballs + cache snapshots. Not queried live.
-- **Local repo**: dev only. Syncthing laptop↔desktop. Never authoritative for any data.
-- **Worktrees**: this project uses `.claude/worktrees/` for isolated multi-agent work.
-
-## Glossary tip
-
-Terms with `[[double-bracket]]` syntax in any doc resolve to entries in `docs/GLOSSARY.md`. If you find a term used with semantic weight that's NOT in the glossary, add it.
-
-## When in doubt
-
-- `docs/SYSTEM.md` = what production does TODAY (present tense)
-- `docs/TARGET.md` = what we're building toward (future tense)
-- `docs/RUNBOOK.md` = how Ryu operates day-to-day
-- `docs/DECISIONS/` = why the design is the way it is
-
-Never put future-state in SYSTEM. Never put architecture in RUNBOOK. Never inline a TODO — use the per-doc `### known-gaps` section so they're greppable.
+- Production/deploy facts, drive layout, worktree conventions: `docs/SYSTEM.md` (present tense) — never restate them here; they drift.
+- `docs/SYSTEM.md` = today · `docs/TARGET.md` = future · `docs/RUNBOOK.md` = how Ryu operates. Never mix. No inline TODOs — use each doc's `### known-gaps`.
+- Sub-domains (2026-07-14 monorepo merge): `asia/` · `structured-notes/` — each keeps its own docs.
+- System constitution: `C:/Foundry/Library/ATLAS.md` · this domain's loops: `loops.md`
