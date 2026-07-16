@@ -353,6 +353,35 @@ def build_master_data(xl: pd.ExcelFile = None) -> pd.DataFrame:
         else:
             df["etp_category"] = pd.NA
 
+    # Step 3b: ENFORCE exclusions.csv — a blank etp_category row means "this fund is
+    # outside all 5 categories" (a curated human decision).
+    #
+    # Until now nothing enforced it. market/rules.py loaded exclusions.csv into the
+    # MktExclusion table and NOTHING read that table — the only references in the repo
+    # are the model, the sync, an import and a test. It was a memo to classify_daily
+    # ("don't propose this again"), never a rule. So an excluded fund kept whatever
+    # category another path gave it: 12 excluded tickers were still carrying one, and
+    # TLDR — curated as "REX T-Bill ladder, outside the 5 legacy categories" — showed
+    # up as Defined. Applied here, immediately after the fund_mapping join, so there is
+    # exactly ONE place a fund's etp_category is decided. (Ryu 2026-07-16.)
+    try:
+        from market.rules import load_exclusions
+        _ex = load_exclusions()
+        if not _ex.empty and "ticker" in _ex.columns:
+            _blank = _ex["etp_category"].isna() | (
+                _ex["etp_category"].astype(str).str.strip().isin(["", "nan", "None"])
+            )
+            _drop = set(_ex.loc[_blank, "ticker"].astype(str).str.strip())
+            if _drop:
+                _hit = df["ticker"].astype(str).str.strip().isin(_drop)
+                _n = int((_hit & df["etp_category"].notna()).sum())
+                df.loc[_hit, "etp_category"] = pd.NA
+                if _n:
+                    log.info("exclusions: cleared etp_category on %d excluded ticker(s)", _n)
+    except Exception as e:  # noqa: BLE001 — a bad rules file must not kill the build
+        log.error("exclusions enforcement FAILED (%s) — excluded funds may keep a "
+                  "category they were curated out of", e)
+
     # Step 4: Join issuer_mapping -> adds issuer_nickname
     # Deduplicate to avoid row multiplication
     try:
