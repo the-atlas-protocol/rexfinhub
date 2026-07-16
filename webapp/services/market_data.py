@@ -21,6 +21,7 @@ import pandas as pd
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from market.definitions import SUITE_DISPLAYS as _SUITE_DISPLAYS
 from webapp.models import MktMasterData, MktPipelineRun, MktTimeSeries
 
 log = logging.getLogger(__name__)
@@ -546,17 +547,29 @@ def get_kpis(df: pd.DataFrame) -> dict:
 
 #  REX Summary 
 
-_SUITE_ORDER = [
+# Display order only — the NAMES come from market/definitions.py (the single source
+# that also stamps mkt_master_data.rex_suite). This list used to hardcode its own
+# strings and had drifted: it said "Autocallable" (canonical: "Structured") and
+# "T-Bill" (canonical: "MoneyMarket"), so the render loop's
+# `rex[rex["rex_suite"] == suite_name]` matched nothing and silently `continue`d —
+# ATCL and TLDR were counted in the KPIs but never rendered a row. Any suite not
+# listed here is appended rather than dropped, so a new suite can never vanish
+# silently again. (Ryu 2026-07-16.)
+_PREFERRED_SUITE_ORDER = [
     "T-REX",
     "MicroSectors",
     "Equity Premium Income",
     "Growth & Income",
     "IncomeMax",
-    "Autocallable",
+    "Structured",
     "Crypto",
-    "T-Bill",
+    "MoneyMarket",
     "Thematic",
 ]
+_SUITE_ORDER = (
+    [s for s in _PREFERRED_SUITE_ORDER if s in _SUITE_DISPLAYS]
+    + [s for s in _SUITE_DISPLAYS if s not in _PREFERRED_SUITE_ORDER]
+)
 
 
 def get_rex_summary(db: Session, fund_structure: str | None = None, category: str | None = None, etn_overrides: bool = False) -> dict:
@@ -2165,14 +2178,28 @@ def get_aum_goals(db: Session) -> dict | None:
 
         # 5. Build per-suite results
         def _resolve_current_aum(entry: dict) -> float:
-            """Determine current AUM for a goal entry."""
-            key = entry["suite_key"]
+            """Determine current AUM for a goal entry.
+
+            `suite_keys` (list) rolls several canonical suites into one card —
+            e.g. "G&I / Auto / Drone" is Growth & Income + Structured (ATCL, the
+            autocallable) + Thematic (DRNZ, the drone fund). It previously read a
+            single "Growth & Income" key, so ATCL landed in no bucket at all and
+            the label promised three things while showing one. (Ryu 2026-07-16.)
+            """
             region = entry.get("region")
-            if key == "Equity Premium Income":
-                if region == "EU":
-                    return epi_eu_aum
-                return epi_us_aum
-            return suite_aum.get(key, 0.0)
+            keys = entry.get("suite_keys") or [entry["suite_key"]]
+            if "Equity Premium Income" in keys:
+                return epi_eu_aum if region == "EU" else epi_us_aum
+            unknown = [k for k in keys if k not in _SUITE_DISPLAYS]
+            if unknown:
+                # A key that matches no canonical suite silently resolves to 0.0 and
+                # renders as "--" (this is exactly how Money Market's stale "T-Bill"
+                # key hid TLDR). Make it loud instead of plausible.
+                log.error(
+                    "aum_goals entry %r references unknown suite(s) %s; valid: %s",
+                    entry.get("slug"), unknown, _SUITE_DISPLAYS,
+                )
+            return sum(suite_aum.get(k, 0.0) for k in keys)
 
         def _build_entry(entry: dict, current: float) -> dict:
             ye25 = entry["ye_2025"]
@@ -2275,7 +2302,10 @@ def _resolve_suite_filter(slug: str) -> dict | None:
             return {
                 "slug": slug,
                 "label": entry["label"],
-                "suite_key": entry["suite_key"],
+                # A card may roll up several canonical suites (see _resolve_current_aum),
+                # so this is always a list — the drill-down must show every fund the
+                # card's number is built from.
+                "suite_keys": entry.get("suite_keys") or [entry["suite_key"]],
                 "region": entry.get("region"),
                 "ye_2025": entry["ye_2025"],
                 "ye_2026_target": entry["ye_2026_target"],
@@ -2305,7 +2335,7 @@ def get_aum_goal_history(db: Session, slug: str) -> dict | None:
         .filter(MktMasterData.is_rex == True, MktMasterData.market_status == "ACTV")
     )
     if not spec.get("all_rex"):
-        base = base.filter(MktMasterData.rex_suite == spec["suite_key"])
+        base = base.filter(MktMasterData.rex_suite.in_(spec["suite_keys"]))
     rows = base.all()
 
     if spec.get("region") == "US":
