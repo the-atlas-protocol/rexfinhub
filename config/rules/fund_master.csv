@@ -7752,3 +7752,7 @@ SEUS US,SEI QIM US EQUITY FACTOR ALLOCATION ACTIVE ETF,,Multi-Asset,Plain Beta,A
 PHOX US,AURA AI PHOTONICS ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
 TMGN US,TAPPALPHA CBOE MAGNIFICENT 10 GROWTH & DAILY INCOME ETF,,Equity,Income,Derivative Income > Covered Call,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
 LUMA US,KRANESHARES PHOTONIC AND OPTICAL ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
+MUIB US,DIREXION MU DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
+NVIB US,DIREXION NVDA DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
+MEIB US,DIREXION META DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
+PLIB US,DIREXION PLTR DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
