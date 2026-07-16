@@ -48,6 +48,7 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^VOLATILITYSHARES?\b", "VolatilityShares"),
     (r"^VISTASHARES?\b", "VistaShares"),
     (r"\bMAX\s+ETF\b", "MAX"),
+    (r"^KURV\b", "Kurv"),
     # --- Active thematic boutiques ---
     (r"^AMPLIUS\b", "Amplius"),
     (r"^ADAPTIV\b", "Adaptiv"),
@@ -81,7 +82,9 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^FIDELITY\b", "Fidelity"),
     (r"^SCHWAB\b", "Schwab"),
     (r"^GLOBAL\s*X\b", "Global X"),
-    (r"^WISDOMTREE\b", "WisdomTree"),
+    # \s? so "WISDOM TREE TRUST - WISDOMTREE EMERGING..." (DGS) matches too — the
+    # spaced form fell through to name_fallback and minted issuer "WISDOM" ($1.75B).
+    (r"^WISDOM\s?TREE\b", "WisdomTree"),
     (r"^VANECK\b", "VanEck"),
     (r"^DIMENSIONAL\b", "Dimensional"),
     (r"^FRANKLIN\b", "Franklin Templeton"),
@@ -96,7 +99,9 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^AVANTIS\b", "Avantis"),
     (r"^PACER\b", "Pacer"),
     (r"^AMPLIFY\b", "Amplify"),
-    (r"^WISDOMTREE\b", "WisdomTree"),
+    # \s? so "WISDOM TREE TRUST - WISDOMTREE EMERGING..." (DGS) matches too — the
+    # spaced form fell through to name_fallback and minted issuer "WISDOM" ($1.75B).
+    (r"^WISDOM\s?TREE\b", "WisdomTree"),
     (r"^KRANESHARES?\b", "KraneShares"),
     (r"^BNY\s+MELLON\b|^BNY\b", "BNY Mellon"),
     (r"^NYLI\b", "New York Life"),
@@ -117,6 +122,36 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^AMERICAN\s+BEACON\b", "American Beacon"),
     (r"^PUTNAM\b", "Putnam"),
     (r"^AB\b", "AB (AllianceBernstein)"),
+    # --- Brands the name-fallback was inventing in ALL-CAPS (Ryu 2026-07-16).
+    # Bloomberg fund names are already uppercase, so name_fallback_brand's
+    # `word.isupper()` acronym branch fired on every word and minted a second,
+    # ALL-CAPS copy of brands that already existed title-cased (Kurv/KURV,
+    # Tema/TEMA, ...). An explicit pattern makes casing deterministic and
+    # collapses the split. ---
+    (r"^TEMA\b", "Tema"),
+    (r"^GABELLI\b", "Gabelli"),
+    (r"^ABACUS\b", "Abacus"),
+    (r"^MADISON\b", "Madison"),
+    (r"^STRATEGAS\b", "Strategas"),
+    (r"^KENSINGTON\b", "Kensington"),
+    (r"^RECKONER\b", "Reckoner"),
+    (r"^SWAN\b", "Swan"),
+    (r"^ARROW\b", "Arrow"),
+    (r"^LEATHERBACK\b", "Leatherback"),
+    (r"^TWEEDY\s+BROWNE\b", "Tweedy Browne"),
+    (r"^F/?M\b", "F/M"),
+    # --- White-label trusts: the SPONSOR was stamped on other firms' funds.
+    # Elevation Series Trust -> Polen / TrueShares; Leatherback (adviser) -> Sound /
+    # SoFi; Listed Funds Trust -> Roundhill / Horizon Kinetics / Spear / Fortuna.
+    # The real brand is the first word of the fund name. (Ryu 2026-07-16.) ---
+    (r"^POLEN\b", "Polen"),
+    (r"^SOUND\b", "Sound"),
+    (r"^HORIZON\s+KINETICS\b", "Horizon Kinetics"),
+    (r"^SPEAR\b", "Spear"),
+    (r"^FORTUNA\b", "Fortuna"),
+    (r"^AXS\b", "AXS"),
+    (r"^ASTORIA\b", "Astoria"),
+    (r"^MILITIA\b", "Militia"),
     (r"^T\s+ROWE\b|^T\.\s*ROWE\b", "T. Rowe Price"),
     (r"^PGIM\b", "PGIM"),
     (r"^BONDBLOXX\b", "BondBloxx"),
@@ -226,6 +261,12 @@ BRAND_PATTERNS: list[tuple[str, str]] = [
     (r"^IMPACT\s+SHARES?\b", "Impact Shares"),
     (r"^(?:THE\s+)?FREE\s+MARKETS?\b", "Free Markets"),
     (r"^DIGITAL\s+ASSET\b", "Digital Asset"),
+    # --- UNANCHORED, LAST RESORT: the legal trust leads the fund name, so the brand
+    # sits mid-string. Kept at the end so no anchored pattern is shadowed.
+    # e.g. "TIDAL ETF TRUST - SOFI SOCIAL 50 ETF"  ->  SoFi
+    #      "ETF SERIES SOLUTIONS-LHA MARKET STATE TACTICAL Q ETF" -> LHA
+    (r"\bSOFI\b", "SoFi"),
+    (r"\bLHA\s+MARKET\s+STATE\b", "LHA"),
 ]
 
 # Compile once for speed
@@ -321,10 +362,28 @@ def main() -> int:
                     OR issuer_display LIKE '%Trust I%' OR issuer_display LIKE '% / %'
                     OR issuer_display LIKE '%Managers Trust%' OR issuer_display LIKE '%Series Portfolio%'
                     OR issuer_display LIKE '%Funds Trust%'
+                    -- Legal-entity tails and fund-name-as-issuer artifacts:
+                    --   'Osprey Funds LLC' / 'VanEck ETFs' / '21Shares Sui ETF'.
+                    OR issuer_display LIKE '%LLC%' OR issuer_display LIKE '% ETFs'
+                    OR issuer_display LIKE '% ETF'
                     -- White-label SPONSOR nicknames (issuer_mapping mapped many distinct
                     -- brands onto one sponsor). Re-derive the real brand from the name.
-                    OR issuer_display IN ('Tidal', 'Tidal Financial Group', 'Listed',
-                                          'Exchange Listed Funds', 'Tidal ETF Services'))))
+                    -- UPPER() because SQL `IN` is case-sensitive and the live values
+                    -- arrive as 'TIDAL' (name_fallback, uppercase) as well as 'Tidal'
+                    -- (issuer_mapping) — the case-sensitive list silently missed the
+                    -- uppercase half forever. Values here are the leaks found live on
+                    -- 2026-07-16: sponsors/trusts stamped on other firms' funds.
+                    OR UPPER(issuer_display) IN (
+                        'TIDAL', 'TIDAL FINANCIAL GROUP', 'LISTED', 'LISTED FUNDS',
+                        'EXCHANGE LISTED FUNDS', 'TIDAL ETF SERVICES',
+                        'INVESTMENT MANAGERS SERIES', 'RBB FUND', 'ETF ARCHITECT', 'ETF',
+                        'ELEVATION', 'LEATHERBACK',
+                        -- ALL-CAPS twins minted by name_fallback alongside an existing
+                        -- title-cased brand (Kurv/KURV, Tema/TEMA, ...). Now that each
+                        -- has an explicit pattern, re-deriving collapses the split.
+                        'KURV', 'TEMA', 'GABELLI', 'ABACUS', 'MADISON', 'STRATEGAS',
+                        'KENSINGTON', 'RECKONER', 'SWAN', 'ARROW', 'TWEEDY', 'FM',
+                        'WISDOM'))))
         ORDER BY ticker
         """
     )
@@ -415,22 +474,54 @@ def main() -> int:
     # with "layer") must survive a re-derive — and they win over regex for the
     # same ticker. Without this, a nightly derive would silently wipe manual
     # brand assignments (a latent bug now that derive runs in the chain).
+    # A row is MACHINE-authored if this script wrote it (regex, the AI rungs, the
+    # is_rex default, or the name fallback). Everything else is human-curated.
+    #
+    # This distinction used to be `not src.startswith("layer")`, which quietly
+    # classed name_fallback / is_rex_default / rungN as "human" — so the fallback's
+    # own guess was preserved as if Ryu had made it and OUTRANKED the regex forever.
+    # That is why 'WISDOM' ($1.75B of WisdomTree's DGS) and the ALL-CAPS twins
+    # (KURV/TEMA/...) never self-healed: the row that invented the wrong brand was
+    # the row protecting it. Machine rows are now carried forward only when this run
+    # did not re-derive that ticker. (Ryu 2026-07-16.)
+    _MACHINE_PREFIXES = ("layer", "rung", "name_fallback", "is_rex_default",
+                         "description", "web")
+
+    def _is_machine(src: str) -> bool:
+        return any(src.startswith(p) for p in _MACHINE_PREFIXES)
+
     manual_rows: list[dict] = []
     manual_tickers: set[str] = set()
+    carried: dict[str, dict] = {}
     if OVERRIDES_CSV.exists():
         with OVERRIDES_CSV.open(encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
                 src = (row.get("source") or "").strip().lower()
                 tk = (row.get("ticker") or "").strip()
-                if tk and not src.startswith("layer"):
-                    manual_rows.append({
-                        "ticker": tk,
-                        "issuer_display": (row.get("issuer_display") or "").strip(),
-                        "source": row.get("source") or "manual",
-                        "notes": row.get("notes") or "",
-                    })
+                if not tk:
+                    continue
+                rec = {
+                    "ticker": tk,
+                    "issuer_display": (row.get("issuer_display") or "").strip(),
+                    "source": row.get("source") or "manual",
+                    "notes": row.get("notes") or "",
+                }
+                if _is_machine(src):
+                    # keep the ticker in the file, but a fresh derivation wins
+                    carried[tk] = rec
+                else:
+                    manual_rows.append(rec)
                     manual_tickers.add(tk)
-    out_rows = manual_rows + [h for h in l1_hits if h["ticker"] not in manual_tickers]
+
+    fresh = [h for h in l1_hits if h["ticker"] not in manual_tickers]
+    fresh_tickers = {h["ticker"] for h in fresh}
+    out_rows = (
+        manual_rows
+        + fresh
+        + [r for tk, r in carried.items()
+           if tk not in manual_tickers and tk not in fresh_tickers]
+    )
+    out_rows.sort(key=lambda r: r["ticker"])
 
     # --- Write issuer_brand_overrides.csv ---
     OVERRIDES_CSV.parent.mkdir(parents=True, exist_ok=True)
@@ -441,7 +532,8 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(out_rows)
     print(f"\nWrote {len(out_rows):,} rows -> {OVERRIDES_CSV} "
-          f"({len(manual_rows):,} preserved manual, {len(out_rows) - len(manual_rows):,} regex)")
+          f"({len(manual_rows):,} preserved manual, {len(fresh):,} freshly derived, "
+          f"{len(out_rows) - len(manual_rows) - len(fresh):,} carried machine rows)")
 
     # --- Write issuer_review_queue.csv ---
     REVIEW_QUEUE_CSV.parent.mkdir(parents=True, exist_ok=True)
