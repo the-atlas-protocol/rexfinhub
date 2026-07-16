@@ -1,4 +1,11 @@
-{% extends "market/base.html" %}
+{% set active_tab = 'rex-performance' %}
+{# Hardcoding "market/base.html" here ignored the base_template the router sets for
+   ?fragment=1 requests, so tabs.js received the ENTIRE page shell and injected it
+   into #tab-content — rendering a second nav + header nested inside the page. A
+   refresh took the normal full-page path, which is why it appeared to self-heal.
+   Every sibling tab (rex/category/issuer/underlier) already uses this form.
+   (Ryu 2026-07-16.) #}
+{% extends base_template|default("market/base.html") %}
 {% block title %}ETP Screener - REX Financial Intelligence Hub{% endblock %}
 
 {% block market_content %}

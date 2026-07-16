@@ -192,6 +192,13 @@
         <div class="mega-columns">
           <div class="mega-column">
             <div class="mega-section-label">Market Intelligence</div>
+            <a href="/market/rex-performance" class="mega-link {% if request.url.path == '/market/rex-performance' %}active{% endif %}">
+              <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg></div>
+              <div class="mega-link-text">
+                <div class="mega-link-title">ETP Screener</div>
+                <div class="mega-link-desc">Filter the full ETP universe</div>
+              </div>
+            </a>
             <a href="/tools/compare/etps" class="mega-link {% if request.url.path == '/tools/compare/etps' %}active{% endif %}">
               <div class="mega-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></div>
               <div class="mega-link-text">
@@ -278,7 +285,6 @@
     </div>
   </div>
 </nav>
-<div class="ticker-strip"><div class="ticker-track" id="tickerTrack"></div></div>
 
 <div class="container">
   {% set data_freshness = request.state.data_freshness|default({}) %}
@@ -422,7 +428,6 @@
 <script src="/static/js/table-sort.js"></script>
 <script src="/static/js/app.js"></script>
 <script src="/static/js/loading-bar.js"></script>
-<script src="/static/js/ticker.js"></script>
 <script src="/static/js/live-feed.js"></script>
 <script>
 // CSRF auto-attach: middleware enforces _csrf_token on POST/PUT/DELETE to
