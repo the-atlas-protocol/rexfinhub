@@ -64,9 +64,37 @@ def _already_seen() -> set[str]:
     return seen
 
 
+def _excluded() -> set[str]:
+    """Tickers a human deliberately placed outside the 5 categories (exclusions.csv).
+
+    An exclusion row IS a curated decision — "this fund is not one of our categories".
+    This step used to ignore the file entirely and select on `etp_category IS NULL`,
+    which is exactly the state an exclusion produces. So the AI re-classified funds a
+    human had just excluded, and wrote its guess back to fund_mapping.csv. That is an
+    agent overwriting a human decision, silently. (Ryu 2026-07-16.)
+    """
+    import csv as _csv
+    out: set[str] = set()
+    for d in ("data", "config"):
+        p = PROJECT_ROOT / d / "rules" / "exclusions.csv"
+        if not p.exists():
+            continue
+        try:
+            with p.open(encoding="utf-8") as fh:
+                for row in _csv.DictReader(fh):
+                    tk = (row.get("ticker") or "").strip()
+                    # A row with an explicit etp_category is a re-map, not an exclusion;
+                    # only a BLANK category means "outside all 5 categories".
+                    if tk and not (row.get("etp_category") or "").strip():
+                        out.add(tk)
+        except Exception as e:  # noqa: BLE001 — never let a bad CSV kill the chain
+            print(f"  WARN: could not read {p}: {e}", file=sys.stderr)
+    return out
+
+
 def _candidates(db):
     from sqlalchemy import text
-    _seen = _already_seen()
+    _seen = _already_seen() | _excluded()
     rows = db.execute(text("""
         SELECT ticker, fund_name, COALESCE(issuer,''), COALESCE(asset_class,''), market_status,
                COALESCE(fund_description,'')

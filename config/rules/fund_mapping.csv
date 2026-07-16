@@ -931,7 +931,6 @@ BRKD US,LI,1,manual
 BRKU US,LI,1,manual
 BRZU US,LI,1,manual
 BTFL US,LI,1,manual
-BTGD US,LI,1,manual
 BU US,LI,1,manual
 BULG US,LI,1,manual
 BULU US,LI,1,manual
@@ -971,7 +970,6 @@ CRWU US,LI,1,manual
 CSCL US,LI,1,manual
 CSCS US,LI,1,manual
 CSEX US,LI,1,manual
-CSM US,LI,1,manual
 CURE US,LI,1,manual
 CVNX US,LI,1,manual
 CWEB US,LI,1,manual
@@ -1185,7 +1183,6 @@ OPEX US,LI,1,manual
 ORCS US,LI,1,manual
 ORCU US,LI,1,manual
 ORCX US,LI,1,manual
-ORR US,LI,1,manual
 OSCG US,LI,1,manual
 OSCX US,LI,1,manual
 PALD US,LI,1,manual
@@ -1241,14 +1238,7 @@ RKLX US,LI,1,manual
 RKLZ US,LI,1,manual
 ROBN US,LI,1,manual
 ROM US,LI,1,manual
-RSBA US,LI,1,manual
-RSBT US,LI,1,manual
-RSBY US,LI,1,manual
 RSEE US,LI,1,manual
-RSSB US,LI,1,manual
-RSST US,LI,1,manual
-RSSX US,LI,1,manual
-RSSY US,LI,1,manual
 RTXG US,LI,1,manual
 RVNL US,LI,1,manual
 RWM US,LI,1,manual
@@ -2271,8 +2261,8 @@ QBIF US,Defined,1,atlas
 ARLI US,Defined,1,atlas
 ARKI US,Defined,1,atlas
 ODTE US,CC,1,atlas
-CHNL US,LI,1,atlas
-STLR US,LI,1,atlas
+CHNL US,Crypto,1,manual
+STLR US,Crypto,1,manual
 CRDD US,Crypto,1,atlas
 CRDX US,LI,1,atlas
 STLU US,LI,1,atlas
@@ -2326,7 +2316,6 @@ JUDO US,CC,1,manual
 DPRE US,CC,1,manual
 DDFY US,Defined,1,atlas
 DDTY US,Defined,1,atlas
-RSIT US,LI,1,atlas
 QQMY US,Defined,1,atlas
 MAYC US,Defined,1,atlas
 CMAY US,Defined,1,atlas
@@ -2771,7 +2760,6 @@ APMI US,LI,1,atlas
 GLX US,LI,1,atlas
 ACMM US,LI,1,ai-classify
 2661421D US,Thematic,1,ai-classify
-SGVA US,LI,1,atlas
 ASMZ US,LI,1,atlas
 FPSX US,LI,1,atlas
 ENTL US,LI,1,atlas
