@@ -24,11 +24,26 @@ import pandas as pd
 
 log = logging.getLogger(__name__)
 
-# 21 reliable tickers (have BBG IDs in data_ms/data_msector)
+# The MicroSectors ETNs whose true AUM/flows we take from the override sheets
+# instead of Bloomberg (which overstates ETN AUM several-fold — see the
+# `microsectors_true_aum` rule in config/contracts/report_numbers.yaml).
+#
+# This set GATES PARSING: _read_microsector_aum / _read_shares_and_prices read the
+# sheet's ticker row and then drop every column not listed here. So a ticker missing
+# from this set is not "unavailable" — it is discarded, and the fund silently falls
+# back to raw Bloomberg. Anything live in the MicroSectors suite MUST be listed here;
+# audit_microsectors_override now fails if one is missing (it used to iterate this set
+# and could never see an omission).
+#
+# AIQU/AIQD added 2026-07-16 (Ryu): both are live and their columns were in the sheet
+# all along — the microsector_aum tab just has a BLANK fund-name header (row 0) for
+# them, while row 1/row 3 carry "AIQU US Equity"/"AIQU" correctly. Bloomberg was
+# reporting AIQU at $16.3M vs a true $1.74M, and AIQD at $32.2M vs a true $0.148M
+# (9x and 217x overstated) into the BMO report.
 _RELIABLE_TICKERS = {
     "NRGU", "NRGD", "BNKU", "BNKD", "FNGA", "FNGD", "FNGO", "FNGS", "FNGU",
     "BULZ", "BERZ", "OILU", "OILD", "FLYU", "FLYD", "WTIU", "WTID",
-    "SHNY", "DULL", "GDXU", "GDXD",
+    "SHNY", "DULL", "GDXU", "GDXD", "AIQU", "AIQD",
 }
 
 # Matured / delisted ETNs that legitimately have $0 AUM — not a staleness

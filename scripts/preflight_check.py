@@ -1148,12 +1148,49 @@ def audit_microsectors_override(db) -> dict:
         out["status"] = "warn"
         out["detail"] = f"DB read failed ({e}); skipped"
         return out
-    if out["mismatches"]:
+    # --- Reverse check: is any LIVE MicroSectors ETN missing from the override? ---
+    # The loop above iterates the OVERRIDE and checks each entry against the DB, so it
+    # can only ever validate what the override already knows. It reported "all 20 match"
+    # while AIQU and AIQD — both live — were absent from _RELIABLE_TICKERS entirely and
+    # shipping raw Bloomberg AUM (9x and 217x overstated) to BMO. A one-directional
+    # check cannot see an omission; it must also ask the DB what it is missing.
+    # (Ryu 2026-07-16: "Any time there is that failure it must be fixed.")
+    uncovered = []
+    try:
+        con = sqlite3.connect(str(db_path)); cur = con.cursor()
+        cur.execute(
+            """SELECT ticker, fund_name FROM mkt_master_data
+               WHERE market_status='ACTV' AND rex_suite='MicroSectors' ORDER BY ticker"""
+        )
+        live = cur.fetchall()
+        con.close()
+        covered = {str(t).strip() for t in ov.keys() if not str(t).startswith("__")}
+        for tk, nm in live:
+            if str(tk).strip() not in covered:
+                uncovered.append(str(tk).strip())
+    except sqlite3.Error as e:
+        out["status"] = "warn"
+        out["detail"] = f"reverse coverage check failed ({e})"
+        return out
+
+    if out["mismatches"] or uncovered:
         out["status"] = "fail"
-        out["detail"] = "override NOT baked for " + ", ".join(
-            f"{m['ticker']} (db {m['db']} vs override {m['override']})" for m in out["mismatches"][:6])
+        bits = []
+        if out["mismatches"]:
+            bits.append("override NOT baked for " + ", ".join(
+                f"{m['ticker']} (db {m['db']} vs override {m['override']})"
+                for m in out["mismatches"][:6]))
+        if bits or uncovered:
+            out["uncovered"] = uncovered
+        if uncovered:
+            bits.append(
+                f"{len(uncovered)} live MicroSectors ETN(s) NOT covered by the override "
+                f"(shipping raw Bloomberg AUM): " + ", ".join(uncovered[:6]) +
+                " — add to market/microsectors._RELIABLE_TICKERS")
+        out["detail"] = "; ".join(bits)
     else:
-        out["detail"] = f"all {checked} MicroSectors ETNs match the override"
+        out["detail"] = (f"all {checked} MicroSectors ETNs match the override; "
+                         f"{len(live)} live ETN(s) all covered")
     return out
 
 
