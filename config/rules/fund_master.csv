@@ -7756,3 +7756,5 @@ MUIB US,DIREXION MU DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,
 NVIB US,DIREXION NVDA DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
 MEIB US,DIREXION META DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
 PLIB US,DIREXION PLTR DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
+DRMY US,XFUNDS MEMORY INCOME ETF,,Equity,Plain Beta,Thematic,,,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)
+TKNZ US,T ROWE PRICE ACTIVE CRYPTO ETF,,Crypto,Plain Beta,Single-Access,single,Multi-Crypto,,,standalone,physical,,,,,,,,,,,,,,,atlas-auto-2026-07-16,auto: legacy candidate translated (classify_daily)

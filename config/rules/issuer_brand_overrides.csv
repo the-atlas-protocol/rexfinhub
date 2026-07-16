@@ -408,6 +408,7 @@ BSVO US,EA,name_fallback,first significant word of: EA BRIDGEWAY OMNI SMALL-CAP 
 BTAL US,AGF,name_fallback,first significant word of: AGF US MARKET NEUTRAL ANTI-BETA FUND
 BTCK US,7RCC,layer1_regex,Matched fund_name: 7RCC SPOT BITCOIN AND CARBON CREDIT FUTURES ETF
 BTF US,CoinShares,layer1_regex,Matched fund_name: COINSHARES ETF TRUST COINSHARES BITCOIN AND ETHER ETF
+BTGD US,STKD,name_fallback,first significant word of: STKD 100% BITCOIN & 100% GOLD ETF
 BTOT US,iShares,layer1_regex,Matched fund_name: ISHARES TOTAL USD FIXED INCOME MARKET ETF
 BTR US,BEACON,name_fallback,first significant word of: BEACON TACTICAL RISK ETF
 BUDH US,ANHEUSER-BUSCH,name_fallback,first significant word of: ANHEUSER-BUSCH INBEV SA/NV ADRHEDGED
@@ -582,6 +583,7 @@ CSB US,VictoryShares,layer1_regex,Matched fund_name: VICTORYSHARES US SMALL CAP 
 CSEN US,Cohen & Steers,layer1_regex,Matched fund_name: COHEN & STEERS FUTURE OF ENERGY ACTIVE ETF
 CSHP US,iShares,layer1_regex,Matched fund_name: ISHARES DYNAMIC SHORT-TERM ACTIVE ETF
 CSIO US,Cohen & Steers,layer1_regex,Matched fund_name: COHEN & STEERS INFRASTRUCTURE OPPORTUNITIES ACTIVE ETF
+CSM US,ProShares,layer1_regex,Matched fund_name: PROSHARES LARGE CAP CORE PLUS
 CSMD US,CONGRESS,name_fallback,first significant word of: CONGRESS SMID GROWTH ETF
 CSPF US,Cohen & Steers,layer1_regex,Matched fund_name: COHEN & STEERS PREFERRED AND INCOME OPPORTUNITIES ACTIVE ETF
 CSPX LN,iShares,layer1_regex,Matched fund_name: ISHARES CORE S&P 500 UCITS ETF
@@ -2111,7 +2113,7 @@ MEDX US,Horizon Kinetics,layer1_regex,Matched fund_name: HORIZON KINETICS MEDICA
 MEIB US,Direxion,layer1_regex,Matched fund_name: DIREXION META DEFINED INCOME BOOST ETF
 MEM US,Matthews,layer1_regex,Matched fund_name: MATTHEWS EMERGING MARKETS EQUITY ACTIVE ETF
 MEMA US,Man,layer1_regex,Matched fund_name: MAN ACTIVE EMERGING MARKETS ALTERNATIVE ETF
-MEME US,Roundhill,layer1_regex,Matched fund_name: ROUNDHILL MEME STOCK ETF
+MEME US,Roundhill,layer1_regex,Matched fund_name: ROUNDHILL ETF TRUST -ROUNDHILL MEME STOCK ETF
 MEMS US,Matthews,layer1_regex,Matched fund_name: MATTHEWS EMERGING MARKETS DISCOVERY ACTIVE ETF
 MEMX US,Matthews,layer1_regex,Matched fund_name: MATTHEWS EMERGING MARKETS EX CHINA ACTIVE ETF
 METG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LONG META DAILY ETF
@@ -2753,6 +2755,10 @@ RPAR US,RPAR,name_fallback,first significant word of: RPAR RISK PARITY ETF
 RPG US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 PURE GROWTH ETF
 RPHS US,REGENTS,name_fallback,first significant word of: REGENTS PARK S&P 500 HEDGED ETF
 RPV US,Invesco,layer1_regex,Matched fund_name: INVESCO EXCHANGE-TRADED FUND TRUST - INVESCO S&P 500 PURE VALUE ETF
+RSBA US,RETURN,name_fallback,first significant word of: RETURN STACKED BONDS & MERGER ARBITRAGE ETF
+RSBT US,RETURN,name_fallback,first significant word of: RETURN STACKED BONDS & MANAGED FUTURES ETF
+RSBY US,RETURN,name_fallback,first significant word of: RETURN STACKED BONDS & FUTURES YIELD ETF
+RSIT US,RETURN,name_fallback,first significant word of: RETURN STACKED INTERNATIONAL STOCKS & MANAGED FUTURES ETF
 RSMC US,Rockefeller,layer1_regex,Matched fund_name: ROCKEFELLER US SMALL-MID CAP ETF
 RSMV US,RELATIVE,name_fallback,first significant word of: RELATIVE STRENGTH MANAGED VOLATILITY STRATEGY ETF
 RSP US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 EQUAL WEIGHT ETF
@@ -2769,7 +2775,11 @@ RSPR US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 EQUAL WEIGHT REA
 RSPS US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 EQUAL WEIGHT CONSUMER STAPLES ETF
 RSPT US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 EQUAL WEIGHT TECHNOLOGY ETF
 RSPU US,Invesco,layer1_regex,Matched fund_name: INVESCO S&P 500 EQUAL WEIGHT UTILITIES ETF
+RSSB US,RETURN,name_fallback,first significant word of: RETURN STACKED GLOBAL STOCKS & BONDS ETF
 RSSL US,Global X,layer1_regex,Matched fund_name: GLOBAL X RUSSELL 2000 ETF
+RSST US,RETURN,name_fallback,first significant word of: RETURN STACKED US STOCKS & MANAGED FUTURES ETF
+RSSX US,RETURN,name_fallback,first significant word of: RETURN STACKED U.S. STOCKS & GOLD/BITCOIN ETF
+RSSY US,RETURN,name_fallback,first significant word of: RETURN STACKED U.S. STOCKS & FUTURES YIELD ETF
 RTAI US,Rareview,layer1_regex,Matched fund_name: RAREVIEW TAX ADVANTAGED INCOME ETF
 RTH US,VanEck,layer1_regex,Matched fund_name: VANECK RETAIL ETF
 RTHY US,F/M,layer1_regex,Matched fund_name: F/M LONG-TERM TREASURY INFLATION-PROTECTED SECURITY TIPS ETF
