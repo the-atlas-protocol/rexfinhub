@@ -48,9 +48,9 @@ high_profile_pre_ipo:
   valuation_usd: 70.0
   last_round_date: '2025-02-26'
   source_url: https://www.ft.com/content/stripe-tender-offer-valuation-2025
-  expected_ipo_window: rumored 2025-2026
+  expected_ipo_window: rumored 2026
   s1_filed: false
-  as_of_date: '2026-07-13'
+  as_of_date: '2026-07-14'
   valuation_as_of: 2024-02
   s1_filed_date: ''
   sector: Fintech / Payments
@@ -91,8 +91,8 @@ high_profile_pre_ipo:
   s1_filed: false
   as_of_date: '2026-05-12'
 - company: VAST Data
-  valuation_usd: 9.1
-  as_of_date: '2026-07-13'
+  valuation_usd: 9.7
+  as_of_date: '2026-07-14'
   valuation_as_of: 2024-05
   s1_filed: false
   s1_filed_date: ''
@@ -115,16 +115,16 @@ high_profile_pre_ipo:
   as_of_date: '2026-07-06'
 - company: Viva Republica (Toss)
   valuation_usd: 7.4
-  as_of_date: '2026-07-13'
+  as_of_date: '2026-07-14'
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025-2026
+  expected_ipo_window: rumored 2026
   sector: Fintech / Neobank
   source: ai-source-ipo
 - company: Strava
   valuation_usd: 1.5
-  as_of_date: '2026-07-13'
+  as_of_date: '2026-07-14'
   valuation_as_of: 2020-11
   s1_filed: false
   s1_filed_date: ''
@@ -132,7 +132,7 @@ high_profile_pre_ipo:
   sector: Fitness / Social
   source: ai-source-ipo
 - company: X-Energy
-  as_of_date: '2026-07-13'
+  as_of_date: '2026-07-14'
   valuation_as_of: unknown
   s1_filed: false
   s1_filed_date: ''

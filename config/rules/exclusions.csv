@@ -194,3 +194,6 @@ NSIG US,,"auto-llm-other: Growth opportunities equity ETF with no leverage, opti
 SNTQ US,,"auto-llm-other: Synthequity Nasdaq 100 ETF uses synthetic strategies but name does not indicate leverage, options income, or defined mechanics; treated as structured equity exposure."
 ARIA US,,"auto-llm-other: Generic equity ETF with 'Opportunities' name; no clear leverage, options, thematic, or defined outcome mechanic stated."
 JLCO US,,"auto-llm-other: Large-cap equity opportunities fund; standard equity exposure without leverage, options, or thematic mechanics."
+AAUB US,,auto-llm-other: US Equity 4 ETF suggests multi-factor or broad equity strategy without explicit leverage or thematic tilt.
+LOEV US,,auto-llm-other: International developed markets select equity fund; standard geographic/selection-based equity strategy without leverage or options mechanics.
+SEUS US,,auto-llm-other: Factor allocation active ETF blending multiple equity factors; multi-factor equity without leverage or options mechanics.

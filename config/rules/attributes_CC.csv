@@ -491,3 +491,7 @@ LCTO US,,,Traditional,Single Stock
 SLVY US,Silver,,Traditional,Commodity
 RECI US,US Equity,,Traditional,Broad Beta
 CDPI US,US Equity,,Traditional,Broad Beta
+EFAY US,MSCI EAFE,,Traditional,Broad Beta
+AUTB US,Bitcoin,,Autocallable,Single Stock
+VPEP US,Broad Equity,,Traditional,Broad Beta
+TMGN US,Magnificent 10,,Traditional,Tech
