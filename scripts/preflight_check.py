@@ -1195,6 +1195,101 @@ def audit_microsectors_override(db) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Audit: classification_override vs the live rule CSVs (hard FAIL)
+# ---------------------------------------------------------------------------
+
+def audit_override_contradictions(db) -> dict:
+    """classification_override is the HIGHEST-precedence classification layer — a chain
+    step re-applies it to mkt_master_data after every classify. Every row in it was
+    written by one 2026-05-19 CSV migration (all 486 share a single set_at) and nothing
+    has reviewed it since. A row whose value no longer matches the current rule CSV is a
+    ZOMBIE: it silently re-stamps a stale answer over a human's current decision, every
+    single run.
+
+    Found live on 2026-07-16: TLDR carried etp_category='Defined' from the May snapshot.
+    A human had since removed it from fund_mapping.csv and curated exclusions.csv ("REX
+    T-Bill ladder, outside the 5 legacy categories") — and the override overwrote that
+    nightly. It was found by accident, which is the reason this audit exists.
+
+    A contradiction is legitimate ONLY when the override is deliberately supplying a
+    value the CSV cannot (e.g. CEGI/FEGI/FEPI LN are real CC funds absent from
+    fund_mapping). Those are allowlisted below with a reason. Anything else fails.
+    """
+    out = {"name": "Override contradictions", "status": "pass", "detail": "", "conflicts": []}
+
+    # Overrides that intentionally supply what the CSVs don't. Keep this SHORT and
+    # justified — every entry is a place the CSV is not the source of truth.
+    ALLOWED = {
+        "CEGI": "European (LN) REX income fund, not carried in fund_mapping.csv",
+        "FEGI": "European (LN) REX income fund, not carried in fund_mapping.csv",
+        "FEPI": "European (LN) REX income fund, not carried in fund_mapping.csv",
+    }
+
+    import csv as _csv
+    db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
+    fm_path = PROJECT_ROOT / "config" / "rules" / "fund_mapping.csv"
+    if not fm_path.exists():
+        out["status"] = "warn"
+        out["detail"] = "fund_mapping.csv not found; skipped"
+        return out
+    try:
+        with fm_path.open(encoding="utf-8") as fh:
+            fund_map = {
+                (r.get("ticker") or "").strip(): (r.get("etp_category") or "").strip()
+                for r in _csv.DictReader(fh)
+            }
+    except Exception as e:  # noqa: BLE001
+        out["status"] = "warn"
+        out["detail"] = f"could not read fund_mapping.csv ({type(e).__name__}); skipped"
+        return out
+
+    try:
+        con = sqlite3.connect(str(db_path))
+        cur = con.cursor()
+        cur.execute(
+            """SELECT ix.id_value, co.value, co.set_by
+               FROM classification_override co
+               JOIN identifier_xref ix ON ix.canonical_id = co.canonical_id
+               WHERE co.field_name = 'etp_category' AND ix.id_type = 'ticker'"""
+        )
+        rows = cur.fetchall()
+        con.close()
+    except sqlite3.Error as e:
+        out["status"] = "warn"
+        out["detail"] = f"DB read failed ({e}); skipped"
+        return out
+
+    for tk, val, set_by in rows:
+        base = str(tk).strip()
+        key = base if base.endswith(" US") else f"{base} US"
+        if base.split()[0] in ALLOWED or base in ALLOWED:
+            continue
+        if val is None:
+            continue  # explicit blacklist — deliberate, not a contradiction
+        current = fund_map.get(key)
+        if current is None:
+            out["conflicts"].append(
+                {"ticker": base, "override": val, "csv": "<absent from fund_mapping>",
+                 "set_by": set_by})
+        elif current != val:
+            out["conflicts"].append(
+                {"ticker": base, "override": val, "csv": current, "set_by": set_by})
+
+    if out["conflicts"]:
+        out["status"] = "fail"
+        out["detail"] = (
+            f"{len(out['conflicts'])} classification_override row(s) contradict "
+            f"fund_mapping.csv and will re-stamp a stale value: " + "; ".join(
+                f"{c['ticker']} override={c['override']} vs csv={c['csv']}"
+                for c in out["conflicts"][:6])
+            + " — set value=NULL to retire, or allowlist with a reason")
+    else:
+        out["detail"] = (f"{len(rows)} etp_category override(s) all agree with "
+                         f"fund_mapping.csv ({len(ALLOWED)} allowlisted)")
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Audit 12: External jargon backstop (NEW — hard FAIL; root-cause seatbelt)
 # ---------------------------------------------------------------------------
 
@@ -1281,8 +1376,17 @@ def main():
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,
                audit_contract_numbers, audit_timeseries_drift,
-               audit_microsectors_override, audit_external_jargon,
-               audit_daemon_freshness, audit_ai_semantic_review):
+               audit_microsectors_override, audit_override_contradictions,
+               audit_external_jargon, audit_daemon_freshness):
+        # audit_ai_semantic_review is RETIRED from the gate (Ryu 2026-07-16). It judged
+        # plausibility with no ground truth, so it produced confident falsehoods about
+        # verified data — calling Corgi (188 live funds) "a data entry error or test
+        # value" and rex_actv_count=79 "implausibly low", a number both the contract and
+        # the DB confirm. It was pinned to PASS on 2026-06-22 precisely because it cried
+        # wolf every run, which meant it could never block — and therefore could never
+        # signal either. A check that cannot fail and cannot be trusted only teaches
+        # people to skim past warnings. The function is left in place for reference;
+        # nothing calls it.
         print(f"--- {fn.__name__} ---")
         try:
             res = fn(db)
