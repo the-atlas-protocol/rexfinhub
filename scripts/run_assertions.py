@@ -251,6 +251,26 @@ def check_recipient_lists(conn: sqlite3.Connection) -> tuple:
             f"{len(rows)} recipient lists with 0 active recipients")
 
 
+@_make_assertion("report_list_types_valid", "send_pipeline")
+def check_report_list_types_valid(conn: sqlite3.Connection) -> tuple:
+    """Every report's configured list_type must be a known recipient list.
+
+    get_recipients() already hard-fails on an unknown list_type at send time
+    (fix 6bcd550). This asserts the same invariant at 08:00 every day — even when
+    nothing sends — so a list_type typo/rename in send_all.REPORTS is caught the
+    morning it lands, not weeks later at the next send. (staged PLAN-recipient-
+    misroute-hardfail; the runtime half already shipped.)
+    """
+    from webapp.services.recipients import VALID_LIST_TYPES
+    from scripts.send_all import REPORTS
+
+    bad = [{"report": key, "list_type": list_type}
+           for key, (_builder, list_type, _critical) in REPORTS.items()
+           if list_type not in VALID_LIST_TYPES]
+    return (len(bad) == 0, len(bad), bad,
+            f"{len(bad)} report(s) with an unknown list_type")
+
+
 @_make_assertion("send_log_yesterday", "send_pipeline")
 def check_send_log_yesterday(conn: sqlite3.Connection) -> tuple:
     """Yesterday should have at least 1 successful send (Mon-Fri).
@@ -907,7 +927,7 @@ ASSERTIONS = [
         check_bloomberg_freshness, check_mkt_data_volatility, check_atom_watcher,
         check_primary_strategy, check_underlier_id, check_etp_category,
         check_date_inversion, check_duplicate_active_tickers, check_listed_has_actv,
-        check_recipient_lists, check_send_log_yesterday, check_autogo_decision_recent,
+        check_recipient_lists, check_report_list_types_valid, check_send_log_yesterday, check_autogo_decision_recent,
         check_rex_aum_consistency, check_rex_count,
         # Added in second batch
         check_audit_log_freshness, check_fund_underlier_weight,
