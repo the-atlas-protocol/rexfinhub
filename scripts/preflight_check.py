@@ -1,4 +1,4 @@
-"""Pre-send audit — runs ~1h before the daily send window.
+﻿"""Pre-send audit — runs ~1h before the daily send window.
 
 Goal: surface every issue that would normally require a manual investigation
 during send-day. Posts ONE summary email to Ryu so the send-day interaction
@@ -629,6 +629,22 @@ def write_token() -> str:
     return token
 
 
+def _overall_status(audits: list[dict]) -> str:
+    """Roll per-audit statuses into one gate verdict.
+
+    An audit that ERRORED (threw an exception the runner caught) counts as FAIL,
+    not pass and not warn. A check that could not run is not evidence of health —
+    treating it as green is the exact silent-failure the gate exists to prevent.
+    This was live: audit_override_contradictions raised NameError, was recorded as
+    'error', and the run still promoted previews as PASS. (Ryu 2026-07-17.)
+    Single source for all three call sites so they cannot drift apart again."""
+    if any(a["status"] in ("fail", "error") for a in audits):
+        return "fail"
+    if any(a["status"] == "warn" for a in audits):
+        return "warn"
+    return "pass"
+
+
 def write_result_json(audits: list[dict], token: str) -> None:
     """Write structured preflight result to data/.preflight_result.json.
 
@@ -646,11 +662,7 @@ def write_result_json(audits: list[dict], token: str) -> None:
           }
         }
     """
-    overall = "pass"
-    if any(a["status"] == "fail" for a in audits):
-        overall = "fail"
-    elif any(a["status"] in ("warn", "error") for a in audits):
-        overall = "warn"
+    overall = _overall_status(audits)
 
     audit_map: dict = {}
     for a in audits:
@@ -746,11 +758,7 @@ def build_summary_html(audits: list[dict], token: str) -> str:
                              f'<tr><th>File</th><th>Bytes</th><th>Age</th><th>Status</th></tr>'
                              f'{inner}</table>')
 
-    overall = "pass"
-    if any(a["status"] == "fail" for a in audits):
-        overall = "fail"
-    elif any(a["status"] == "warn" for a in audits):
-        overall = "warn"
+    overall = _overall_status(audits)
 
     # Big top CTA — visually impossible to miss, replaces the buried mid-page version.
     # Color signals action: green = safe to GO, amber = warnings to review, red = HOLD.
@@ -1226,6 +1234,7 @@ def audit_override_contradictions(db) -> dict:
     }
 
     import csv as _csv
+    import sqlite3
     db_path = PROJECT_ROOT / "data" / "etp_tracker.db"
     fm_path = PROJECT_ROOT / "config" / "rules" / "fund_mapping.csv"
     if not fm_path.exists():
@@ -1408,11 +1417,7 @@ def main():
     # When preflight returns clean PASS, auto-write the decision file so
     # send_all.py --use-decision can fire without a human dashboard click.
     # Override: touch data/.send_paused to disable auto-GO (manual mode).
-    overall = "pass"
-    if any(a["status"] == "fail" for a in audits):
-        overall = "fail"
-    elif any(a["status"] in ("warn", "error") for a in audits):
-        overall = "warn"
+    overall = _overall_status(audits)
 
     # Phase 7 Part B Stage 2 (ADR 0010): prefer DB-backed system_flags reads;
     # fall back to legacy file-exists check when the helper isn't importable.
