@@ -313,8 +313,19 @@ def name_fallback_brand(fund_name: str) -> str | None:
         # need at least 2 alphabetic chars to be a plausible brand word
         if sum(c.isalpha() for c in word) < 2:
             continue
-        # Preserve all-caps acronyms (AXS, AAM); title-case ordinary words.
-        return word if word.isupper() else word.capitalize()
+        # Casing: Bloomberg fund names are ENTIRELY uppercase, so `word.isupper()`
+        # is true for every word — the old "preserve acronyms" branch therefore fired
+        # on ALL of them and minted ALL-CAPS issuers (WISDOM, ABACUS, STRATEGAS) that
+        # split from their title-cased pattern twins. Title-case is the right default;
+        # preserve as-is only a token that really reads as an acronym: <=3 letters
+        # (AXS, AAM, BNY) OR a 4-letter all-consonant token (no ordinary word is all
+        # consonants; a 4-letter word like TEMA/FREE title-cases). (Ryu 2026-07-16.)
+        _VOWELS = set("AEIOUY")
+        alpha = [c for c in word.upper() if c.isalpha()]
+        is_acronym = len(alpha) <= 3 or (len(alpha) == 4 and not (set(alpha) & _VOWELS))
+        if word.isupper() and is_acronym:
+            return word
+        return word.capitalize()
     return None
 
 
