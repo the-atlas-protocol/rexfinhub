@@ -26,6 +26,15 @@ high_profile_pre_ipo:
   expected_ipo_window: 2026 Q3-Q4
   s1_filed: false
   as_of_date: '2026-06-02'
+- company: SpaceX
+  valuation_usd: 350.0
+  as_of_date: '2026-07-20'
+  valuation_as_of: 2024-12
+  s1_filed: false
+  s1_filed_date: ''
+  expected_ipo_window: no timeline
+  sector: Aerospace / Space
+  source: ai-source-ipo
 - ticker: Databricks
   company: Databricks
   date: Speculative
@@ -48,9 +57,9 @@ high_profile_pre_ipo:
   valuation_usd: 70.0
   last_round_date: '2025-02-26'
   source_url: https://www.ft.com/content/stripe-tender-offer-valuation-2025
-  expected_ipo_window: rumored 2026
+  expected_ipo_window: rumored 2025–2026
   s1_filed: false
-  as_of_date: '2026-07-14'
+  as_of_date: '2026-07-20'
   valuation_as_of: 2024-02
   s1_filed_date: ''
   sector: Fintech / Payments
@@ -91,13 +100,13 @@ high_profile_pre_ipo:
   s1_filed: false
   as_of_date: '2026-05-12'
 - company: VAST Data
-  valuation_usd: 9.7
-  as_of_date: '2026-07-14'
+  valuation_usd: 9.1
+  as_of_date: '2026-07-20'
   valuation_as_of: 2024-05
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Data Infrastructure / AI Storage
+  sector: Enterprise Storage / AI Infrastructure
   source: ai-source-ipo
 - ticker: Discord
   company: Discord
@@ -115,24 +124,33 @@ high_profile_pre_ipo:
   as_of_date: '2026-07-06'
 - company: Viva Republica (Toss)
   valuation_usd: 7.4
-  as_of_date: '2026-07-14'
+  as_of_date: '2026-07-20'
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2026
+  expected_ipo_window: rumored 2025–2026
   sector: Fintech / Neobank
+  source: ai-source-ipo
+- company: Sierra Space
+  valuation_usd: 5.0
+  as_of_date: '2026-07-20'
+  valuation_as_of: 2022-09
+  s1_filed: false
+  s1_filed_date: ''
+  expected_ipo_window: no timeline
+  sector: Aerospace / Defense
   source: ai-source-ipo
 - company: Strava
   valuation_usd: 1.5
-  as_of_date: '2026-07-14'
+  as_of_date: '2026-07-20'
   valuation_as_of: 2020-11
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Fitness / Social
+  sector: Fitness / Consumer Tech
   source: ai-source-ipo
 - company: X-Energy
-  as_of_date: '2026-07-14'
+  as_of_date: '2026-07-20'
   valuation_as_of: unknown
   s1_filed: false
   s1_filed_date: ''
