@@ -64,6 +64,12 @@ STEPS = [
     # next run, leaving the reconciler with nothing to evaluate.
     ("ensure_canonical_identity", [PY, str(PROJECT_ROOT / "scripts" / "ensure_canonical_identity.py")]),
     ("apply_underlier_overrides", [PY, str(PROJECT_ROOT / "scripts" / "apply_underlier_overrides.py")]),
+    # Track B / B1 (2026-07-20): fill underlier_name from map_*_underlier where blank,
+    # and flag underlier_is_wrapper when the underlier is itself a tracked ETF/ETN
+    # (RAM->DRAM, NUGY->NUGT). Runs AFTER fund_master + underlier_overrides so any
+    # curated value wins. Zero count/category impact — underlier_type is NOT touched
+    # (that re-derivation moves the single-name axis and waits for the pinned rule).
+    ("derive_underlier_facts",   [PY, str(PROJECT_ROOT / "scripts" / "derive_underlier_facts.py")]),
     # B1 (2026-06-15): regenerate the regex brand map BEFORE stamping it, so new
     # funds (e.g. overnight PEND launches) get an issuer_display automatically
     # instead of accumulating as NULL until a manual derive run. derive preserves
