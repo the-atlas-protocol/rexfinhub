@@ -28,12 +28,15 @@ Usage:
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
 from datetime import datetime
 
 import pandas as pd
+
+log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Data file resolution -- single source of truth: bloomberg_daily_file.xlsm
