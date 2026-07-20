@@ -40,6 +40,11 @@ RULES_PATHS = [
     "config/rules/issuer_canonicalization.csv",
     "config/rules/underlier_overrides.csv",
     "docs/issuer_review_queue.csv",
+    # ai_source_ipo rewrites this every chain. It was NOT in this list, so it stayed
+    # unstaged in the working tree — and `pull --rebase` then aborted with "you have
+    # unstaged changes", stranding the whole rules commit locally (the divergence that
+    # had to be hand-reconciled on 3 consecutive runs). (Ryu 2026-07-20.)
+    "config/ipo_watchlist.yaml",
 ]
 
 
@@ -64,19 +69,27 @@ def main() -> int:
         return 1
     print(f"committed: {msg}")
 
-    # Land on current main, then push. Rebase is safe: this commit touches
-    # only rules CSVs, which nothing else commits concurrently.
-    pr = _git("pull", "--rebase", "origin", "main")
-    if pr.returncode != 0:
-        _git("rebase", "--abort")
-        print(f"pull --rebase failed (commit kept local): {pr.stderr.strip()[:200]}")
-        return 1
-    pu = _git("push", "origin", "main")
-    if pu.returncode != 0:
-        print(f"push failed (commit kept local, tree still clean): {pu.stderr.strip()[:200]}")
-        return 1
-    print("pushed rules delta to origin/main")
-    return 0
+    # Land on current main, then push. --autostash so any OTHER unstaged change the
+    # chain left in the working tree (not just RULES_PATHS) doesn't abort the rebase.
+    # Retry once on a non-ff push: origin can move between the pull and the push (the
+    # engine and a human both push to main), and leaving the commit local is exactly
+    # the divergence that forces a hand-reconcile next run — so re-pull and retry
+    # rather than strand it. (Ryu 2026-07-20.)
+    for attempt in (1, 2):
+        pr = _git("pull", "--rebase", "--autostash", "origin", "main")
+        if pr.returncode != 0:
+            _git("rebase", "--abort")
+            print(f"pull --rebase failed (commit kept local): {pr.stderr.strip()[:200]}")
+            return 1
+        pu = _git("push", "origin", "main")
+        if pu.returncode == 0:
+            print("pushed rules delta to origin/main")
+            return 0
+        if attempt == 1:
+            print(f"push rejected (attempt 1), re-pulling: {pu.stderr.strip()[:120]}")
+    print(f"push failed after retry (commit kept local, tree still clean): "
+          f"{pu.stderr.strip()[:200]}")
+    return 1
 
 
 if __name__ == "__main__":
