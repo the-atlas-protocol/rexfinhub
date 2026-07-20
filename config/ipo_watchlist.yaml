@@ -102,7 +102,7 @@ high_profile_pre_ipo:
 - company: VAST Data
   valuation_usd: 9.1
   as_of_date: '2026-07-20'
-  valuation_as_of: 2024-05
+  valuation_as_of: 2024-01
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
@@ -129,7 +129,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: rumored 2025–2026
-  sector: Fintech / Mobile Banking
+  sector: Fintech / Neobank
   source: ai-source-ipo
 - company: Sierra Space
   valuation_usd: 5.0

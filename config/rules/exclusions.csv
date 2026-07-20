@@ -208,3 +208,6 @@ RSIT US,,not_li_return_stacked_notional_not_daily_reset
 RSSX US,,not_li_return_stacked_notional_not_daily_reset
 RSBY US,,not_li_return_stacked_notional_not_daily_reset
 RSBA US,,not_li_return_stacked_notional_not_daily_reset
+JLVP US,,"auto-llm-other: Large-cap value equity ETF focused on valuation and quality; no leverage, options, or special mechanics."
+SDUR US,,auto-llm-other: Short-term income fixed-income ETF with no options-income or leverage mechanics indicated.
+WSMD US,,"auto-llm-other: Small/mid-cap equity ETF with no leverage, options, or thematic focus; standard basket exposure."
