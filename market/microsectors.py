@@ -141,13 +141,20 @@ def read_overrides(xl: pd.ExcelFile) -> dict[str, dict]:
         if ticker in aum_daily.columns:
             aum_series = aum_daily[ticker].dropna()
             if not aum_series.empty:
-                ov["aum"] = aum_series.iloc[-1] / 1e6
-                # Dead/matured ETNs (FNGA, ...) carry stale 2024-era issuance whose
-                # _monthly_aum_history anchors to the ticker's OWN last date and bleeds
-                # a false multi-$B bump onto recent months in the time-series chart.
-                # Emit only the current value for them, no synthetic history. (Ryu 2026-06-17.)
-                if ticker not in _DEAD_TICKERS:
-                    ov.update(_monthly_aum_history(aum_series))
+                # Matured/dead ETNs are $0 today — that is what the sheet's own
+                # authoritative Ticker/AUM block reports (FNGA: 0). Their daily
+                # series keeps decaying non-zero values long past maturity
+                # (FNGA's last obs is 2025-05-07 at $417.9M), so the series is
+                # NOT authoritative for them. (Ryu 2026-07-21.)
+                ov["aum"] = 0.0 if ticker in _DEAD_TICKERS else aum_series.iloc[-1] / 1e6
+                # History for EVERY ticker, including dead ones, anchored to the
+                # sheet's global last date. Previously dead tickers were skipped
+                # here to dodge an anchor bug — which left raw Bloomberg issuance
+                # (~2.1x true AUM: FNGA month-17 showed $8,443M vs a true $3,964M)
+                # in the time series and inflated the MicroSectors band on every
+                # historical chart. The global anchor removes the bleed at its
+                # cause, so real history is now safe to emit.
+                ov.update(_monthly_aum_history(aum_series, anchor=aum_daily.index[-1]))
 
         # Flows from shares + prices
         if ticker in shares_daily.columns and ticker in prices_daily.columns:
@@ -406,17 +413,35 @@ def _compute_flows(shares: pd.Series, prices: pd.Series) -> dict[str, float]:
     return flows
 
 
-def _monthly_aum_history(aum_series: pd.Series) -> dict[str, float]:
+def _monthly_aum_history(aum_series: pd.Series,
+                         anchor: "pd.Timestamp | None" = None) -> dict[str, float]:
     """Compute monthly AUM snapshots (aum_1 through aum_36) in millions.
 
     aum_1 = AUM ~1 month ago, aum_2 = ~2 months ago, etc.
     Uses the closest available date at or before the target.
+
+    `anchor` is the sheet's GLOBAL last date and must be passed so every ticker's
+    month-N means the same calendar month. Anchoring to each ticker's own last
+    observation (the old behaviour) silently shifted a matured ETN's history
+    forward — FNGA's 2024-era values landed on recent months. That bleed is why
+    dead tickers were excluded from history entirely, which then left RAW
+    Bloomberg issuance (~2.1x true AUM) in the time series for those months.
+    Anchoring globally fixes the cause, so dead tickers can keep real history.
+
+    Months whose target falls AFTER a ticker's final observation resolve to 0 —
+    the ETN no longer existed. Without this, `valid.iloc[-1]` would carry the
+    last traded value forward forever and show a matured ETN as still live.
+    (Ryu 2026-07-21.)
     """
     result = {}
-    today = aum_series.index[-1]
+    today = anchor if anchor is not None else aum_series.index[-1]
+    last_obs = aum_series.index[-1]
 
     for i in range(1, 37):
         target = today - pd.DateOffset(months=i)
+        if target > last_obs:
+            result[f"aum_{i}"] = 0.0
+            continue
         valid = aum_series[aum_series.index <= target]
         if not valid.empty:
             result[f"aum_{i}"] = valid.iloc[-1] / 1e6
