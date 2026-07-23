@@ -286,6 +286,7 @@ BGIA US,Baillie,name_fallback,first significant word of: BAILLIE GIFFORD INTERNA
 BGIG US,Bahl,name_fallback,first significant word of: BAHL & GAYNOR INCOME GROWTH ETF
 BGRN US,iShares,layer1_regex,Matched fund_name: ISHARES USD GREEN BOND ETF
 BGRO US,iShares,layer1_regex,Matched fund_name: ISHARES LARGE CAP GROWTH ACTIVE ETF
+BGUS US,Baillie,name_fallback,first significant word of: BAILLIE GIFFORD US EQUITY GROWTH ETF
 BHYB US,Xtrackers,layer1_regex,Matched fund_name: XTRACKERS USD HIGH YIELD BB-B EX FINANCIALS ETF
 BIBL US,Inspire,layer1_regex,Matched fund_name: INSPIRE 100 ETF
 BIDD US,iShares,layer1_regex,Matched fund_name: ISHARES INTERNATIONAL DIVIDEND ACTIVE ETF
@@ -701,6 +702,7 @@ DFUV US,Dimensional,layer1_regex,Matched fund_name: DIMENSIONAL US MARKETWIDE VA
 DFVE US,DoubleLine,layer1_regex,Matched fund_name: DOUBLELINE FORTUNE 500 EQUAL WEIGHT ETF
 DFVX US,Dimensional,layer1_regex,Matched fund_name: DIMENSIONAL US LARGE CAP VECTOR ETF
 DGCB US,Dimensional,layer1_regex,Matched fund_name: DIMENSIONAL GLOBAL CREDIT ETF
+DGJL US,First Trust,layer1_regex,Matched fund_name: FT VEST US EQUITY DUAL DIRECTIONAL BUFFER ETF - JULY
 DGLO US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST RBA DEGLOBALIZATION ETF
 DGOO US,Kurv,layer1_regex,Matched fund_name: KURV GOOGLE GOOGL 2X SHORT ETF
 DGRE US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE EMERGING MARKETS QUALITY DIVIDEND GROWTH FUND
@@ -1533,6 +1535,8 @@ HTUS US,Hull,name_fallback,first significant word of: HULL TACTICAL US ETF
 HULL US,Corgi,layer1_regex,Matched fund_name: CORGI SHIPPING & GLOBAL LOGISTICS ETF
 HUSV US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST HORIZON MANAGED VOLATILITY DOMESTIC ETF
 HVAC US,AdvisorShares,layer1_regex,Matched fund_name: ADVISORSHARES HVAC AND INDUSTRIALS ETF
+HWIV US,Hotchkis,name_fallback,first significant word of: HOTCHKIS & WILEY INTERNATIONAL VALUE FUND/ETF
+HWO US,Hotchkis,name_fallback,first significant word of: HOTCHKIS & WILEY OPPORTUNITIES FUND/ETF
 HWSM US,Hotchkis,name_fallback,first significant word of: HOTCHKIS & WILEY SMID CAP DIVERSIFIED VALUE FUND
 HYBB US,iShares,layer1_regex,Matched fund_name: ISHARES BB RATED CORPORATE BOND ETF
 HYBL US,State Street,layer1_regex,Matched fund_name: STATE STREET BLACKSTONE HIGH INCOME ETF

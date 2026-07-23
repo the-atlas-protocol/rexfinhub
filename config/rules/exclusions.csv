@@ -211,3 +211,6 @@ RSBA US,,not_li_return_stacked_notional_not_daily_reset
 JLVP US,,"auto-llm-other: Large-cap value equity ETF focused on valuation and quality; no leverage, options, or special mechanics."
 SDUR US,,auto-llm-other: Short-term income fixed-income ETF with no options-income or leverage mechanics indicated.
 WSMD US,,"auto-llm-other: Small/mid-cap equity ETF with no leverage, options, or thematic focus; standard basket exposure."
+BGUS US,,"auto-llm-other: US equity growth fund with no leverage, options-income mechanics, or thematic focus."
+HWIV US,,"auto-llm-other: International value equity fund without leverage, options-income mechanics, or alternative strategies."
+HWO US,,"auto-llm-other: Opportunities equity fund without leverage, options-income mechanics, or thematic positioning."
