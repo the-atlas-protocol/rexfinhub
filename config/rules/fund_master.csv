@@ -7772,3 +7772,4 @@ AIMG US,DEFIANCE AI MAGNIFICENT 10 ETF,,Equity,Plain Beta,Thematic,,,,,standalon
 TSIB US,DIREXION TSLA DEFINED INCOME BOOST ETF,,Equity,Defined Outcome,Buffer,,,,,standalone,options,,,,,,,,,,,,,,,atlas-auto-2026-07-24,auto: legacy candidate translated (classify_daily)
 RAML US,LEVERAGE SHARES 2X LONG MEMORY DAILY ETF,,Equity,L&I,Long,single,DRAM,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-24,auto: legacy candidate translated (classify_daily)
 EQQQ US,PROSHARES ULTRA QQQ EQUAL WEIGHT,,Equity,L&I,Long,,,,,standalone,swap,2.0,long,daily,,,,,,,,,,,,atlas-auto-2026-07-24,auto: legacy candidate translated (classify_daily)
+RAMZ US,T-REX 2X INVERSE DRAM DAILY TARGET ETF,,Equity,L&I,Short,single,DRAM,,,standalone,swap,2.0,short,daily,,,,,,,,,,,,atlas-auto-2026-07-28,auto: legacy candidate translated (classify_daily)
