@@ -665,6 +665,7 @@ DDXX US,Defined,name_fallback,first significant word of: DEFINED DURATION 20 ETF
 DEED US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST SECURITIZED PLUS ETF
 DEEF US,Xtrackers,layer1_regex,Matched fund_name: XTRACKERS FTSE DEVELOPED EX US MULTIFACTOR ETF
 DEEP US,Acquirers,name_fallback,first significant word of: ACQUIRERS SMALL AND MICRO DEEP VALUE ETF
+DEFI US,Tidal,name_fallback,first significant word of: TIDAL COMMODITIES TRUST I - HASHDEX BITCOIN FUTURES ETF
 DEFR US,Aptus,layer1_regex,Matched fund_name: APTUS DEFERRED INCOME ETF
 DEHP US,Dimensional,layer1_regex,Matched fund_name: DIMENSIONAL EMERGING MARKETS HIGH PROFITABILITY
 DEM US,WisdomTree,layer1_regex,Matched fund_name: WISDOMTREE EMERGING MARKETS HIGH DIVIDEND FUND
@@ -2156,11 +2157,11 @@ MFUL US,Mindful,name_fallback,first significant word of: MINDFUL CONSERVATIVE ET
 MFUS US,PIMCO,layer1_regex,Matched fund_name: PIMCO RAFI DYNAMIC MULTI-FACTOR U.S. EQUITY ETF
 MFUT US,Cambria,layer1_regex,Matched fund_name: CAMBRIA CHESAPEAKE PURE TREND ETF
 MFVL US,Motley Fool,layer1_regex,Matched fund_name: MOTLEY FOOL VALUE FACTOR ETF
-MGC US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MEGA CAP ETF
-MGK US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MEGA CAP GROWTH ETF
+MGC US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR MEGA CAP ETF
+MGK US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR MEGA CAP GROWTH ETF
 MGMT US,Ballast,name_fallback,first significant word of: BALLAST SMALL/MID CAP ETF
 MGOV US,First Trust,layer1_regex,Matched fund_name: FIRST TRUST INTERMEDIATE GOVERNMENT OPPORTUNITIES ETF
-MGV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MEGA CAP VALUE ETF
+MGV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR MEGA CAP VALUE ETF
 MHIG US,Milliman,layer1_regex,Matched fund_name: MILLIMAN HEALTHCARE INFLATION GUARD ETF
 MHIP US,Milliman,layer1_regex,Matched fund_name: MILLIMAN HEALTHCARE INFLATION PLUS ETF
 MHY US,Man,layer1_regex,Matched fund_name: MAN ACTIVE HIGH YIELD ETF
@@ -2283,6 +2284,7 @@ NBJP US,Neuberger Berman,layer1_regex,Matched fund_name: NEUBERGER JAPAN EQUITY 
 NBSD US,Neuberger Berman,layer1_regex,Matched fund_name: NEUBERGER SHORT DURATION INCOME ETF
 NBSM US,Neuberger Berman,layer1_regex,Matched fund_name: NEUBERGER SMALL-MID CAP ETF
 NBTR US,Neuberger Berman,layer1_regex,Matched fund_name: NEUBERGER TOTAL RETURN BOND ETF
+NCIQ US,Hashdex,layer1_regex,Matched fund_name: HASHDEX NASDAQ CME CRYPTO INDEX US ETF
 NCLO US,Nuveen,layer1_regex,Matched fund_name: NUVEEN AA-BBB CLO ETF
 NCPB US,Nuveen,layer1_regex,Matched fund_name: NUVEEN CORE PLUS BOND ETF
 NDAA US,NED,name_fallback,first significant word of: NED DAVIS RESEARCH 360 DYNAMIC ALLOCATION ETF
@@ -3272,6 +3274,7 @@ TPYP US,Tortoise,layer1_regex,Matched fund_name: TORTOISE NORTH AMERICAN PIPELIN
 TPZ US,Tortoise,layer1_regex,Matched fund_name: TORTOISE ELECTRIFICATION INFRASTRUCTURE ETF
 TRBF US,Angel,name_fallback,first significant word of: ANGEL OAK TOTAL RETURN ETF
 TRFM US,AAM,layer1_regex,Matched fund_name: AAM TRANSFORMERS ETF
+TRIL US,VegaShares,layer1_regex,Matched fund_name: VEGASHARES TRILLIONS ETF
 TRND US,Pacer,layer1_regex,Matched fund_name: PACER TRENDPILOT FUND OF FUNDS ETF
 TROT US,Invesco,layer1_regex,Matched fund_name: INVESCO MSCI TREASURY DURATION ROTATION ETF
 TRPA US,Hartford,layer1_regex,Matched fund_name: HARTFORD AAA CLO ETF
@@ -3399,7 +3402,7 @@ VAIE US,VegaShares,layer1_regex,Matched fund_name: VEGASHARES US EQUITY AUTOCALL
 VALQ US,American Century,layer1_regex,Matched fund_name: AMERICAN CENTURY US QUALITY VALUE ETF
 VAMO US,Cambria,layer1_regex,Matched fund_name: CAMBRIA VALUE AND MOMENTUM ETF
 VAW US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MATERIALS ETF
-VB US,Vanguard,layer1_regex,Matched fund_name: VANGUARD SMALL-CAP ETF
+VB US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR SMALL-CAP ETF
 VBCA US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TARGET MATURITY 2027 CORPORATE BOND ETF
 VBCB US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TARGET MATURITY 2028 CORPORATE BOND ETF
 VBCC US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TARGET MATURITY 2029 CORPORATE BOND ETF
@@ -3411,9 +3414,9 @@ VBCH US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TARGET MATURITY 2034 C
 VBCI US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TARGET MATURITY 2035 CORPORATE BOND ETF
 VBCJ US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TARGET MATURITY 2036 CORPORATE BOND ETF
 VBIL US,Vanguard,layer1_regex,Matched fund_name: VANGUARD 0-3 MONTH TREASURY BILL ETF
-VBK US,Vanguard,layer1_regex,Matched fund_name: VANGUARD SMALL-CAP GROWTH ETF
+VBK US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR SMALL-CAP GROWTH ETF
 VBND US,Vident,name_fallback,first significant word of: VIDENT US BOND STRATEGY ETF
-VBR US,Vanguard,layer1_regex,Matched fund_name: VANGUARD SMALL-CAP VALUE ETF
+VBR US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR SMALL-CAP VALUE ETF
 VCEB US,Vanguard,layer1_regex,Matched fund_name: VANGUARD ESG U.S. CORPORATE BOND ETF
 VCHY US,Vanguard,layer1_regex,Matched fund_name: VANGUARD US HIGH-YIELD CORPORATE BOND INDEX ETF
 VCIT US,Vanguard,layer1_regex,Matched fund_name: VANGUARD INTERMEDIATE-TERM CORPORATE BOND ETF
@@ -3480,8 +3483,8 @@ VNM US,VanEck,layer1_regex,Matched fund_name: VANECK VIETNAM ETF
 VNQ US,Vanguard,layer1_regex,Matched fund_name: VANGUARD REAL ESTATE ETF
 VNQI US,Vanguard,layer1_regex,Matched fund_name: VANGUARD GLOBAL EX-U.S. REAL ESTATE ETF
 VNSE US,Natixis,layer1_regex,Matched fund_name: NATIXIS VAUGHAN NELSON SELECT ETF
-VO US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MID-CAP ETF
-VOE US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MID-CAP VALUE ETF
+VO US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR MID-CAP ETF
+VOE US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR MID-CAP VALUE ETF
 VOLT US,Tema,layer1_regex,Matched fund_name: TEMA ELECTRIFICATION ETF
 VONE US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 1000
 VONG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 1000 GROWTH ETF
@@ -3489,7 +3492,7 @@ VONV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 1000 VALUE
 VOO US,Vanguard,layer1_regex,Matched fund_name: VANGUARD S&P 500 ETF
 VOOG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD S&P 500 GROWTH ETF
 VOOV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD S&P 500 VALUE ETF
-VOT US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MID-CAP GROWTH ETF
+VOT US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR MID-CAP GROWTH ETF
 VOTE US,TCW,layer1_regex,Matched fund_name: TCW TRANSFORM 500 ETF
 VOX US,Vanguard,layer1_regex,Matched fund_name: VANGUARD COMMUNICATION SERVICES ETF
 VOXP US,VOX,name_fallback,first significant word of: VOX POPULI ETF
@@ -3520,21 +3523,21 @@ VTEL US,Vanguard,layer1_regex,Matched fund_name: VANGUARD LONG-TERM TAX-EXEMPT B
 VTES US,Vanguard,layer1_regex,Matched fund_name: VANGUARD SHORT-TERM TAX-EXEMPT BOND ETF
 VTG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TOTAL TREASURY ETF
 VTHR US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 3000
-VTI US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TOTAL STOCK MARKET ETF
+VTI US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR TOTAL STOCK MARKET ETF
 VTIP US,Vanguard,layer1_regex,Matched fund_name: VANGUARD SHORT-TERM INFLATION-PROTECTED SECURITIES ETF
 VTP US,Vanguard,layer1_regex,Matched fund_name: VANGUARD TOTAL INFLATION-PROTECTED SECURITIES ETF
-VTV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD VALUE ETF
+VTV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR VALUE ETF
 VTWG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 2000 GROWTH
 VTWO US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 2000 ETF
 VTWV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD RUSSELL 2000 VALUE
-VUG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD GROWTH ETF
+VUG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR GROWTH ETF
 VUS US,Virtus,layer1_regex,Matched fund_name: VIRTUS US DIVIDEND ETF
 VUSB US,Vanguard,layer1_regex,Matched fund_name: VANGUARD ULTRA SHORT BOND ETF
 VUSE US,Vident,name_fallback,first significant word of: VIDENT US EQUITY STRATEGY ETF
 VUSG US,Vanguard,layer1_regex,Matched fund_name: VANGUARD WELLINGTON US GROWTH ACTIVE ETF
 VUSI US,Voya,name_fallback,first significant word of: VOYA ULTRA SHORT INCOME ETF
 VUSV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD WELLINGTON US VALUE ACTIVE ETF
-VV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD LARGE-CAP ETF
+VV US,Vanguard,layer1_regex,Matched fund_name: VANGUARD MORNINGSTAR LARGE-CAP ETF
 VWO US,Vanguard,layer1_regex,Matched fund_name: VANGUARD FTSE EMERGING MARKETS ETF
 VWOB US,Vanguard,layer1_regex,Matched fund_name: VANGUARD EMERGING MARKETS GOVERNMENT BOND ETF
 VXF US,Vanguard,layer1_regex,Matched fund_name: VANGUARD EXTENDED MARKET ETF
