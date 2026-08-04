@@ -150,17 +150,17 @@ high_profile_pre_ipo:
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025
+  expected_ipo_window: rumored 2025-2026
   sector: Fintech
   source: ai-source-ipo
 - company: Sierra Space
   valuation_usd: 5.3
   as_of_date: '2026-08-04'
-  valuation_as_of: 2021-12
+  valuation_as_of: 2022-09
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Aerospace / Defense
+  sector: Aerospace / Space
   source: ai-source-ipo
 - company: SambaNova Systems
   valuation_usd: 5.1
@@ -178,7 +178,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Fitness / Social
+  sector: Fitness / Social App
   source: ai-source-ipo
 - company: X-Energy
   as_of_date: '2026-08-04'
