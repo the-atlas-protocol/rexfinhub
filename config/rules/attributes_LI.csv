@@ -1138,7 +1138,7 @@ BTDL US,Equity,Single Stock,Long,2.0,NTAP
 GOIB US,Equity,Index/Basket/ETF Based,Long,,
 RAML US,Equity,Single Stock,Long,2.0,DRAM
 EQQQ US,Equity,Index/Basket/ETF Based,Long,2.0,
-RAMZ US,Equity,Single Stock,Short,2.0,DRAM
+RAMZ US,Equity,Index/Basket/ETF Based,Short,2.0,DRAM
 SKHN US,Equity,Single Stock,Short,2.0,SKHY
 SKHA US,Equity,Single Stock,Long,2.0,SKHY
 LOFD US,Equity,Single Stock,Short,2.0,SPCX
