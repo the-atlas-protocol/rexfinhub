@@ -1141,3 +1141,13 @@ EQQQ US,Equity,Index/Basket/ETF Based,Long,2.0,
 RAMZ US,Equity,Single Stock,Short,2.0,DRAM
 SKHN US,Equity,Single Stock,Short,2.0,SKHY
 SKHA US,Equity,Single Stock,Long,2.0,SKHY
+LOFD US,Equity,Single Stock,Short,2.0,SPCX
+AKAL US,Equity,Index/Basket/ETF Based,Long,2.0,
+SMHD US,Equity,Index/Basket/ETF Based,Short,3.0,
+SMHU US,Equity,Index/Basket/ETF Based,Long,3.0,
+PENU US,Equity,Single Stock,Long,2.0,PENG
+STLL US,Equity,Single Stock,Long,2.0,STRL
+MXLL US,Equity,Single Stock,Long,2.0,MXL
+LITG US,Equity,Single Stock,Long,2.0,LITE
+ELOL US,Equity,Index/Basket/ETF Based,Long,2.0,
+OCNL US,,Single Stock,Long,2.0,DOCN

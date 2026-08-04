@@ -496,3 +496,9 @@ AUTB US,Bitcoin,,Autocallable,Single Stock
 VPEP US,Broad Equity,,Traditional,Broad Beta
 TMGN US,Magnificent 10,,Traditional,Tech
 SKH US,SKH,,,Single Stock
+MPIM US,,,Synthetic,Broad Beta
+ACQQ US,,NXA35C6A,Synthetic,Tech
+ACRT US,,R2VC35AC,Synthetic,Small Caps
+MPDY US,,,Synthetic,Broad Beta
+DACL US,,BMAXDACL,Synthetic,Broad Beta
+KEO US,Broad Equity Basket,,,Broad Beta

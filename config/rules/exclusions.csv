@@ -214,3 +214,15 @@ WSMD US,,"auto-llm-other: Small/mid-cap equity ETF with no leverage, options, or
 BGUS US,,"auto-llm-other: US equity growth fund with no leverage, options-income mechanics, or thematic focus."
 HWIV US,,"auto-llm-other: International value equity fund without leverage, options-income mechanics, or alternative strategies."
 HWO US,,"auto-llm-other: Opportunities equity fund without leverage, options-income mechanics, or thematic positioning."
+TRIL US,,auto-llm-other: Broad equity ETF with no clear thematic or leverage focus; name is generic and provides no specialized strategy signal.
+TIH US,,auto-llm-other: Generic equity ETF with no strategic mechanics indicated in name or issuer.
+RJCA US,,"auto-llm-other: Straightforward capital appreciation equity ETF with no leverage, options, thematic focus, or defined strategy mechanics."
+BGFI US,,auto-llm-other: Global fixed income ETF with no options-income or leverage mechanics indicated.
+BEMD US,,auto-llm-other: BNY Mellon emerging markets debt ETF is fixed income with no options or leverage mechanics.
+SMTJ US,,"auto-llm-other: Active Japan equity fund with no leverage, options, or defined strategy mechanics."
+GCPB US,,auto-llm-other: Core Plus Bond ETF is fixed income with no leverage or options-income mechanics mentioned.
+ANGU US,,"auto-llm-other: SEI Enhanced US Large Cap ETF is active equity management without explicit leverage, options, or thematic focus."
+DLCU US,,"auto-llm-other: Dimensional large-cap value/quality equity ETF with no leverage, options mechanics, or thematic tilt."
+ARMS US,,auto-llm-other: Multi-sector income fixed-income ETF; dividend/interest income without explicit options-writing mechanics.
+ARCP US,,"auto-llm-other: Core plus fixed-income ETF; income stream from bonds and credit, not options-based."
+BMSI US,,auto-llm-other: BNY Mellon multi-sector income fixed-income ETF; bond/credit income without explicit options mechanics.
