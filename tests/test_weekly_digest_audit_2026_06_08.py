@@ -40,7 +40,7 @@ def _make_master_df() -> pd.DataFrame:
             {
                 "ticker": "TSLT", "ticker_clean": "TSLT", "fund_name": "T-REX 2X Tesla",
                 "is_rex": True, "issuer_display": "REX",
-                "rex_suite": "T-REX", "category_display": "Leverage & Inverse - Single Stock",
+                "rex_suite": "T-REX", "category_display": "Leverage & Inverse - Single Equity",
                 "primary_category": "LI", "fund_type": "ETF", "market_status": "ACTV",
                 "t_w4.aum": 500.0, "t_w4.aum_1": 480.0,
                 "t_w4.fund_flow_1week": 10.0, "t_w4.fund_flow_1month": 20.0,
@@ -50,7 +50,7 @@ def _make_master_df() -> pd.DataFrame:
             {
                 "ticker": "NVDX", "ticker_clean": "NVDX", "fund_name": "T-REX 2X NVDA",
                 "is_rex": True, "issuer_display": "REX",
-                "rex_suite": "T-REX", "category_display": "Leverage & Inverse - Single Stock",
+                "rex_suite": "T-REX", "category_display": "Leverage & Inverse - Single Equity",
                 "primary_category": "LI", "fund_type": "ETF", "market_status": "ACTV",
                 "t_w4.aum": 700.0, "t_w4.aum_1": 650.0,
                 "t_w4.fund_flow_1week": 15.0, "t_w4.fund_flow_1month": 25.0,
@@ -61,7 +61,7 @@ def _make_master_df() -> pd.DataFrame:
             {
                 "ticker": "REXX", "ticker_clean": "REXX", "fund_name": "REX Issuer-Only Fund",
                 "is_rex": False, "issuer_display": "REX",
-                "rex_suite": "T-REX", "category_display": "Leverage & Inverse - Single Stock",
+                "rex_suite": "T-REX", "category_display": "Leverage & Inverse - Single Equity",
                 "primary_category": "LI", "fund_type": "ETF", "market_status": "ACTV",
                 "t_w4.aum": 200.0, "t_w4.aum_1": 180.0,
                 "t_w4.fund_flow_1week": 5.0, "t_w4.fund_flow_1month": 10.0,
@@ -72,7 +72,7 @@ def _make_master_df() -> pd.DataFrame:
             {
                 "ticker": "BULZ", "ticker_clean": "BULZ", "fund_name": "MicroSectors FANG+",
                 "is_rex": True, "issuer_display": "REX",
-                "rex_suite": "MicroSectors", "category_display": "Leverage & Inverse - Index/Basket/ETF Based",
+                "rex_suite": "MicroSectors", "category_display": "Leverage & Inverse - Index/Basket",
                 "primary_category": "LI", "fund_type": "ETN", "market_status": "ACTV",
                 "t_w4.aum": 1000.0, "t_w4.aum_1": 950.0,
                 "t_w4.fund_flow_1week": 0.0, "t_w4.fund_flow_1month": 0.0,
@@ -83,7 +83,7 @@ def _make_master_df() -> pd.DataFrame:
             {
                 "ticker": "TSLL", "ticker_clean": "TSLL", "fund_name": "Direxion 2X Tesla",
                 "is_rex": False, "issuer_display": "Direxion",
-                "rex_suite": None, "category_display": "Leverage & Inverse - Single Stock",
+                "rex_suite": None, "category_display": "Leverage & Inverse - Single Equity",
                 "primary_category": "LI", "fund_type": "ETF", "market_status": "ACTV",
                 "t_w4.aum": 1500.0, "t_w4.aum_1": 1400.0,
                 "t_w4.fund_flow_1week": 50.0, "t_w4.fund_flow_1month": 100.0,

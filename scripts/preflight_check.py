@@ -132,13 +132,45 @@ def audit_ticker_dupes_recent(db) -> dict:
         from collections import defaultdict
         groups = defaultdict(set)
         rows = cur.fetchall()
+        # A symbol only matters here if it is a REAL listed ETP in our universe. Mutual-fund
+        # SHARE-CLASS codes (Federated IS/R6/WS/SS, PIMCO SY, ...) are carried by every series
+        # in a fund family, so they always look "duplicated across series" and fired this gate
+        # as a false positive on non-ETP mutual funds that never reach a report. Testing
+        # membership in mkt_master_data is structural — no hand-maintained blocklist to chase.
+        cur.execute("SELECT DISTINCT UPPER(TRIM(REPLACE(ticker, ' US', ''))) "
+                    "FROM mkt_master_data WHERE ticker IS NOT NULL")
+        _etp_universe = {r[0] for r in cur.fetchall() if r[0]}
+        _skipped = 0
         for reg, sym, ser, *_ in rows:
+            if str(sym).strip().upper() not in _etp_universe:
+                _skipped += 1
+                continue
             groups[(reg, sym)].add(ser)
-        bleed = [(k, v) for k, v in groups.items() if len(v) > 1]
+        # A ticker carrying several series names is only BLEED if they are different
+        # FUNDS. A fund RENAME produces the old and new name on the same ticker across
+        # sequential filings (e.g. RVNU: "Xtrackers Municipal Infrastructure Revenue Bond
+        # ETF" -> "... Revenue Bond Active ETF" on 2026-08-03/04) — same fund, not a
+        # collision. Treat near-identical names as one fund.
+        import difflib
+
+        def _same_fund(names):
+            ns = [" ".join(str(n).upper().replace("-", " ").split()) for n in names]
+            for i in range(len(ns)):
+                for j in range(i + 1, len(ns)):
+                    a, b = ns[i], ns[j]
+                    if a in b or b in a:
+                        continue
+                    if difflib.SequenceMatcher(None, a, b).ratio() >= 0.85:
+                        continue
+                    return False   # a genuinely different fund -> real bleed
+            return True
+
+        bleed = [(k, v) for k, v in groups.items() if len(v) > 1 and not _same_fund(v)]
         con.close()
 
         if not bleed:
-            out["detail"] = f"no ticker dupes in {len(rows)} extractions added in last 24h"
+            out["detail"] = (f"no ticker dupes in {len(rows)} extractions added in last 24h "
+                             f"({_skipped} non-ETP symbols skipped)")
         else:
             base_detail = f"{len(bleed)} (registrant, ticker) pairs duplicated across series"
             if _maintenance_window_active():
@@ -1112,6 +1144,71 @@ def audit_timeseries_drift(db) -> dict:
 
 
 
+def audit_category_vocabulary(db) -> dict:
+    """Stage B4 — category_display must only ever carry the PINNED vocabulary.
+
+    The Single Equity rename touched 13 files, and the dangerous ones compare the
+    literal string rather than importing the constant: a missed site does not raise,
+    it returns an EMPTY set and a headline number quietly becomes 0. The verification
+    harness caught exactly that during the 2026-08-04 rename (trex_single_stock read 0
+    instead of 43 while the DB still held the old strings).
+
+    This makes that failure impossible to ship: any legacy value in category_display,
+    or any live fund whose value is outside the pinned set, is a HARD FAIL.
+    """
+    out = {"name": "Category vocabulary", "status": "pass", "detail": "", "rows": []}
+    import sqlite3
+    try:
+        from market.config import (CAT_LI_SS, CAT_LI_INDEX, CAT_LI_OTHER,
+                                   CAT_CC_SS, CAT_CC_INDEX, CAT_CC_OTHER,
+                                   CAT_CRYPTO, CAT_DEFINED, CAT_THEMATIC)
+    except Exception as e:
+        out["status"] = "warn"
+        out["detail"] = f"constants unavailable ({type(e).__name__}); skipped"
+        return out
+
+    allowed = {CAT_LI_SS, CAT_LI_INDEX, CAT_LI_OTHER, CAT_CC_SS, CAT_CC_INDEX,
+               CAT_CC_OTHER, CAT_CRYPTO, CAT_DEFINED, CAT_THEMATIC, "", None}
+    LEGACY = ("Leverage & Inverse - Single Stock",
+              "Leverage & Inverse - Index/Basket/ETF Based",
+              "Income - Single Stock",
+              "Income - Index/Basket/ETF Based")
+    try:
+        con = sqlite3.connect(str(PROJECT_ROOT / "data" / "etp_tracker.db"))
+        cur = con.cursor()
+        cur.execute("SELECT DISTINCT category_display FROM mkt_master_data "
+                    "WHERE market_status='ACTV'")
+        seen = [r[0] for r in cur.fetchall()]
+        legacy = [v for v in seen if v in LEGACY]
+        unknown = [v for v in seen if v not in allowed and v not in LEGACY]
+        # the single-name axis must not be empty — that is the silent-breaker signature
+        cur.execute("SELECT COUNT(*) FROM mkt_master_data WHERE market_status='ACTV' "
+                    "AND category_display LIKE ?", (f"%{CAT_LI_SS.split(' - ')[-1]}%",))
+        n_single = cur.fetchone()[0]
+        con.close()
+    except sqlite3.Error as e:
+        out["status"] = "warn"
+        out["detail"] = f"DB read failed ({e}); skipped"
+        return out
+
+    bits = []
+    if legacy:
+        bits.append("LEGACY vocabulary still in category_display: " + ", ".join(legacy))
+    if unknown:
+        bits.append("unrecognised category_display value(s): " + ", ".join(map(str, unknown[:5])))
+    if n_single == 0:
+        bits.append(f"ZERO funds match the single-name axis ('{CAT_LI_SS}') — a rename "
+                    f"site was missed and the filter is returning empty")
+    if bits:
+        out["status"] = "fail"
+        out["detail"] = "; ".join(bits)
+        out["rows"] = [{"legacy": legacy, "unknown": unknown[:5], "single_count": n_single}]
+    else:
+        out["detail"] = (f"category_display uses only the pinned vocabulary "
+                         f"({len(seen)} distinct); single-name axis matches {n_single} fund(s)")
+    return out
+
+
 def audit_microsectors_override(db) -> dict:
     """Stage C (Tier-2 structural invariant): the MicroSectors true-AUM override MUST
     actually apply. For each reliable ETN the DB AUM must equal the override sheet's
@@ -1163,19 +1260,31 @@ def audit_microsectors_override(db) -> dict:
     # shipping raw Bloomberg AUM (9x and 217x overstated) to BMO. A one-directional
     # check cannot see an omission; it must also ask the DB what it is missing.
     # (Ryu 2026-07-16: "Any time there is that failure it must be fixed.")
-    uncovered = []
+    uncovered = []          # live, uncovered, AND carrying AUM -> real leak, FAIL
+    uncovered_no_aum = []   # live, uncovered, but no AUM at all (same-day launch) -> WARN
     try:
         con = sqlite3.connect(str(db_path)); cur = con.cursor()
         cur.execute(
-            """SELECT ticker, fund_name FROM mkt_master_data
+            """SELECT ticker, fund_name, aum FROM mkt_master_data
                WHERE market_status='ACTV' AND rex_suite='MicroSectors' ORDER BY ticker"""
         )
         live = cur.fetchall()
         con.close()
         covered = {str(t).strip() for t in ov.keys() if not str(t).startswith("__")}
-        for tk, nm in live:
-            if str(tk).strip() not in covered:
-                uncovered.append(str(tk).strip())
+        # An uncovered ETN only actually SHIPS raw Bloomberg AUM if it HAS an AUM value.
+        # A same-day launch (SMHU/SMHD listed 2026-08-04) has #ERROR in data_aum and no
+        # microsector_aum column yet, so its AUM is NULL — nothing inflated is reaching a
+        # report, and there is no override value to compare against. Blocking the whole
+        # send on that is a false positive; blocking on AIQU/AIQD ($16.3M and $32.2M of
+        # raw Bloomberg AUM going to BMO) is the real thing this gate exists for.
+        for tk, nm, _aum in live:
+            t = str(tk).strip()
+            if t in covered:
+                continue
+            if _aum is None or float(_aum or 0) == 0.0:
+                uncovered_no_aum.append(t)
+            else:
+                uncovered.append(t)
     except sqlite3.Error as e:
         out["status"] = "warn"
         out["detail"] = f"reverse coverage check failed ({e})"
@@ -1199,6 +1308,16 @@ def audit_microsectors_override(db) -> dict:
     else:
         out["detail"] = (f"all {checked} MicroSectors ETNs match the override; "
                          f"{len(live)} live ETN(s) all covered")
+    if uncovered_no_aum:
+        out["uncovered_no_aum"] = uncovered_no_aum
+        note = (f"{len(uncovered_no_aum)} live MicroSectors ETN(s) not in the override but "
+                f"carry NO AUM yet (new listing): " + ", ".join(uncovered_no_aum[:6]) +
+                " — add their microsector_aum columns + _RELIABLE_TICKERS before they trade")
+        if out["status"] == "pass":
+            out["status"] = "warn"
+            out["detail"] = (out["detail"] + "; " + note) if out["detail"] else note
+        else:
+            out["detail"] = out["detail"] + "; " + note
     return out
 
 
@@ -1380,7 +1499,7 @@ def main():
 
     audits = []
     for fn in (audit_bloomberg, audit_classification, audit_duplicate_tickers,
-               audit_ticker_dupes_recent, audit_null_fund_name,
+               audit_ticker_dupes_recent, audit_null_fund_name, audit_category_vocabulary,
                audit_null_data, audit_recipients, audit_previews,
                audit_data_freshness, audit_attribution_completeness,
                audit_report_charts, audit_status_canonical,

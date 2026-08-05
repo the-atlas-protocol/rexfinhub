@@ -12,8 +12,8 @@
 # exact mask). If the two ever disagree, the plain English is the intent of record.
 #
 # category_display exact strings live in market/config.py (CAT_LI_SS etc.):
-#   "Leverage & Inverse - Single Stock" / "... - Index/Basket/ETF Based"
-#   "Income - Single Stock"             / "Income - Index/Basket/ETF Based"
+#   "Leverage & Inverse - Single Equity" / "... - Index/Basket"
+#   "Income - Single Equity"             / "Income - Index/Basket"
 # =============================================================================
 
 version: 1
@@ -48,6 +48,50 @@ definitions:
     looks_wrong_if: >
       The description is about bonds, treasuries, dividends, or "fixed income" with no
       mention of options, calls, puts, or premium.
+
+  SINGLE_EQUITY:
+    name: Single Equity (the single-name axis)
+    means: >
+      A fund whose exposure is to EXACTLY ONE underlying asset — a STOCK, an ETF, or a
+      CRYPTO asset. RAM and RAMZ both track the DRAM ETF: one asset, so both are Single
+      Equity. BTCL/BTCZ/ETU track one coin: also Single Equity — structurally identical to
+      a 2x NVDA fund (one name, directional, leveraged), and calling them Index/Basket
+      would file them next to FANG+ and understate the single-name book (Ryu 2026-08-04:
+      "Crypto counts as single"). A fund tracking an INDEX, a BASKET, a COMMODITY or an
+      FX pair is NOT Single Equity.
+    is_not: >
+      An index/basket fund, or any MicroSectors product. MicroSectors is ALWAYS
+      Index/Basket regardless of what it tracks — SHNY/DULL track the GLD ETF (one
+      security) and would otherwise flip to Single Equity. That exception is what makes
+      this rule safe to apply; the 2026-06 attempt (0185be8) omitted it, moved MicroSectors
+      Gold, and had to be reverted (a0bb34a).
+    looks_wrong_if: >
+      A MicroSectors ETN appears under Single Equity; or a fund with a single ETF underlier
+      (RAM/DRAM, GraniteShares YieldBoost-on-ETF, SEMY/SOXL, NUGY/NUGT) sits in Index/Basket.
+    rule: >
+      Single Equity  <=>  underlier_type IN (Stock, ETF, Crypto)
+                          AND exactly one underlier
+                          AND rex_suite != 'MicroSectors'
+      Index/Basket   <=>  everything else.
+    underlier_type_vocabulary: >
+      Stock | ETF | Index | Commodity | FX | Crypto.
+      "Stock" (not "Equity") on purpose: "Single Equity" is the BUCKET, and it contains both
+      stocks and ETFs — reusing "Equity" as a type value would collide with the bucket name
+      (Ryu 2026-08-04).
+    naming: >
+      Display strings become "Single Equity" and "Index/Basket" (dropping "/ETF Based",
+      which is now implied by Single Equity covering ETFs).
+
+  FIXED_INCOME:
+    name: Fixed Income
+    means: >
+      A bond / treasury / T-bill / credit fund. Income WITHOUT an options strategy.
+    is_not: >
+      An option-income (CC) fund. TLDR (The Laddered T-Bill ETF) is Fixed Income, not CC —
+      it was deliberately kept out of CC by 0d095fb and then had NO category at all, so
+      every category-keyed view dropped it (Ryu 2026-08-04: "TLDR is Fixed Income").
+    looks_wrong_if: >
+      TLDR carries a NULL etp_category, or is counted as option-income.
 
 
 # -----------------------------------------------------------------------------
@@ -85,7 +129,7 @@ numbers:
   trex_single_stock_li_actv:
     label: T-REX single-stock L&I (live)
     means: How many of REX's live single-stock leveraged/inverse ETPs there are.
-    expected: 41  # 2026-07-22: +HYNX US (T-REX 2X Long SKHY / SK Hynix, single-stock, launched 2026-07-14) — was missing from rex_funds.csv so is_rex was 0 for 8 days and it counted nowhere; adding it makes single-stock 41. RAM US (Roundhill T-REX DRAM) stays Index/Basket (DRAM ETF underlier), in rex_total_actv not here. [2026-07-13: PAAU US -> DLST, SPOU US -> PEND, both drop from ACTV]
+    expected: 43  # 2026-08-04: +RAM +RAMZ. Ryu's rule — Single Equity = exactly ONE underlying security (equity OR ETF); both track the DRAM ETF. MicroSectors stays Index/Basket by the standing exception, so this does NOT repeat the 0185be8 churn (which also moved MicroSectors Gold and was reverted by a0bb34a).
     looks_wrong_if: >
       The count jumps with no new launch; a not-yet-launched (PEND) or delisted fund is
       counted; or an index/basket fund slips in.
@@ -95,13 +139,13 @@ numbers:
       etp_category: LI
       market_status: ACTV
       fund_type: [ETF, ETN]
-      category_display_contains: "Single Stock"
+      category_display_contains: "Single Equity"
       dedup_by: ticker_clean
 
   microsectors_index_li_actv:
     label: MicroSectors index L&I (live)
     means: How many live MicroSectors index/basket leveraged/inverse ETNs there are.
-    expected: 22
+    expected: 24  # 2026-08-04: +SMHU/+SMHD (MicroSectors 3X Long / -3X Short Semiconductor ETNs, listed 2026-08-04).
     looks_wrong_if: >
       A single-stock fund is counted here; AUM uses Bloomberg's inflated number instead of
       the override; a closed ETN still counts.
@@ -127,7 +171,7 @@ numbers:
       etp_category: CC
       market_status: ACTV
       fund_type: [ETF, ETN]
-      category_display_contains: "Single Stock"
+      category_display_contains: "Single Equity"
       dedup_by: ticker_clean
 
   rex_income_index_actv:
@@ -149,7 +193,7 @@ numbers:
   rex_total_actv:
     label: REX total live ETPs (all suites)
     means: Every live REX product across all suites.
-    expected: 80  # 2026-07-22: +HYNX US (T-REX 2X Long SKHY, launched 2026-07-14, was is_rex=0 for 8 days — never added to rex_funds.csv). [79 from 2026-07-13 after PAAU->DLST, SPOU->PEND; 80 from 2026-06-29 +RAM US]
+    expected: 83  # 2026-08-04: +SMHU/+SMHD listed 2026-08-04. [81 from 2026-08-04 +RAMZ]
     looks_wrong_if: >
       Pending or closed funds are counted; the number doesn't equal the sum of the per-suite
       live counts.

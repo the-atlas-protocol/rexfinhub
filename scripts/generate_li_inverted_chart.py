@@ -20,7 +20,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from scripts.generate_market_share_charts import _load, _chart_comp, _BG
 
 
-CATEGORY_DB = "Leverage & Inverse - Single Stock"
+CATEGORY_DB = "Leverage & Inverse - Single Equity"
 LABEL = "L&I Single Stock"
 
 

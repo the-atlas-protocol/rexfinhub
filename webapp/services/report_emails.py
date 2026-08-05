@@ -1148,7 +1148,7 @@ def _li_highlights(data: dict) -> list[str]:
     if ss_kpis.get("count", 0) > 0 and idx_kpis.get("count", 0) > 0:
         ss_flow = ss_kpis.get("flow_1w", "--")
         idx_flow = idx_kpis.get("flow_1w", "--")
-        bullets.append(f"Single stock: {ss_flow} 1W vs index/ETF: {idx_flow} 1W")
+        bullets.append(f"Single equity: {ss_flow} 1W vs index/ETF: {idx_flow} 1W")
 
     return bullets[:5]
 
@@ -1411,12 +1411,12 @@ def _build_report_email(data: dict, report_type: str, title: str,
 
     # Category DB names for chart generation
     if is_li:
-        ss_cat = "Leverage & Inverse - Single Stock"
-        idx_cat = "Leverage & Inverse - Index/Basket/ETF Based"
+        ss_cat = "Leverage & Inverse - Single Equity"
+        idx_cat = "Leverage & Inverse - Index/Basket"
         ss_label, idx_label = "L&I Single Stock", "L&I Index/ETF"
     else:
-        ss_cat = "Income - Single Stock"
-        idx_cat = "Income - Index/Basket/ETF Based"
+        ss_cat = "Income - Single Equity"
+        idx_cat = "Income - Index/Basket"
         ss_label, idx_label = "Income Single Stock", "Income Index/ETF"
 
     # Key Highlights box (right after header, before any sections)
@@ -1426,7 +1426,7 @@ def _build_report_email(data: dict, report_type: str, title: str,
     # ====================================================================
     # SINGLE STOCK SEGMENT
     # ====================================================================
-    ss_seg = _section_title("Single Stock", _NAVY)
+    ss_seg = _section_title("Single Equity", _NAVY)
     ss_seg += _market_position_card(ss_cat, ss_label, data.get("ss_kpis"))
     ss_seg += _segment_charts(ss_cat, ss_label)
     ss_rex = data.get("ss_rex_funds", [])

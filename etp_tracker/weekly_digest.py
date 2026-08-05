@@ -64,14 +64,14 @@ _SUITE_ABBREVS = {
 }
 
 # Income categories for yield filtering
-_INCOME_CATEGORIES = {"Income - Single Stock", "Income - Index/Basket/ETF Based"}
+_INCOME_CATEGORIES = {"Income - Single Equity", "Income - Index/Basket"}
 
 # Category landscape: (internal_name, display_name, border_color)
 _LANDSCAPE_CATS = [
-    ("Leverage & Inverse - Single Stock", "Leveraged Single Stock", "#A44A3F"),
-    ("Leverage & Inverse - Index/Basket/ETF Based", "Leveraged Index/ETF", "#A44A3F"),
-    ("Income - Single Stock", "Income (Single Stock)", "#F3DFC1"),
-    ("Income - Index/Basket/ETF Based", "Income (Index/ETF)", "#F3DFC1"),
+    ("Leverage & Inverse - Single Equity", "Leveraged Single Stock", "#A44A3F"),
+    ("Leverage & Inverse - Index/Basket", "Leveraged Index/ETF", "#A44A3F"),
+    ("Income - Single Equity", "Income (Single Stock)", "#F3DFC1"),
+    ("Income - Index/Basket", "Income (Index/ETF)", "#F3DFC1"),
     ("Crypto", "Crypto", "#5227CA"),
     ("Thematic", "Thematic", "#0496FF"),
 ]

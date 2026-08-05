@@ -39,11 +39,11 @@ function fmtPct(n) {
 // Get category color for Chart.js
 function getCategoryColor(cat) {
   var map = {
-    'Leverage & Inverse - Single Stock': '#e74c3c',
-    'Leverage & Inverse - Index/Basket/ETF Based': '#c0392b',
+    'Leverage & Inverse - Single Equity': '#e74c3c',
+    'Leverage & Inverse - Index/Basket': '#c0392b',
     'Crypto': '#8e44ad',
-    'Income - Single Stock': '#27ae60',
-    'Income - Index/Basket/ETF Based': '#2ecc71',
+    'Income - Single Equity': '#27ae60',
+    'Income - Index/Basket': '#2ecc71',
     'Defined Outcome': '#f39c12',
     'Thematic': '#3498db'
   };

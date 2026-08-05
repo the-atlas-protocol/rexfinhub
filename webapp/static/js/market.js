@@ -60,7 +60,7 @@ var MarketCharts = (function() {
     var shortLabels = labels.map(function(l) {
       return l.replace('Leverage & Inverse - ', 'L&I ')
               .replace('Income - ', 'Inc ')
-              .replace('Index/Basket/ETF Based', 'Index/ETF')
+              .replace('Index/Basket', 'Index/ETF')
               .replace('Single Stock', 'Single');
     });
 

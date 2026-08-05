@@ -121,3 +121,52 @@ Out of scope here (referenced, not restated): the full external classification
 taxonomy (`auto_classify` + `fund_master.csv`) and the issuer/brand mapping
 (`issuer_mapping.csv` + `derive_issuer_brands.py`). The library names the link to
 each; their internals live in their own modules.
+
+## 7. The single-name axis — Single Equity vs Index/Basket
+
+**Pinned 2026-08-04 (Ryu). Pin first, rebaseline from it — never the reverse.**
+
+> **Single Equity** = exactly ONE underlying asset — a **stock, an ETF, or a crypto asset**.
+> **Index/Basket** = everything else (index, basket, commodity, FX).
+> **Exception: MicroSectors is ALWAYS Index/Basket.**
+
+Derived, not voted on:
+
+```
+Single Equity  <=>  underlier_type IN (Stock, ETF, Crypto)
+                    AND exactly one underlier
+                    AND rex_suite != 'MicroSectors'
+```
+
+`underlier_type` vocabulary — describes what the underlier IS, not what the fund does:
+`Stock` · `ETF` · `Index` · `Commodity` · `FX` · `Crypto`
+
+"Stock" rather than "Equity" is deliberate: *Single Equity* is the bucket and it contains both
+stocks and ETFs, so reusing "Equity" as a type value would collide with the bucket name.
+
+**Why the exception matters.** SHNY/DULL (MicroSectors Gold) track the GLD ETF — one security —
+so without the MicroSectors carve-out they would flip to Single Equity. The 2026-06 attempt
+(`0185be8`) rebaselined 41→43 *and* 22→20 without it and was reverted (`a0bb34a`). With the
+exception, only RAM and RAMZ move: T-REX single-name 41 → **43**, MicroSectors unchanged.
+
+**Worked examples**
+
+| Fund | Underlier | Type | Bucket | Why |
+|---|---|---|---|---|
+| NVDX | NVDA | Stock | Single Equity | one stock |
+| RAM / RAMZ | DRAM | ETF | **Single Equity** | one ETF is still one security |
+| TECL | Tech Select Sector Index | Index | Index/Basket | an index, not a security |
+| SHNY / DULL | GLD | ETF | **Index/Basket** | MicroSectors exception |
+| FNGU | NYFANGT | Index | Index/Basket | index + MicroSectors |
+| BTCL / ETU | bitcoin / ether | Crypto | **Single Equity** | one coin = one asset (Ryu 2026-08-04) |
+| UGL / SHNY | gold (XAU) | Commodity | Index/Basket | a commodity is not a single security |
+| YCS | USDJPY | FX | Index/Basket | an FX pair is not a single security |
+
+Display strings become **"Single Equity"** and **"Index/Basket"**.
+
+### Fixed Income
+
+TLDR (The Laddered T-Bill ETF) is **Fixed Income** — bonds/T-bills, income without an options
+strategy. It is NOT option-income (CC). It previously carried a NULL `etp_category`, so every
+category-keyed view silently dropped it (Ryu 2026-08-04).
+

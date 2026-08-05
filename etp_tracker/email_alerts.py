@@ -400,10 +400,10 @@ def _gather_market_snapshot(db=None) -> dict | None:
 
         # Landscape: 5 categories with AUM, 1W flow, REX market share
         _LANDSCAPE_CATS = [
-            "Leverage & Inverse - Single Stock",
-            "Leverage & Inverse - Index/Basket/ETF Based",
-            "Income - Single Stock",
-            "Income - Index/Basket/ETF Based",
+            "Leverage & Inverse - Single Equity",
+            "Leverage & Inverse - Index/Basket",
+            "Income - Single Equity",
+            "Income - Index/Basket",
             "Crypto",
         ]
         landscape = []
@@ -738,10 +738,10 @@ def _render_landscape_compact(landscape: list) -> str:
 
     # Short display names for categories
     _SHORT = {
-        "Leverage & Inverse - Single Stock": "L&I Single Stock",
-        "Leverage & Inverse - Index/Basket/ETF Based": "L&I Index/ETF",
-        "Income - Single Stock": "Income Single Stock",
-        "Income - Index/Basket/ETF Based": "Income Index/ETF",
+        "Leverage & Inverse - Single Equity": "L&I Single Stock",
+        "Leverage & Inverse - Index/Basket": "L&I Index/ETF",
+        "Income - Single Equity": "Income Single Stock",
+        "Income - Index/Basket": "Income Index/ETF",
         "Crypto": "Crypto",
     }
 

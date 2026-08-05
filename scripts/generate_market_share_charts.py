@@ -31,10 +31,10 @@ from webapp.models import MktTimeSeries, MktMasterData
 from sqlalchemy import select
 
 CATEGORIES = [
-    {"db": "Leverage & Inverse - Single Stock",           "label": "L&I Single Stock", "slug": "li_ss"},
-    {"db": "Leverage & Inverse - Index/Basket/ETF Based", "label": "L&I Index/ETF",    "slug": "li_idx"},
-    {"db": "Income - Single Stock",                       "label": "Income Single Stock", "slug": "inc_ss"},
-    {"db": "Income - Index/Basket/ETF Based",             "label": "Income Index/ETF",  "slug": "inc_idx"},
+    {"db": "Leverage & Inverse - Single Equity",           "label": "L&I Single Stock", "slug": "li_ss"},
+    {"db": "Leverage & Inverse - Index/Basket", "label": "L&I Index/ETF",    "slug": "li_idx"},
+    {"db": "Income - Single Equity",                       "label": "Income Single Stock", "slug": "inc_ss"},
+    {"db": "Income - Index/Basket",             "label": "Income Index/ETF",  "slug": "inc_idx"},
 ]
 TOP_N = 5
 

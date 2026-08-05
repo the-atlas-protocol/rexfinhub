@@ -1,5 +1,5 @@
 {
-  "snapshot_taken_et": "2026-06-22T22:03:34-04:00",
+  "snapshot_taken_et": "2026-07-27T21:25:40-04:00",
   "snapshot_source": "manage_recipients.py snapshot",
   "note": "Reference snapshot for preflight diff alerts. Update via this script when adds/removes are intentional.",
   "recipients_by_list": {
@@ -10,6 +10,7 @@
       "mike.heraty@rbccm.com",
       "mmcnair@rexfin.com",
       "mpremselaar@caisgroup.com",
+      "ncordell@rexfin.com",
       "sacheychek@rexfin.com",
       "sking@rexfin.com",
       "spgroup@caisgroup.com",
@@ -48,6 +49,7 @@
     "portfolio_suite": [
       "gking@rexfin.com",
       "mmcnair@rexfin.com",
+      "ncordell@rexfin.com",
       "tranney@rexfin.com"
     ],
     "stock_recs": [
@@ -62,14 +64,14 @@
     ]
   },
   "totals": {
-    "autocall": 10,
+    "autocall": 11,
     "blue_ocean": 7,
     "daily": 1,
     "flow": 1,
     "income": 1,
     "li": 1,
     "microsectors": 7,
-    "portfolio_suite": 3,
+    "portfolio_suite": 4,
     "stock_recs": 5,
     "weekly": 1
   }

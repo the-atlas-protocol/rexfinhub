@@ -1062,18 +1062,18 @@ _CATEGORY_SLICERS: dict[str, list[dict]] = {
         {"field": "q_category_attributes.map_crypto_type", "label": "Type"},
         {"field": "q_category_attributes.map_crypto_underlier", "label": "Underlier"},
     ],
-    "Income - Single Stock": [
+    "Income - Single Equity": [
         {"field": "q_category_attributes.map_cc_underlier", "label": "Underlier"},
     ],
-    "Income - Index/Basket/ETF Based": [
+    "Income - Index/Basket": [
         {"field": "q_category_attributes.map_cc_index", "label": "Index"},
     ],
-    "Leverage & Inverse - Single Stock": [
+    "Leverage & Inverse - Single Equity": [
         {"field": "q_category_attributes.map_li_direction", "label": "Direction"},
         {"field": "q_category_attributes.map_li_leverage_amount", "label": "Leverage"},
         {"field": "q_category_attributes.map_li_underlier", "label": "Underlier"},
     ],
-    "Leverage & Inverse - Index/Basket/ETF Based": [
+    "Leverage & Inverse - Index/Basket": [
         {"field": "q_category_attributes.map_li_direction", "label": "Direction"},
         {"field": "q_category_attributes.map_li_leverage_amount", "label": "Leverage"},
         {"field": "q_category_attributes.map_li_category", "label": "Asset Class"},
@@ -1087,11 +1087,11 @@ _CATEGORY_SLICERS: dict[str, list[dict]] = {
 }
 
 ALL_CATEGORIES = [
-    "Leverage & Inverse - Single Stock",
-    "Leverage & Inverse - Index/Basket/ETF Based",
+    "Leverage & Inverse - Single Equity",
+    "Leverage & Inverse - Index/Basket",
     "Crypto",
-    "Income - Single Stock",
-    "Income - Index/Basket/ETF Based",
+    "Income - Single Equity",
+    "Income - Index/Basket",
     "Defined Outcome",
     "Thematic",
 ]
@@ -1660,10 +1660,10 @@ def get_underlier_summary(db: Session, underlier_type: str = "income", underlier
     df = _load_master(db)
 
     if underlier_type == "income":
-        cat_filter = "Income - Single Stock"
+        cat_filter = "Income - Single Equity"
         field = "q_category_attributes.map_cc_underlier"
     else:
-        cat_filter = "Leverage & Inverse - Single Stock"
+        cat_filter = "Leverage & Inverse - Single Equity"
         field = "q_category_attributes.map_li_underlier"
 
     df = df[df["category_display"] == cat_filter].copy()
@@ -1844,15 +1844,15 @@ def get_time_series(db: Session, category: str | None = None, is_rex: bool | Non
 # Suite -> category mapping for competitor detection
 # ---------------------------------------------------------------------------
 _SUITE_CATEGORY_MAP: dict[str, list[str]] = {
-    "T-REX": ["Leverage & Inverse - Single Stock"],
-    "MicroSectors": ["Leverage & Inverse - Index/Basket/ETF Based"],
+    "T-REX": ["Leverage & Inverse - Single Equity"],
+    "MicroSectors": ["Leverage & Inverse - Index/Basket"],
     "Equity Premium Income": [],  # uses explicit competitor tickers
-    "Growth & Income": ["Income - Single Stock"],
-    "IncomeMax": ["Income - Single Stock"],
-    "Autocallable": ["Income - Index/Basket/ETF Based"],
+    "Growth & Income": ["Income - Single Equity"],
+    "IncomeMax": ["Income - Single Equity"],
+    "Autocallable": ["Income - Index/Basket"],
     "Crypto": ["Crypto"],
     "T-Bill": [],
-    "Thematic": ["Thematic", "Leverage & Inverse - Index/Basket/ETF Based"],
+    "Thematic": ["Thematic", "Leverage & Inverse - Index/Basket"],
 }
 
 # Explicit competitor tickers for EPI suite (not category-matched)

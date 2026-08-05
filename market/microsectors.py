@@ -44,6 +44,11 @@ _RELIABLE_TICKERS = {
     "NRGU", "NRGD", "BNKU", "BNKD", "FNGA", "FNGD", "FNGO", "FNGS", "FNGU",
     "BULZ", "BERZ", "OILU", "OILD", "FLYU", "FLYD", "WTIU", "WTID",
     "SHNY", "DULL", "GDXU", "GDXD", "AIQU", "AIQD",
+    # SMHU/SMHD (MicroSectors 3X Long / -3X Short Semiconductor) listed 2026-08-04.
+    # Listed here so they can never silently fall back to raw Bloomberg AUM. Their
+    # microsector_aum columns do not exist yet (day-one listing, data_aum is #ERROR),
+    # so read_overrides simply will not see them until Ryu adds the columns.
+    "SMHU", "SMHD",
 }
 
 # Matured / delisted ETNs that legitimately have $0 AUM — not a staleness

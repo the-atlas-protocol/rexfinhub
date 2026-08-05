@@ -102,13 +102,20 @@ rex_pos = load_rex_position()
 
 def roll(u):
     g = lv[lv["u"] == u]
-    longs = g[(g["long"]) & (g["is_rex"] == 0)]; invs = g[(g["inv"]) & (g["is_rex"] == 0)]
+    longs = g[(g["long"]) & (g["is_rex"] == 0)]
+    comp_inv = g[(g["inv"]) & (g["is_rex"] == 0)]
+    rex_inv_live = g[(g["inv"]) & (g["is_rex"] == 1)]
+    # has_inv must count REX inverse products too. Filtering to is_rex==0 made the
+    # Inverse Opportunities section blind to our OWN live inverses and recommend
+    # "launch it" for products already trading (CRCD/CRCL, CORD/CRWV). Ryu 2026-07-29.
+    invs = g[g["inv"]]
     rex_long = g[(g["long"]) & (g["is_rex"] == 1)]
     tr = trk.loc[u] if u in trk.index else None
     now = float(tr.get(0,0)) if tr is not None else float(longs["aum"].sum())
     mo1 = float(tr.get(1,0)) if tr is not None else 0.0; mo3 = float(tr.get(3,0)) if tr is not None else 0.0
     return {"n_long":len(longs),"total_aum":float(longs["aum"].sum()),"now":now,"mo1":mo1,"mo3":mo3,"flow1":now-mo1,
-        "has_inv":len(invs)>0,"rex_live_long":len(rex_long)>0,"longs":longs.sort_values("aum",ascending=False),
+        "has_inv":len(invs)>0,"rex_inv_live":len(rex_inv_live)>0,"comp_inv":len(comp_inv),
+        "rex_live_long":len(rex_long)>0,"longs":longs.sort_values("aum",ascending=False),
         "n_filers":len(filers.get(u,{})),"rexpos":rex_pos.get(u,("—",))[0]}
 
 def bucket(u):

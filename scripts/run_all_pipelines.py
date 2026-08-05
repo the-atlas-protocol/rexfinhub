@@ -226,8 +226,17 @@ def main():
     print(f"\n{'=' * 50}")
     print(f"=== Summary ===")
     for step, status in results.items():
-        marker = "[OK]" if status == "ok" else "[SKIP]" if status == "skipped" else "[FAIL]"
-        print(f"  {marker} {step}")
+        # Only the literal "FAILED" is a failure. Retired/delegated steps carry an
+        # informational status (e.g. market -> "via run_chain") and were being printed
+        # as [FAIL], so every nightly summary looked broken — which trains you to ignore
+        # it and would mask a REAL failure. The notification logic below already keys on
+        # "FAILED" correctly; this makes the printed summary agree with it.
+        marker = ("[OK]" if status == "ok"
+                  else "[SKIP]" if status == "skipped"
+                  else "[FAIL]" if status == "FAILED"
+                  else "[INFO]")
+        status_note = "" if status in ("ok", "skipped", "FAILED") else f" ({status})"
+        print(f"  {marker} {step}{status_note}")
     print(f"\nCompleted in {elapsed:.0f}s ({elapsed / 60:.1f}m)")
     print(f"Log: {log_file}")
 

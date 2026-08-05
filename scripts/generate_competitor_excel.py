@@ -182,11 +182,11 @@ def assign_competitor_suites(df: pd.DataFrame) -> pd.DataFrame:
             ticker = row["ticker"] or ""
 
             # T-REX: single stock L&I
-            if cat == "Leverage & Inverse - Single Stock":
+            if cat == "Leverage & Inverse - Single Equity":
                 suites.add("T-REX")
 
             # MicroSectors: index/basket L&I
-            if cat == "Leverage & Inverse - Index/Basket/ETF Based":
+            if cat == "Leverage & Inverse - Index/Basket":
                 suites.add("MicroSectors")
 
             # Equity Premium Income: explicit tickers + all "Income" category
@@ -196,7 +196,7 @@ def assign_competitor_suites(df: pd.DataFrame) -> pd.DataFrame:
                 suites.add("Equity Premium Income")
 
             # Growth & Income: single stock income
-            if cat == "Income - Single Stock":
+            if cat == "Income - Single Equity":
                 suites.add("Growth & Income")
 
             # Autocallable: income + "autocall" in name

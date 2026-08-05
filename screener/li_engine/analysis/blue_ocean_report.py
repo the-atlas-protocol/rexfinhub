@@ -99,6 +99,18 @@ def build_html(xlsm_path: Path | str = XLSM, db_path: Path | str = DB) -> str:
         "Ticker.1": "oc_ticker", "1M Traded Value.1": "oc_1m", "3M Traded Value.1": "oc_3m",
     })
     bo["us_clean"] = bo["us_ticker"].astype(str).str.upper().str.replace(" US", "").str.strip()
+    # The sheet's US half and OC half are two INDEPENDENT ticker lists that happen to sit
+    # side by side; they are NOT guaranteed to align row-for-row. When a ticker is added to
+    # one half only (RAM added 2026-08-04: 'RAM US' landed on row 7884 but 'RAM OC' on 7885)
+    # a positional read hands that fund its NEIGHBOUR's overnight values — wrong numbers,
+    # not blanks. Key the OC half by its own ticker and join on that instead.
+    bo["oc_clean"] = bo["oc_ticker"].astype(str).str.upper().str.replace(" OC", "").str.strip()
+    _oc = (bo[["oc_clean", "oc_1m", "oc_3m"]]
+           .dropna(subset=["oc_clean"])
+           .query("oc_clean != '' and oc_clean != 'NAN' and oc_clean != '#ERROR'")
+           .drop_duplicates(subset="oc_clean", keep="first"))
+    bo = bo.drop(columns=["oc_1m", "oc_3m"]).merge(
+        _oc, left_on="us_clean", right_on="oc_clean", how="left")
 
     conn = sqlite3.connect(str(db_path))
     try:

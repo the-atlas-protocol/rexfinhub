@@ -162,6 +162,45 @@ _SYNC_LOCK = filelock.FileLock(
 )
 
 
+def _asof_date():
+    """The market date this refresh represents: REXFIN_ASOF_DATE if set, else today (ET).
+    Shared knob with data_engine / snapshot_daily / run_chain."""
+    raw = os.environ.get("REXFIN_ASOF_DATE", "").strip()
+    if raw:
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            log.warning("REXFIN_ASOF_DATE=%r is not YYYY-MM-DD; using today", raw)
+    return datetime.now().date()
+
+
+def _status_asof(status, inception, ticker=""):
+    """Gate live status by the as-of date.
+
+    Our data is T-1: a fund that lists TODAY has no trading history in the file we are
+    processing, yet Bloomberg already flags it ACTV with today's inception. Counting it
+    live ships a product with no AUM/NAV into the reports and breaks the contract counts
+    (e.g. SMHU/SMHD, MicroSectors semis, listed 2026-08-04 while the data was as-of
+    2026-08-03 -> MicroSectors would read 24 instead of 22).
+
+    A fund whose inception is AFTER the as-of date was not yet trading on that date, so
+    it is pending as far as this dataset is concerned. Status is otherwise untouched.
+    """
+    st = (status or "").strip().upper()
+    if st != "ACTV" or not inception:
+        return status
+    try:
+        inc = str(inception)[:10]
+        inc_d = datetime.strptime(inc, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return status
+    if inc_d > _asof_date():
+        log.info("as-of gate: %s inception %s > as-of %s -> PEND (not yet live in this data)",
+                 ticker or "?", inc_d, _asof_date())
+        return "PEND"
+    return status
+
+
 def sync_market_data(
     db: Session,
     data_file: Path | None = None,
@@ -480,7 +519,10 @@ def _insert_master_data(db: Session, df: pd.DataFrame, run_id: int) -> int:
             outcome_type=_safe_str(row.get("outcome_type")),
             is_crypto=_safe_str(row.get("is_crypto")),
             cusip=_safe_str(row.get("cusip")),
-            market_status=_safe_str(row.get("market_status")),
+            market_status=_status_asof(
+                _safe_str(row.get("market_status")),
+                _safe_str(row.get("inception_date")),
+                _safe_str(row.get("ticker"))),
             fund_description=_safe_str(row.get("fund_description")),
             # W2 metrics
             expense_ratio=_safe_float(_get_col(row, "expense_ratio")),

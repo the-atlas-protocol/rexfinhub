@@ -2208,13 +2208,13 @@ _FLOW_SUITES = [
         "key": "trex",
         "label": "T-REX",
         "rex_suites": ["T-REX"],
-        "peer_category": "Leverage & Inverse - Single Stock",
+        "peer_category": "Leverage & Inverse - Single Equity",
     },
     {
         "key": "microsectors",
         "label": "MicroSectors",
         "rex_suites": ["MicroSectors"],
-        "peer_category": "Leverage & Inverse - Index/Basket/ETF Based",
+        "peer_category": "Leverage & Inverse - Index/Basket",
     },
     # --- Income ---
     {
@@ -2230,7 +2230,7 @@ _FLOW_SUITES = [
         "key": "growth_income",
         "label": "Growth & Income",
         "rex_suites": ["Growth & Income"],
-        "peer_category": "Income - Single Stock",
+        "peer_category": "Income - Single Equity",
     },
     {
         "key": "incomemax",
@@ -2245,7 +2245,7 @@ _FLOW_SUITES = [
         # per the definition library (market/definitions.py).
         "rex_suites": ["Structured"],
         # NO peer_category — autocallables are a tiny niche (~23 funds / ~$3B), NOT
-        # the entire $189B "Income - Index/Basket/ETF Based" category. Seeding from
+        # the entire $189B "Income - Index/Basket" category. Seeding from
         # that category was the $189B/266-product bug (2026-06-16). A fund qualifies
         # ONLY if: name contains "autocall", OR cc_category=='Autocallable', OR
         # cc_type=='Autocallable' (the 3-way encoding) — built from an empty base.

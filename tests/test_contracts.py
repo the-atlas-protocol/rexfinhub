@@ -49,27 +49,27 @@ def _master():
             # REX LI single-stock live ETF -> counts in T-REX
             dict(ticker="TREXX US", ticker_clean="TREXX", is_rex=1, etp_category="LI",
                  market_status="ACTV", fund_type="ETF",
-                 category_display="Leverage & Inverse - Single Stock", rex_suite="T-REX"),
+                 category_display="Leverage & Inverse - Single Equity", rex_suite="T-REX"),
             # duplicate row for same fund (multi-category) -> must NOT double-count
             dict(ticker="TREXX US", ticker_clean="TREXX", is_rex=1, etp_category="LI",
                  market_status="ACTV", fund_type="ETF",
-                 category_display="Leverage & Inverse - Single Stock", rex_suite="T-REX"),
+                 category_display="Leverage & Inverse - Single Equity", rex_suite="T-REX"),
             # REX LI index live -> excluded from single-stock number
             dict(ticker="IDXL US", ticker_clean="IDXL", is_rex=1, etp_category="LI",
                  market_status="ACTV", fund_type="ETF",
-                 category_display="Leverage & Inverse - Index/Basket/ETF Based", rex_suite="T-REX"),
+                 category_display="Leverage & Inverse - Index/Basket", rex_suite="T-REX"),
             # REX LI single-stock but PENDING -> excluded (active_only)
             dict(ticker="PENDX US", ticker_clean="PENDX", is_rex=1, etp_category="LI",
                  market_status="PEND", fund_type="ETF",
-                 category_display="Leverage & Inverse - Single Stock", rex_suite="T-REX"),
+                 category_display="Leverage & Inverse - Single Equity", rex_suite="T-REX"),
             # REX CC single-stock live -> income single stock
             dict(ticker="NVII US", ticker_clean="NVII", is_rex=1, etp_category="CC",
                  market_status="ACTV", fund_type="ETF",
-                 category_display="Income - Single Stock", rex_suite="Income"),
+                 category_display="Income - Single Equity", rex_suite="Income"),
             # non-REX LI single-stock -> excluded from REX numbers
             dict(ticker="COMP US", ticker_clean="COMP", is_rex=0, etp_category="LI",
                  market_status="ACTV", fund_type="ETF",
-                 category_display="Leverage & Inverse - Single Stock", rex_suite=None),
+                 category_display="Leverage & Inverse - Single Equity", rex_suite=None),
         ]
     )
 

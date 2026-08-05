@@ -182,11 +182,11 @@ ALL_ETP_FIELDS = BASE_FIELDS + W2_FIELDS + W3_FIELDS + W4_FIELDS + W5_FIELDS
 # ---------------------------------------------------------------------------
 # Category display names
 # ---------------------------------------------------------------------------
-CAT_LI_SS = "Leverage & Inverse - Single Stock"
-CAT_LI_INDEX = "Leverage & Inverse - Index/Basket/ETF Based"
+CAT_LI_SS = "Leverage & Inverse - Single Equity"
+CAT_LI_INDEX = "Leverage & Inverse - Index/Basket"
 CAT_LI_OTHER = "Leverage & Inverse - Unknown/Miscellaneous"
-CAT_CC_SS = "Income - Single Stock"
-CAT_CC_INDEX = "Income - Index/Basket/ETF Based"
+CAT_CC_SS = "Income - Single Equity"
+CAT_CC_INDEX = "Income - Index/Basket"
 CAT_CC_OTHER = "Income - Unknown/Miscellaneous"
 CAT_CRYPTO = "Crypto"
 CAT_DEFINED = "Defined Outcome"
