@@ -33,7 +33,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Aerospace / Space
+  sector: Aerospace / Space Technology
   source: ai-source-ipo
 - ticker: Databricks
   company: Databricks
@@ -79,7 +79,7 @@ high_profile_pre_ipo:
   valuation_as_of: 2024-08
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: 2026 H1
+  expected_ipo_window: 2025-2026
   sector: Fintech / Neobank
   source: ai-source-ipo
 - ticker: Figure AI
@@ -156,11 +156,11 @@ high_profile_pre_ipo:
 - company: Sierra Space
   valuation_usd: 5.3
   as_of_date: '2026-08-04'
-  valuation_as_of: 2021-12
+  valuation_as_of: 2022-09
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Aerospace / Space
+  sector: Aerospace / Space Technology
   source: ai-source-ipo
 - company: SambaNova Systems
   valuation_usd: 5.1
@@ -178,7 +178,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Fitness / Consumer App
+  sector: Fitness / Social Tech
   source: ai-source-ipo
 - company: X-Energy
   as_of_date: '2026-08-04'
@@ -194,7 +194,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Networking / Telecom
+  sector: Telecommunications / Networking
   source: ai-source-ipo
 - company: SB Energy
   as_of_date: '2026-08-04'
