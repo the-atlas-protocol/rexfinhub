@@ -57,7 +57,7 @@ high_profile_pre_ipo:
   valuation_usd: 70.0
   last_round_date: '2025-02-26'
   source_url: https://www.ft.com/content/stripe-tender-offer-valuation-2025
-  expected_ipo_window: rumored 2025–2026
+  expected_ipo_window: rumored 2025-2026
   s1_filed: false
   as_of_date: '2026-08-04'
   valuation_as_of: 2024-02
@@ -70,7 +70,7 @@ high_profile_pre_ipo:
   valuation_as_of: 2023-05
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025–2026
+  expected_ipo_window: rumored 2025
   sector: E-Commerce / Fast Fashion
   source: ai-source-ipo
 - company: Revolut
@@ -79,8 +79,8 @@ high_profile_pre_ipo:
   valuation_as_of: 2024-08
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2026
-  sector: Fintech
+  expected_ipo_window: 2026 H1
+  sector: Fintech / Neobank
   source: ai-source-ipo
 - ticker: Figure AI
   company: Figure AI
@@ -114,7 +114,7 @@ high_profile_pre_ipo:
   valuation_usd: 13.8
   last_round_date: '2025-06-13'
   source_url: https://www.reuters.com/technology/artificial-intelligence/meta-invests-scale-ai-2025-06-13/
-  expected_ipo_window: rumored 2025–2026
+  expected_ipo_window: rumored 2025-2026
   s1_filed: false
   as_of_date: '2026-08-04'
   valuation_as_of: 2024-05
@@ -127,8 +127,8 @@ high_profile_pre_ipo:
   valuation_as_of: 2024-05
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025–2026
-  sector: Enterprise Storage / AI Infrastructure
+  expected_ipo_window: no timeline
+  sector: Data Infrastructure / Storage
   source: ai-source-ipo
 - ticker: Discord
   company: Discord
@@ -150,17 +150,17 @@ high_profile_pre_ipo:
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025–2026
-  sector: Fintech
+  expected_ipo_window: rumored 2025-2026
+  sector: Fintech / Neobank
   source: ai-source-ipo
 - company: Sierra Space
   valuation_usd: 5.3
   as_of_date: '2026-08-04'
-  valuation_as_of: 2022-12
+  valuation_as_of: 2021-12
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Aerospace / Defense
+  sector: Aerospace / Space
   source: ai-source-ipo
 - company: SambaNova Systems
   valuation_usd: 5.1
@@ -169,7 +169,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: AI / Semiconductors
+  sector: AI / Semiconductor
   source: ai-source-ipo
 - company: Strava
   valuation_usd: 1.5
@@ -178,7 +178,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Fitness / Consumer Tech
+  sector: Fitness / Consumer App
   source: ai-source-ipo
 - company: X-Energy
   as_of_date: '2026-08-04'
