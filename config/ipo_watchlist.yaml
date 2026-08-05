@@ -70,7 +70,7 @@ high_profile_pre_ipo:
   valuation_as_of: 2023-05
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025
+  expected_ipo_window: rumored 2025–2026
   sector: E-Commerce / Fast Fashion
   source: ai-source-ipo
 - company: Revolut
@@ -79,8 +79,8 @@ high_profile_pre_ipo:
   valuation_as_of: 2024-08
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: 2025–2026
-  sector: Fintech / Neobank
+  expected_ipo_window: rumored 2026
+  sector: Fintech
   source: ai-source-ipo
 - ticker: Figure AI
   company: Figure AI
@@ -127,7 +127,7 @@ high_profile_pre_ipo:
   valuation_as_of: 2024-05
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: no timeline
+  expected_ipo_window: rumored 2025–2026
   sector: Enterprise Storage / AI Infrastructure
   source: ai-source-ipo
 - ticker: Discord
@@ -151,12 +151,12 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: rumored 2025–2026
-  sector: Fintech / Neobank
+  sector: Fintech
   source: ai-source-ipo
 - company: Sierra Space
   valuation_usd: 5.3
   as_of_date: '2026-08-04'
-  valuation_as_of: 2022-09
+  valuation_as_of: 2022-12
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
