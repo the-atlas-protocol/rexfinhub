@@ -227,3 +227,8 @@ ARMS US,,auto-llm-other: Multi-sector income fixed-income ETF; dividend/interest
 ARCP US,,"auto-llm-other: Core plus fixed-income ETF; income stream from bonds and credit, not options-based."
 BMSI US,,auto-llm-other: BNY Mellon multi-sector income fixed-income ETF; bond/credit income without explicit options mechanics.
 GINC US,,auto-llm-other: Goldman income ETF likely dividend-focused without explicit options-income mechanics stated in name
+FFLX US,,auto-llm-other: Flexible income fixed-income ETF without explicit options-income or covered-call strategy.
+OTAX US,,"auto-llm-other: Tax-managed equity ETF with no leverage, options strategies, or thematic focus; standard equity exposure."
+EXPN US,,"auto-llm-other: Growth/expansion-themed equity ETF with no leverage, options income, or crypto exposure."
+CSRA US,,"auto-llm-other: Real assets/inflation-linked mixed allocation active ETF; no leverage, options income, or defined-outcome mechanics."
+HBIL US,,auto-llm-other: Short-term Treasury fixed-income ETF with no leverage or options-income strategies.
