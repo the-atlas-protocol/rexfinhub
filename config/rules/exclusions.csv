@@ -232,3 +232,6 @@ OTAX US,,"auto-llm-other: Tax-managed equity ETF with no leverage, options strat
 EXPN US,,"auto-llm-other: Growth/expansion-themed equity ETF with no leverage, options income, or crypto exposure."
 CSRA US,,"auto-llm-other: Real assets/inflation-linked mixed allocation active ETF; no leverage, options income, or defined-outcome mechanics."
 HBIL US,,auto-llm-other: Short-term Treasury fixed-income ETF with no leverage or options-income strategies.
+FMIG US,,"auto-llm-other: Global equity ETF with no leverage, thematic focus, or specialized income strategy indicated."
+POMG US,,"auto-llm-other: Growth-oriented equity ETF without leverage, thematic focus, or options-based income mechanics."
+GCLO US,,auto-llm-other: CLO (collateralized loan obligation) fixed-income product with no leverage or thematic exposure.

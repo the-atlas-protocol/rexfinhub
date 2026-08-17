@@ -1151,3 +1151,10 @@ MXLL US,Equity,Single Stock,Long,2.0,MXL
 LITG US,Equity,Single Stock,Long,2.0,LITE
 ELOL US,Equity,Index/Basket/ETF Based,Long,2.0,
 OCNL US,,Single Stock,Long,2.0,DOCN
+LQDU US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
+LQDD US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
+HYGD US,Fixed Income,Index/Basket/ETF Based,Short,3.0,
+HYGU US,Fixed Income,Index/Basket/ETF Based,Long,3.0,
+SITX US,Equity,Index/Basket/ETF Based,Long,2.0,
+MRAX US,Equity,Single Stock,Long,2.0,MRAM
+UMCU US,Equity,Single Stock,Long,2.0,UMC
