@@ -33,7 +33,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Space / Launch / Satellite
+  sector: Space / Launch
   source: ai-source-ipo
 - ticker: Databricks
   company: Databricks
@@ -57,7 +57,7 @@ high_profile_pre_ipo:
   valuation_usd: 70.0
   last_round_date: '2025-02-26'
   source_url: https://www.ft.com/content/stripe-tender-offer-valuation-2025
-  expected_ipo_window: rumored 2025–2026
+  expected_ipo_window: rumored 2025-2026
   s1_filed: false
   as_of_date: '2026-08-17'
   valuation_as_of: 2024-02
@@ -70,8 +70,8 @@ high_profile_pre_ipo:
   valuation_as_of: 2023-05
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025–2026
-  sector: E-commerce / Fast Fashion
+  expected_ipo_window: rumored 2025-2026
+  sector: E-Commerce / Fast Fashion
   source: ai-source-ipo
 - company: Revolut
   valuation_usd: 45.0
@@ -114,7 +114,7 @@ high_profile_pre_ipo:
   valuation_usd: 13.8
   last_round_date: '2025-06-13'
   source_url: https://www.reuters.com/technology/artificial-intelligence/meta-invests-scale-ai-2025-06-13/
-  expected_ipo_window: rumored 2026
+  expected_ipo_window: rumored 2025-2026
   s1_filed: false
   as_of_date: '2026-08-17'
   valuation_as_of: 2024-05
@@ -124,11 +124,20 @@ high_profile_pre_ipo:
 - company: VAST Data
   valuation_usd: 9.1
   as_of_date: '2026-08-17'
-  valuation_as_of: 2024-03
+  valuation_as_of: 2024-05
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
   sector: Data Infrastructure / Storage
+  source: ai-source-ipo
+- company: Relativity Space
+  valuation_usd: 8.95
+  as_of_date: '2026-08-17'
+  valuation_as_of: 2021-06
+  s1_filed: false
+  s1_filed_date: ''
+  expected_ipo_window: no timeline
+  sector: Space / Launch
   source: ai-source-ipo
 - ticker: Discord
   company: Discord
@@ -150,7 +159,7 @@ high_profile_pre_ipo:
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
-  expected_ipo_window: rumored 2025–2026
+  expected_ipo_window: rumored 2025-2026
   sector: Fintech / Neobank
   source: ai-source-ipo
 - company: Sierra Space
@@ -160,7 +169,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Space / Defense
+  sector: Space / Aerospace
   source: ai-source-ipo
 - company: SambaNova Systems
   valuation_usd: 5.1
@@ -169,16 +178,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: AI / Semiconductors
-  source: ai-source-ipo
-- company: Relativity Space
-  valuation_usd: 4.2
-  as_of_date: '2026-08-17'
-  valuation_as_of: 2021-06
-  s1_filed: false
-  s1_filed_date: ''
-  expected_ipo_window: no timeline
-  sector: Space / Launch
+  sector: AI / Semiconductor
   source: ai-source-ipo
 - company: Whoop
   valuation_usd: 3.6
@@ -187,7 +187,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Fitness Wearables / Consumer Tech
+  sector: Fitness Wearables
   source: ai-source-ipo
 - company: Strava
   valuation_usd: 1.5
@@ -228,7 +228,7 @@ high_profile_pre_ipo:
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Semiconductors / Storage
+  sector: Semiconductor / Storage
   source: ai-source-ipo
 - company: Vantage Data Centers
   as_of_date: '2026-08-17'

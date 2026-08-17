@@ -200,7 +200,7 @@ SIXH US,CC,1,manual
 SLJY US,CC,1,manual
 SLTY US,CC,1,manual
 SLVO US,CC,1,manual
-SMCC US,CC,1,manual
+SMCC US,LI,1,manual
 SMCY US,CC,1,manual
 SMYY US,CC,1,manual
 SNOY US,CC,1,manual
@@ -2508,7 +2508,6 @@ GNMX US,Thematic,1,atlas
 EYES US,Thematic,1,atlas
 WR US,Thematic,1,atlas
 PTNT US,Thematic,1,atlas
-FHIL US,CC,1,atlas
 LOHA US,Thematic,1,atlas
 QVOL US,CC,1,atlas
 GTND US,Defined,1,atlas
@@ -2523,14 +2522,8 @@ KBFR US,Defined,1,atlas
 KEEX US,LI,1,atlas
 SPCL US,LI,1,atlas
 BTYB US,CC,1,atlas
-AIMS US,CC,1,atlas
 AIUP US,Thematic,1,atlas
 AOTS US,Thematic,1,atlas
-AVOS US,CC,1,atlas
-AVRY US,CC,1,atlas
-BCGD US,CC,1,atlas
-BCGS US,CC,1,atlas
-BCSM US,CC,1,atlas
 BLDX US,Thematic,1,atlas
 CLIM US,Thematic,1,atlas
 DFMC US,CC,1,atlas
@@ -2540,8 +2533,6 @@ EDGX US,Defined,1,atlas
 ENHI US,CC,1,atlas
 ESIM US,CC,1,atlas
 EXEQ US,CC,1,atlas
-FFF US,CC,1,atlas
-FSML US,CC,1,atlas
 GARA US,Thematic,1,atlas
 GOLS US,Thematic,1,atlas
 HYGA US,CC,1,atlas
@@ -2553,12 +2544,7 @@ IBIM US,Defined,1,atlas
 IBMU US,Defined,1,atlas
 IBMV US,Defined,1,atlas
 IBTR US,Defined,1,atlas
-INDZ US,CC,1,atlas
-IVSI US,CC,1,atlas
-IVSX US,CC,1,atlas
-JIDE US,CC,1,atlas
 KCOP US,Thematic,1,atlas
-LCO US,CC,1,atlas
 SMLS US,Defined,1,atlas
 DISK US,Thematic,1,atlas
 LAZR US,Thematic,1,atlas
@@ -2566,8 +2552,6 @@ PRXI US,Thematic,1,atlas
 UMAL US,LI,1,atlas
 NUIF US,Thematic,1,atlas
 FREI US,Thematic,1,atlas
-TISC US,CC,1,atlas
-TILC US,CC,1,atlas
 BSCA US,Defined,1,atlas
 BSTU US,Defined,1,atlas
 BSTS US,Defined,1,atlas
@@ -2882,7 +2866,7 @@ MPIM US,CC,1,atlas
 ACQQ US,CC,1,atlas
 ACRT US,CC,1,atlas
 MPDY US,CC,1,atlas
-MPIA US,Defined,1,atlas
+MPIA US,CC,1,atlas
 XWNG US,Thematic,1,atlas
 LOFD US,LI,1,atlas
 AKAL US,LI,1,atlas

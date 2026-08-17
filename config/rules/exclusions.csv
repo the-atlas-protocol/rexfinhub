@@ -235,3 +235,18 @@ HBIL US,,auto-llm-other: Short-term Treasury fixed-income ETF with no leverage o
 FMIG US,,"auto-llm-other: Global equity ETF with no leverage, thematic focus, or specialized income strategy indicated."
 POMG US,,"auto-llm-other: Growth-oriented equity ETF without leverage, thematic focus, or options-based income mechanics."
 GCLO US,,auto-llm-other: CLO (collateralized loan obligation) fixed-income product with no leverage or thematic exposure.
+TILC US,,false_positive_long_only_equity_not_covered_call
+FSML US,,false_positive_long_only_equity_not_covered_call
+AVOS US,,false_positive_long_only_equity_not_covered_call
+AIMS US,,false_positive_long_only_equity_not_covered_call
+AVRY US,,false_positive_long_only_equity_not_covered_call
+TISC US,,false_positive_long_only_equity_not_covered_call
+BCGS US,,false_positive_long_only_equity_not_covered_call
+BCSM US,,false_positive_long_only_equity_not_covered_call
+JIDE US,,false_positive_long_only_equity_not_covered_call
+BCGD US,,false_positive_long_only_equity_not_covered_call
+IVSI US,,false_positive_long_only_equity_not_covered_call
+FFF US,,false_positive_long_only_equity_not_covered_call
+IVSX US,,false_positive_long_only_equity_not_covered_call
+INDZ US,,false_positive_long_only_equity_not_covered_call
+FHIL US,,false_positive_long_only_equity_not_covered_call

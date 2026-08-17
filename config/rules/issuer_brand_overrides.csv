@@ -200,7 +200,9 @@ AVMU US,Avantis,layer1_regex,Matched fund_name: AVANTIS CORE MUNICIPAL FIXED INC
 AVMV US,Avantis,layer1_regex,Matched fund_name: AVANTIS US MID CAP VALUE ETF
 AVNM US,Avantis,layer1_regex,Matched fund_name: AVANTIS ALL INTERNATIONAL MARKETS EQUITY ETF
 AVNV US,Avantis,layer1_regex,Matched fund_name: AVANTIS ALL INTERNATIONAL MARKETS VALUE ETF
+AVOS US,Avos,name_fallback,first significant word of: AVOS GLOBAL EQUITIES ETF
 AVRE US,Avantis,layer1_regex,Matched fund_name: AVANTIS REAL ESTATE ETF
+AVRY US,Avory,name_fallback,first significant word of: AVORY FOUNDATIONAL ETF
 AVSC US,Avantis,layer1_regex,Matched fund_name: AVANTIS US SMALL CAP EQUITY ETF
 AVSD US,Avantis,layer1_regex,Matched fund_name: AVANTIS RESPONSIBLE INTERNATIONAL EQUITY ETF
 AVSE US,Avantis,layer1_regex,Matched fund_name: AVANTIS RESPONSIBLE EMERGING MARKETS EQUITY ETF
@@ -1930,6 +1932,7 @@ JHMM US,John Hancock,layer1_regex,Matched fund_name: JOHN HANCOCK MULTI-FACTOR M
 JHMU US,John Hancock,layer1_regex,Matched fund_name: JOHN HANCOCK DYNAMIC MUNICIPAL BOND ETF
 JHPI US,John Hancock,layer1_regex,Matched fund_name: JOHN HANCOCK PREFERRED INCOME ETF
 JHSC US,John Hancock,layer1_regex,Matched fund_name: JOHN HANCOCK MULTIFACTOR SMALL CAP ETF
+JIDE US,JP Morgan,layer1_regex,Matched fund_name: JPMORGAN INTERNATIONAL DYNAMIC ETF
 JIG US,JP Morgan,layer1_regex,Matched fund_name: JPMORGAN INTERNATIONAL GROWTH ETF
 JIII US,Janus Henderson,layer1_regex,Matched fund_name: JANUS HENDERSON INCOME ETF
 JIRE US,JP Morgan,layer1_regex,Matched fund_name: JPMORGAN INTERNATIONAL RESEARCH ENHANCED EQUITY ETF

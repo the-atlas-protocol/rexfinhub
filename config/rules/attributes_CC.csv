@@ -187,7 +187,6 @@ TLTX US,TLTX UA,,Synthetic,Fixed Income
 XYZY US,SQ US,,Synthetic,Single Stock
 SNOY US,SNOW US,,Synthetic,Single Stock
 SMCY US,SMCI US,,Synthetic,Single Stock
-SMCC US,SMCI US,,Synthetic,Single Stock
 SMYY US,SMCI US,,Synthetic,Single Stock
 SLJY US,SILJ US,,Traditional,Commodity
 RTYY US,RIOT US,,Synthetic,Single Stock
@@ -385,8 +384,7 @@ FEMG US,Mid-Cap Growth Equities,,,Broad Beta
 FSEG US,Small-Cap Growth Equities,,,Broad Beta
 FSEV US,Small-Cap Value Equities,,,Broad Beta
 BUYB US,S&P 500,,,Broad Beta
-SSCP US,Russell 2000,,,Small Cap
-FHIL US,International Developed Markets,,,International
+SSCP US,Russell 2000,,,Small Caps
 NISM US,MSCI International Small-Mid Cap,,,International
 NYYY US,NVDA,,Traditional,Single Stock
 AHD US,HOOD,,Autocallable,Autocallable
@@ -397,32 +395,17 @@ SCA US,SMCI,,Autocallable,Autocallable
 INYY US,INTC,,Traditional,Single Stock
 MATE US,,,Traditional,Broad Beta
 ACTS US,US Equity,,,Broad Beta
-AIMS US,US Small Cap,,,Small Cap
 ARWG US,US Equity,,,Growth
-AVOS US,Global Equity,,,Broad Beta
-AVRY US,US Equity,,,Broad Beta
 AVTM US,Global Equity,,,Broad Beta
 BAIV US,International Equity,,,International Value
-BCGD US,Global Equity,,,Value
-BCGS US,Global Equity,,,Broad Beta
-BCSM US,US Small/Mid Cap,,,Small/Mid Cap
 BREE US,Emerging Markets,,,Emerging Markets
 BRES US,US Equity,,,Broad Beta
-FFF US,US Large Cap,,,Broad Beta
-FSML US,US Small Cap,,,Broad Beta
 GAID US,International Equities,,,Broad Beta
 GARY US,Growth Equities,,,Broad Beta
 GAUD US,US Equities,,,Broad Beta
 HYGA US,Credit/Bonds,,,Fixed Income
 IDVY US,International Dividend Stocks,,,Broad Beta
-INDZ US,India,,,Broad Beta
-IVSI US,International Developed Markets,,,Broad Beta
-IVSX US,International Developed Markets,,,Broad Beta
-JIDE US,International Developed Markets,,,Broad Beta
-LCO US,US Equities,,,Broad Beta
 MEMA US,Emerging Markets,,,Broad Beta
-TISC US,International Small Cap,,,Broad Beta
-TILC US,International Large Cap,,,Broad Beta
 AMEM US,,,,International
 GEQ US,,,,Global Equity
 AQLG US,,,,Large Cap Growth
@@ -482,7 +465,7 @@ THTA US,US Broad Market,,Traditional,Broad Beta
 WEEI US,Energy,,Traditional,Sector
 YLDW US,US Broad Market,,Traditional,Broad Beta
 THOR US,US Equities,,Traditional,Broad Beta
-ACYQ US,,,Autocallable,Single Stock
+ACYQ US,,,Autocallable,Autocallable
 SPUC US,US Equity,,Traditional,Broad Beta
 YSPC US,,,Synthetic,Broad Beta
 DRM US,DRAM,,,Single Stock
@@ -496,15 +479,16 @@ AUTB US,Bitcoin,,Autocallable,Single Stock
 VPEP US,Broad Equity,,Traditional,Broad Beta
 TMGN US,Magnificent 10,,Traditional,Tech
 SKH US,SKH,,,Single Stock
-MPIM US,,,Synthetic,Broad Beta
-ACQQ US,,NXA35C6A,Synthetic,Tech
-ACRT US,,R2VC35AC,Synthetic,Small Caps
-MPDY US,,,Synthetic,Broad Beta
-DACL US,,BMAXDACL,Synthetic,Broad Beta
-KEO US,Broad Equity Basket,,,Broad Beta
+MPIM US,,,Synthetic,Autocallable
+ACQQ US,,NXA35C6A,Synthetic,Autocallable
+ACRT US,,R2VC35AC,Synthetic,Autocallable
+MPDY US,,,Synthetic,Autocallable
+DACL US,,BMAXDACL,Synthetic,Autocallable
+KEO US,Broad Equity Basket,,Traditional,Broad Beta
 FIZY US,Portfolio,,Traditional,Broad Beta
-ACSP US,,SPFVC6AC,Synthetic,Broad Beta
+ACSP US,,SPFVC6AC,Synthetic,Autocallable
 YRAM US,,,Synthetic,Broad Beta
 IACL US,,,Synthetic,Broad Beta
 YLDY US,,,Traditional,Single Stock
 PCOV US,US Equity,,,Broad Beta
+MPIA US,,,Synthetic,Autocallable
