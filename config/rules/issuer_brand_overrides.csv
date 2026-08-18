@@ -487,7 +487,7 @@ CDNG US,LEVERAGE,name_fallback,first significant word of: LEVERAGE SHARES 2X LON
 CDPI US,Columbia,layer1_regex,Matched fund_name: COLUMBIA HIGH DIVIDEND PREMIUM INCOME ETF
 CDX US,Simplify,layer1_regex,Matched fund_name: SIMPLIFY HIGH YIELD ETF
 CEFA US,Global X,layer1_regex,Matched fund_name: GLOBAL X S&P CATHOLIC VALUES DEVELOPED EX-US ETF
-CEFS US,Saba,name_fallback,first significant word of: SABA OPPORTUNISTIC HEDGED CLOSED-END FUNDS ETF
+CEFS US,Saba,name_fallback,first significant word of: SABA CLOSED-END FUNDS ETF
 CEFZ US,Rivernorth,name_fallback,first significant word of: RIVERNORTH ACTIVE INCOME ETF
 CEMB US,iShares,layer1_regex,Matched fund_name: ISHARES J.P. MORGAN EM CORPORATE BOND ETF
 CERY US,State Street,layer1_regex,Matched fund_name: STATE STREET SPDR BLOOMBERG ENHANCED ROLL YIELD COMMODITY STRATEGY NO K-1 ETF
