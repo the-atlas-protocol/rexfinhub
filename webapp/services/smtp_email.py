@@ -26,6 +26,17 @@ log = logging.getLogger(__name__)
 
 def is_configured() -> bool:
     """True when every setting needed for an SMTP send is present."""
+    # Hard sender allow-list. On 2026-08-25 a leftover Gmail credential in the env
+    # was picked up and used to send, which is exactly the failure the explicit
+    # transport switch was meant to prevent — the switch guards the transport, not
+    # the identity. Nothing leaves this system from a non-REX address, whatever a
+    # config file happens to say.
+    frm = (os.environ.get("SMTP_FROM") or "").strip().lower()
+    if frm and not frm.endswith("@rexfin.com"):
+        log.error("REFUSING to send: SMTP_FROM is %s. Only @rexfin.com senders are "
+                  "permitted. Fix config/.env rather than overriding this.", frm)
+        return False
+
     need = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_FROM")
     missing = [k for k in need if not os.environ.get(k)]
     if not (os.environ.get("SMTP_PASS") or os.environ.get("SMTP_PASSWORD")):
