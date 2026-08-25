@@ -2153,7 +2153,16 @@ def _send_html_digest(html_body: str, recipients: list[str],
         subject = f"REX {_label}: {datetime.now(ET).strftime('%m/%d/%Y')}"
 
     try:
-        from webapp.services.graph_email import is_configured, send_email
+        # Transport is an EXPLICIT choice, never a silent fallback: a quiet switch could
+        # ship reports from a different address without anyone noticing, and three of
+        # these go to RBC, CAIS and BMO. REXFIN_SEND_TRANSPORT=smtp selects SMTP;
+        # anything else keeps Microsoft Graph.
+        if os.environ.get("REXFIN_SEND_TRANSPORT", "").lower() == "smtp":
+            from webapp.services.smtp_email import is_configured, send_email
+            log.warning("SEND TRANSPORT = SMTP (Graph bypassed) — from %s",
+                        os.environ.get("SMTP_FROM", "?"))
+        else:
+            from webapp.services.graph_email import is_configured, send_email
         if is_configured():
             ok = send_email(subject=subject, html_body=html_body,
                             recipients=recipients, images=images,
