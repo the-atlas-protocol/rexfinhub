@@ -159,6 +159,7 @@ ARCP US,Aristotle,name_fallback,first significant word of: ARISTOTLE CORE PLUS I
 ARGT US,Global X,layer1_regex,Matched fund_name: GLOBAL X MSCI ARGENTINA ETF
 ARIA US,Aria,name_fallback,first significant word of: ARIA OPPORTUNITIES ETF
 ARKE US,ARK,name_fallback,first significant word of: ARK DIET Q3 BUFFER ETF
+ARKY US,ARK,name_fallback,first significant word of: ARK ACTIVE AUTOCALLABLE INCOME ETF
 ARMH US,ARM,name_fallback,first significant word of: ARM HOLDINGS PLC ADRHEDGED
 ARMS US,Aristotle,name_fallback,first significant word of: ARISTOTLE MULTI-SECTOR INCOME ETF
 ARMY US,Tema,layer1_regex,Matched fund_name: TEMA INTERNATIONAL DEFENSE ETF
