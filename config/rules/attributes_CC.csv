@@ -488,7 +488,10 @@ KEO US,Broad Equity Basket,,Traditional,Broad Beta
 FIZY US,Portfolio,,Traditional,Broad Beta
 ACSP US,,SPFVC6AC,Synthetic,Autocallable
 YRAM US,,,Synthetic,Broad Beta
-IACL US,,,Synthetic,Broad Beta
+IACL US,,,Synthetic,Autocallable
 YLDY US,,,Traditional,Single Stock
 PCOV US,US Equity,,,Broad Beta
 MPIA US,,,Synthetic,Autocallable
+XVTS US,TSLA,,Traditional,Single Stock
+XVNV US,NVDA,,Traditional,Single Stock
+XVAP US,AAPL,,Traditional,Single Stock

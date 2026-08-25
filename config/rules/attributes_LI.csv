@@ -1159,3 +1159,19 @@ SITX US,Equity,Index/Basket/ETF Based,Long,2.0,
 MRAX US,Equity,Single Stock,Long,2.0,MRAM
 UMCU US,Equity,Single Stock,Long,2.0,UMC
 SMCC US,Equity,Single Stock,Long,2.0,SMCI US
+DSPC US,Equity,Single Stock,Short,1.0,SPCX
+AXTQ US,Equity,Single Stock,Short,2.0,AXTI
+LWLX US,Equity,Single Stock,Long,2.0,LWLG
+METQ US,Equity,Single Stock,Short,2.0,META
+COHQ US,Equity,Single Stock,Short,2.0,COHR
+FLEL US,Equity,Single Stock,Long,2.0,FLEX
+STMX US,Equity,Single Stock,Long,2.0,STM
+MUG US,Equity,Single Stock,Long,2.0,MU
+FIXX US,Equity,Single Stock,Long,2.0,FIX
+BRZL US,Equity,Index/Basket/ETF Based,Long,3.0,
+BRZD US,Equity,Index/Basket/ETF Based,Short,3.0,
+JPNU US,Equity,Index/Basket/ETF Based,Long,3.0,
+JPND US,Equity,Index/Basket/ETF Based,Short,3.0,
+TPEI US,Equity,Index/Basket/ETF Based,Short,3.0,
+TAWN US,Equity,Index/Basket/ETF Based,Long,3.0,
+MNGU US,Equity,Index/Basket/ETF Based,Long,3.0,
