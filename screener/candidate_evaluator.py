@@ -144,7 +144,7 @@ def _evaluate_demand(
     if stock_row is None:
         return {
             "verdict": "DATA_UNAVAILABLE",
-            "note": "Not in Bloomberg US equity pull",
+            "note": "Not in US equity universe",
             "metrics": {},
         }
 
@@ -368,7 +368,7 @@ def _compute_verdict(
             filed_note = f" Filed ({status})." if status else " Filed."
         if c_verdict == "FIRST_MOVER":
             if d_verdict == "DATA_UNAVAILABLE":
-                reason = f"Uncontested underlier.{filed_note} No US equity data - add to Bloomberg pull."
+                reason = f"Uncontested underlier.{filed_note} No US equity data - add to market data pull."
             elif d_verdict == "HIGH":
                 reason = f"Strong demand, no competitors.{filed_note} First-mover opportunity."
             else:

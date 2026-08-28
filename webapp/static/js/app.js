@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
     { name: 'Issuer Analysis', url: '/market/issuer', pillar: 'Market', desc: 'Rank issuers' },
     { name: 'Filing Activity', url: '/dashboard', pillar: 'Filings', desc: 'Today\'s SEC filings' },
     { name: 'Filing Landscape', url: '/screener/', pillar: 'Filings', desc: '3x/4x/5x matrix' },
-    { name: 'Bloomberg Scoring', url: '/screener/3x-analysis', pillar: 'Filings', desc: 'Product recommendations' },
+    { name: 'Product Scoring', url: '/screener/3x-analysis', pillar: 'Filings', desc: 'Product recommendations' },
     { name: 'Search Funds', url: '/funds/', pillar: 'Filings', desc: 'Fund search by name/ticker' },
     { name: 'Search Filings', url: '/sec/notes/filings', pillar: 'Filings', desc: 'Filing search by date/form' },
     { name: 'Market Overview', url: '/intel/', pillar: 'Ownership', desc: '$289B ETP ownership' },

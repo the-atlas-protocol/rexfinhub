@@ -85,7 +85,7 @@ _SKIP_EXACT = {
 
 
 def get_universe(db_path: Path = DB) -> list[str]:
-    """Pull L&I underliers, dedupe, strip Bloomberg suffixes, drop non-equities."""
+    """Pull L&I underliers, dedupe, strip market data suffixes, drop non-equities."""
     conn = sqlite3.connect(str(db_path))
     try:
         rows = conn.execute(

@@ -1,4 +1,4 @@
-"""Load and validate Bloomberg data from bloomberg_daily_file.xlsm.
+"""Load and validate market data from bloomberg_daily_file.xlsm.
 
 Single data source: bloomberg_daily_file.xlsm
   - s1 sheet: US equity universe (stock data)

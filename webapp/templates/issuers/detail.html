@@ -38,7 +38,7 @@
 
   {% if not issuer_data %}
   <div class="alert alert-warning" style="background:#FEF3C7; border:1px solid #FDE68A; padding:14px 18px; border-radius:8px; color:#78350F;">
-    No data found for issuer "{{ issuer_name }}". The name may not exist in the current Bloomberg snapshot.
+    No data found for issuer "{{ issuer_name }}". The name may not exist in the current data snapshot.
     {% if variants_known_as %}<br>Known variants: {{ variants_known_as|join(", ") }}.{% endif %}
   </div>
   {% else %}

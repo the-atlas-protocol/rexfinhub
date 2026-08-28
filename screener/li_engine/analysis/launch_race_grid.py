@@ -174,7 +174,7 @@ def _extract_underlier_from_name(name: str | None) -> str:
 def _normalize_underlier_key(raw: str | None) -> str:
     """Comparison key for joining REX rows to competitor filings.
 
-    Strips a trailing ' US' (Bloomberg US-Equity convention) so that
+    Strips a trailing ' US' (market data US-Equity convention) so that
     'NVDA US' and 'NVDA' collapse to the same key. Other exchange codes
     (KS, LN, JP, HK) are preserved so 'FEPI US' != 'FEPI LN'.
 

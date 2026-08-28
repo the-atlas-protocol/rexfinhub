@@ -130,7 +130,7 @@ def build(reports: dict[str, SignalReport], weights: dict[str, float],
     doc.add_paragraph()
     _h1(doc, "Executive Summary")
     _para(doc, "This version expands the v1 analysis (8 signals, contemporaneous target) to 17 signals "
-          "across 4 data sources and adds a genuine forward-flow target from Bloomberg's daily "
+          "across 4 data sources and adds a genuine forward-flow target from the daily "
           "time-series sheets — the kind of predictive IC the v1 run could not produce.")
 
     keepers = [s for s, r in reports.items() if "positive" in r.verdict()]
@@ -159,14 +159,14 @@ def build(reports: dict[str, SignalReport], weights: dict[str, float],
 
     _h2(doc, "Used in this analysis")
     groups = {
-        "Bloomberg stock_data (current snapshot)": [
+        "market data stock_data (current snapshot)": [
             "market_cap", "adv_30d", "turnover_30d", "total_oi", "put_call_skew",
             "realized_vol_30d", "realized_vol_90d", "short_interest",
         ],
-        "Bloomberg w5 sheet (cross-sectional returns)": [
+        "market data w5 sheet (cross-sectional returns)": [
             "ret_5d", "ret_1m", "ret_3m", "ret_6m", "ret_ytd", "ret_1y",
         ],
-        "Bloomberg aum_history_json (12-month AUM trend on underlier's products)": [
+        "market data aum_history_json (12-month AUM trend on underlier's products)": [
             "underlier_aum_12m_growth",
         ],
         "ApeWisdom API (current retail-mention snapshot)": [
@@ -176,7 +176,7 @@ def build(reports: dict[str, SignalReport], weights: dict[str, float],
     _table(doc, _coverage_lines(panel, groups))
 
     _para(doc, "", )
-    _para(doc, "Targets built from Bloomberg daily time series:", bold=True)
+    _para(doc, "Targets built from the market data feed daily time series:", bold=True)
     tg_rows = [["Target", "n", "Description"]]
     tg_desc = {
         "forward_30d_flow": "Forward 30-day cumulative net flow per underlier, from daily data_flow sheet. First proper predictive target.",
@@ -207,7 +207,7 @@ def build(reports: dict[str, SignalReport], weights: dict[str, float],
     _para(doc, "The w5 sheet provides per-ticker returns, but it tracks PRODUCT tickers (TSLT, NVDU, AAPX), "
           "not UNDERLIER tickers (TSLA, NVDA, AAPL). Only 8–9 underliers in our analytical universe also appear in w5. "
           "This is why ret_1m, ret_3m, ret_ytd show 'insufficient-data' in the verdict table — not a failure of the signal, "
-          "a coverage mismatch. Underlier-level momentum must come from yfinance or a separate Bloomberg pull keyed on "
+          "a coverage mismatch. Underlier-level momentum must come from yfinance or a separate market data pull keyed on "
           "underlier tickers.", italic=True)
 
     # Methodology / angles
@@ -285,7 +285,7 @@ def build(reports: dict[str, SignalReport], weights: dict[str, float],
     _h3(doc, "6. Underlier momentum signals are a coverage gap, not a null result")
     _para(doc, "All w5 ret_* signals showed 'insufficient-data' because w5 carries product returns, "
           "not underlier returns. Closing this gap requires yfinance (currently rate-limited) or a "
-          "dedicated Bloomberg underlier-returns pull.")
+          "dedicated market data underlier-returns pull.")
 
     # Ongoing review playbook
     doc.add_page_break()

@@ -580,7 +580,7 @@
 
   function openModal(slug, label) {
     titleEl.textContent = label + ' — AUM History';
-    subEl.textContent = 'Source: Bloomberg';
+    subEl.textContent = '';
     statsEl.style.display = 'none';
     statsEl.innerHTML = '';
     errorEl.style.display = 'none';
@@ -616,7 +616,7 @@
       `<div><div class="gm-stat-label">${k}</div><div class="gm-stat-val">${v}</div></div>`
     ).join('');
     statsEl.style.display = 'flex';
-    subEl.textContent = `Source: Bloomberg · As of ${d.as_of}`;
+    subEl.textContent = `As of ${d.as_of}`;
 
     const labelsFmt = d.labels.map(fmtMonth);
     chartInstance = new Chart(canvas, {

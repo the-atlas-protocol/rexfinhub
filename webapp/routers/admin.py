@@ -309,7 +309,7 @@ def _call_vps(endpoint: str, method: str = "POST") -> dict | None:
         return None
 
 
-@router.post("/pull-bloomberg")
+@router.post("/pull-data")
 def pull_bloomberg(request: Request, db: Session = Depends(get_db)):
     """Pull fresh Bloomberg from SharePoint + sync to DB."""
     if not _is_admin(request):

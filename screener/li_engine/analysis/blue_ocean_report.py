@@ -1,6 +1,6 @@
 """Blue Ocean — L&I Overnight Trading report (v6 final shape).
 
-Three tables built off the Bloomberg BlueOcean sheet, joined to mkt_master_data:
+Three tables built off the market data BlueOcean sheet, joined to mkt_master_data:
   1. Blue Ocean by Issuer (filtered to max-of-windows >= $100K)
   2. Top 15 Underliers by Blue Ocean turnover
   3. Appendix — REX & MicroSectors product detail
@@ -90,7 +90,7 @@ def _row_appx(r, alt=False):
 def build_html(xlsm_path: Path | str = XLSM, db_path: Path | str = DB) -> str:
     """Build the Blue Ocean report HTML and return it as a string.
 
-    Reads the BlueOcean sheet from the Bloomberg daily file and joins to
+    Reads the BlueOcean sheet from the daily data file and joins to
     mkt_master_data (primary_category='LI' AND market_status='ACTV').
     """
     bo = pd.read_excel(str(xlsm_path), sheet_name="BlueOcean")
@@ -224,7 +224,7 @@ def build_html(xlsm_path: Path | str = XLSM, db_path: Path | str = DB) -> str:
 <tbody>{appx_rows}</tbody></table>
 
 <div style="font-size:9.5pt;color:#566573;margin-top:22px;border-top:1px solid #e0e3e6;padding-top:10px;">
-Source: Bloomberg.
+
 </div>
 
 </div></body></html>"""
@@ -239,7 +239,7 @@ def main():
     ap.add_argument("--out", type=Path, default=None,
                     help="Output HTML path. Default: reports/blue_ocean_YYYY-MM-DD.html")
     ap.add_argument("--xlsm", type=Path, default=XLSM,
-                    help=f"Path to Bloomberg daily xlsm. Default: {XLSM}")
+                    help=f"Path to market data daily xlsm. Default: {XLSM}")
     ap.add_argument("--db", type=Path, default=DB,
                     help=f"Path to etp_tracker.db. Default: {DB}")
     args = ap.parse_args()

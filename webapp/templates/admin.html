@@ -13,7 +13,7 @@
 <!-- Status Banners -->
 {% if request.query_params.get('bbg_pulled') %}
 <div style="background:var(--green-bg); border-left:4px solid var(--green); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:12px; font-size:13px;">
-  Bloomberg file pulled from SharePoint.
+  Daily data file pulled from SharePoint.
 </div>
 {% endif %}
 {% if request.query_params.get('mkt_synced') %}
@@ -114,13 +114,13 @@
     <h3 style="margin:0; font-size:16px;">Data &amp; Pipeline</h3>
     <div>
       <form method="post" action="/admin/prepare-daily" style="display:inline;" onsubmit="setTimeout(pollVpsStatus, 2000);">
-        <button type="submit" style="background:#0f172a; color:#fff; border:none; padding:8px 18px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; letter-spacing:0.02em;" onclick="return confirm('Prepare Daily Reports:\n\n1. Pull Bloomberg from SharePoint\n2. Sync market data\n3. Prebake all 9 reports\n4. Upload DB to Render\n5. Test-send every report to relasmar@rexfin.com\n\nRuns in background, takes ~12-15 minutes.\n\nProceed?')">Prepare Daily Reports</button>
+        <button type="submit" style="background:#0f172a; color:#fff; border:none; padding:8px 18px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; letter-spacing:0.02em;" onclick="return confirm('Prepare Daily Reports:\n\n1. Pull market data from SharePoint\n2. Sync market data\n3. Prebake all 9 reports\n4. Upload DB to Render\n5. Test-send every report to relasmar@rexfin.com\n\nRuns in background, takes ~12-15 minutes.\n\nProceed?')">Prepare Daily Reports</button>
       </form>
       <form method="post" action="/admin/sec-scrape" style="display:inline; margin-left:6px;" onsubmit="setTimeout(pollVpsStatus, 2000);">
         <button type="submit" style="background:var(--orange); color:#fff; border:none; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600;" onclick="return confirm('Run SEC filing scrape on the VPS? This takes ~30-60 minutes.')">SEC Scrape</button>
       </form>
-      <form method="post" action="/admin/pull-bloomberg" style="display:inline; margin-left:6px;" onsubmit="setTimeout(pollVpsStatus, 2000);">
-        <button type="submit" style="background:var(--blue); color:#fff; border:none; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600;" onclick="return confirm('Pull fresh Bloomberg from SharePoint and sync to database?')">Pull &amp; Sync</button>
+      <form method="post" action="/admin/pull-data" style="display:inline; margin-left:6px;" onsubmit="setTimeout(pollVpsStatus, 2000);">
+        <button type="submit" style="background:var(--blue); color:#fff; border:none; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600;" onclick="return confirm('Pull fresh market data from SharePoint and sync to database?')">Pull &amp; Sync</button>
       </form>
       <form method="post" action="/admin/upload-render" style="display:inline; margin-left:6px;" onsubmit="setTimeout(pollVpsStatus, 2000);">
         <button type="submit" style="background:var(--green); color:#fff; border:none; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600;" onclick="return confirm('Upload lean DB to Render? Site will update in ~30 seconds.')">Upload to Render</button>
@@ -129,9 +129,9 @@
   </div>
 
   <div style="display:flex; gap:10px; flex-wrap:wrap;">
-    <!-- Bloomberg -->
+    <!-- market data -->
     <div style="flex:1; min-width:160px; background:var(--white); border:1px solid var(--border); border-radius:6px; padding:12px 14px;">
-      <div style="font-size:9px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Bloomberg Data</div>
+      <div style="font-size:9px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Market Data</div>
       {% if bbg_status.age_hours < 6 %}
       <div style="font-size:15px; font-weight:700; color:var(--green); margin-top:4px;">Fresh</div>
       {% elif bbg_status.age_hours < 24 %}

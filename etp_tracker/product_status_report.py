@@ -3,7 +3,7 @@
 One question: what's new and what's coming next?
 
 Sections:
-  1. Top KPIs (Live incl ETNs, AUM from Bloomberg, New This Week, Launching 30d)
+  1. Top KPIs (Live incl ETNs, AUM from the market data feed, New This Week, Launching 30d)
   2. Next Up — the immediate next filing/batch going effective
   3. New This Week — listings + new filings (always shown, empty state if none)
   4. Launching Next 30 Days — grouped by filing, not by fund
@@ -89,7 +89,7 @@ def build_product_status_report(db: Session) -> str:
 
 
 def _total_rex_aum(db: Session) -> float:
-    """Total REX AUM across all listed products from Bloomberg."""
+    """Total REX AUM across all listed products from the market data feed."""
     try:
         from webapp.services.market_data import get_master_data, data_available
         if not data_available(db):
@@ -215,7 +215,7 @@ def _render(*, total, listed_count, rex_aum, new_this_week_count, upcoming_count
 {body}
 <div style="padding:12px 20px; border-top:1px solid {_BORDER}; background:#f8fafc;">
   <div style="font-size:10px; color:{_GRAY}; text-align:center; font-style:italic;">
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
+    AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
   </div>
 </div>
 </div></body></html>"""

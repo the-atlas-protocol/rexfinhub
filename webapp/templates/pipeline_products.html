@@ -556,7 +556,7 @@ table.pipeline-table tr.col-filter-row input.filter-input::placeholder { color:#
           {# Col 4: Fund Name #}
           <td class="name-col" title="{{ p.name }}" data-sort="{{ p.name.lower() }}" data-field="name">{{ p.name[:60] }}</td>
           {# Col 5: Underlier — clickable chip opens REX-vs-competitor race side-panel.
-             URL token is stripped of Bloomberg " US" / " Curncy" suffix so
+             URL token is stripped of market data " US" / " Curncy" suffix so
              /operations/pipeline/underlier/NVDA matches both 'NVDA' and
              'NVDA US' rows in mkt_master_data (F1/F2 bifurcation fix from
              2026-05-11 audit). #}

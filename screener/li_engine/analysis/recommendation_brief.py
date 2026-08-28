@@ -37,13 +37,22 @@ def collapse_status(s):
     return "Effective" if s in ("effective", "active", "listed", "live") else "Filed"
 
 # company names + single-stock universe from mkt_stock_data (report's _single_stock_set)
+# The Bloomberg stock pull carries 29 numeric fields and NO name, so rec[Name] is empty
+# for all 6,594 tickers and this column rendered blank for every row. stock_names is a
+# local cache (scripts/backfill_stock_names.py) consulted as a fallback.
 namemap = {}; single_stock = set()
+_name_cache = {}
+try:
+    for _t, _n in conn.execute("SELECT ticker, company_name FROM stock_names WHERE company_name IS NOT NULL"):
+        _name_cache[_canon(_t)] = _n
+except Exception:
+    pass
 for tk, dj in conn.execute("SELECT ticker, data_json FROM mkt_stock_data"):
     u = _canon(tk)
     nme = ""
     try:
         rec = json.loads(dj); rec = rec[0] if isinstance(rec, list) else rec
-        nme = str(rec.get("Name") or "")
+        nme = str(rec.get("Name") or "") or _name_cache.get(u, "")
     except Exception: pass
     if any(x in nme for x in ("ETF","ETN")) or re.search(r"(USD|Curncy|Index)$", str(tk)): continue
     namemap[u] = nme[:30]; single_stock.add(u)

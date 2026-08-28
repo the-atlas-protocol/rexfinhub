@@ -42,7 +42,7 @@
 {# -- ETN AUM Disclaimer -- #}
 {% if fund_structure and 'ETN' in fund_structure %}
 <div class="etn-disclaimer">
-  Note: Bloomberg AUM for ETNs may not reflect outstanding shares.
+  Note: AUM for ETNs may not reflect outstanding shares.
 </div>
 {% endif %}
 
@@ -66,7 +66,7 @@
 {# -- KPI Hero Row (2 wide cards with sparklines) -- #}
 {% if data_as_of %}
 <div class="data-as-of">
-  Bloomberg data as of <strong>{{ data_as_of }}</strong>
+  Data as of <strong>{{ data_as_of }}</strong>
 </div>
 {% endif %}
 <div class="kpi-hero-row">

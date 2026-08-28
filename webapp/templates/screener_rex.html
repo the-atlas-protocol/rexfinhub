@@ -8,7 +8,7 @@
     {% if upload %}
       Data as of {{ upload.uploaded_at.strftime('%b %d, %Y') }}
     {% else %}
-      No data loaded. Run the daily pipeline to score Bloomberg data.
+      No data loaded. Run the daily pipeline to score market data.
     {% endif %}
   </div>
 </div>
@@ -128,7 +128,7 @@
   <div class="trust-body" style="display:block;">
     {% if group_name == "Microsectors" %}
     <div style="background:var(--orange-bg); border-left:4px solid var(--orange); padding:8px 12px; border-radius:0 6px 6px 0; margin-bottom:8px; font-size:12px; color:var(--text-secondary);">
-      <strong>Note:</strong> Microsectors AUM figures may be overstated as Bloomberg reports total issuance rather than outstanding amounts.
+      <strong>Note:</strong> Microsectors AUM figures may be overstated as the data source reports total issuance rather than outstanding amounts.
     </div>
     {% endif %}
     <div class="table-scroll-wrap">
@@ -183,7 +183,7 @@
 {% elif not rex_track %}
 <div class="what-changed">
   <h2>No REX fund data available</h2>
-  <p>Run the daily pipeline to load Bloomberg data and view REX fund performance.</p>
+  <p>Run the daily pipeline to load market data and view REX fund performance.</p>
 </div>
 {% endif %}
 

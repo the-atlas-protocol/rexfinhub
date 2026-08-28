@@ -297,7 +297,7 @@ def _build_candidate_card(story: list, c: dict, styles) -> None:
     demand_rows = [["Demand Signal", "Value", "Percentile"]]
     if demand["verdict"] == "DATA_UNAVAILABLE":
         demand_rows.append(["Status", "DATA UNAVAILABLE", "-"])
-        demand_rows.append(["Note", demand.get("note", "Not in Bloomberg US equity pull"), ""])
+        demand_rows.append(["Note", demand.get("note", "Not in US equity universe"), ""])
     else:
         metrics = demand.get("metrics", {})
         mkt_cap = metrics.get("Mkt Cap", {})
@@ -386,7 +386,7 @@ def _build_candidate_card(story: list, c: dict, styles) -> None:
     if c.get("data_coverage") != "full":
         story.append(Spacer(1, 4))
         story.append(Paragraph(
-            f"<i>Note: {ticker} not in Bloomberg US equity pull. "
+            f"<i>Note: {ticker} not in US equity universe. "
             f"Demand Signal unavailable.</i>", styles["SmallNote"]))
 
     story.append(Spacer(1, 16))
@@ -516,10 +516,10 @@ def _build_methodology_page(story, styles, candidates, rankings, report_date):
     method_data = [
         ["Pillar", "Source", "Verdicts"],
         [Paragraph("Demand Signal", cw),
-         Paragraph("Bloomberg US equity universe. Turnover 30%, OI 30%, Mkt Cap 20%, Vol 10%, SI 10%.", cw),
+         Paragraph("US equity universe. Turnover 30%, OI 30%, Mkt Cap 20%, Vol 10%, SI 10%.", cw),
          Paragraph("HIGH / MEDIUM / LOW", cw)],
         [Paragraph("Competition", cw),
-         Paragraph("Bloomberg ETP universe. REX products separated from competitors.", cw),
+         Paragraph("ETP universe. REX products separated from competitors.", cw),
          Paragraph("FIRST MOVER / EARLY / COMPETITIVE / CROWDED", cw)],
         [Paragraph("Market Feedback", cw),
          Paragraph("Existing product AUM and 3-month fund flows.", cw),
@@ -577,7 +577,7 @@ def _build_methodology_page(story, styles, candidates, rankings, report_date):
         story.append(Paragraph("Data Coverage Warnings", styles["SubHead"]))
         for c in partial:
             story.append(Paragraph(
-                f"<b>{c['ticker_clean']}</b>: Not in Bloomberg US equity pull. "
+                f"<b>{c['ticker_clean']}</b>: Not in US equity universe. "
                 f"Demand Signal unavailable.",
                 styles["SmallNote"]))
         story.append(Spacer(1, 8))
@@ -585,7 +585,7 @@ def _build_methodology_page(story, styles, candidates, rankings, report_date):
     story.append(Paragraph("Disclaimer", styles["SubHead"]))
     story.append(Paragraph(
         "This analysis is for internal decision support only. Verdicts are rules-based assessments, "
-        "not guarantees. All data sourced from Bloomberg and SEC EDGAR.",
+        "not guarantees. All data sourced from SEC EDGAR and licensed market data.",
         styles["SmallNote"]))
     story.append(Spacer(1, 20))
     story.append(Paragraph(

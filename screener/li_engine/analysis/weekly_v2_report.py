@@ -885,7 +885,7 @@ def render(launch: pd.DataFrame, whitespace: pd.DataFrame, money_flow: pd.DataFr
     )
     ipo_as_of_html = (
         f'<div style="font-size:10.5px;color:#95a5a6;margin:2px 0 6px 0;">'
-        f'Valuations data as of {escape(ipo_as_of)} — sourced from Reuters / FT / Bloomberg public reporting.'
+        f'Valuations data as of {escape(ipo_as_of)} — sourced from Reuters / FT / market data public reporting.'
         f'</div>'
     ) if ipo_as_of else ""
 
@@ -2673,7 +2673,7 @@ def render_v3(cards: list[dict], money_flow: pd.DataFrame,
     )
     ipo_as_of_html = (
         f'<div style="font-size:10.5px;color:#95a5a6;margin:2px 0 6px 0;">'
-        f'Valuations data as of {escape(ipo_as_of)} — sourced from Reuters / FT / Bloomberg public reporting.'
+        f'Valuations data as of {escape(ipo_as_of)} — sourced from Reuters / FT / market data public reporting.'
         f'</div>'
     ) if ipo_as_of else ""
 

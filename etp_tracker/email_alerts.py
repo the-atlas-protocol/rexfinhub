@@ -7,7 +7,7 @@ Works in Outlook, Gmail, Apple Mail, etc.
 Sections:
   1. Header
   2. KPI Scorecard (Trusts, Effective Today, Pending)
-  3. New Fund Launches (inception in last 24h, from Bloomberg master data)
+  3. New Fund Launches (inception in last 24h, from master data)
   4. New Filings (485 forms filed in last 24h, REX trusts first)
   5. Upcoming Effectiveness (PENDING funds with expected effective dates)
   6. Dashboard CTA
@@ -286,9 +286,9 @@ def _dual_kpi_box(market_row: list, rex_row: list | None = None) -> str:
 
 
 def _gather_market_snapshot(db=None) -> dict | None:
-    """Pull Bloomberg data for the daily brief market sections.
+    """Pull market data for the daily brief market sections.
 
-    Returns None if Bloomberg data is unavailable (graceful degradation).
+    Returns None if market data is unavailable (graceful degradation).
     """
     try:
         from webapp.services.market_data import data_available, get_rex_summary, get_master_data, get_category_summary
@@ -459,7 +459,7 @@ def _gather_market_snapshot(db=None) -> dict | None:
                 if _yf_returns:
                     pass  # yfinance returns loaded
             except ImportError:
-                pass  # yfinance not installed, fall back to Bloomberg
+                pass  # yfinance not installed, fall back to market data
 
             for _ptk_bbg, _ptk_yf, _plbl in _PULSE_TICKERS:
                 if _plbl in _yf_returns:
@@ -1321,13 +1321,13 @@ def _render_daily_html(data: dict, dashboard_url: str = "", custom_message: str 
     {_title} | {_data_date_str}
   </div>
   <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
-    Data sourced from SEC EDGAR &amp; Bloomberg | To unsubscribe, contact relasmar@rexfin.com
+    Data sourced from SEC EDGAR | To unsubscribe, contact relasmar@rexfin.com
   </div>
   <div style="font-size:9px;color:{_GRAY};text-align:center;margin-top:3px;font-style:italic;">
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
+    AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
   </div>
   <div style="font-size:9px;color:{_GRAY};text-align:center;margin-top:3px;font-style:italic;">
-    Note: ETN data reflects proprietary share/price data where available. Bloomberg-reported ETN figures may differ.
+    Note: ETN data reflects proprietary share/price data where available. Vendor-reported ETN figures may differ.
   </div>
 </td></tr>"""
 
@@ -1565,7 +1565,7 @@ def _render_pipeline_section(pipeline_funds: list[dict]) -> str:
 
 def _gather_daily_data(db_session, since_date: str | None = None,
                        edition: str = "daily") -> dict:
-    """Query DB + Bloomberg master data for daily brief.
+    """Query DB + master data for daily brief.
 
     edition: "daily"/"morning" looks back 24h, "evening" looks at today only.
     """
@@ -2523,7 +2523,7 @@ def _render_morning_brief_html(data: dict, dashboard_url: str = "") -> str:
     # --- Footer ---
     _data_source = "Data sourced from SEC EDGAR"
     if snapshot:
-        _data_source += " &amp; Bloomberg"
+        _data_source += " &amp; market data"
     footer = f"""
 <tr><td style="padding:16px 30px;border-top:1px solid {_BORDER};">
   <div style="font-size:11px;color:{_GRAY};text-align:center;">

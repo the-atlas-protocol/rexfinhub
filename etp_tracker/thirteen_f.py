@@ -59,7 +59,7 @@ def _openfigi_lookup_cusips(tickers: list[str]) -> dict[str, str]:
     Returns dict of ticker → CUSIP for each ticker that resolved. Tickers
     that don't resolve are silently absent from the result. Used to plug
     the "stealth REX" gap where a product has filed with SEC but isn't yet
-    in Bloomberg-sourced MktMasterData.
+    in the market data feed-sourced MktMasterData.
 
     Rate limits: 25 req/min, 5 instruments per request without an API key;
     250 req/min, 100 per request with OPENFIGI_API_KEY. We batch to 5 per

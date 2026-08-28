@@ -76,7 +76,7 @@ class DemandProfile:
 
 
 def _safe_float(val) -> float:
-    """Convert Bloomberg value to float, handling errors."""
+    """Convert market data value to float, handling errors."""
     if val is None:
         return 0.0
     try:

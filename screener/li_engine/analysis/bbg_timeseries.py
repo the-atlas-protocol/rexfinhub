@@ -1,4 +1,4 @@
-"""Bloomberg daily time-series parser.
+"""market data daily time-series parser.
 
 Parses the time-series sheets embedded in bloomberg_daily_file.xlsm:
     data_flow     — daily fund flows per product (948 products, 2021-11-10 → today)

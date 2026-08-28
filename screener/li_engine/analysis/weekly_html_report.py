@@ -413,7 +413,7 @@ insider ownership (8%), market cap (8%). Negative weights: short-interest ratio 
 until quarterly review. Whitespace filter: zero active competitor 2x products and zero
 REX filings (current or historical). Competitor-safety flag uses 180-day 485APOS activity.
 Historical analogues selected by log-normalized euclidean distance on core signal vector.
-Source data: Bloomberg terminal daily pull, SEC EDGAR filings database, ApeWisdom live API.
+Source data: SEC EDGAR filings database, ApeWisdom live API.
 <br><br>Not investment advice. Internal research product.
 </div>
 </body></html>

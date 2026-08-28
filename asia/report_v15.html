@@ -426,7 +426,7 @@ svg { display: block; }
   </div>
 
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 1</span>
   </div>
 </div>
@@ -489,7 +489,7 @@ svg { display: block; }
   <div id="chart-country-stacked" style="flex: 1; min-height: 0;"></div>
 
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 2</span>
   </div>
 </div>
@@ -559,7 +559,7 @@ svg { display: block; }
     <div id="table-trex-country-summary" style="min-width:0;overflow:hidden;"></div>
   </div>
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 3</span>
   </div>
 </div>
@@ -629,7 +629,7 @@ svg { display: block; }
     <div id="table-micro-country-summary" style="min-width:0;overflow:hidden;"></div>
   </div>
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 4</span>
   </div>
 </div>
@@ -698,7 +698,7 @@ svg { display: block; }
     <div id="table-epi-country-summary" style="min-width:0;overflow:hidden;"></div>
   </div>
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 5</span>
   </div>
 </div>
@@ -767,7 +767,7 @@ svg { display: block; }
     <div id="table-gi-country-summary" style="min-width:0;overflow:hidden;"></div>
   </div>
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 6</span>
   </div>
 </div>
@@ -801,7 +801,7 @@ svg { display: block; }
   </div>
 
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 7</span>
   </div>
 </div>
@@ -834,7 +834,7 @@ svg { display: block; }
   </div>
 
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 8</span>
   </div>
 </div>
@@ -854,7 +854,7 @@ svg { display: block; }
 
     <div style="font-weight: 700; font-size: 10px; margin-bottom: 8px;">Global AUM</div>
     <ul style="margin: 0 0 12px 14px; padding: 0; list-style-type: disc;">
-      <li>Sourced from Bloomberg as of each month-end</li>
+      <li>Sourced from the market data feed as of each month-end</li>
       <li>Covers all REX ETPs across ETFs and ETNs</li>
       <li>Used to calculate each fund's percentage of global AUM held in Asia and to decompose AUM changes into market impact and investor flows</li>
     </ul>
@@ -870,7 +870,7 @@ svg { display: block; }
   </div>
 
   <div class="footer">
-    <span>Source: Bloomberg, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
+    <span>, broker reports, 13F filings. *Flow estimates derived from shares outstanding and NAV data; actual fund flows may differ.</span>
     <span>REX Financial · Page 9</span>
   </div>
 </div>
@@ -926,8 +926,8 @@ const DATA = (() => {
   });
 })();
 // Fill pct (% of AUM in Asia) from global AUM timeline
-// DB only tracks 84 funds; Bloomberg total includes all 93 REX ETPs.
-// Scale DB historical global AUM by the current-month ratio to approximate Bloomberg totals.
+// DB only tracks 84 funds; market data total includes all 93 REX ETPs.
+// Scale DB historical global AUM by the current-month ratio to approximate market data totals.
 const _globalTimeline = REPORT_DATA.global_aum_timeline || {};
 const _bbgGlobal = REPORT_DATA.headlines.total_global_aum;
 const _dbGlobal = REPORT_DATA.headlines.db_global_aum || _bbgGlobal;

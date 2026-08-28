@@ -2,7 +2,7 @@
 
 Two data sources:
   1. Pipeline DB (FundStatus) - includes PENDING funds with no ticker
-  2. etp_data (is_rex=True) - Bloomberg ETP universe for trading funds
+  2. etp_data (is_rex=True) - ETP universe for trading funds
 
 The DB has funds with ticker=None (485APOS initial filings) where the underlier
 must be extracted from the fund name: "T-REX 2X LONG SCCO DAILY TARGET ETF" -> "SCCO"

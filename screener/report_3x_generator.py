@@ -233,7 +233,7 @@ def _build_exec_summary(story, styles, snapshot, tiers, four_x_candidates, repor
     story.append(Paragraph("Executive Summary", styles["ReportTitle"]))
     date_line = f"Report Date: {report_date}"
     if data_date:
-        date_line += f"  |  Bloomberg Data: {data_date}"
+        date_line += f"  |  Market Data: {data_date}"
     story.append(Paragraph(date_line, styles["SmallNote"]))
     story.append(Spacer(1, 12))
 
@@ -808,11 +808,11 @@ def _build_methodology(story, styles, report_date):
     # Data sources
     story.append(Paragraph("Data Sources", styles["SubHead"]))
     story.append(Paragraph(
-        "<bullet>&bull;</bullet> <b>Stock Data</b>: Bloomberg US equity universe (~6,400 stocks). "
+        "<bullet>&bull;</bullet> <b>Stock Data</b>: US equity universe (~6,400 stocks). "
         "Market cap, options OI, volatility, turnover, short interest, sector classification.",
         styles["BulletBody"]))
     story.append(Paragraph(
-        "<bullet>&bull;</bullet> <b>ETP Data</b>: Bloomberg US ETP universe (~5,000 products). "
+        "<bullet>&bull;</bullet> <b>ETP Data</b>: market data US ETP universe (~5,000 products). "
         "AUM (current + 36-month history), fund flows, leverage type, underlier mapping, issuer.",
         styles["BulletBody"]))
     story.append(Paragraph(
@@ -826,7 +826,7 @@ def _build_methodology(story, styles, report_date):
     story.append(Paragraph(
         "This analysis is for internal decision support only. Scoring and tiering are rules-based "
         "assessments, not guarantees of product success. Risk estimates use simplified models "
-        "(normal distribution) that underestimate true tail risk. All data sourced from Bloomberg "
+        "(normal distribution) that underestimate true tail risk. All data sourced from licensed market data "
         "and SEC EDGAR.",
         styles["SmallNote"]))
     story.append(Spacer(1, 20))

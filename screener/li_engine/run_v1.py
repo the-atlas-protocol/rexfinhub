@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 from datetime import date, datetime
 from pathlib import Path
@@ -134,6 +135,9 @@ def load_returns_si_sector(run_id=None) -> pd.DataFrame:
         recs.append({
             "ticker": _clean_ticker(t),
             "ret_1y": f(d, "1Y Total Return"),
+            # Shorter windows so a young listing is not scored as zero momentum.
+            "ret_6m": f(d, "6M Total Return"),
+            "ret_3m": f(d, "3M Total Return"),
             "si_ratio": f(d, "Short Interest Ratio"),
             "sector": d.get("GICS Sector"),
         })
@@ -178,8 +182,44 @@ def load_competitor_signals() -> pd.DataFrame:
         comp485 = fil[fil.is_rex == 0].groupby("u").size().rename("comp_485_180d")
     else:
         comp485 = pd.Series(dtype=int, name="comp_485_180d")
-    out = pd.concat([n_long_comp, pend, comp485], axis=1).fillna(0)
-    out["race_count"] = out.get("pend_ct", 0) + out.get("comp_485_180d", 0)
+    # Competitors that have FILED but not yet listed exist only in fund_status — they
+    # have no mkt_master_data row, so both queries above miss them and the race reads
+    # as empty while a rival is a fortnight from launch. Match filings to an underlier
+    # by name (the L&I convention embeds it: "... 2X Long <UNDERLIER> Daily ...").
+    filed_comp = pd.Series(dtype=int, name="filed_comp")
+    try:
+        conn2 = sqlite3.connect(DB)
+        fs = pd.read_sql_query(
+            "SELECT fund_name, status FROM fund_status "
+            "WHERE status IN ('EFFECTIVE','PENDING','DELAYED') AND fund_name IS NOT NULL", conn2)
+        # Underliers with nothing live are absent from mkt_master_data, so gating on it
+        # drops precisely the names where a competitor filing matters most. Use the
+        # scored stock universe, which covers every ticker the engine ranks.
+        # NOTE: read this BEFORE closing conn2 — closing first raised inside the inner
+        # handler and silently reverted `known` to the master-data subset.
+        uni = pd.read_sql_query("SELECT DISTINCT ticker FROM mkt_stock_data", conn2)
+        conn2.close()
+        known = set(prods["u"].dropna().unique())
+        known |= {str(t).replace(" US", "").strip().upper() for t in uni["ticker"]}
+        if known and not fs.empty:
+            fs = fs[~fs.fund_name.str.upper().str.startswith(("T-REX", "REX "))]  # competitors only
+            pat = re.compile(r"\b(\d(?:\.\d)?X)\s+(?:LONG|SHORT|INVERSE)\s+([A-Z]{1,6})\b", re.I)
+            rows = []
+            for nm in fs.fund_name:
+                m = pat.search(str(nm).upper())
+                if m and m.group(2) in known:
+                    rows.append(m.group(2))
+            if rows:
+                filed_comp = pd.Series(rows).value_counts().rename("filed_comp")
+    except Exception as _e:
+        # Never swallow silently: a failure here zeroes the race pillar for every
+        # underlier with no live product, which is the exact population it exists for.
+        print(f"  WARNING: filed-competitor scan failed ({type(_e).__name__}: {_e}) "
+              f"— race_count will miss unlisted competitors")
+
+    out = pd.concat([n_long_comp, pend, comp485, filed_comp], axis=1).fillna(0)
+    out["race_count"] = (out.get("pend_ct", 0) + out.get("comp_485_180d", 0)
+                         + out.get("filed_comp", 0))
     return out
 
 
@@ -289,7 +329,23 @@ def main(skip_sentiment: bool = False) -> pd.DataFrame:
     df["liquidity_score"] = _pct(df["turnover_30d"]).fillna(0) * W["liquidity"]
     df["theme_score"] = df["theme_tier"].map({"hot": W["theme"], "enabler": W["theme"] / 2.0}).fillna(0.0)
     df["race_score"] = (pd.to_numeric(df["race_count"], errors="coerce").clip(upper=3) / 3.0).fillna(0) * W["race"]
-    df["momentum_score"] = _pct(df["ret_1y"]).fillna(0) * W["momentum"]
+    # Momentum uses 1Y where it exists. A ticker listed under a year ago has no 1Y at
+    # all, and scoring that as zero punishes recency rather than performance, so fall
+    # back to 6M then 3M, annualised onto the same footing as a 1Y figure.
+    _r1y = pd.to_numeric(df.get("ret_1y"), errors="coerce")
+    _r6m = pd.to_numeric(df.get("ret_6m"), errors="coerce")
+    _r3m = pd.to_numeric(df.get("ret_3m"), errors="coerce")
+    # Cap the extrapolation: annualising a 3-month move produces four-figure returns
+    # that read as errors in the stored record. Ranking is percentile-based, so a cap
+    # preserves ordering while keeping the value defensible.
+    _MOM_CAP = 300.0
+    _ann6 = (((1 + _r6m / 100.0) ** 2 - 1) * 100.0).clip(upper=_MOM_CAP)
+    _ann3 = (((1 + _r3m / 100.0) ** 4 - 1) * 100.0).clip(upper=_MOM_CAP)
+    df["ret_momentum"] = _r1y.fillna(_ann6).fillna(_ann3)
+    df["momentum_basis"] = np.where(_r1y.notna(), "1Y",
+                            np.where(_r6m.notna(), "6M-ann",
+                              np.where(_r3m.notna(), "3M-ann", "none")))
+    df["momentum_score"] = _pct(df["ret_momentum"]).fillna(0) * W["momentum"]
     df["vol_score"] = _pct(df["realized_vol_90d"]).fillna(0) * W["vol"]
     si_pct = _pct(df["si_ratio"])
     df["si_penalty"] = (si_pct.fillna(0.5) - 0.5).clip(lower=0) * 2 * SI_PENALTY_MAX

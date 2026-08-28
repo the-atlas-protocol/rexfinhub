@@ -7,7 +7,7 @@ signals (rvol_30d, mentions, insider %, etc.), then measure forward 6-mo AUM
 growth of any 2x products launched against that underlier in [T, T+6mo].
 
 LIMITATION: `mkt_stock_data` only retains the LATEST pipeline run — historical
-underlier signal snapshots are not persisted in the DB. The Bloomberg history
+underlier signal snapshots are not persisted in the DB. The market data history
 files (`data/DASHBOARD/history/`) contain ETP-level AUM/flow/price series,
 not underlier stock signals.
 

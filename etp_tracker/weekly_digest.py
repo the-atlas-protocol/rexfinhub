@@ -2,7 +2,7 @@
 REX ETP Weekly Report - Executive Email Digest v6
 
 Email-client-compatible HTML digest (inline styles, table layout, no JS).
-Bloomberg market data (ETFs + ETNs) + SEC filing activity.
+market data market data (ETFs + ETNs) + SEC filing activity.
 
 Sections:
   1. Header
@@ -153,7 +153,7 @@ def _filter_suites(suites: list[dict]) -> list[dict]:
 # Data gathering
 # ---------------------------------------------------------------------------
 def _gather_market_data(db=None) -> dict | None:
-    """Gather Bloomberg data: ETF-only summary + raw DataFrame for category breakdowns."""
+    """Gather market data: ETF-only summary + raw DataFrame for category breakdowns."""
     try:
         from webapp.services.market_data import (
             data_available, get_rex_summary, get_data_as_of,
@@ -196,7 +196,7 @@ def _gather_market_data(db=None) -> dict | None:
             "landscape": landscape,
         }
     except Exception as exc:
-        log.warning("Weekly digest: Bloomberg data unavailable: %s", exc)
+        log.warning("Weekly digest: market data unavailable: %s", exc)
         return None
 
 
@@ -382,7 +382,7 @@ def _render_scorecard_unavailable() -> str:
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr><td style="{_KPI_BOX}padding:24px;">
       <div style="font-size:14px;color:{_GRAY};text-align:center;">
-        Market data not available. Bloomberg data file has not been loaded.
+        Market data not available. daily data file has not been loaded.
       </div>
     </td></tr>
   </table>
@@ -941,7 +941,7 @@ def _render_landscape(landscape: dict, master: pd.DataFrame = None) -> str:
 def _render_market_pulse_weekly(master: pd.DataFrame) -> str:
     """Market Pulse: 1W total returns for major index proxies.
 
-    Bloomberg's t_w3.total_return_1week column is unreliable (frequently NULL).
+    market data's t_w3.total_return_1week column is unreliable (frequently NULL).
     Use yfinance as the canonical 1W return source, with BBG fallback.
     """
     if master is None or master.empty:
@@ -1247,16 +1247,16 @@ def _render_footer(week_ending: str) -> str:
     REX Weekly ETP Report | Week of {_esc(week_ending)}
   </div>
   <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
-    Data sourced from Bloomberg and SEC EDGAR
+    Data sourced from the market data feed and SEC EDGAR
   </div>
   <div style="font-size:10px;color:{_GRAY};text-align:center;margin-top:4px;">
     To unsubscribe, contact relasmar@rexfin.com
   </div>
   <div style="font-size:9px;color:{_GRAY};text-align:center;margin-top:3px;font-style:italic;">
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
+    AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
   </div>
   <div style="font-size:9px;color:{_GRAY};text-align:center;margin-top:3px;font-style:italic;">
-    Note: ETN data reflects proprietary share/price data where available. Bloomberg-reported ETN figures may differ.
+    Note: ETN data reflects proprietary share/price data where available. Vendor-reported ETN figures may differ.
   </div>
 </td></tr>"""
 
@@ -1266,7 +1266,7 @@ def _render_market_unavailable() -> str:
 <tr><td style="padding:15px 30px;">
   <div style="padding:16px;background:{_LIGHT};border-radius:8px;text-align:center;
               font-size:13px;color:{_GRAY};">
-    Market data not available. Bloomberg data file has not been loaded.
+    Market data not available. daily data file has not been loaded.
   </div>
 </td></tr>"""
 

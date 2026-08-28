@@ -162,13 +162,13 @@
     <div class="hs-row"><span class="hs-label">fund statuses</span><span class="hs-value">{{ db_counts.fund_statuses }}</span></div>
   </div>
 
-  {# BBG freshness #}
+  {# daily data file freshness #}
   {% set bbg_class = 'fail' if bbg.stale else ('ok' if bbg.exists else 'fail') %}
   <div class="hs-card {{ bbg_class }}">
-    <h3>Bloomberg file</h3>
+    <h3>Daily data file</h3>
     {% if not bbg.exists %}
       <div class="hs-big">missing</div>
-      <div class="hs-row"><span class="hs-label">path</span><span class="hs-value">data/DASHBOARD/bloomberg_daily_file.xlsm</span></div>
+      <div class="hs-row"><span class="hs-label">path</span><span class="hs-value">daily data file &mdash; not found</span></div>
     {% elif bbg.error is defined %}
       <div class="hs-big">error</div>
       <div class="hs-row"><span class="hs-label">detail</span><span class="hs-value">{{ bbg.error[:60] }}</span></div>

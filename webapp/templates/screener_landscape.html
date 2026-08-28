@@ -127,7 +127,7 @@
       {% if mode == 'filings' %}
       Full L&I Filing Universe | Source: EDGAR | {{ generated_at }}
       {% else %}
-      Bloomberg L&I Product Universe
+      L&I Product Universe
       {% endif %}
     </div>
   </div>
@@ -402,12 +402,12 @@
 
 {% else %}
 {# ================================================================
-   PRODUCTS MODE — Bloomberg L&I ETF/ETN Universe
+   PRODUCTS MODE — L&I ETF/ETN Universe
    ================================================================ #}
 
 {% if products_error %}
 <div style="margin-top:8px; padding:16px 20px; background:#fffbeb; border:1px solid #fbbf24; border-left:3px solid #d97706; border-radius:6px;">
-  <div style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:4px;">Bloomberg Data Required</div>
+  <div style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:4px;">Data Required</div>
   <p style="font-size:13px; color:#64748b; margin:0;">{{ products_error }}</p>
 </div>
 {% elif products %}
@@ -471,7 +471,7 @@
 {% else %}
 <div style="margin-top:8px; padding:16px 20px; background:#ffffff; border:1px solid #e5e7eb; border-radius:6px;">
   <div style="font-size:16px; font-weight:600; color:#0f172a; margin-bottom:4px;">No products found</div>
-  <p style="font-size:13px; color:#64748b; margin:0;">No L&I products available. Check Bloomberg data file.</p>
+  <p style="font-size:13px; color:#64748b; margin:0;">No L&I products available. Check the daily data file.</p>
 </div>
 {% endif %}
 

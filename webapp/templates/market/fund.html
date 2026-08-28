@@ -11,9 +11,9 @@
 </div>
 
 {% if not available %}
-<div class="alert alert-warning">Market data not yet available. Run the daily pipeline to sync Bloomberg data.</div>
+<div class="alert alert-warning">Market data not yet available. Run the daily pipeline to sync market data.</div>
 {% elif not fund %}
-<div class="alert alert-warning">No market data found for <strong>{{ ticker }}</strong>. This ticker may not be in the Bloomberg universe.</div>
+<div class="alert alert-warning">No market data found for <strong>{{ ticker }}</strong>. This ticker may not be in the market data universe.</div>
 {% else %}
 
 {# --- Header --- #}

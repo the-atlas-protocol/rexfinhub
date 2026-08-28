@@ -1463,7 +1463,7 @@ def build():
 
   <p><strong>Pipeline status (binary):</strong> Sourced from <code>rex_products.status</code>. Collapsed as: <b>Effective</b> = {{Effective, Listed}} <em>or</em> any 485BPOS row whose estimated effective date is in the past. <b>Filed</b> = {{Filed, Under Consideration, Target List}}. Delisted excluded.</p>
 
-  <p><strong>Delisting watch:</strong> REX-only. ACTV L&amp;I with AUM &lt; $15M and age ≥ 5.5 months. Rule of thumb: funds that haven't crossed $15M by month 6 historically don't. AUM in Bloomberg millions.</p>
+  <p><strong>Delisting watch:</strong> REX-only. ACTV L&amp;I with AUM &lt; $15M and age ≥ 5.5 months. Rule of thumb: funds that haven't crossed $15M by month 6 historically don't. AUM in the market data feed millions.</p>
 
   <p><strong>Track record — concurrent backtest:</strong> For each single-stock L&amp;I underlier with at least one active product, we sum today's AUM across all L&amp;I products on that underlier, subtract the same sum from 3 months ago (<code>mkt_time_series.aum_value</code> with <code>months_ago=3</code>), and compare to the underlier's composite score. Basket indices and sector ETNs are excluded so the comparison is apples-to-apples single-stock. If the scoring works, HIGH-score buckets should show larger / more positive average flows than LOW-score buckets. This is concurrent validity, not a forward test — the forward test (recommendation_history hit-rate) needs ~10 weeks of accrued recommendations before it's statistically meaningful.</p>
 

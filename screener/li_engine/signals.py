@@ -127,7 +127,7 @@ def days_between(later: datetime | str | pd.Timestamp,
 
 
 def _clean_ticker(t: str) -> str:
-    """Strip Bloomberg exchange suffix ('AAPL US' -> 'AAPL')."""
+    """Strip market data exchange suffix ('AAPL US' -> 'AAPL')."""
     if not isinstance(t, str):
         return ""
     return t.split()[0].upper().strip()

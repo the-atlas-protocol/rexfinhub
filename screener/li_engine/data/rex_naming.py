@@ -241,7 +241,7 @@ def suggest_ticker(
     """Suggest a REX product ticker for ``(underlier, leverage, direction)``.
 
     Args:
-        underlier: Bloomberg or plain ticker of the underlying (e.g. ``"NVDA US"``,
+        underlier: market data or plain ticker of the underlying (e.g. ``"NVDA US"``,
             ``"MSTR"``, ``"XBTUSD Curncy"``). The function strips BBG suffixes
             and normalises crypto pairs.
         leverage: Leverage multiplier as a float (e.g. ``2.0``).

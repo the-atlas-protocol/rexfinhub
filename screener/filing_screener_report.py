@@ -42,7 +42,7 @@ def build_filing_screener_report(max_picks: int = 5) -> str:
         # Score the universe — top 100 passing floor — then filter to RECOMMEND only
         all_scored = score_full_universe(top_n=100)
     except FileNotFoundError:
-        return _render_error("Bloomberg data file not found. Run Bloomberg sync first.")
+        return _render_error("daily data file not found. Run data sync first.")
     except Exception as e:
         log.error("Screener report generation failed: %s", e)
         return _render_error(f"Error loading screener data: {e}")
@@ -111,7 +111,7 @@ def _render_picks(picks: list) -> str:
 {body}
 <div style="padding:12px 20px; border-top:1px solid {_BORDER}; background:#f8fafc;">
   <div style="font-size:10px; color:{_GRAY}; text-align:center; font-style:italic;">
-    Bloomberg AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
+    AUM and fund-flow data is delivered on a 1 business day lag by design; figures reflect T-1 values and may be over- or under-stated for very recent launches, distributions, or corporate actions.
   </div>
 </div>
 </div></body></html>"""
@@ -223,7 +223,7 @@ def _render_empty_picks() -> str:
 <div style="font-size:22px; font-weight:700; color:{_NAVY};">This Week's Filing Candidates</div>
 <div style="font-size:13px; color:{_GRAY}; margin-top:4px;">{today.strftime('%B %d, %Y')}</div>
 <div style="margin-top:20px; padding:14px; background:{_LIGHT}; border-radius:4px; font-size:13px; color:#374151;">
-No candidates meet this week's criteria. Check back after the next Bloomberg sync.
+No candidates meet this week's criteria. Check back after the next data sync.
 </div>
 </div></body></html>"""
 

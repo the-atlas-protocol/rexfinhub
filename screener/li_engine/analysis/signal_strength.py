@@ -1,7 +1,7 @@
 """Tiered signal strength — replaces the binary `has_signals` flag.
 
 Wave A3 of the stockrecs upgrade. The legacy `has_signals` column was
-misleading: it was True iff Bloomberg returned ANY row for the ticker, which
+misleading: it was True iff market data returned ANY row for the ticker, which
 in practice meant "is this a real US-listed equity" — useless for filtering
 launch candidates. This module assigns a meaningful strength tier per
 candidate based on rank, breadth, and freshness of the signals we actually
@@ -22,7 +22,7 @@ age decay.
 
 The age dimension lets us distinguish a STRONG signal observed today from a
 STRONG signal observed two weeks ago — the latter should decay toward
-MODERATE in the composite. Bloomberg-derived signals carry the age of their
+MODERATE in the composite. market data-derived signals carry the age of their
 ``mkt_pipeline_runs.finished_at`` row; ApeWisdom signals are fetched live
 (age = 0).
 

@@ -12,9 +12,9 @@
       {{ filed_count | default(0) }} have REX filings
     {% else %}
       {% if data_available is defined and data_available %}
-        Bloomberg data found on disk. <a href="/admin/">Score from Admin</a> or run the daily pipeline.
+        market data found on disk. <a href="/admin/">Score from Admin</a> or run the daily pipeline.
       {% else %}
-        No data loaded. Run the daily pipeline to load and score Bloomberg data.
+        No data loaded. Run the daily pipeline to load and score market data.
       {% endif %}
     {% endif %}
   </div>
