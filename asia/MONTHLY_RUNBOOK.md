@@ -15,6 +15,30 @@ Designed for paste-and-run. Each step is a single command. The agent running the
 
 ---
 
+## The build chain (steps 7–10 in one command, with the gate)
+
+Once the data layer is loaded (steps 1–6: refresh + load), the report build runs
+as **one ordered command** that enforces sequence and **blocks on a red gate**:
+
+```bash
+REX_ASIA_PORT=5455 python build_month.py --month YYYY-MM --label <MonthLabel>
+```
+
+`build_month.py` runs: generate → **enrich (last writer of enriched_report_data.json)**
+→ **`asia_preflight.py` GATE** → build PDFs → excel. The gate FAILS the build if any
+live REX fund in the canonical list (`config/rex_canonical_tickers.txt`) is missing
+from the Asia universe — the check that catches a new launch like RAM ($711M, June
+2026) that `refresh_all_months.py` never auto-adds. **Re-sync the canonical list from
+rexfinhub monthly** (the gate WARNs if it's >45 days stale).
+
+Two footguns this closes (both had recurred — see POSTMORTEM.md):
+- **enrich must be the last writer** before the build. `audit_report.py` now defaults
+  `--output-enriched` to a temp file (`_audit_enriched_check.json`) so it can no longer
+  clobber the build's input (which blanked the T-REX/MicroSectors overviews).
+- **universe completeness is now gated**, not trusted.
+
+The manual 10 steps below still document each stage; `build_month.py` is steps 7–10.
+
 ## Monthly workflow — 10 steps
 
 Replace `YYYY-MM` with the target month (e.g., `2026-04`).
