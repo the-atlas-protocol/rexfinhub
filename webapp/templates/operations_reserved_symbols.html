@@ -16,30 +16,41 @@ h1.rs-title { font-size:22px; font-weight:700; color:#0f172a; margin:0 0 4px; }
 .rs-kpi .num { font-size:24px; font-weight:800; color:#0f172a; line-height:1; }
 .rs-kpi .label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-top:5px; }
 
-.rs-filter-bar { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:12px 16px; margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.rs-filter-bar label { font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:600; letter-spacing:0.04em; }
-.rs-filter-bar input, .rs-filter-bar select { padding:6px 10px; border:1px solid #e5e7eb; border-radius:4px; font-size:12px; font-family:inherit; }
-.rs-action-bar { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+.rs-action-bar { display:flex; gap:8px; margin-bottom:12px; align-items:center; flex-wrap:wrap; }
 .rs-btn { padding:7px 14px; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; cursor:pointer; background:#fff; color:#0f172a; text-decoration:none; font-weight:500; }
 .rs-btn:hover { background:#f8fafc; border-color:#1F3864; }
 .rs-btn-primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+.rs-toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:#475569; cursor:pointer; user-select:none; }
+.rs-count { color:#94a3b8; font-size:12px; }
 
-.rs-table-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; }
+.rs-table-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:6px; overflow:auto; max-height:75vh; }
 table.rs-table { width:100%; border-collapse:collapse; font-size:13px; }
-table.rs-table th { background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px; text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb; letter-spacing:0.04em; white-space:nowrap; }
+table.rs-table th { background:#f8fafc; padding:8px 10px; text-align:left; font-size:10px; text-transform:uppercase; color:#64748b; border-bottom:2px solid #e5e7eb; letter-spacing:0.04em; white-space:nowrap; position:sticky; top:0; z-index:2; }
+table.rs-table th.rs-sortable { cursor:pointer; }
+table.rs-table th.rs-sortable:hover { color:#0f172a; }
+.rs-arrow { font-size:9px; color:#cbd5e1; margin-left:3px; }
+th.rs-sort-asc .rs-arrow::after { content:"\25B2"; color:#1F3864; }
+th.rs-sort-desc .rs-arrow::after { content:"\25BC"; color:#1F3864; }
+tr.rs-filter-row th { padding:4px 6px; position:sticky; top:28px; z-index:1; background:#fff; border-bottom:1px solid #e5e7eb; }
+tr.rs-filter-row input { width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid #e5e7eb; border-radius:3px; font-size:11px; font-family:inherit; }
 table.rs-table td { padding:6px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
 table.rs-table tr:hover { background:#fafbfc; }
 .rs-sym { font-family:monospace; font-weight:700; color:#1F3864; }
 .rs-status-pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; text-transform:uppercase; }
 .rs-status-pill.reserved { background:#fef3c7; color:#92400e; }
 .rs-status-pill.active { background:#dcfce7; color:#166534; }
+.rs-status-pill.effective { background:#dcfce7; color:#166534; }
 .rs-status-pill.expired { background:#fee2e2; color:#991b1b; }
 .rs-status-pill.released { background:#e5e7eb; color:#374151; }
+.rs-status-pill.transferred { background:#dbeafe; color:#1e40af; }
+.rs-status-pill.waitlisted, .rs-status-pill.wait-listed { background:#ede9fe; color:#5b21b6; }
+.rs-status-pill.requested { background:#fef3c7; color:#92400e; }
 .rs-days { font-variant-numeric: tabular-nums; font-size:12px; }
 .rs-days.expired { color:#dc2626; font-weight:700; }
 .rs-days.soon { color:#d97706; font-weight:700; }
 .rs-days.warning { color:#a16207; }
 .rs-days.ok { color:#64748b; }
+.rs-muted { color:#cbd5e1; }
 
 .rs-admin-edit td[data-field] { cursor:pointer; position:relative; }
 .rs-admin-edit td[data-field]:hover { background:#eef2ff; outline:1px dashed #6366f1; outline-offset:-1px; }
@@ -64,7 +75,7 @@ table.rs-table tr:hover { background:#fafbfc; }
   <div class="rs-sub">
     REX's curated registry of tickers reserved with exchanges. Distinct from
     <a href="/tools/tickers" style="color:#1F3864;">CBOE Symbol Landscape</a>
-    (full 475K-ticker universe scan). Showing {{ filtered_count }} of {{ total }} total.
+    (full 475K-ticker universe scan). Type under any column header to filter; click a header to sort.
   </div>
 
   <div class="rs-kpi-row">
@@ -74,33 +85,13 @@ table.rs-table tr:hover { background:#fafbfc; }
     <div class="rs-kpi red"><div class="num">{{ n_expired }}</div><div class="label">Expired (in DB)</div></div>
   </div>
 
-  <form class="rs-filter-bar" method="get" id="rsFilterForm">
-    <label>Search</label>
-    <input type="text" name="q" value="{{ filter_q }}" placeholder="symbol or rationale..." style="min-width:200px;">
-    <label>Exchange</label>
-    <select name="exchange">
-      <option value="">All</option>
-      {% for e in exchanges %}<option value="{{ e }}" {% if filter_exchange==e %}selected{% endif %}>{{ e }}</option>{% endfor %}
-    </select>
-    <label>Suite</label>
-    <select name="suite">
-      <option value="">All</option>
-      {% for s in suites %}<option value="{{ s }}" {% if filter_suite==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
-    </select>
-    <label>Status</label>
-    <select name="status">
-      <option value="">All</option>
-      {% for s in valid_statuses %}<option value="{{ s }}" {% if filter_status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
-    </select>
-    <button type="submit" class="rs-btn rs-btn-primary">Apply</button>
-    <a href="/operations/reserved-symbols" class="rs-btn">Clear</a>
-  </form>
-
   <div class="rs-action-bar">
     {% if is_admin %}
     <button class="rs-btn rs-btn-primary" onclick="document.getElementById('rsAddForm').classList.toggle('show')">+ Add Symbol</button>
     {% endif %}
     <a href="/operations/reserved-symbols/export.csv" class="rs-btn">Export CSV</a>
+    <label class="rs-toggle"><input type="checkbox" id="rsShowReleased" onchange="rsApplyFilters()"> Show released</label>
+    <span class="rs-count" id="rsCount"></span>
     <span style="color:#94a3b8; font-size:12px; margin-left:auto;">{% if is_admin %}Admin mode — click cells to edit{% else %}Read-only · log in as admin to edit{% endif %}</span>
   </div>
 
@@ -119,26 +110,36 @@ table.rs-table tr:hover { background:#fafbfc; }
   <div class="rs-table-wrap">
     <table class="rs-table {% if is_admin %}rs-admin-edit{% endif %}" id="rsTable">
       <thead>
-        <tr>
-          <th>Exchange</th>
-          <th>Symbol</th>
-          <th>End Date</th>
-          <th>Days Left</th>
-          <th>Status</th>
-          <th>Rationale</th>
-          <th>Suite</th>
+        <tr id="rsHeadRow">
+          <th class="rs-sortable" data-col="0" data-type="text" onclick="rsSort(0)">Exchange<span class="rs-arrow"></span></th>
+          <th class="rs-sortable" data-col="1" data-type="text" onclick="rsSort(1)">Symbol<span class="rs-arrow"></span></th>
+          <th class="rs-sortable" data-col="2" data-type="date" onclick="rsSort(2)">End Date<span class="rs-arrow"></span></th>
+          <th class="rs-sortable" data-col="3" data-type="num" onclick="rsSort(3)">Days Left<span class="rs-arrow"></span></th>
+          <th class="rs-sortable" data-col="4" data-type="text" onclick="rsSort(4)">Status<span class="rs-arrow"></span></th>
+          <th class="rs-sortable" data-col="5" data-type="text" onclick="rsSort(5)">Rationale<span class="rs-arrow"></span></th>
+          <th class="rs-sortable" data-col="6" data-type="text" onclick="rsSort(6)">Suite<span class="rs-arrow"></span></th>
+          {% if is_admin %}<th></th>{% endif %}
+        </tr>
+        <tr class="rs-filter-row">
+          <th><input data-col="0" oninput="rsApplyFilters()" placeholder="filter..."></th>
+          <th><input data-col="1" oninput="rsApplyFilters()" placeholder="filter..."></th>
+          <th><input data-col="2" oninput="rsApplyFilters()" placeholder="filter..."></th>
+          <th><input data-col="3" oninput="rsApplyFilters()" placeholder="filter..."></th>
+          <th><input data-col="4" oninput="rsApplyFilters()" placeholder="filter..."></th>
+          <th><input data-col="5" oninput="rsApplyFilters()" placeholder="filter..."></th>
+          <th><input data-col="6" oninput="rsApplyFilters()" placeholder="filter..."></th>
           {% if is_admin %}<th></th>{% endif %}
         </tr>
       </thead>
-      <tbody>
+      <tbody id="rsBody">
         {% for d in rows %}
         {% set r = d.row %}
-        <tr data-row-id="{{ r.id }}">
+        <tr data-row-id="{{ r.id }}" data-status="{{ (r.status or '')|lower }}">
           <td data-field="exchange">{{ r.exchange or '' }}</td>
           <td class="rs-sym" data-field="symbol">{{ r.symbol }}</td>
-          <td data-field="end_date">{{ r.end_date.isoformat() if r.end_date else '' }}</td>
-          <td class="rs-days {{ d.urgency or '' }}">{% if d.days_left is not none %}{{ d.days_left }}d{% endif %}</td>
-          <td data-field="status"><span class="rs-status-pill {{ (r.status or '')|lower }}">{{ r.status or '' }}</span></td>
+          <td data-field="end_date" data-sort="{{ r.end_date.isoformat() if (r.end_date and r.status != 'Released') else '' }}">{% if r.status == 'Released' %}<span class="rs-muted">—</span>{% else %}{{ r.end_date.isoformat() if r.end_date else '' }}{% endif %}</td>
+          <td class="rs-days {{ d.urgency or '' }}" data-sort="{{ d.days_left if d.days_left is not none else '' }}">{% if d.days_left is not none and r.status != 'Released' %}{{ d.days_left }}d{% endif %}</td>
+          <td data-field="status"><span class="rs-status-pill {{ (r.status or '')|lower|replace(' ','-') }}">{{ r.status or '' }}</span></td>
           <td data-field="rationale" style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.rationale or '' }}</td>
           <td data-field="suite">{{ r.suite or '' }}</td>
           {% if is_admin %}
@@ -153,17 +154,58 @@ table.rs-table tr:hover { background:#fafbfc; }
 
 <div class="rs-toast" id="rsToast"></div>
 
+<script>
+// ---- Client-side filter / sort / show-hide-released (works for all users) ----
+const rsBody = document.getElementById('rsBody');
+function rsCellText(td){ return (td.getAttribute('data-sort') !== null && td.getAttribute('data-sort') !== '') ? td.getAttribute('data-sort') : td.textContent.trim(); }
+function rsApplyFilters(){
+  const filters = Array.from(document.querySelectorAll('.rs-filter-row input')).map(i => [parseInt(i.dataset.col), i.value.trim().toLowerCase()]);
+  const showReleased = document.getElementById('rsShowReleased').checked;
+  let shown = 0;
+  rsBody.querySelectorAll('tr').forEach(tr => {
+    let ok = true;
+    if (!showReleased && tr.dataset.status === 'released') ok = false;
+    if (ok) {
+      for (const [col, val] of filters) {
+        if (!val) continue;
+        const td = tr.children[col];
+        if (!td || !td.textContent.toLowerCase().includes(val)) { ok = false; break; }
+      }
+    }
+    tr.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  document.getElementById('rsCount').textContent = shown + ' shown';
+}
+let rsSortState = {col: null, dir: 1};
+function rsSort(col){
+  const th = document.querySelector('#rsHeadRow th[data-col="'+col+'"]');
+  const type = th.dataset.type;
+  rsSortState.dir = (rsSortState.col === col) ? -rsSortState.dir : 1;
+  rsSortState.col = col;
+  document.querySelectorAll('#rsHeadRow th').forEach(h => h.classList.remove('rs-sort-asc','rs-sort-desc'));
+  th.classList.add(rsSortState.dir === 1 ? 'rs-sort-asc' : 'rs-sort-desc');
+  const rows = Array.from(rsBody.querySelectorAll('tr'));
+  rows.sort((a,b) => {
+    let x = rsCellText(a.children[col]), y = rsCellText(b.children[col]);
+    if (type === 'num') { x = parseFloat(x); y = parseFloat(y); if (isNaN(x)) x = Infinity; if (isNaN(y)) y = Infinity; return (x-y)*rsSortState.dir; }
+    if (type === 'date') { x = x || '9999'; y = y || '9999'; }
+    return x.localeCompare(y) * rsSortState.dir;
+  });
+  rows.forEach(r => rsBody.appendChild(r));
+}
+rsApplyFilters();  // hide released by default on load
+</script>
+
 {% if is_admin %}
 <script>
 const RS_STATUSES = {{ valid_statuses | tojson }};
-
 function rsToast(msg, isErr) {
   const t = document.getElementById('rsToast');
   t.textContent = msg;
   t.className = 'rs-toast show' + (isErr ? ' error' : '');
   setTimeout(() => { t.className = 'rs-toast'; }, 2200);
 }
-
 document.querySelectorAll('#rsTable td[data-field]').forEach(td => {
   td.addEventListener('click', function() {
     if (td.querySelector('input, select')) return;
@@ -181,42 +223,32 @@ document.querySelectorAll('#rsTable td[data-field]').forEach(td => {
         input.appendChild(o);
       });
     } else if (field === 'end_date') {
-      input = document.createElement('input');
-      input.type = 'date';
-      input.value = original;
+      input = document.createElement('input'); input.type = 'date'; input.value = original;
     } else {
-      input = document.createElement('input');
-      input.value = original;
+      input = document.createElement('input'); input.value = original;
     }
-    td.innerHTML = '';
-    td.appendChild(input);
-    input.focus();
+    td.innerHTML = ''; td.appendChild(input); input.focus();
     if (input.select) input.select();
     function save() {
       const newVal = input.value;
-      td.textContent = newVal;  // optimistic
+      td.textContent = newVal;
       fetch(`/operations/reserved-symbols/update/${rowId}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({[field]: newVal})
       }).then(r => r.json()).then(j => {
         if (j.ok) {
           rsToast(`Saved (${field})`, false);
-          // Re-render status pill nicely
           if (field === 'status') {
-            td.innerHTML = `<span class="rs-status-pill ${newVal.toLowerCase()}">${newVal}</span>`;
+            td.innerHTML = `<span class="rs-status-pill ${newVal.toLowerCase().replace(' ','-')}">${newVal}</span>`;
+            tr.dataset.status = newVal.toLowerCase();
           }
-        } else {
-          rsToast('Save failed', true);
-          td.textContent = original;
-        }
+        } else { rsToast('Save failed', true); td.textContent = original; }
       }).catch(() => { rsToast('Save error', true); td.textContent = original; });
     }
     input.addEventListener('blur', save);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { td.textContent = original; }});
   });
 });
-
 function rsAddSubmit(form) {
   const fd = new FormData(form);
   fetch('/operations/reserved-symbols/add', { method: 'POST', body: fd })
@@ -225,7 +257,6 @@ function rsAddSubmit(form) {
       else { rsToast('Add failed', true); }
     }).catch(() => rsToast('Add error', true));
 }
-
 function rsDelete(rowId) {
   fetch(`/operations/reserved-symbols/delete/${rowId}`, { method: 'POST' })
     .then(r => r.json()).then(j => {
