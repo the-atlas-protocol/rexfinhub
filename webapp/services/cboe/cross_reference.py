@@ -225,7 +225,7 @@ def last_scan(db: Session) -> dict[str, Any] | None:
 def auth_health(db: Session) -> dict[str, Any]:
     """Inspect recent runs to surface scanner state on the page.
 
-    Returns `state` ∈ {"ok", "refreshing", "expired"} plus context fields:
+    Returns `state` ∈ {"ok", "refreshing", "expired", "blocked"} plus context:
       - last_completed_at  : most recent successful full sweep
       - failed_streak      : consecutive failed runs at the top
       - error_message      : latest run's error (when failed)
@@ -233,9 +233,12 @@ def auth_health(db: Session) -> dict[str, Any]:
       - running_started_at : when the in-flight scan kicked off (refreshing)
       - tickers_checked    : progress count for the in-flight scan
 
-    Template renders a red banner on `state=='expired'` and a blue
-    "refreshing" banner on `state=='refreshing'`. `ok` is preserved as a
-    backward-compatible boolean equivalent to `state != 'expired'`.
+    `blocked` means CBOE's Cloudflare WAF rejected the VPS egress IP at the
+    edge — distinct from `expired` (a stale cookie) because rotating the
+    cookie cannot fix an IP block. Template renders a red banner on
+    `expired`, an amber banner on `blocked`, and a blue banner on
+    `refreshing`. `ok` is a backward-compatible boolean: data is current
+    only when `state` is neither `expired` nor `blocked`.
     """
     last_completed = (
         db.query(CboeScanRun)
@@ -270,17 +273,25 @@ def auth_health(db: Session) -> dict[str, Any]:
     if last_completed_at:
         days_stale = max(0, (datetime.utcnow() - last_completed_at).days)
 
+    err_lower = (last_run.error_message or "").lower()
+    cf_blocked = (
+        last_run.status == "failed"
+        and ("cloudflare" in err_lower or "edge" in err_lower)
+    )
     auth_failed = (
         last_run.status == "failed"
         and last_run.error_message is not None
+        and not cf_blocked
         and any(
-            kw in last_run.error_message.lower()
+            kw in err_lower
             for kw in ("cookie", "auth", "redirect", "login", "401", "403", "302")
         )
     )
 
     if last_run.status == "running":
         state = "refreshing"
+    elif cf_blocked:
+        state = "blocked"
     elif auth_failed:
         state = "expired"
     else:
@@ -288,7 +299,7 @@ def auth_health(db: Session) -> dict[str, Any]:
 
     return {
         "state": state,
-        "ok": state != "expired",
+        "ok": state not in ("expired", "blocked"),
         "last_completed_at": last_completed_at,
         "failed_streak": failed_streak,
         "error_message": last_run.error_message,

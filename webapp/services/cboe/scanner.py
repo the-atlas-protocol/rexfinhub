@@ -41,6 +41,28 @@ class AuthError(Exception):
     """CBOE rejected the session cookie. Manual rotation required."""
 
 
+class CloudflareBlockError(AuthError):
+    """CBOE's Cloudflare WAF blocked the request at the edge — the VPS egress
+    IP is blocked, before any session check. Subclasses AuthError so the
+    existing run-abort handling still fires, but the message makes clear that
+    rotating CBOE_SESSION_COOKIE will NOT help."""
+
+
+_CF_BLOCK_MARKERS = (
+    "you have been blocked",
+    "attention required",
+    "cloudflare ray id",
+    "cf-error-details",
+)
+
+
+def _is_cloudflare_block(body: str | None) -> bool:
+    """True if a response body is a Cloudflare WAF *block* page rather than a
+    CBOE app response — i.e. an edge IP block, not a real auth failure."""
+    low = (body or "").lower()
+    return any(m in low for m in _CF_BLOCK_MARKERS)
+
+
 def _state_name(available: bool | None) -> str:
     if available is True:
         return "available"
@@ -86,6 +108,19 @@ class CboeScanner:
                     allow_redirects=False,
                 ) as resp:
                     if resp.status in (401, 403):
+                        body = ""
+                        if resp.status == 403:
+                            try:
+                                body = await resp.text()
+                            except Exception:  # noqa: BLE001 - body read is best-effort
+                                body = ""
+                        if _is_cloudflare_block(body):
+                            raise CloudflareBlockError(
+                                "CBOE blocked at the Cloudflare edge (HTTP 403 WAF "
+                                "block page) — the VPS egress IP is blocked. Rotating "
+                                "CBOE_SESSION_COOKIE will NOT help; route CBOE traffic "
+                                "through a non-datacenter IP or have CBOE allowlist the VPS."
+                            )
                         raise AuthError(
                             f"CBOE auth rejected (status {resp.status}); refresh CBOE_SESSION_COOKIE"
                         )
@@ -212,7 +247,10 @@ class CboeScanner:
                 last_ticker=last,
             )
             summary["elapsed_seconds"] = round(time.monotonic() - started_at, 1)
-            raise AuthError(str(auth_failure[0]))
+            # Re-raise the original — preserves CloudflareBlockError vs AuthError
+            # so callers (and the page banner) can tell an IP block from a
+            # stale cookie.
+            raise auth_failure[0]
 
         summary = await asyncio.to_thread(
             self._end_run, run_id, status="completed", last_ticker=last
