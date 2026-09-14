@@ -277,3 +277,7 @@ PJIN US,,"auto-llm-other: International core equity ETF without leverage, option
 KPO US,,"auto-llm-other: Premium Opportunities ETF suggests potential active/opportunistic strategy but no leverage, options, or defined outcome indication."
 DIVH US,,auto-llm-other: Dividend harvest ETF; name suggests dividend focus but lacks explicit options mechanics like covered calls.
 FRUT US,,"auto-llm-other: Index-based equity ETF without leverage, options, or thematic mechanics; plain equity exposure."
+GEMQ US,,"auto-llm-other: Emerging markets equity ETF using data enhancement but no leverage, options, or thematic focus."
+MFSD US,,auto-llm-other: Fixed income ETF with active short-duration strategy but no options-income or leverage mechanics.
+MFSX US,,auto-llm-other: Municipal bond fixed income ETF with no options-income strategy or leverage.
+VEEM US,,auto-llm-other: Emerging markets equity ETF using analyst sentiment factor with no leverage or options mechanics.

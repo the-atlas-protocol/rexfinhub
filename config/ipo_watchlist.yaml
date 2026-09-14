@@ -84,7 +84,7 @@ high_profile_pre_ipo:
   source: ai-source-ipo
 - company: Waymo
   valuation_usd: 45.0
-  as_of_date: '2026-09-10'
+  as_of_date: '2026-09-14'
   valuation_as_of: 2024-10
   s1_filed: false
   s1_filed_date: ''
@@ -115,7 +115,7 @@ high_profile_pre_ipo:
   s1_filed: false
   as_of_date: '2026-05-12'
 - company: Vantage Data Centers
-  as_of_date: '2026-09-10'
+  as_of_date: '2026-09-14'
   valuation_as_of: unknown
   s1_filed: false
   s1_filed_date: ''
@@ -173,7 +173,7 @@ high_profile_pre_ipo:
   as_of_date: '2026-07-06'
 - company: Viva Republica (Toss)
   valuation_usd: 7.4
-  as_of_date: '2026-09-10'
+  as_of_date: '2026-09-14'
   valuation_as_of: 2021-06
   s1_filed: false
   s1_filed_date: ''
@@ -200,12 +200,12 @@ high_profile_pre_ipo:
   source: ai-source-ipo
 - company: Whoop
   valuation_usd: 3.6
-  as_of_date: '2026-09-10'
+  as_of_date: '2026-09-14'
   valuation_as_of: 2021-08
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Health & Wearables
+  sector: Consumer Health / Wearables
   source: ai-source-ipo
 - company: Strava
   valuation_usd: 1.5
@@ -217,12 +217,12 @@ high_profile_pre_ipo:
   sector: Fitness / Consumer Tech
   source: ai-source-ipo
 - company: X-Energy
-  as_of_date: '2026-09-10'
+  as_of_date: '2026-09-14'
   valuation_as_of: unknown
   s1_filed: false
   s1_filed_date: ''
   expected_ipo_window: no timeline
-  sector: Nuclear / Energy
+  sector: Nuclear Energy
   source: ai-source-ipo
 - company: Roze Networks
   as_of_date: '2026-08-18'

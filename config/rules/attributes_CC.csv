@@ -498,3 +498,5 @@ XVAP US,AAPL,,Traditional,Single Stock
 ARKY US,,,Synthetic,Autocallable
 GEEQ US,US Equity,,Traditional,Broad Beta
 XVSP US,SPCX,,Traditional,Single Stock
+ACBH US,,METACBH,Synthetic,Autocallable
+ACBE US,,METACBE,Synthetic,Autocallable
